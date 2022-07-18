@@ -2,20 +2,29 @@
   flex: 0 !important;
 }
 
-.multi-token-edit-checkbox.common {
+.multi-token-edit-checkbox.mteCommon {
   outline: green solid 2px;
 }
 
-.multi-token-edit-checkbox.diff {
+.multi-token-edit-checkbox.mteDiff {
   outline: rgb(255, 204, 110) solid 2px;
 }
 
-.form-group.common {
+.multi-token-edit-checkbox.mteFlag {
+  outline: rgb(240, 130, 255) solid 2px;
+}
+
+.form-group.mteCommon {
   outline: green dotted 2px;
   margin-bottom: 5px;
 }
 
-.form-group.diff {
+.form-group.mteDiff {
   outline: rgb(255, 204, 110) dotted 2px;
+  margin-bottom: 5px;
+}
+
+.form-group.mteFlag {
+  outline: rgb(240, 130, 255) dotted 2px;
   margin-bottom: 5px;
 }

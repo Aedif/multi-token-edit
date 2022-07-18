@@ -13,7 +13,7 @@ export default class MultiTokenConfig extends TokenConfig {
     const commonData = flattenObject(tokens[0].data.toObject());
     for (let i = 1; i < tokens.length; i++) {
       const flatData = flattenObject(tokens[i].data.toObject());
-      const diff = diffObject(commonData, flatData);
+      const diff = flattenObject(diffObject(commonData, flatData));
       for (const k of Object.keys(diff)) {
         delete commonData[k];
       }
@@ -21,14 +21,6 @@ export default class MultiTokenConfig extends TokenConfig {
 
     this.commonData = commonData;
     this.tokens = tokens;
-  }
-
-  async getData(options) {
-    let data = await super.getData(options);
-    mergeObject(data.object, this.commonData, {
-      inplace: true,
-    });
-    return super.getData(options);
   }
 
   async activateListeners(html) {
@@ -48,23 +40,23 @@ export default class MultiTokenConfig extends TokenConfig {
       if (!$(formGroup).find('[name]').length) return;
 
       // Check if fields within this form-group are part of common data
-      let commonField = true;
+      let fieldType = 'mteCommon';
       if (commonData) {
         $(formGroup)
           .find('[name]')
           .each(function (_) {
             const name = $(this).attr('name');
-            if (!(name in commonData)) {
-              commonField = false;
+            if (name.startsWith('flags.')) {
+              fieldType = 'mteFlag';
+            } else if (!(name in commonData)) {
+              fieldType = 'mteDiff';
             }
           });
       }
 
       // Insert the checkbox
       const checkbox = $(
-        `<div class="multi-token-edit-checkbox ${
-          commonField ? 'common' : 'diff'
-        }"><input class="multi-token-edit-control" type="checkbox" data-dtype="Boolean"}></div>`
+        `<div class="multi-token-edit-checkbox ${fieldType}"><input class="multi-token-edit-control" type="checkbox" data-dtype="Boolean"}></div>`
       );
       if ($(formGroup).find('p.hint').length) {
         $(formGroup).find('p.hint').before(checkbox);
@@ -73,7 +65,7 @@ export default class MultiTokenConfig extends TokenConfig {
       }
 
       // Apply a style to the form-group
-      $(formGroup).addClass(commonField ? 'common' : 'diff');
+      $(formGroup).addClass(fieldType);
     };
 
     // Add checkboxes to each form-group to control highlighting and which fields will are to be saved
