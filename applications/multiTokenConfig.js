@@ -1,16 +1,13 @@
 export default class MultiTokenConfig extends TokenConfig {
-  constructor(tokens, options) {
+  constructor(tokens) {
     if (!tokens || tokens.length < 2) {
       throw 'Attempting to open Multi Token Edit for fewer than 2 tokens.';
     }
 
-    if (!options) options = {};
-    options.title = 'Multi-Token Edit';
-
     // To avoid any accidental changes to original token data create a temporary token
     // using the data of the first token in the list. TokenConfig will be opened using it
     const tempToken = new TokenDocument(tokens[0].data, {});
-    super(tempToken, options);
+    super(tempToken, {});
 
     // Merge all token data and determine what is common between all tokens
     const commonData = flattenObject(tokens[0].data.toObject());
@@ -41,7 +38,8 @@ export default class MultiTokenConfig extends TokenConfig {
     $(html).find('.assign-token').remove();
 
     // On any field being changed we want to automatically select the form-group to be included in the update
-    $(html).on('change', 'input, select', this._onInputChange.bind(this));
+    $(html).on('change', 'input, select', this._onInputChange);
+    $(html).on('click', 'button', this._onInputChange);
 
     // Attach classes and controls to all relevant form-groups
     const commonData = this.commonData;
@@ -124,10 +122,6 @@ export default class MultiTokenConfig extends TokenConfig {
       .prop('checked', true);
   }
 
-  get id() {
-    return `multi-token-edit-config-${this.object.id}`;
-  }
-
   async _updateObject(event, formData) {
     // Gather up all named fields that have multi-token-edit-checkbox checked
     const fieldsToSave = {};
@@ -154,5 +148,13 @@ export default class MultiTokenConfig extends TokenConfig {
       updates.push(update);
     }
     canvas.scene.updateEmbeddedDocuments('Token', updates);
+  }
+
+  get id() {
+    return `multi-token-edit-config-${this.object.id}`;
+  }
+
+  get title() {
+    return `Multi-Token Edit [ ${this.tokens.length} ]`;
   }
 }
