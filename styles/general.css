@@ -1,0 +1,21 @@
+.multi-token-edit-checkbox {
+  flex: 0 !important;
+}
+
+.multi-token-edit-checkbox.common {
+  outline: green solid 2px;
+}
+
+.multi-token-edit-checkbox.diff {
+  outline: rgb(255, 204, 110) solid 2px;
+}
+
+.form-group.common {
+  outline: green dotted 2px;
+  margin-bottom: 5px;
+}
+
+.form-group.diff {
+  outline: rgb(255, 204, 110) dotted 2px;
+  margin-bottom: 5px;
+}

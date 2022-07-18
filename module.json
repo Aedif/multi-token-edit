@@ -1,0 +1,17 @@
+{
+  "name": "multi-token-edit",
+  "title": "Multi-Token Edit",
+  "description": "Edit multiple tokens at a time.",
+  "version": "1.0.0",
+  "author": "Aedif",
+  "authors": [
+    {
+      "name": "Aedif",
+      "discord": "Aedif#7268"
+    }
+  ],
+  "minimumCoreVersion": "9",
+  "compatibleCoreVersion": "9",
+  "esmodules": ["multi-token-edit.mjs"],
+  "styles": ["styles/general.css"]
+}
