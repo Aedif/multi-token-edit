@@ -8,7 +8,7 @@ Select the tokens you wish to edit and press '**Shift+E**' _(This key binding ca
 
 You will be presented with the following modified 'Token Configuration' window:
 
-![image](https://user-images.githubusercontent.com/7693704/179489728-bad534bd-573c-4eee-9c97-dcc1be76dbdf.png)
+![image](https://user-images.githubusercontent.com/7693704/179508321-71425fb5-7ac2-4ab0-8c1c-b92bbe586b8d.png)
 
 Common data shared between all tokens will be highlighted as green and the rest as orange. The newly added checkboxes to the right indicate which fields will be saved on Apply.
 
