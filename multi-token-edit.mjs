@@ -1,5 +1,4 @@
 import { showMultiConfig } from './applications/multiConfig.js';
-import MultiTokenConfig from './applications/multiTokenConfig.js';
 
 // Initialize module
 Hooks.once('init', () => {

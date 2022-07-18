@@ -1,18 +1,21 @@
-export function showMultiConfig() {
-  let controlled = [];
-
-  if (canvas.tokens.controlled.length) {
-    controlled = canvas.tokens.controlled;
-  } else if (canvas.background.controlled.length || canvas.foreground.controlled.length) {
-    controlled = canvas.background.controlled.concat(canvas.foreground.controlled);
-  } else if (canvas.drawings.controlled.length) {
-    controlled = canvas.drawings.controlled;
+function getControlled() {
+  for (const [name, layers] of Object.entries(LAYER_MAPPINGS)) {
+    for (const layer of layers) {
+      if (canvas[layer].controlled.length) {
+        return canvas[layer].controlled;
+      }
+    }
   }
+  return [];
+}
+
+export function showMultiConfig() {
+  const controlled = getControlled();
 
   // If there are no placeable in control or simply one, then either exit or display the default config window
   if (!controlled.length) return;
   else if (controlled.length === 1) {
-    controlled[0].sheet.render(true);
+    if (controlled[0].sheet) controlled[0].sheet.render(true, {});
     return;
   }
 
@@ -26,17 +29,9 @@ export function showMultiConfig() {
     }
   }
 
-  // Open up an appropriate configuration app
-  switch (controlled[0].document.documentName) {
-    case 'Token':
-      new MultiTokenConfig(controlled, commonData).render(true);
-      break;
-    case 'Tile':
-      new MultiTileConfig(controlled, commonData).render(true);
-      break;
-    case 'Drawing':
-      new MultiDrawingConfig(controlled, commonData).render(true);
-      break;
+  const config = CONFIG_MAPPINGS[controlled[0].document.documentName];
+  if (config) {
+    new config(controlled, commonData).render(true, {});
   }
 }
 
@@ -54,10 +49,59 @@ class MultiTokenConfig extends TokenConfig {
   async activateListeners(html) {
     await super.activateListeners(html);
     modifySheet(html, this.commonData);
+    this.setPosition(); // Resizes the window
+  }
 
-    // Pre-select 'appearance' tab
-    $(html).find('.tabs > .item[data-tab="appearance"] > i').trigger('click');
-    document.activeElement.blur(); // Hack fix for key UP/DOWN effects not registering after config has been opened
+  async _updateObject(event, formData) {
+    updateObject(event, formData, this.documentsToUpdate);
+  }
+
+  get id() {
+    return `multi-token-edit-config-${this.object.id}`;
+  }
+
+  get title() {
+    return `Multi-${this.documentsToUpdate[0].document.documentName} Edit [ ${this.documentsToUpdate.length} ]`;
+  }
+}
+
+class MultiAmbientLightConfig extends AmbientLightConfig {
+  constructor(placeables, commonData) {
+    super(placeables[0].document, {});
+    this.commonData = commonData;
+    this.documentsToUpdate = placeables;
+  }
+
+  async activateListeners(html) {
+    await super.activateListeners(html);
+    modifySheet(html, this.commonData);
+    this.setPosition(); // Resizes the window
+  }
+
+  async _updateObject(event, formData) {
+    updateObject(event, formData, this.documentsToUpdate);
+  }
+
+  get id() {
+    return `multi-token-edit-config-${this.object.id}`;
+  }
+
+  get title() {
+    return `Multi-${this.documentsToUpdate[0].document.documentName} Edit [ ${this.documentsToUpdate.length} ]`;
+  }
+}
+
+class MultiWallConfig extends WallConfig {
+  constructor(placeables, commonData) {
+    super(placeables[0].document, {});
+    this.commonData = commonData;
+    this.documentsToUpdate = placeables;
+  }
+
+  async activateListeners(html) {
+    await super.activateListeners(html);
+    modifySheet(html, this.commonData);
+    this.setPosition(); // Resizes the window
   }
 
   async _updateObject(event, formData) {
@@ -83,10 +127,7 @@ class MultiTileConfig extends TileConfig {
   async activateListeners(html) {
     await super.activateListeners(html);
     modifySheet(html, this.commonData);
-
-    // Pre-select 'overhead' tab
-    $(html).find('.tabs > .item[data-tab="overhead"] > i').trigger('click');
-    document.activeElement.blur(); // Hack fix for key UP/DOWN effects not registering after config has been opened
+    this.setPosition(); // Resizes the window
   }
 
   async _updateObject(event, formData) {
@@ -112,10 +153,85 @@ class MultiDrawingConfig extends DrawingConfig {
   async activateListeners(html) {
     await super.activateListeners(html);
     modifySheet(html, this.commonData);
+    this.setPosition(); // Resizes the window
+  }
 
-    // Pre-select 'lines' tab
-    $(html).find('.tabs > .item[data-tab="lines"] > i').trigger('click');
-    document.activeElement.blur(); // Hack fix for key UP/DOWN effects not registering after config has been opened
+  async _updateObject(event, formData) {
+    updateObject(event, formData, this.documentsToUpdate);
+  }
+
+  get id() {
+    return `multi-token-edit-config-${this.object.id}`;
+  }
+
+  get title() {
+    return `Multi-${this.documentsToUpdate[0].document.documentName} Edit [ ${this.documentsToUpdate.length} ]`;
+  }
+}
+
+class MultiMeasuredTemplateConfig extends MeasuredTemplateConfig {
+  constructor(placeables, commonData) {
+    super(placeables[0].document, {});
+    this.commonData = commonData;
+    this.documentsToUpdate = placeables;
+  }
+
+  async activateListeners(html) {
+    await super.activateListeners(html);
+    modifySheet(html, this.commonData);
+    this.setPosition(); // Resizes the window
+  }
+
+  async _updateObject(event, formData) {
+    updateObject(event, formData, this.documentsToUpdate);
+  }
+
+  get id() {
+    return `multi-token-edit-config-${this.object.id}`;
+  }
+
+  get title() {
+    return `Multi-${this.documentsToUpdate[0].document.documentName} Edit [ ${this.documentsToUpdate.length} ]`;
+  }
+}
+
+class MultiAmbientSoundConfig extends AmbientSoundConfig {
+  constructor(placeables, commonData) {
+    super(placeables[0].document, {});
+    this.commonData = commonData;
+    this.documentsToUpdate = placeables;
+  }
+
+  async activateListeners(html) {
+    await super.activateListeners(html);
+    modifySheet(html, this.commonData);
+    this.setPosition(); // Resizes the window
+  }
+
+  async _updateObject(event, formData) {
+    updateObject(event, formData, this.documentsToUpdate);
+  }
+
+  get id() {
+    return `multi-token-edit-config-${this.object.id}`;
+  }
+
+  get title() {
+    return `Multi-${this.documentsToUpdate[0].document.documentName} Edit [ ${this.documentsToUpdate.length} ]`;
+  }
+}
+
+class MultiNoteConfig extends NoteConfig {
+  constructor(placeables, commonData) {
+    super(placeables[0].document, {});
+    this.commonData = commonData;
+    this.documentsToUpdate = placeables;
+  }
+
+  async activateListeners(html) {
+    await super.activateListeners(html);
+    modifySheet(html, this.commonData);
+    this.setPosition(); // Resizes the window
   }
 
   async _updateObject(event, formData) {
@@ -184,9 +300,18 @@ function modifySheet(html, commonData) {
 
   // Remove all buttons in the footer and replace with 'Apply Changes' button
   $(html).find('.sheet-footer > button').remove();
-  $(html)
-    .find('.sheet-footer')
-    .append('<button type="submit" value="1"><i class="far fa-save"></i> Apply Changes</button>');
+
+  // Special handling for walls
+  $(html).find('button[type="submit"]').remove();
+
+  const applyButton =
+    '<button type="submit" value="1"><i class="far fa-save"></i> Apply Changes</button>';
+  const footer = $(html).find('.sheet-footer');
+  if (footer.length) {
+    footer.append(applyButton);
+  } else {
+    $(html).closest('form').append(applyButton);
+  }
 
   // TokenConfig might be changed by some modules after activateListeners is processed
   // Look out for these updates and add checkboxes for any newly added form-groups
@@ -246,3 +371,25 @@ async function onInputChange(event) {
     .find('.multi-token-edit-checkbox input')
     .prop('checked', true);
 }
+
+const CONFIG_MAPPINGS = {
+  Token: MultiTokenConfig,
+  Tile: MultiTileConfig,
+  Drawing: MultiDrawingConfig,
+  Wall: MultiWallConfig,
+  AmbientLight: MultiAmbientLightConfig,
+  AmbientSound: MultiAmbientSoundConfig,
+  MeasuredTemplate: MultiMeasuredTemplateConfig,
+  Note: MultiNoteConfig,
+};
+
+const LAYER_MAPPINGS = {
+  Token: ['tokens'],
+  Tile: ['background', 'foreground'],
+  Drawing: ['drawings'],
+  Wall: ['walls'],
+  AmbientLight: ['lighting'],
+  AmbientSound: ['sounds'],
+  MeasuredTemplate: ['templates'],
+  Note: ['notes'],
+};
