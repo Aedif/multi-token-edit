@@ -11,7 +11,7 @@
 }
 
 .multi-token-edit-checkbox.mteFlag {
-  outline: rgb(240, 130, 255) solid 2px;
+  outline: rgb(246, 175, 255) solid 2px;
 }
 
 .form-group.mteCommon {
@@ -25,6 +25,6 @@
 }
 
 .form-group.mteFlag {
-  outline: rgb(240, 130, 255) dotted 2px;
+  outline: rgb(246, 175, 255) dotted 2px;
   margin-bottom: 5px;
 }
