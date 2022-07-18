@@ -3,6 +3,9 @@
   "title": "Multi-Token Edit",
   "description": "Edit multiple tokens at a time.",
   "version": "1.0.0",
+  "download": "https://github.com/Aedif/multi-token-edit/releases/download/1.0.0/multi-token-edit.zip",
+  "url": "https://github.com/Aedif/multi-token-edit",
+  "manifest": "https://github.com/Aedif/multi-token-edit/releases/latest/download/module.json",
   "author": "Aedif",
   "authors": [
     {
