@@ -23,7 +23,7 @@ Hooks.once('init', () => {
     hint: 'When pressed will open a Configuration window where you will be able to choose fields using which the module will search and select placeables on the current scene.',
     editable: [
       {
-        key: 'KeyS',
+        key: 'KeyF',
         modifiers: ['Shift'],
       },
     ],

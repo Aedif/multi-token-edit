@@ -12,7 +12,6 @@ export function getControlled() {
 export function showMultiSelect(placeableSearchBase = null) {
   const controlled = placeableSearchBase ? [placeableSearchBase] : getControlled();
 
-  let placeable;
   if (!controlled.length) {
     let content = '';
     for (const key of Object.keys(CONFIG_MAPPINGS)) {
@@ -22,7 +21,7 @@ export function showMultiSelect(placeableSearchBase = null) {
     <select style="width: 100%;" name="documentName">${content}</select>`;
 
     new Dialog({
-      title: 'Multi-Placeable SELECT',
+      title: 'Multi-Placeable SEARCH',
       content: content,
       buttons: {
         select: {
@@ -46,13 +45,12 @@ export function showMultiSelect(placeableSearchBase = null) {
       },
     }).render(true);
     return;
-  } else placeable = controlled[0];
+  }
 
-  const commonData = flattenObject(placeable.data.toObject());
-
-  const config = CONFIG_MAPPINGS[placeable.document.documentName];
+  const commonData = flattenObject(controlled[0].data.toObject());
+  const config = CONFIG_MAPPINGS[controlled[0].document.documentName];
   if (config) {
-    new config([placeable], commonData).render(true, {});
+    new config([controlled[0]], commonData).render(true, {});
   }
 }
 
@@ -117,9 +115,9 @@ class MultiTokenConfig extends TokenConfig {
 
   get title() {
     if (this.placeables.length === 1) {
-      return `Multi-${this.placeables[0].document.documentName} SELECT`;
+      return `Multi-${this.placeables[0].document.documentName} SEARCH`;
     }
-    return `Multi-${this.placeables[0].document.documentName} Edit [ ${this.placeables.length} ]`;
+    return `Multi-${this.placeables[0].document.documentName} EDIT [ ${this.placeables.length} ]`;
   }
 }
 
@@ -143,6 +141,11 @@ class MultiAmbientLightConfig extends AmbientLightConfig {
   /** @inheritdoc */
   async _onChangeInput(event) {
     // Overriding here to prevent the underlying object from being updated as inputs change on the form
+
+    // // Handle form element updates
+    const el = event.target;
+    if (el.type === 'color' && el.dataset.edit) this._onChangeColorPicker(event);
+    else if (el.type === 'range') this._onChangeRange(event);
   }
 
   get id() {
@@ -154,9 +157,9 @@ class MultiAmbientLightConfig extends AmbientLightConfig {
 
   get title() {
     if (this.placeables.length === 1) {
-      return `Multi-${this.placeables[0].document.documentName} SELECT`;
+      return `Multi-${this.placeables[0].document.documentName} SEARCH`;
     }
-    return `Multi-${this.placeables[0].document.documentName} Edit [ ${this.placeables.length} ]`;
+    return `Multi-${this.placeables[0].document.documentName} EDIT [ ${this.placeables.length} ]`;
   }
 }
 
@@ -186,9 +189,9 @@ class MultiWallConfig extends WallConfig {
 
   get title() {
     if (this.placeables.length === 1) {
-      return `Multi-${this.placeables[0].document.documentName} SELECT`;
+      return `Multi-${this.placeables[0].document.documentName} SEARCH`;
     }
-    return `Multi-${this.placeables[0].document.documentName} Edit [ ${this.placeables.length} ]`;
+    return `Multi-${this.placeables[0].document.documentName} EDIT [ ${this.placeables.length} ]`;
   }
 }
 
@@ -209,6 +212,16 @@ class MultiTileConfig extends TileConfig {
     updateObject(event, formData, this.placeables);
   }
 
+  /** @inheritdoc */
+  async _onChangeInput(event) {
+    // Overriding here to prevent the underlying object from being updated as inputs change on the form
+
+    // // Handle form element updates
+    const el = event.target;
+    if (el.type === 'color' && el.dataset.edit) this._onChangeColorPicker(event);
+    else if (el.type === 'range') this._onChangeRange(event);
+  }
+
   get id() {
     if (this.placeables.length === 1) {
       return `multi-token-select-config-${this.object.id}`;
@@ -218,9 +231,9 @@ class MultiTileConfig extends TileConfig {
 
   get title() {
     if (this.placeables.length === 1) {
-      return `Multi-${this.placeables[0].document.documentName} SELECT`;
+      return `Multi-${this.placeables[0].document.documentName} SEARCH`;
     }
-    return `Multi-${this.placeables[0].document.documentName} Edit [ ${this.placeables.length} ]`;
+    return `Multi-${this.placeables[0].document.documentName} EDIT [ ${this.placeables.length} ]`;
   }
 }
 
@@ -250,9 +263,9 @@ class MultiDrawingConfig extends DrawingConfig {
 
   get title() {
     if (this.placeables.length === 1) {
-      return `Multi-${this.placeables[0].document.documentName} SELECT`;
+      return `Multi-${this.placeables[0].document.documentName} SEARCH`;
     }
-    return `Multi-${this.placeables[0].document.documentName} Edit [ ${this.placeables.length} ]`;
+    return `Multi-${this.placeables[0].document.documentName} EDIT [ ${this.placeables.length} ]`;
   }
 }
 
@@ -282,9 +295,9 @@ class MultiMeasuredTemplateConfig extends MeasuredTemplateConfig {
 
   get title() {
     if (this.placeables.length === 1) {
-      return `Multi-${this.placeables[0].document.documentName} SELECT`;
+      return `Multi-${this.placeables[0].document.documentName} SEARCH`;
     }
-    return `Multi-${this.placeables[0].document.documentName} Edit [ ${this.placeables.length} ]`;
+    return `Multi-${this.placeables[0].document.documentName} EDIT [ ${this.placeables.length} ]`;
   }
 }
 
@@ -314,9 +327,9 @@ class MultiAmbientSoundConfig extends AmbientSoundConfig {
 
   get title() {
     if (this.placeables.length === 1) {
-      return `Multi-${this.placeables[0].document.documentName} SELECT`;
+      return `Multi-${this.placeables[0].document.documentName} SEARCH`;
     }
-    return `Multi-${this.placeables[0].document.documentName} Edit [ ${this.placeables.length} ]`;
+    return `Multi-${this.placeables[0].document.documentName} EDIT [ ${this.placeables.length} ]`;
   }
 }
 
@@ -346,9 +359,9 @@ class MultiNoteConfig extends NoteConfig {
 
   get title() {
     if (this.placeables.length === 1) {
-      return `Multi-${this.placeables[0].document.documentName} SELECT`;
+      return `Multi-${this.placeables[0].document.documentName} SEARCH`;
     }
-    return `Multi-${this.placeables[0].document.documentName} Edit [ ${this.placeables.length} ]`;
+    return `Multi-${this.placeables[0].document.documentName} EDIT [ ${this.placeables.length} ]`;
   }
 }
 
@@ -462,6 +475,27 @@ async function updateObject(event, formData, placeables) {
     }
   });
 
+  // Flags are stored inconsistently. Absence of a flag, being set to null, undefined, empty object or empty string
+  // should all be considered equal
+  const flagCompare = function (data, flag, flagVal) {
+    if (data[flag] == flagVal) return true;
+
+    const falseyFlagVal =
+      flagVal == null ||
+      flagVal === false ||
+      flagVal === '' ||
+      (getType(flagVal) === 'Object' && isObjectEmpty(flagVal));
+    const falseyDataVal =
+      data[flag] == null ||
+      data[flag] === false ||
+      data[flag] === '' ||
+      (getType(data[flag]) === 'Object' && isObjectEmpty(data[flag]));
+
+    if (falseyFlagVal && falseyDataVal) return true;
+
+    return false;
+  };
+
   // If there is only one placeable, it means we're in placeable select mode, otherwise we're in edit mode
   if (placeables.length === 1) {
     const found = [];
@@ -476,8 +510,14 @@ async function updateObject(event, formData, placeables) {
         let matches = true;
         const data = flattenObject(c.data.toObject());
         for (const [k, v] of Object.entries(selectedFields)) {
-          // Special handling for empty strings and undefined
-          if ((v === '' || v == null) && (data[k] !== '' || data[k] != null)) {
+          // Special handling for flags
+          if (k.startsWith('flags.')) {
+            if (!flagCompare(data, k, v)) {
+              matches = false;
+              break;
+            }
+            // Special handling for empty strings and undefined
+          } else if ((v === '' || v == null) && (data[k] !== '' || data[k] != null)) {
             // matches
           } else if (data[k] != v) {
             matches = false;
