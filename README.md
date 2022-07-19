@@ -12,7 +12,7 @@ Select the placeables you wish to edit and press '**Shift+E**' _(This key bindin
 
 You will be presented with the following modified 'Configuration' window:
 
-![image](https://user-images.githubusercontent.com/7693704/179508321-71425fb5-7ac2-4ab0-8c1c-b92bbe586b8d.png)
+![image](https://user-images.githubusercontent.com/7693704/179863478-b651523d-d669-4821-8dc4-cf17ca9c87eb.png)
 
 Common data shared between all objects will be highlighted as green, differing data as orange, and flags as purple. The newly added checkboxes to the right indicate which fields will be saved on Apply.
 
