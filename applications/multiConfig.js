@@ -140,6 +140,11 @@ class MultiAmbientLightConfig extends AmbientLightConfig {
     updateObject(event, formData, this.placeables);
   }
 
+  /** @inheritdoc */
+  async _onChangeInput(event) {
+    // Overriding here to prevent the underlying object from being updated as inputs change on the form
+  }
+
   get id() {
     if (this.placeables.length === 1) {
       return `multi-token-select-config-${this.object.id}`;
