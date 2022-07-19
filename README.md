@@ -20,6 +20,7 @@ In addition to the this key-binding Token and Tile HUDs will contain a new butto
 
 An alternative to selecting the placeables manually is to press '**Shift+F**' (Can also be changed in 'Configure Controls') to open a configuration window which will now allow you to perform scene wide searches using the selected fields.
 
-Take a look at the video below to get a better idea of the module can be used:
+Take a look at the video below to get a better idea of how the module can be used:
 
-https://user-images.githubusercontent.com/7693704/179491881-a92805c3-7a47-4f20-b892-cf3d4c1bc75c.mp4
+https://user-images.githubusercontent.com/7693704/179762435-e0f11294-35ed-4cd2-bb88-30d440a3a990.mp4
+
