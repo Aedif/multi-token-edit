@@ -1,5 +1,5 @@
-function getControlled() {
-  for (const [name, layers] of Object.entries(LAYER_MAPPINGS)) {
+export function getControlled() {
+  for (const layers of Object.values(LAYER_MAPPINGS)) {
     for (const layer of layers) {
       if (canvas[layer].controlled.length) {
         return canvas[layer].controlled;
@@ -9,8 +9,55 @@ function getControlled() {
   return [];
 }
 
-export function showMultiConfig() {
-  const controlled = getControlled();
+export function showMultiSelect(placeableSearchBase = null) {
+  const controlled = placeableSearchBase ? [placeableSearchBase] : getControlled();
+
+  let placeable;
+  if (!controlled.length) {
+    let content = '';
+    for (const key of Object.keys(CONFIG_MAPPINGS)) {
+      content += `<option value="${key}">${key}</option>`;
+    }
+    content = `<label>Choose placeable type you wish to search and select:</label>
+    <select style="width: 100%;" name="documentName">${content}</select>`;
+
+    new Dialog({
+      title: 'Multi-Placeable SELECT',
+      content: content,
+      buttons: {
+        select: {
+          icon: '<i class="fas fa-check"></i>',
+          label: 'Select',
+          callback: (html) => {
+            const documentName = html.find("select[name='documentName']").val();
+            let placeables = [];
+            for (const layer of LAYER_MAPPINGS[documentName]) {
+              if (canvas[layer].placeables.length) {
+                placeables = canvas[layer].placeables;
+              }
+            }
+            if (placeables.length) {
+              showMultiSelect(placeables[0]);
+            } else {
+              ui.notifications.warn(`No placeables found for the selected type. (${documentName})`);
+            }
+          },
+        },
+      },
+    }).render(true);
+    return;
+  } else placeable = controlled[0];
+
+  const commonData = flattenObject(placeable.data.toObject());
+
+  const config = CONFIG_MAPPINGS[placeable.document.documentName];
+  if (config) {
+    new config([placeable], commonData).render(true, {});
+  }
+}
+
+export function showMultiConfig(selected = null) {
+  const controlled = selected ? selected : getControlled();
 
   // If there are no placeable in control or simply one, then either exit or display the default config window
   if (!controlled.length) return;
@@ -25,7 +72,12 @@ export function showMultiConfig() {
     const flatData = flattenObject(controlled[i].data.toObject());
     const diff = flattenObject(diffObject(commonData, flatData));
     for (const k of Object.keys(diff)) {
-      delete commonData[k];
+      // Special handling for empty/undefined data
+      if ((diff[k] === '' || diff[k] == null) && (commonData[k] === '' || commonData[k] == null)) {
+        // matches, do not remove
+      } else {
+        delete commonData[k];
+      }
     }
   }
 
@@ -43,25 +95,31 @@ class MultiTokenConfig extends TokenConfig {
   constructor(placeables, commonData) {
     super(placeables[0].document, {});
     this.commonData = commonData;
-    this.documentsToUpdate = placeables;
+    this.placeables = placeables;
   }
 
   async activateListeners(html) {
     await super.activateListeners(html);
-    modifySheet(html, this.commonData);
+    modifySheet(html, this.commonData, this.placeables.length === 1);
     this.setPosition(); // Resizes the window
   }
 
   async _updateObject(event, formData) {
-    updateObject(event, formData, this.documentsToUpdate);
+    updateObject(event, formData, this.placeables);
   }
 
   get id() {
+    if (this.placeables.length === 1) {
+      return `multi-token-select-config-${this.object.id}`;
+    }
     return `multi-token-edit-config-${this.object.id}`;
   }
 
   get title() {
-    return `Multi-${this.documentsToUpdate[0].document.documentName} Edit [ ${this.documentsToUpdate.length} ]`;
+    if (this.placeables.length === 1) {
+      return `Multi-${this.placeables[0].document.documentName} SELECT`;
+    }
+    return `Multi-${this.placeables[0].document.documentName} Edit [ ${this.placeables.length} ]`;
   }
 }
 
@@ -69,25 +127,31 @@ class MultiAmbientLightConfig extends AmbientLightConfig {
   constructor(placeables, commonData) {
     super(placeables[0].document, {});
     this.commonData = commonData;
-    this.documentsToUpdate = placeables;
+    this.placeables = placeables;
   }
 
   async activateListeners(html) {
     await super.activateListeners(html);
-    modifySheet(html, this.commonData);
+    modifySheet(html, this.commonData, this.placeables.length === 1);
     this.setPosition(); // Resizes the window
   }
 
   async _updateObject(event, formData) {
-    updateObject(event, formData, this.documentsToUpdate);
+    updateObject(event, formData, this.placeables);
   }
 
   get id() {
+    if (this.placeables.length === 1) {
+      return `multi-token-select-config-${this.object.id}`;
+    }
     return `multi-token-edit-config-${this.object.id}`;
   }
 
   get title() {
-    return `Multi-${this.documentsToUpdate[0].document.documentName} Edit [ ${this.documentsToUpdate.length} ]`;
+    if (this.placeables.length === 1) {
+      return `Multi-${this.placeables[0].document.documentName} SELECT`;
+    }
+    return `Multi-${this.placeables[0].document.documentName} Edit [ ${this.placeables.length} ]`;
   }
 }
 
@@ -95,25 +159,31 @@ class MultiWallConfig extends WallConfig {
   constructor(placeables, commonData) {
     super(placeables[0].document, {});
     this.commonData = commonData;
-    this.documentsToUpdate = placeables;
+    this.placeables = placeables;
   }
 
   async activateListeners(html) {
     await super.activateListeners(html);
-    modifySheet(html, this.commonData);
+    modifySheet(html, this.commonData, this.placeables.length === 1);
     this.setPosition(); // Resizes the window
   }
 
   async _updateObject(event, formData) {
-    updateObject(event, formData, this.documentsToUpdate);
+    updateObject(event, formData, this.placeables);
   }
 
   get id() {
+    if (this.placeables.length === 1) {
+      return `multi-token-select-config-${this.object.id}`;
+    }
     return `multi-token-edit-config-${this.object.id}`;
   }
 
   get title() {
-    return `Multi-${this.documentsToUpdate[0].document.documentName} Edit [ ${this.documentsToUpdate.length} ]`;
+    if (this.placeables.length === 1) {
+      return `Multi-${this.placeables[0].document.documentName} SELECT`;
+    }
+    return `Multi-${this.placeables[0].document.documentName} Edit [ ${this.placeables.length} ]`;
   }
 }
 
@@ -121,25 +191,31 @@ class MultiTileConfig extends TileConfig {
   constructor(placeables, commonData) {
     super(placeables[0].document, {});
     this.commonData = commonData;
-    this.documentsToUpdate = placeables;
+    this.placeables = placeables;
   }
 
   async activateListeners(html) {
     await super.activateListeners(html);
-    modifySheet(html, this.commonData);
+    modifySheet(html, this.commonData, this.placeables.length === 1);
     this.setPosition(); // Resizes the window
   }
 
   async _updateObject(event, formData) {
-    updateObject(event, formData, this.documentsToUpdate);
+    updateObject(event, formData, this.placeables);
   }
 
   get id() {
+    if (this.placeables.length === 1) {
+      return `multi-token-select-config-${this.object.id}`;
+    }
     return `multi-token-edit-config-${this.object.id}`;
   }
 
   get title() {
-    return `Multi-${this.documentsToUpdate[0].document.documentName} Edit [ ${this.documentsToUpdate.length} ]`;
+    if (this.placeables.length === 1) {
+      return `Multi-${this.placeables[0].document.documentName} SELECT`;
+    }
+    return `Multi-${this.placeables[0].document.documentName} Edit [ ${this.placeables.length} ]`;
   }
 }
 
@@ -147,25 +223,31 @@ class MultiDrawingConfig extends DrawingConfig {
   constructor(placeables, commonData) {
     super(placeables[0].document, {});
     this.commonData = commonData;
-    this.documentsToUpdate = placeables;
+    this.placeables = placeables;
   }
 
   async activateListeners(html) {
     await super.activateListeners(html);
-    modifySheet(html, this.commonData);
+    modifySheet(html, this.commonData, this.placeables.length === 1);
     this.setPosition(); // Resizes the window
   }
 
   async _updateObject(event, formData) {
-    updateObject(event, formData, this.documentsToUpdate);
+    updateObject(event, formData, this.placeables);
   }
 
   get id() {
+    if (this.placeables.length === 1) {
+      return `multi-token-select-config-${this.object.id}`;
+    }
     return `multi-token-edit-config-${this.object.id}`;
   }
 
   get title() {
-    return `Multi-${this.documentsToUpdate[0].document.documentName} Edit [ ${this.documentsToUpdate.length} ]`;
+    if (this.placeables.length === 1) {
+      return `Multi-${this.placeables[0].document.documentName} SELECT`;
+    }
+    return `Multi-${this.placeables[0].document.documentName} Edit [ ${this.placeables.length} ]`;
   }
 }
 
@@ -173,25 +255,31 @@ class MultiMeasuredTemplateConfig extends MeasuredTemplateConfig {
   constructor(placeables, commonData) {
     super(placeables[0].document, {});
     this.commonData = commonData;
-    this.documentsToUpdate = placeables;
+    this.placeables = placeables;
   }
 
   async activateListeners(html) {
     await super.activateListeners(html);
-    modifySheet(html, this.commonData);
+    modifySheet(html, this.commonData, this.placeables.length === 1);
     this.setPosition(); // Resizes the window
   }
 
   async _updateObject(event, formData) {
-    updateObject(event, formData, this.documentsToUpdate);
+    updateObject(event, formData, this.placeables);
   }
 
   get id() {
+    if (this.placeables.length === 1) {
+      return `multi-token-select-config-${this.object.id}`;
+    }
     return `multi-token-edit-config-${this.object.id}`;
   }
 
   get title() {
-    return `Multi-${this.documentsToUpdate[0].document.documentName} Edit [ ${this.documentsToUpdate.length} ]`;
+    if (this.placeables.length === 1) {
+      return `Multi-${this.placeables[0].document.documentName} SELECT`;
+    }
+    return `Multi-${this.placeables[0].document.documentName} Edit [ ${this.placeables.length} ]`;
   }
 }
 
@@ -199,25 +287,31 @@ class MultiAmbientSoundConfig extends AmbientSoundConfig {
   constructor(placeables, commonData) {
     super(placeables[0].document, {});
     this.commonData = commonData;
-    this.documentsToUpdate = placeables;
+    this.placeables = placeables;
   }
 
   async activateListeners(html) {
     await super.activateListeners(html);
-    modifySheet(html, this.commonData);
+    modifySheet(html, this.commonData, this.placeables.length === 1);
     this.setPosition(); // Resizes the window
   }
 
   async _updateObject(event, formData) {
-    updateObject(event, formData, this.documentsToUpdate);
+    updateObject(event, formData, this.placeables);
   }
 
   get id() {
+    if (this.placeables.length === 1) {
+      return `multi-token-select-config-${this.object.id}`;
+    }
     return `multi-token-edit-config-${this.object.id}`;
   }
 
   get title() {
-    return `Multi-${this.documentsToUpdate[0].document.documentName} Edit [ ${this.documentsToUpdate.length} ]`;
+    if (this.placeables.length === 1) {
+      return `Multi-${this.placeables[0].document.documentName} SELECT`;
+    }
+    return `Multi-${this.placeables[0].document.documentName} Edit [ ${this.placeables.length} ]`;
   }
 }
 
@@ -225,25 +319,31 @@ class MultiNoteConfig extends NoteConfig {
   constructor(placeables, commonData) {
     super(placeables[0].document, {});
     this.commonData = commonData;
-    this.documentsToUpdate = placeables;
+    this.placeables = placeables;
   }
 
   async activateListeners(html) {
     await super.activateListeners(html);
-    modifySheet(html, this.commonData);
+    modifySheet(html, this.commonData, this.placeables.length === 1);
     this.setPosition(); // Resizes the window
   }
 
   async _updateObject(event, formData) {
-    updateObject(event, formData, this.documentsToUpdate);
+    updateObject(event, formData, this.placeables);
   }
 
   get id() {
+    if (this.placeables.length === 1) {
+      return `multi-token-select-config-${this.object.id}`;
+    }
     return `multi-token-edit-config-${this.object.id}`;
   }
 
   get title() {
-    return `Multi-${this.documentsToUpdate[0].document.documentName} Edit [ ${this.documentsToUpdate.length} ]`;
+    if (this.placeables.length === 1) {
+      return `Multi-${this.placeables[0].document.documentName} SELECT`;
+    }
+    return `Multi-${this.placeables[0].document.documentName} Edit [ ${this.placeables.length} ]`;
   }
 }
 
@@ -252,7 +352,7 @@ class MultiNoteConfig extends NoteConfig {
 // ==================================
 
 // Add styles and controls to the sheet
-function modifySheet(html, commonData) {
+function modifySheet(html, commonData, select) {
   // On any field being changed we want to automatically select the form-group to be included in the update
   $(html).on('change', 'input, select', onInputChange);
   $(html).on('click', 'button', onInputChange);
@@ -304,8 +404,14 @@ function modifySheet(html, commonData) {
   // Special handling for walls
   $(html).find('button[type="submit"]').remove();
 
-  const applyButton =
-    '<button type="submit" value="1"><i class="far fa-save"></i> Apply Changes</button>';
+  let applyButton;
+  if (select) {
+    applyButton = `<button type="submit" value="search"><i class="fas fa-search"></i> Search</button>
+      <button type="submit" value="searchAndEdit"><i class="fas fa-search"></i> Search and Edit</button>`;
+  } else {
+    applyButton =
+      '<button type="submit" value="apply"><i class="far fa-save"></i> Apply Changes</button>';
+  }
   const footer = $(html).find('.sheet-footer');
   if (footer.length) {
     footer.append(applyButton);
@@ -335,9 +441,9 @@ function modifySheet(html, commonData) {
 }
 
 // Update all selected placeable with the changed data
-async function updateObject(event, formData, documentsToUpdate) {
+async function updateObject(event, formData, placeables) {
   // Gather up all named fields that have multi-token-edit-checkbox checked
-  const fieldsToSave = {};
+  const selectedFields = {};
   const form = $(event.target).closest('form');
   form.find('.form-group').each(function (_) {
     const mte_checkbox = $(this).find('.multi-token-edit-checkbox > input');
@@ -346,21 +452,53 @@ async function updateObject(event, formData, documentsToUpdate) {
         .find('[name]')
         .each(function (_) {
           const name = $(this).attr('name');
-          fieldsToSave[name] = formData[name];
+          selectedFields[name] = formData[name];
         });
     }
   });
 
-  if (isObjectEmpty(fieldsToSave)) return;
+  // If there is only one placeable, it means we're in placeable select mode, otherwise we're in edit mode
+  if (placeables.length === 1) {
+    const found = [];
+    for (const layer of LAYER_MAPPINGS[placeables[0].document.documentName]) {
+      // First release/de-select the currently selected placeable on the scene
+      for (const c of canvas[layer].controlled) {
+        c.release();
+      }
 
-  // Update docs
-  const updates = [];
-  for (const doc of documentsToUpdate) {
-    const update = deepClone(fieldsToSave);
-    update._id = doc.id;
-    updates.push(update);
+      // Next select placeable that match the selected fields
+      for (const c of canvas[layer].placeables) {
+        let matches = true;
+        const data = flattenObject(c.data.toObject());
+        for (const [k, v] of Object.entries(selectedFields)) {
+          // Special handling for empty strings and undefined
+          if ((v === '' || v == null) && (data[k] !== '' || data[k] != null)) {
+            // matches
+          } else if (data[k] != v) {
+            matches = false;
+            break;
+          }
+        }
+        if (matches) {
+          found.push(c);
+          c.control({ releaseOthers: false });
+        }
+      }
+    }
+    if (event.submitter.value === 'searchAndEdit') {
+      showMultiConfig(found);
+    }
+  } else {
+    if (isObjectEmpty(selectedFields)) return;
+    // Update docs
+    const updates = [];
+    for (const doc of placeables) {
+      const update = deepClone(selectedFields);
+      update._id = doc.id;
+      updates.push(update);
+    }
+    canvas.scene.updateEmbeddedDocuments(placeables[0].document.documentName, updates);
   }
-  canvas.scene.updateEmbeddedDocuments(documentsToUpdate[0].document.documentName, updates);
 }
 
 // Toggle checkbox if input has been detected inside it's form-group
