@@ -1,9 +1,14 @@
+# 1.4.0
+
+- Added a new '**Apply and Update Prototypes**' button to Multi-**Token** EDIT window.
+  - When pressed will apply changes to both the token on the scene as well as the prototype
+
 # 1.3.0
 
 - Added support for Tiles, Drawings, Walls, AmbientLights, AmbientSounds, MeasuredTemplates and Notes
 - New key-binding: **Open Placeable Search and Select**
 
-  - Opens a configuration window allowing the user to choose fields to perform a search with on the current scene and select all the found placeables
+  - Opens a configuration window allowing the user to choose fields to perform a search with on the current scene and either select or select and edit all the found placeables
   - If no placeable is currently selected a Dialog will be opened to choose which type of placeable is to be searched.
 
 - Improved handling of _null_, _undefined_ and _empty string_ data

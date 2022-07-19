@@ -98,12 +98,12 @@ class MultiTokenConfig extends TokenConfig {
 
   async activateListeners(html) {
     await super.activateListeners(html);
-    modifySheet(html, this.commonData, this.placeables.length === 1);
+    modifySheet.call(this, html);
     this.setPosition(); // Resizes the window
   }
 
   async _updateObject(event, formData) {
-    updateObject(event, formData, this.placeables);
+    updateObject.call(this, event, formData);
   }
 
   get id() {
@@ -130,12 +130,12 @@ class MultiAmbientLightConfig extends AmbientLightConfig {
 
   async activateListeners(html) {
     await super.activateListeners(html);
-    modifySheet(html, this.commonData, this.placeables.length === 1);
+    modifySheet.call(this, html);
     this.setPosition(); // Resizes the window
   }
 
   async _updateObject(event, formData) {
-    updateObject(event, formData, this.placeables);
+    updateObject.call(this, event, formData);
   }
 
   /** @inheritdoc */
@@ -172,12 +172,12 @@ class MultiWallConfig extends WallConfig {
 
   async activateListeners(html) {
     await super.activateListeners(html);
-    modifySheet(html, this.commonData, this.placeables.length === 1);
+    modifySheet.call(this, html);
     this.setPosition(); // Resizes the window
   }
 
   async _updateObject(event, formData) {
-    updateObject(event, formData, this.placeables);
+    updateObject.call(this, event, formData);
   }
 
   get id() {
@@ -204,12 +204,12 @@ class MultiTileConfig extends TileConfig {
 
   async activateListeners(html) {
     await super.activateListeners(html);
-    modifySheet(html, this.commonData, this.placeables.length === 1);
+    modifySheet.call(this, html);
     this.setPosition(); // Resizes the window
   }
 
   async _updateObject(event, formData) {
-    updateObject(event, formData, this.placeables);
+    updateObject.call(this, event, formData);
   }
 
   /** @inheritdoc */
@@ -246,12 +246,12 @@ class MultiDrawingConfig extends DrawingConfig {
 
   async activateListeners(html) {
     await super.activateListeners(html);
-    modifySheet(html, this.commonData, this.placeables.length === 1);
+    modifySheet.call(this, html);
     this.setPosition(); // Resizes the window
   }
 
   async _updateObject(event, formData) {
-    updateObject(event, formData, this.placeables);
+    updateObject.call(this, event, formData);
   }
 
   get id() {
@@ -278,12 +278,12 @@ class MultiMeasuredTemplateConfig extends MeasuredTemplateConfig {
 
   async activateListeners(html) {
     await super.activateListeners(html);
-    modifySheet(html, this.commonData, this.placeables.length === 1);
+    modifySheet.call(this, html);
     this.setPosition(); // Resizes the window
   }
 
   async _updateObject(event, formData) {
-    updateObject(event, formData, this.placeables);
+    updateObject.call(this, event, formData);
   }
 
   get id() {
@@ -310,12 +310,12 @@ class MultiAmbientSoundConfig extends AmbientSoundConfig {
 
   async activateListeners(html) {
     await super.activateListeners(html);
-    modifySheet(html, this.commonData, this.placeables.length === 1);
+    modifySheet.call(this, html);
     this.setPosition(); // Resizes the window
   }
 
   async _updateObject(event, formData) {
-    updateObject(event, formData, this.placeables);
+    updateObject.call(this, event, formData);
   }
 
   get id() {
@@ -342,12 +342,12 @@ class MultiNoteConfig extends NoteConfig {
 
   async activateListeners(html) {
     await super.activateListeners(html);
-    modifySheet(html, this.commonData, this.placeables.length === 1);
+    modifySheet.call(this, html);
     this.setPosition(); // Resizes the window
   }
 
   async _updateObject(event, formData) {
-    updateObject(event, formData, this.placeables);
+    updateObject.call(this, event, formData);
   }
 
   get id() {
@@ -370,12 +370,13 @@ class MultiNoteConfig extends NoteConfig {
 // ==================================
 
 // Add styles and controls to the sheet
-function modifySheet(html, commonData, select) {
+function modifySheet(html) {
   // On any field being changed we want to automatically select the form-group to be included in the update
   $(html).on('change', 'input, select', onInputChange);
   $(html).on('click', 'button', onInputChange);
 
   // Attach classes and controls to all relevant form-groups
+  const commonData = this.commonData;
   const processFormGroup = function (formGroup) {
     // We only want to attach extra controls if the form-group contains named fields
     if (!$(formGroup).find('[name]').length) return;
@@ -422,19 +423,24 @@ function modifySheet(html, commonData, select) {
   // Special handling for walls
   $(html).find('button[type="submit"]').remove();
 
-  let applyButton;
-  if (select) {
-    applyButton = `<button type="submit" value="search"><i class="fas fa-search"></i> Search</button>
+  let applyButtons;
+  if (this.placeables.length === 1) {
+    applyButtons = `<button type="submit" value="search"><i class="fas fa-search"></i> Search</button>
       <button type="submit" value="searchAndEdit"><i class="fas fa-search"></i> Search and Edit</button>`;
   } else {
-    applyButton =
+    applyButtons =
       '<button type="submit" value="apply"><i class="far fa-save"></i> Apply Changes</button>';
+    // Extra control for Tokens to update their Actors Token prototype
+    if (this.placeables[0].document.documentName === 'Token') {
+      applyButtons +=
+        '<button type="submit" value="applyToPrototype"><i class="far fa-save"></i> Apply and Update Prototypes</button>';
+    }
   }
   const footer = $(html).find('.sheet-footer');
   if (footer.length) {
-    footer.append(applyButton);
+    footer.append(applyButtons);
   } else {
-    $(html).closest('form').append(applyButton);
+    $(html).closest('form').append(applyButtons);
   }
 
   // TokenConfig might be changed by some modules after activateListeners is processed
@@ -459,7 +465,7 @@ function modifySheet(html, commonData, select) {
 }
 
 // Update all selected placeable with the changed data
-async function updateObject(event, formData, placeables) {
+async function updateObject(event, formData) {
   // Gather up all named fields that have multi-token-edit-checkbox checked
   const selectedFields = {};
   const form = $(event.target).closest('form');
@@ -497,9 +503,9 @@ async function updateObject(event, formData, placeables) {
   };
 
   // If there is only one placeable, it means we're in placeable select mode, otherwise we're in edit mode
-  if (placeables.length === 1) {
+  if (this.placeables.length === 1) {
     const found = [];
-    for (const layer of LAYER_MAPPINGS[placeables[0].document.documentName]) {
+    for (const layer of LAYER_MAPPINGS[this.placeables[0].document.documentName]) {
       // First release/de-select the currently selected placeable on the scene
       for (const c of canvas[layer].controlled) {
         c.release();
@@ -537,12 +543,32 @@ async function updateObject(event, formData, placeables) {
     if (isObjectEmpty(selectedFields)) return;
     // Update docs
     const updates = [];
-    for (const doc of placeables) {
+    for (const doc of this.placeables) {
       const update = deepClone(selectedFields);
       update._id = doc.id;
       updates.push(update);
     }
-    canvas.scene.updateEmbeddedDocuments(placeables[0].document.documentName, updates);
+    canvas.scene.updateEmbeddedDocuments(this.placeables[0].document.documentName, updates);
+
+    // May need to also update Token prototypes
+    if (
+      event.submitter.value === 'applyToPrototype' &&
+      this.placeables[0].document.documentName === 'Token'
+    ) {
+      const actorUpdates = {};
+      for (const token of this.placeables) {
+        if (token.actor) {
+          actorUpdates[token.actor.id] = { _id: token.actor.id, token: selectedFields };
+        }
+      }
+      if (!isObjectEmpty(actorUpdates)) {
+        const updates = [];
+        for (const id of Object.keys(actorUpdates)) {
+          updates.push(actorUpdates[id]);
+        }
+        Actor.updateDocuments(updates);
+      }
+    }
   }
 }
 
