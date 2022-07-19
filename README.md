@@ -16,9 +16,9 @@ You will be presented with the following modified 'Configuration' window:
 
 Common data shared between all objects will be highlighted as green, differing data as orange, and flags as purple. The newly added checkboxes to the right indicate which fields will be saved on Apply.
 
-In addition to the this key-binding Token and Tile HUDs will contain a new button if multiple tokens or tiles are selected which will also open up this modified configuration window.
+In addition to this key-binding Token and Tile HUDs will contain a new button if multiple tokens or tiles are selected which will also open up this modified configuration window.
 
-An alternative to selecting the placeables manually is to press '**Shift+F**' (Can also be changed in 'Configure Controls') to open a configuration window which will now allow you to perform scene wide searches using the selected fields.
+An alternative to selecting placeables manually is to press '**Shift+F**' (Can also be changed in 'Configure Controls') to open a configuration window which will now allow you to perform scene wide searches using the selected fields.
 
 Take a look at the video below to get a better idea of how the module can be used:
 
