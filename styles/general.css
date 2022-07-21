@@ -1,30 +1,16 @@
-.multi-token-edit-checkbox {
+.mass-edit-checkbox {
   flex: 0 !important;
+  margin-left: 3px;
 }
 
-.multi-token-edit-checkbox.mteCommon {
-  outline: green solid 2px;
-}
-
-.multi-token-edit-checkbox.mteDiff {
-  outline: rgb(255, 204, 110) solid 2px;
-}
-
-.multi-token-edit-checkbox.mteFlag {
-  outline: rgb(246, 175, 255) solid 2px;
-}
-
-.form-group.mteCommon {
-  outline: green dotted 2px;
+.form-group.meCommon {
   margin-bottom: 5px;
 }
 
-.form-group.mteDiff {
-  outline: rgb(255, 204, 110) dotted 2px;
+.form-group.meDiff {
   margin-bottom: 5px;
 }
 
-.form-group.mteFlag {
-  outline: rgb(246, 175, 255) dotted 2px;
+.form-group.meFlag {
   margin-bottom: 5px;
 }

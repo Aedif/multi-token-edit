@@ -1,4 +1,5 @@
-import { showMultiConfig, showMultiSelect } from './applications/multiConfig.js';
+import { showMassConfig, showMassSelect } from './applications/multiConfig.js';
+import CSSEdit, { STYLES } from './applications/cssEdit.js';
 
 // Initialize module
 Hooks.once('init', () => {
@@ -12,7 +13,7 @@ Hooks.once('init', () => {
       },
     ],
     onDown: () => {
-      showMultiConfig();
+      showMassConfig();
     },
     restricted: true,
     precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
@@ -28,26 +29,52 @@ Hooks.once('init', () => {
       },
     ],
     onDown: () => {
-      showMultiSelect();
+      showMassSelect();
     },
     restricted: true,
     precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
   });
+
+  // Register Settings
+
+  game.settings.register('multi-token-edit', 'cssStyle', {
+    scope: 'world',
+    config: false,
+    type: String,
+    default: 'Default',
+  });
+
+  game.settings.register('multi-token-edit', 'cssCustom', {
+    scope: 'world',
+    config: false,
+    type: String,
+    default: STYLES.Default,
+  });
+
+  game.settings.registerMenu('multi-token-edit', 'cssEdit', {
+    name: 'Configure CSS',
+    hint: 'Change the look of the modified configuration window.',
+    label: '',
+    scope: 'world',
+    icon: 'fas fa-cog',
+    type: CSSEdit,
+    restricted: true,
+  });
 });
 
-// Attach Multi-Config buttons to Token and Tile HUDs
+// Attach Mass Config buttons to Token and Tile HUDs
 
 Hooks.on('renderTokenHUD', (hud, html, tokenData) => {
   if (canvas.tokens.controlled.length >= 2) {
     $(html)
       .find('.control-icon[data-action="config"]')
       .after(
-        `<div class="control-icon" data-action="multiConfig">
+        `<div class="control-icon" data-action="massConfig">
           <i class="fas fa-cogs"></i>
         </div>`
       );
-    $(html).on('click', '[data-action="multiConfig"]', () => {
-      showMultiConfig();
+    $(html).on('click', '[data-action="massConfig"]', () => {
+      showMassConfig();
     });
   }
 });
@@ -56,12 +83,12 @@ Hooks.on('renderTileHUD', (hud, html, tileData) => {
     $(html)
       .find('.control-icon[data-action="underfoot"]')
       .after(
-        `<div class="control-icon" data-action="multiConfig">
+        `<div class="control-icon" data-action="massConfig">
           <i class="fas fa-cogs"></i>
         </div>`
       );
-    $(html).on('click', '[data-action="multiConfig"]', () => {
-      showMultiConfig();
+    $(html).on('click', '[data-action="massConfig"]', () => {
+      showMassConfig();
     });
   }
 });

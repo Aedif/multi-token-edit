@@ -1,3 +1,11 @@
+# 1.5.0
+
+- Formerly 'Multi-Token Edit'
+  - Name changed to better reflect capabilities of the module
+- New setting added: **Configure CSS**
+  - Lets to change the look of the modified configuration window
+  - Comes with some pre-made styles but can also be configured further using the CUSTOM style
+
 # 1.4.0
 
 - Added a new '**Apply and Update Prototypes**' button to Multi-**Token** EDIT window.

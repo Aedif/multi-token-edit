@@ -2,9 +2,9 @@
 ![GitHub Latest Release](https://img.shields.io/github/downloads/Aedif/multi-token-edit/latest/multi-token-edit.zip)
 ![GitHub All Releases](https://img.shields.io/github/downloads/Aedif/multi-token-edit/multi-token-edit.zip)
 
-# Multi-Token Edit
+# Mass Edit
 
-FoundryVTT module for configuring multiple placeable objects at the same time.
+FoundryVTT module for searching and editing multiple placeables at the same time.
 
 ## Usage
 
@@ -14,11 +14,11 @@ You will be presented with the following modified 'Configuration' window:
 
 ![image](https://user-images.githubusercontent.com/7693704/179508321-71425fb5-7ac2-4ab0-8c1c-b92bbe586b8d.png)
 
-Common data shared between all objects will be highlighted as green, differing data as orange, and flags as purple. The newly added checkboxes to the right indicate which fields will be saved on Apply.
+Common data shared between all placeables will be highlighted as green, differing data as orange, and flags as purple. The newly added checkboxes to the right indicate which fields will be saved on Apply.
 
-In addition to the this key-binding Token and Tile HUDs will contain a new button if multiple tokens or tiles are selected which will also open up this modified configuration window.
+In addition to this key-binding Token and Tile HUDs will contain a new button if multiple tokens or tiles are selected which will also open up this modified configuration window.
 
-An alternative to selecting the placeables manually is to press '**Shift+F**' (Can also be changed in 'Configure Controls') to open a configuration window which will now allow you to perform scene wide searches using the selected fields.
+An alternative to selecting placeables manually is to press '**Shift+F**' (Can also be changed in 'Configure Controls') to open a configuration window which will allow you to perform scene wide searches using the selected fields.
 
 Take a look at the video below to get a better idea of the module can be used:
 
