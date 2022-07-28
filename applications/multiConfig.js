@@ -1,4 +1,6 @@
 import { getInUseStyle } from './cssEdit.js';
+import { showPlaceableTypeSelectDialog } from '../scripts/dialogs.js';
+import { IS_PRIVATE, showRandomizeDialog } from '../scripts/private.js';
 
 export function getControlled() {
   for (const layers of Object.values(LAYER_MAPPINGS)) {
@@ -15,37 +17,7 @@ export function showMassSelect(basePlaceable) {
   const controlled = basePlaceable ? [basePlaceable] : getControlled();
 
   if (!controlled.length) {
-    let content = '';
-    for (const key of Object.keys(CONFIG_MAPPINGS)) {
-      content += `<option value="${key}">${key}</option>`;
-    }
-    content = `<label>Choose placeable type you wish to search:</label>
-    <select style="width: 100%;" name="documentName">${content}</select>`;
-
-    new Dialog({
-      title: 'Placeable SEARCH',
-      content: content,
-      buttons: {
-        select: {
-          icon: '<i class="fas fa-check"></i>',
-          label: 'Select',
-          callback: (html) => {
-            const documentName = html.find("select[name='documentName']").val();
-            let placeables = [];
-            for (const layer of LAYER_MAPPINGS[documentName]) {
-              if (canvas[layer].placeables.length) {
-                placeables = canvas[layer].placeables;
-              }
-            }
-            if (placeables.length) {
-              showMassSelect(placeables[0]);
-            } else {
-              ui.notifications.warn(`No placeables found for the selected type. (${documentName})`);
-            }
-          },
-        },
-      },
-    }).render(true);
+    showPlaceableTypeSelectDialog();
     return;
   }
 
@@ -346,11 +318,13 @@ const MassConfig = {
 
       // Check if fields within this form-group are part of common data or control a flag
       let fieldType = 'meCommon';
+      let inputType = '';
       if (commonData) {
         $(formGroup)
           .find('[name]')
           .each(function (_) {
             const name = $(this).attr('name');
+            inputType = $(this).prop('nodeName');
             if (name.startsWith('flags.')) {
               fieldType = 'meFlag';
             } else if (!(name in commonData)) {
@@ -359,9 +333,15 @@ const MassConfig = {
           });
       }
 
+      // Add randomizer controls
+      let randomControl = '';
+      if (IS_PRIVATE) {
+        randomControl = '<div class="mass-edit-randomize"><a><i class="fas fa-dice"></i></a></div>';
+      }
+
       // Insert the checkbox
       const checkbox = $(
-        `<div class="mass-edit-checkbox ${fieldType}"><input class="mass-edit-control" type="checkbox" data-dtype="Boolean"}></div>`
+        `<div class="mass-edit-checkbox ${fieldType}"><input class="mass-edit-control" type="checkbox" data-dtype="Boolean"}>${randomControl}</div>`
       );
       if ($(formGroup).find('p.hint, p.notes').length) {
         $(formGroup).find('p.hint, p.notes').before(checkbox);
@@ -379,6 +359,12 @@ const MassConfig = {
       .each(function (_) {
         processFormGroup(this);
       });
+
+    if (IS_PRIVATE) {
+      $(html).on('click', '.mass-edit-randomize > a', (event) => {
+        showRandomizeDialog($(event.target).closest('.form-group').find('select'));
+      });
+    }
 
     // Remove all buttons in the footer and replace with 'Apply Changes' button
     $(html).find('.sheet-footer > button').remove();
@@ -548,7 +534,7 @@ async function onInputChange(event) {
 // ========== Mappings ==============
 // ==================================
 
-const CONFIG_MAPPINGS = {
+export const CONFIG_MAPPINGS = {
   Token: MassTokenConfig,
   Tile: MassTileConfig,
   Drawing: MassDrawingConfig,
@@ -559,7 +545,7 @@ const CONFIG_MAPPINGS = {
   Note: MassNoteConfig,
 };
 
-const LAYER_MAPPINGS = {
+export const LAYER_MAPPINGS = {
   Token: ['tokens'],
   Tile: ['background', 'foreground'],
   Drawing: ['drawings'],

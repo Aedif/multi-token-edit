@@ -1,6 +1,19 @@
 .mass-edit-checkbox {
   flex: 0 !important;
   margin-left: 3px;
+  display: grid;
+}
+
+.mass-edit-checkbox > input {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.mass-edit-randomize {
+  grid-column: 1;
+  grid-row: 1;
+  margin-top: 12px;
+  margin-left: 15px;
 }
 
 .form-group.meCommon {
