@@ -1,3 +1,8 @@
+# 1.6.0
+
+- Shift+F keybinding will now check for hovered over placeables to be used as the base of the search
+  - Should make it easier to find similar non-selectable placeables such as AmbientLights
+
 # 1.5.0
 
 - Formerly 'Multi-Token Edit'

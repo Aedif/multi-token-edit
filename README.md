@@ -6,6 +6,8 @@
 
 FoundryVTT module for searching and editing multiple placeables at the same time.
 
+Support me on [Patreon](https://www.patreon.com/Aedif) to get access to the the version that supports field [randomization](#randomization).
+
 ## Usage
 
 Select the placeables you wish to edit and press '**Shift+E**' _(This key binding can be changed in 'Configure Controls')_.
@@ -23,3 +25,7 @@ An alternative to selecting placeables manually is to press '**Shift+F**' (Can a
 Take a look at the video below to get a better idea of how the module can be used:
 
 https://user-images.githubusercontent.com/7693704/179762435-e0f11294-35ed-4cd2-bb88-30d440a3a990.mp4
+
+## Randomization
+
+At the moment a [Patreon](https://www.patreon.com/Aedif) exclusive feature:
