@@ -1,6 +1,6 @@
 import { getInUseStyle } from './cssEdit.js';
 import { showPlaceableTypeSelectDialog } from '../scripts/dialogs.js';
-import { IS_PRIVATE, showRandomizeDialog } from '../scripts/private.js';
+import { IS_PRIVATE, randomize, showRandomizeDialog } from '../scripts/private.js';
 
 export function getControlled() {
   for (const layers of Object.values(LAYER_MAPPINGS)) {
@@ -13,7 +13,20 @@ export function getControlled() {
   return [];
 }
 
+function getHover() {
+  for (const layers of Object.values(LAYER_MAPPINGS)) {
+    for (const layer of layers) {
+      if (canvas[layer]._hover) {
+        return canvas[layer]._hover;
+      }
+    }
+  }
+  return null;
+}
+
 export function showMassSelect(basePlaceable) {
+  const hover = getHover();
+  if (hover) basePlaceable = hover;
   const controlled = basePlaceable ? [basePlaceable] : getControlled();
 
   if (!controlled.length) {
@@ -303,6 +316,7 @@ const MassConfig = {
   },
   // Add styles and controls to the sheet
   modifySheet: function (html) {
+    this.randomizeFields = {};
     const [styleName, css] = getInUseStyle();
     $(html).prepend(`<style>${css}</style>`);
 
@@ -312,6 +326,7 @@ const MassConfig = {
 
     // Attach classes and controls to all relevant form-groups
     const commonData = this.commonData;
+    const isSearch = this.placeables.length === 1;
     const processFormGroup = function (formGroup) {
       // We only want to attach extra controls if the form-group contains named fields
       if (!$(formGroup).find('[name]').length) return;
@@ -335,7 +350,7 @@ const MassConfig = {
 
       // Add randomizer controls
       let randomControl = '';
-      if (IS_PRIVATE) {
+      if (IS_PRIVATE && !isSearch) {
         randomControl = '<div class="mass-edit-randomize"><a><i class="fas fa-dice"></i></a></div>';
       }
 
@@ -359,10 +374,10 @@ const MassConfig = {
       .each(function (_) {
         processFormGroup(this);
       });
-
+    const context = this;
     if (IS_PRIVATE) {
       $(html).on('click', '.mass-edit-randomize > a', (event) => {
-        showRandomizeDialog($(event.target).closest('.form-group').find('select'));
+        showRandomizeDialog($(event.target).closest('.form-group'), context);
       });
     }
 
@@ -373,7 +388,7 @@ const MassConfig = {
     $(html).find('button[type="submit"]').remove();
 
     let applyButtons;
-    if (this.placeables.length === 1) {
+    if (isSearch) {
       applyButtons = `<button type="submit" value="search"><i class="fas fa-search"></i> Search</button>
         <button type="submit" value="searchAndEdit"><i class="fas fa-search"></i> Search and Edit</button>`;
     } else {
@@ -494,11 +509,23 @@ const MassConfig = {
       if (isObjectEmpty(selectedFields)) return;
       // Update docs
       const updates = [];
-      for (const doc of this.placeables) {
+
+      const total = this.placeables.length;
+      for (let i = 0; i < total; i++) {
         const update = deepClone(selectedFields);
-        update._id = doc.id;
+        update._id = this.placeables[i].id;
+
+        // See if any field is to be randomized
+        for (const field of Object.keys(selectedFields)) {
+          if (field in this.randomizeFields) {
+            update[field] = randomize(this.randomizeFields[field], i, total);
+          }
+        }
+
+        // push update
         updates.push(update);
       }
+
       canvas.scene.updateEmbeddedDocuments(this.placeables[0].document.documentName, updates);
 
       // May need to also update Token prototypes

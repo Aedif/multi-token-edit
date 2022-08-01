@@ -27,3 +27,26 @@
 .form-group.meFlag {
   margin-bottom: 5px;
 }
+
+/* ===================== 
+   === Randomization ===
+   ===================== */
+
+.mass-edit-randomize.active {
+  color: red;
+}
+
+.mass-edit-randomizer-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.mass-edit-randomizer-form > textarea,
+.mass-edit-randomizer-form > select {
+  width: 100%;
+  height: 100%;
+}
+
+.mass-edit-randomizer-form .folder-picker {
+  flex: 0 !important;
+}

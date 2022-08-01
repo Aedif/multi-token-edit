@@ -1,3 +1,10 @@
 export const IS_PRIVATE = false;
 
-export function showRandomizeDialog(select) {}
+// Show a dialog to select randomization settings for this form-group
+export function showRandomizeDialog(formGroup, configApp) {
+  // empty
+}
+
+export function randomize(obj, index, total) {
+  // empty
+}
