@@ -1,3 +1,8 @@
+# 1.7.0
+
+- Now works together with Actors and Scenes selected using 'Multiple Document Selection' module
+- For convenience 'Shift+E' will now open up the default configuration window for hovered over placeables or single documents selected using 'Multiple Document Selection' module
+
 # 1.6.0
 
 - Shift+F keybinding will now check for hovered over placeables to be used as the base of the search

@@ -1,4 +1,5 @@
-import { CONFIG_MAPPINGS, LAYER_MAPPINGS, showMassSelect } from '../applications/multiConfig.js';
+import { CONFIG_MAPPINGS } from '../applications/configs.js';
+import { LAYER_MAPPINGS, showMassSelect } from '../applications/multiConfig.js';
 
 export function showPlaceableTypeSelectDialog() {
   let content = '';
@@ -19,7 +20,7 @@ export function showPlaceableTypeSelectDialog() {
           const documentName = html.find("select[name='documentName']").val();
           let placeables = [];
           for (const layer of LAYER_MAPPINGS[documentName]) {
-            if (canvas[layer].placeables.length) {
+            if (layer && canvas[layer].placeables.length) {
               placeables = canvas[layer].placeables;
             }
           }

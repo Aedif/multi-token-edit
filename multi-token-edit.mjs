@@ -1,5 +1,6 @@
 import { showMassConfig, showMassSelect } from './applications/multiConfig.js';
 import CSSEdit, { STYLES } from './applications/cssEdit.js';
+import { IS_PRIVATE } from './scripts/private.js';
 
 // Initialize module
 Hooks.once('init', () => {
@@ -60,6 +61,17 @@ Hooks.once('init', () => {
     type: CSSEdit,
     restricted: true,
   });
+
+  if (IS_PRIVATE) {
+    game.settings.register('multi-token-edit', 'autoSnap', {
+      name: 'Auto-snap coordinates to Grid',
+      hint: 'When using "Select Range" in the coordinate randomizer menu, the range values will automatically be snapped to the grid.',
+      scope: 'world',
+      config: true,
+      type: Boolean,
+      default: true,
+    });
+  }
 });
 
 // Attach Mass Config buttons to Token and Tile HUDs

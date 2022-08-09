@@ -8,3 +8,7 @@ export function showRandomizeDialog(formGroup, configApp) {
 export function randomize(obj, index, total) {
   // empty
 }
+
+export function applyRandomization(updates) {
+  // empty
+}
