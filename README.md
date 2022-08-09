@@ -29,3 +29,6 @@ https://user-images.githubusercontent.com/7693704/179762435-e0f11294-35ed-4cd2-b
 ## Randomization
 
 At the moment a [Patreon](https://www.patreon.com/Aedif) exclusive feature:
+
+https://user-images.githubusercontent.com/7693704/182151974-a5994aea-1975-4342-a0b5-1a2d5e5574c4.mp4
+
