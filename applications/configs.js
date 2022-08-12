@@ -493,7 +493,7 @@ const MassConfig = {
         const actorUpdates = {};
         for (let i = 0; i < this.placeables.length; i++) {
           const actor =
-            this.placeables[i] instanceof Actor ? this.placeables[i] : this.placeables.actor;
+            this.placeables[i] instanceof Actor ? this.placeables[i] : this.placeables[i].actor;
           if (actor) actorUpdates[actor.id] = { _id: actor.id, token: updates[i] };
         }
         if (!isObjectEmpty(actorUpdates)) {

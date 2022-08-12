@@ -1,3 +1,7 @@
+# 1.7.1
+
+- Fixed 'Apply and Update Prototypes' button not updating the prototype token
+
 # 1.7.0
 
 - Now works together with Actors and Scenes selected using 'Multiple Document Selection' module
