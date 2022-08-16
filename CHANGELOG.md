@@ -1,3 +1,22 @@
+# 1.8.0
+
+New features:
+
+- Copy/Paste
+
+  - Placeable data can now be copied using 'Shift+C' and pasted on currently selected or hovered over placeable using 'Shift+V'. (kebindings can be re-configured)
+  - Each placeable type has their own "clipboard"
+
+- Presets
+
+  - Modified configuration windows now have a new header button: 'Presets'
+  - Allows to save currently selected fields and apply them later
+  - Each placeable type has their own preset list
+
+Misc.
+
+- Added support for Monk's Active Tiles
+
 # 1.7.1
 
 - Fixed 'Apply and Update Prototypes' button not updating the prototype token

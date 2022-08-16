@@ -1,512 +1,475 @@
 import { IS_PRIVATE, applyRandomization, showRandomizeDialog } from '../scripts/private.js';
 import { getInUseStyle } from './cssEdit.js';
 import { LAYER_MAPPINGS, showMassConfig } from './multiConfig.js';
+import MassEditPresets from './presets.js';
+
+export const SUPPORTED_CONFIGS = [
+  'Token',
+  'Tile',
+  'Drawing',
+  'Wall',
+  'AmbientLight',
+  'AmbientSound',
+  'MeasuredTemplate',
+  'Note',
+  'Scene',
+];
 
 // ==================================
 // ========= Applications ===========
 // ==================================
 
-class MassTokenConfig extends TokenConfig {
-  constructor(placeables, commonData) {
-    super(placeables[0] instanceof Actor ? placeables[0] : placeables[0].document, {});
-    this.commonData = commonData;
-    this.placeables = placeables;
+export const WithMassConfig = (docName) => {
+  if (docName === 'Actor') docName = 'Token';
+  const sheets = CONFIG[docName].sheetClasses;
+  let cls;
+  if (docName === 'Drawing') {
+    cls = CONFIG.Drawing.sheetClasses.e['core.DrawingConfig'].cls;
+  } else {
+    cls = sheets.base[`core.${docName}Config`].cls;
   }
 
-  async activateListeners(html) {
-    await super.activateListeners(html);
-    MassConfig.modifySheet.call(this, html);
-  }
-
-  async _updateObject(event, formData) {
-    MassConfig.updateObject.call(this, event, formData);
-  }
-
-  get id() {
-    return MassConfig.id.call(this);
-  }
-
-  get title() {
-    return MassConfig.title.call(this);
-  }
-}
-
-class MassAmbientLightConfig extends AmbientLightConfig {
-  constructor(placeables, commonData) {
-    super(placeables[0].document, {});
-    this.commonData = commonData;
-    this.placeables = placeables;
-  }
-
-  async activateListeners(html) {
-    await super.activateListeners(html);
-    MassConfig.modifySheet.call(this, html);
-  }
-
-  async _updateObject(event, formData) {
-    MassConfig.updateObject.call(this, event, formData);
-  }
-
-  /** @inheritdoc */
-  async _onChangeInput(event) {
-    // Overriding here to prevent the underlying object from being updated as inputs change on the form
-
-    // // Handle form element updates
-    const el = event.target;
-    if (el.type === 'color' && el.dataset.edit) this._onChangeColorPicker(event);
-    else if (el.type === 'range') this._onChangeRange(event);
-  }
-
-  get id() {
-    return MassConfig.id.call(this);
-  }
-
-  get title() {
-    return MassConfig.title.call(this);
-  }
-}
-
-class MassWallConfig extends WallConfig {
-  constructor(placeables, commonData) {
-    super(placeables[0].document, {});
-    this.commonData = commonData;
-    this.placeables = placeables;
-  }
-
-  async activateListeners(html) {
-    await super.activateListeners(html);
-    MassConfig.modifySheet.call(this, html);
-  }
-
-  async _updateObject(event, formData) {
-    MassConfig.updateObject.call(this, event, formData);
-  }
-
-  get id() {
-    return MassConfig.id.call(this);
-  }
-
-  get title() {
-    return MassConfig.title.call(this);
-  }
-}
-
-class MassTileConfig extends TileConfig {
-  constructor(placeables, commonData) {
-    super(placeables[0].document, {});
-    this.commonData = commonData;
-    this.placeables = placeables;
-  }
-
-  async activateListeners(html) {
-    await super.activateListeners(html);
-    MassConfig.modifySheet.call(this, html);
-  }
-
-  async _updateObject(event, formData) {
-    MassConfig.updateObject.call(this, event, formData);
-  }
-
-  /** @inheritdoc */
-  async _onChangeInput(event) {
-    // Overriding here to prevent the underlying object from being updated as inputs change on the form
-
-    // // Handle form element updates
-    const el = event.target;
-    if (el.type === 'color' && el.dataset.edit) this._onChangeColorPicker(event);
-    else if (el.type === 'range') this._onChangeRange(event);
-  }
-
-  get id() {
-    return MassConfig.id.call(this);
-  }
-
-  get title() {
-    return MassConfig.title.call(this);
-  }
-}
-
-class MassDrawingConfig extends DrawingConfig {
-  constructor(placeables, commonData) {
-    super(placeables[0].document, {});
-    this.commonData = commonData;
-    this.placeables = placeables;
-  }
-
-  async activateListeners(html) {
-    await super.activateListeners(html);
-    MassConfig.modifySheet.call(this, html);
-  }
-
-  async _updateObject(event, formData) {
-    MassConfig.updateObject.call(this, event, formData);
-  }
-
-  get id() {
-    return MassConfig.id.call(this);
-  }
-
-  get title() {
-    return MassConfig.title.call(this);
-  }
-}
-
-class MassMeasuredTemplateConfig extends MeasuredTemplateConfig {
-  constructor(placeables, commonData) {
-    super(placeables[0].document, {});
-    this.commonData = commonData;
-    this.placeables = placeables;
-  }
-
-  async activateListeners(html) {
-    await super.activateListeners(html);
-    MassConfig.modifySheet.call(this, html);
-  }
-
-  async _updateObject(event, formData) {
-    MassConfig.updateObject.call(this, event, formData);
-  }
-
-  get id() {
-    return MassConfig.id.call(this);
-  }
-
-  get title() {
-    return MassConfig.title.call(this);
-  }
-}
-
-class MassAmbientSoundConfig extends AmbientSoundConfig {
-  constructor(placeables, commonData) {
-    super(placeables[0].document, {});
-    this.commonData = commonData;
-    this.placeables = placeables;
-  }
-
-  async activateListeners(html) {
-    await super.activateListeners(html);
-    MassConfig.modifySheet.call(this, html);
-  }
-
-  async _updateObject(event, formData) {
-    MassConfig.updateObject.call(this, event, formData);
-  }
-
-  get id() {
-    return MassConfig.id.call(this);
-  }
-
-  get title() {
-    return MassConfig.title.call(this);
-  }
-}
-
-class MassNoteConfig extends NoteConfig {
-  constructor(placeables, commonData) {
-    super(placeables[0].document, {});
-    this.commonData = commonData;
-    this.placeables = placeables;
-  }
-
-  async activateListeners(html) {
-    await super.activateListeners(html);
-    MassConfig.modifySheet.call(this, html);
-  }
-
-  async _updateObject(event, formData) {
-    MassConfig.updateObject.call(this, event, formData);
-  }
-
-  get id() {
-    return MassConfig.id.call(this);
-  }
-
-  get title() {
-    return MassConfig.title.call(this);
-  }
-}
-
-class MassSceneConfig extends SceneConfig {
-  constructor(scenes, commonData) {
-    super(scenes[0], {});
-    this.commonData = commonData;
-    this.placeables = scenes;
-  }
-
-  async activateListeners(html) {
-    await super.activateListeners(html);
-    MassConfig.modifySheet.call(this, html);
-  }
-
-  async _updateObject(event, formData) {
-    MassConfig.updateObject.call(this, event, formData);
-  }
-
-  get id() {
-    return MassConfig.id.call(this);
-  }
-
-  get title() {
-    return MassConfig.title.call(this);
-  }
-}
-
-// ==================================
-// ======== Shared methods ==========
-// ==================================
-
-const MassConfig = {
-  id: function () {
-    if (this.placeables.length === 1) {
-      return `mass-select-config-${this.object.id}`;
-    }
-    return `mass-edit-config-${this.object.id}`;
-  },
-  title: function () {
-    if (this.placeables.length === 1) {
-      return `Mass-${this.object.documentName} SEARCH`;
-    }
-    return `Mass-${this.object.documentName} EDIT [ ${this.placeables.length} ]`;
-  },
-  // Add styles and controls to the sheet
-  modifySheet: function (html) {
-    this.randomizeFields = {};
-    const [styleName, css] = getInUseStyle();
-    $(html).prepend(`<style>${css}</style>`);
-
-    // On any field being changed we want to automatically select the form-group to be included in the update
-    $(html).on('change', 'input, select', onInputChange);
-    $(html).on('click', 'button', onInputChange);
-
-    // Attach classes and controls to all relevant form-groups
-    const commonData = this.commonData;
-    const isSearch = this.placeables.length === 1;
-    const processFormGroup = function (formGroup) {
-      // We only want to attach extra controls if the form-group contains named fields
-      if (!$(formGroup).find('[name]').length) return;
-
-      // Check if fields within this form-group are part of common data or control a flag
-      let fieldType = 'meCommon';
-      let inputType = '';
-      if (commonData) {
-        $(formGroup)
-          .find('[name]')
-          .each(function (_) {
-            const name = $(this).attr('name');
-            inputType = $(this).prop('nodeName');
-            if (name.startsWith('flags.')) {
-              fieldType = 'meFlag';
-            } else if (!(name in commonData)) {
-              fieldType = 'meDiff';
-            }
-          });
-      }
-
-      // Add randomizer controls
-      let randomControl = '';
-      if (IS_PRIVATE && !isSearch) {
-        randomControl = '<div class="mass-edit-randomize"><a><i class="fas fa-dice"></i></a></div>';
-      }
-
-      // Insert the checkbox
-      const checkbox = $(
-        `<div class="mass-edit-checkbox ${fieldType}"><input class="mass-edit-control" type="checkbox" data-dtype="Boolean"}>${randomControl}</div>`
-      );
-      if ($(formGroup).find('p.hint, p.notes').length) {
-        $(formGroup).find('p.hint, p.notes').before(checkbox);
-      } else {
-        $(formGroup).append(checkbox);
-      }
-
-      // Draw a border around this form group style according to determined type
-      $(formGroup).addClass(fieldType);
-    };
-
-    // Add checkboxes to each form-group to control highlighting and which fields are to be saved
-    $(html)
-      .find('.form-group')
-      .each(function (_) {
-        processFormGroup(this);
-      });
-    const context = this;
-    if (IS_PRIVATE) {
-      $(html).on('click', '.mass-edit-randomize > a', (event) => {
-        showRandomizeDialog($(event.target).closest('.form-group'), context);
-      });
+  class MassConfig extends cls {
+    constructor(docs, options) {
+      // const tempDoc = new docs[0].document.constructor(docs[0].data.toObject());
+      // super(tempDoc, options);
+      super(docs[0].document ? docs[0].document : docs[0], options);
+      this.placeables = docs;
+      this.commonData = options.commonData;
     }
 
-    // Remove all buttons in the footer and replace with 'Apply Changes' button
-    $(html).find('.sheet-footer > button').remove();
+    // Add styles and controls to the sheet
+    async activateListeners(html) {
+      await super.activateListeners(html);
 
-    // Special handling for walls
-    $(html).find('button[type="submit"]').remove();
+      this.randomizeFields = {};
 
-    let applyButtons;
-    if (isSearch) {
-      applyButtons = `<button type="submit" value="search"><i class="fas fa-search"></i> Search</button>
-          <button type="submit" value="searchAndEdit"><i class="fas fa-search"></i> Search and Edit</button>`;
-    } else {
-      applyButtons =
-        '<button type="submit" value="apply"><i class="far fa-save"></i> Apply Changes</button>';
-      // Extra control for Tokens to update their Actors Token prototype
-      if (this.object.documentName === 'Token') {
-        applyButtons +=
-          '<button type="submit" value="applyToPrototype"><i class="far fa-save"></i> Apply and Update Prototypes</button>';
-      }
-    }
-    const footer = $(html).find('.sheet-footer');
-    if (footer.length) {
-      footer.append(applyButtons);
-    } else {
-      $(html).closest('form').append(applyButtons);
-    }
+      // Set style
+      const [styleName, css] = getInUseStyle();
+      $(html).prepend(`<style>${css}</style>`);
 
-    // Resizes the window
-    this.setPosition();
+      // On any field being changed we want to automatically select the form-group to be included in the update
+      $(html).on('change', 'input, select', onInputChange);
+      $(html).on('click', 'button', onInputChange);
 
-    // TokenConfig might be changed by some modules after activateListeners is processed
-    // Look out for these updates and add checkboxes for any newly added form-groups
-    const mutate = (mutations) => {
-      mutations.forEach((mutation) => {
-        mutation.addedNodes.forEach((node) => {
-          if (node.nodeName === 'DIV' && node.className === 'form-group') {
-            processFormGroup(node);
-          }
-        });
-      });
-    };
+      // Attach classes and controls to all relevant form-groups
+      const commonData = flattenObject(this.commonData || {});
+      const massEdit = !this.options.massSelect && !this.options.massCopy;
+      const processFormGroup = function (formGroup) {
+        // We only want to attach extra controls if the form-group contains named fields
+        if (!$(formGroup).find('[name]').length) return;
 
-    const observer = new MutationObserver(mutate);
-    observer.observe(html[0], {
-      characterData: false,
-      attributes: false,
-      childList: true,
-      subtree: true,
-    });
-  },
-  // Update all selected placeable with the changed data
-  updateObject: async function (event, formData) {
-    // Gather up all named fields that have mass-edit-checkbox checked
-    const selectedFields = {};
-    const form = $(event.target).closest('form');
-    form.find('.form-group').each(function (_) {
-      const me_checkbox = $(this).find('.mass-edit-checkbox > input');
-      if (me_checkbox.length && me_checkbox.is(':checked')) {
-        $(this)
-          .find('[name]')
-          .each(function (_) {
-            const name = $(this).attr('name');
-            selectedFields[name] = formData[name];
-          });
-      }
-    });
-
-    // Flags are stored inconsistently. Absence of a flag, being set to null, undefined, empty object or empty string
-    // should all be considered equal
-    const flagCompare = function (data, flag, flagVal) {
-      if (data[flag] == flagVal) return true;
-
-      const falseyFlagVal =
-        flagVal == null ||
-        flagVal === false ||
-        flagVal === '' ||
-        (getType(flagVal) === 'Object' && isObjectEmpty(flagVal));
-      const falseyDataVal =
-        data[flag] == null ||
-        data[flag] === false ||
-        data[flag] === '' ||
-        (getType(data[flag]) === 'Object' && isObjectEmpty(data[flag]));
-
-      if (falseyFlagVal && falseyDataVal) return true;
-
-      return false;
-    };
-
-    // If there is only one placeable, it means we're in placeable select mode, otherwise we're in edit mode
-    if (this.placeables.length === 1) {
-      const found = [];
-      for (const layer of LAYER_MAPPINGS[this.object.documentName]) {
-        // First release/de-select the currently selected placeable on the scene
-        for (const c of canvas[layer].controlled) {
-          c.release();
+        // Check if fields within this form-group are part of common data or control a flag
+        let fieldType = 'meCommon';
+        if (commonData) {
+          $(formGroup)
+            .find('[name]')
+            .each(function () {
+              const name = $(this).attr('name');
+              if (name.startsWith('flags.')) {
+                fieldType = 'meFlag';
+              } else if (!(name in commonData)) {
+                fieldType = 'meDiff';
+              }
+            });
         }
 
-        // Next select placeable that match the selected fields
-        for (const c of canvas[layer].placeables) {
-          let matches = true;
-          const data = flattenObject(c.data.toObject());
-          for (const [k, v] of Object.entries(selectedFields)) {
-            // Special handling for flags
-            if (k.startsWith('flags.')) {
-              if (!flagCompare(data, k, v)) {
+        // Add randomizer controls
+        let randomControl = '';
+        if (IS_PRIVATE && massEdit) {
+          randomControl =
+            '<div class="mass-edit-randomize"><a><i class="fas fa-dice"></i></a></div>';
+        }
+
+        // Insert the checkbox
+        const checkbox = $(
+          `<div class="mass-edit-checkbox ${fieldType}"><input class="mass-edit-control" type="checkbox" data-dtype="Boolean"}>${randomControl}</div>`
+        );
+        if ($(formGroup).find('p.hint, p.notes').length) {
+          $(formGroup).find('p.hint, p.notes').before(checkbox);
+        } else {
+          $(formGroup).append(checkbox);
+        }
+
+        // Assign field type to the form group. Will be used to set appropriate visual look
+        $(formGroup).addClass(fieldType);
+      };
+
+      // Add checkboxes to each form-group to control highlighting and which fields are to be saved
+      $(html)
+        .find('.form-group')
+        .each(function (_) {
+          processFormGroup(this);
+        });
+      const context = this;
+
+      // Register randomize listener if enabled
+      if (IS_PRIVATE) {
+        $(html).on('click', '.mass-edit-randomize > a', (event) => {
+          showRandomizeDialog($(event.target).closest('.form-group'), context);
+        });
+      }
+
+      // Remove all buttons in the footer
+      $(html).find('.sheet-footer > button').remove();
+
+      // Special handling for Walls sheet
+      $(html).find('button[type="submit"]').remove();
+
+      // Add submit buttons
+      let applyButtons;
+      if (this.options.massSelect) {
+        applyButtons = `<button type="submit" value="search"><i class="fas fa-search"></i> Search</button>
+            <button type="submit" value="searchAndEdit"><i class="fas fa-search"></i> Search and Edit</button>`;
+      } else if (this.options.massCopy) {
+        applyButtons = `<button type="submit" value="copy"><i class="fas fa-copy"></i> Copy</button>`;
+        // Extra control for Tokens to update their Actors Token prototype
+        if (this.object.documentName === 'Token') {
+          applyButtons +=
+            '<button type="submit" value="copyProto"><i class="fas fa-copy"></i> Copy as Prototype</button>';
+        }
+      } else {
+        applyButtons =
+          '<button type="submit" value="apply"><i class="far fa-save"></i> Apply Changes</button>';
+        // Extra control for Tokens to update their Actors Token prototype
+        if (this.object.documentName === 'Token') {
+          applyButtons +=
+            '<button type="submit" value="applyToPrototype"><i class="far fa-save"></i> Apply and Update Prototypes</button>';
+        }
+      }
+      const footer = $(html).find('.sheet-footer');
+      if (footer.length) {
+        footer.append(applyButtons);
+      } else {
+        $(html).closest('form').append(applyButtons);
+      }
+
+      // =====================
+      // Module specific logic
+      // =====================
+
+      // Monk's Active Tiles
+      if (this.object.documentName === 'Tile' && this._createAction) {
+        let chk = $(`
+        <div class="form-group">
+          <label>Mass Edit: Actions</label>
+          <div class="form-fields">
+              <input type="hidden" name="flags.monks-active-tiles.actions">
+          </div>
+        `);
+        $(html).find('.matt-tab[data-tab="trigger-actions"]').prepend(chk);
+        processFormGroup(chk);
+
+        chk = $(`
+        <div class="form-group">
+          <label>Mass Edit: Images</label>
+          <div class="form-fields">
+              <input type="hidden" name="flags.monks-active-tiles.files">
+          </div>
+        `);
+        chk.insertBefore('.matt-tab[data-tab="trigger-images"] .files-list');
+        processFormGroup(chk);
+      }
+      //
+
+      // Resizes the window
+      this.setPosition();
+      this.element[0].style.height = ''; // don't want a statically set height
+
+      // TokenConfig might be changed by some modules after activateListeners is processed
+      // Look out for these updates and add checkboxes for any newly added form-groups
+      const mutate = (mutations) => {
+        mutations.forEach((mutation) => {
+          mutation.addedNodes.forEach((node) => {
+            if ($(node).hasClass('form-group')) {
+              processFormGroup(node);
+            } else {
+              $(node)
+                .find('.form-group')
+                .each(function () {
+                  if (!$(this).find('.mass-edit-checkbox').length) {
+                    processFormGroup(this);
+                  }
+                });
+            }
+          });
+        });
+      };
+
+      const observer = new MutationObserver(mutate);
+      observer.observe(html[0], {
+        characterData: false,
+        attributes: false,
+        childList: true,
+        subtree: true,
+      });
+    }
+
+    getSelectedFields(formData) {
+      if (!formData) formData = this._getSubmitData();
+
+      const selectedFields = {};
+      const form = $(this.form);
+
+      form.find('.form-group').each(function (_) {
+        const me_checkbox = $(this).find('.mass-edit-checkbox > input');
+        if (me_checkbox.length && me_checkbox.is(':checked')) {
+          $(this)
+            .find('[name]')
+            .each(function (_) {
+              const name = $(this).attr('name');
+              selectedFields[name] = formData[name];
+            });
+        }
+      });
+
+      return selectedFields;
+    }
+
+    async _updateObject(event, formData) {
+      // Gather up all named fields that have mass-edit-checkbox checked
+      const selectedFields = this.getSelectedFields(formData);
+
+      // Flags are stored inconsistently. Absence of a flag, being set to null, undefined, empty object or empty string
+      // should all be considered equal
+      const flagCompare = function (data, flag, flagVal) {
+        if (data[flag] == flagVal) return true;
+
+        const falseyFlagVal =
+          flagVal == null ||
+          flagVal === false ||
+          flagVal === '' ||
+          (getType(flagVal) === 'Object' && isObjectEmpty(flagVal));
+        const falseyDataVal =
+          data[flag] == null ||
+          data[flag] === false ||
+          data[flag] === '' ||
+          (getType(data[flag]) === 'Object' && isObjectEmpty(data[flag]));
+
+        if (falseyFlagVal && falseyDataVal) return true;
+
+        return false;
+      };
+
+      // Copy mode
+      if (this.options.massCopy) {
+        if (isObjectEmpty(selectedFields)) return;
+        CLIPBOARD[this.object.documentName] = selectedFields;
+
+        // Special handling for Actors/Tokens
+        if (this.object.documentName === 'Actor') {
+          delete CLIPBOARD['Actor'];
+          CLIPBOARD['TokenProto'] = selectedFields;
+        } else if (this.object.documentName === 'Token') {
+          if (event.submitter.value === 'copyProto') {
+            delete CLIPBOARD['Token'];
+            CLIPBOARD['TokenProto'] = selectedFields;
+          }
+        }
+        ui.notifications.info(`Copied ${this.object.documentName} data to clipboard`);
+      }
+      // Search and Select mode
+      else if (this.options.massSelect) {
+        const found = [];
+        for (const layer of LAYER_MAPPINGS[this.object.documentName]) {
+          // First release/de-select the currently selected placeable on the scene
+          for (const c of canvas[layer].controlled) {
+            c.release();
+          }
+
+          // Next select placeable that match the selected fields
+          for (const c of canvas[layer].placeables) {
+            let matches = true;
+            const data = flattenObject(c.data.toObject());
+            for (const [k, v] of Object.entries(selectedFields)) {
+              // Special handling for flags
+              if (k.startsWith('flags.')) {
+                if (!flagCompare(data, k, v)) {
+                  matches = false;
+                  break;
+                }
+                // Special handling for empty strings and undefined
+              } else if ((v === '' || v == null) && (data[k] !== '' || data[k] != null)) {
+                // matches
+              } else if (data[k] != v) {
                 matches = false;
                 break;
               }
-              // Special handling for empty strings and undefined
-            } else if ((v === '' || v == null) && (data[k] !== '' || data[k] != null)) {
-              // matches
-            } else if (data[k] != v) {
-              matches = false;
-              break;
+            }
+            if (matches) {
+              found.push(c);
+              c.control({ releaseOthers: false });
             }
           }
-          if (matches) {
-            found.push(c);
-            c.control({ releaseOthers: false });
-          }
         }
-      }
-      if (event.submitter.value === 'searchAndEdit') {
-        showMassConfig(found);
-      }
-    } else {
-      if (isObjectEmpty(selectedFields)) return;
-      // Update docs
-      const updates = [];
-
-      const total = this.placeables.length;
-      for (let i = 0; i < total; i++) {
-        const update = deepClone(selectedFields);
-        update._id = this.placeables[i].id;
-
-        // push update
-        updates.push(update);
-      }
-
-      // Applies randomization
-      applyRandomization.call(this, updates);
-
-      // Need special handling for PrototypeTokens we don't update the Token itself but rather the actor
-      if (this.object.documentName === 'Actor') {
-        // Do nothing
-      } else if (this.object.documentName === 'Scene') {
-        Scene.updateDocuments(updates);
+        if (event.submitter.value === 'searchAndEdit') {
+          showMassConfig(found);
+        }
+        // Edit mode
       } else {
-        canvas.scene.updateEmbeddedDocuments(this.placeables[0].document.documentName, updates);
-      }
-
-      // May need to also update Token prototypes
-      if (
-        this.object.documentName === 'Actor' ||
-        (event.submitter.value === 'applyToPrototype' && this.object.documentName === 'Token')
-      ) {
-        const actorUpdates = {};
-        for (let i = 0; i < this.placeables.length; i++) {
-          const actor =
-            this.placeables[i] instanceof Actor ? this.placeables[i] : this.placeables[i].actor;
-          if (actor) actorUpdates[actor.id] = { _id: actor.id, token: updates[i] };
-        }
-        if (!isObjectEmpty(actorUpdates)) {
-          const updates = [];
-          for (const id of Object.keys(actorUpdates)) {
-            updates.push(actorUpdates[id]);
-          }
-          Actor.updateDocuments(updates);
-        }
+        _applyUpdates.call(
+          this,
+          selectedFields,
+          this.placeables,
+          this.object.documentName,
+          event.submitter.value
+        );
       }
     }
-  },
+
+    // Overriding here to prevent the underlying object from being updated as inputs change on the form
+    // Relevant for AmbientLight and Tile sheets
+    async _onChangeInput(event) {
+      if (!['AmbientLight', 'Tile'].includes(this.object.documentName)) {
+        super._onChangeInput(event);
+        return;
+      }
+
+      // // Handle form element updates
+      const el = event.target;
+      if (el.type === 'color' && el.dataset.edit) this._onChangeColorPicker(event);
+      else if (el.type === 'range') this._onChangeRange(event);
+    }
+
+    _getHeaderButtons() {
+      const buttons = super._getHeaderButtons();
+      buttons.unshift({
+        label: 'Presets',
+        class: 'mass-edit-presets',
+        icon: 'fas fa-box',
+        onclick: (ev) => this._onConfigurePresets(ev),
+      });
+      return buttons;
+    }
+
+    _onConfigurePresets(event) {
+      new MassEditPresets(this, async (preset) => {
+        const form = $(this.form);
+
+        // =====================
+        // Module specific logic
+        // =====================
+
+        let timeoutRequired = false;
+
+        // Monk's Active Tiles
+        if ('flags.monks-active-tiles.actions' in preset) {
+          timeoutRequired = true;
+          await this.object.setFlag(
+            'monks-active-tiles',
+            'actions',
+            preset['flags.monks-active-tiles.actions']
+          );
+        }
+
+        if ('flags.monks-active-tiles.files' in preset) {
+          timeoutRequired = true;
+          await this.object.setFlag(
+            'monks-active-tiles',
+            'files',
+            preset['flags.monks-active-tiles.files']
+          );
+        }
+
+        if (timeoutRequired) {
+          setTimeout(() => {
+            for (const key of Object.keys(preset)) {
+              $(this.form).find(`[name="${key}"]`).val(preset[key]).trigger('change');
+            }
+          }, 250);
+          return;
+        }
+
+        for (const key of Object.keys(preset)) {
+          form.find(`[name="${key}"]`).val(preset[key]).trigger('change');
+        }
+      }).render(true);
+    }
+
+    get id() {
+      if (this.placeables.length === 1) {
+        return `mass-select-config-${this.object.id}`;
+      }
+      return `mass-edit-config-${this.object.id}`;
+    }
+
+    get title() {
+      if (this.options.massSelect) return `Mass-${this.object.documentName} SEARCH`;
+      if (this.options.massCopy) return `Mass-${this.object.documentName} COPY`;
+      return `Mass-${this.object.documentName} EDIT [ ${this.placeables.length} ]`;
+    }
+  }
+  const constructorName = 'MassConfig';
+  Object.defineProperty(MassConfig.prototype.constructor, 'name', { value: constructorName });
+  return MassConfig;
 };
+
+export function pasteDataUpdate(docs) {
+  if (!docs || !docs.length) return;
+
+  let docName = docs[0].document ? docs[0].document.documentName : docs[0].documentName;
+  let data = CLIPBOARD[docName];
+  let applyType;
+
+  // Special handling for Tokens/Actors
+  if (docName === 'Actor') {
+    data = CLIPBOARD['Token'];
+    if (!data) data = CLIPBOARD['TokenProto'];
+  } else if (docName === 'Token') {
+    if (!data) {
+      data = CLIPBOARD['TokenProto'];
+      applyType = 'applyToPrototype';
+    }
+  }
+
+  if (data) {
+    _applyUpdates(data, docs, docName, applyType);
+    ui.notifications.info(`Pasted data onto ${docs.length} ${docName}s`);
+  }
+}
+
+function _applyUpdates(data, placeables, docName, applyType) {
+  if (isObjectEmpty(data)) return;
+  // Update docs
+  const updates = [];
+
+  const total = placeables.length;
+  for (let i = 0; i < total; i++) {
+    const update = deepClone(data);
+    update._id = placeables[i].id;
+
+    // push update
+    updates.push(update);
+  }
+
+  // Applies randomization
+  if (this) applyRandomization.call(this, updates);
+
+  // Need special handling for PrototypeTokens we don't update the Token itself but rather the actor
+  if (docName === 'Actor') {
+    // Do nothing
+  } else if (docName === 'Scene') {
+    Scene.updateDocuments(updates);
+  } else {
+    canvas.scene.updateEmbeddedDocuments(docName, updates);
+  }
+
+  // May need to also update Token prototypes
+  if (docName === 'Actor' || (applyType === 'applyToPrototype' && docName === 'Token')) {
+    const actorUpdates = {};
+    for (let i = 0; i < placeables.length; i++) {
+      const actor = placeables[i] instanceof Actor ? placeables[i] : placeables[i].actor;
+      if (actor) actorUpdates[actor.id] = { _id: actor.id, token: updates[i] };
+    }
+    if (!isObjectEmpty(actorUpdates)) {
+      const updates = [];
+      for (const id of Object.keys(actorUpdates)) {
+        updates.push(actorUpdates[id]);
+      }
+      Actor.updateDocuments(updates);
+    }
+  }
+}
 
 // Toggle checkbox if input has been detected inside it's form-group
 async function onInputChange(event) {
@@ -515,18 +478,7 @@ async function onInputChange(event) {
 }
 
 // ==================================
-// ========== Mappings ==============
+// ========== CLIPBOARD =============
 // ==================================
 
-export const CONFIG_MAPPINGS = {
-  Actor: MassTokenConfig,
-  Token: MassTokenConfig,
-  Tile: MassTileConfig,
-  Drawing: MassDrawingConfig,
-  Wall: MassWallConfig,
-  AmbientLight: MassAmbientLightConfig,
-  AmbientSound: MassAmbientSoundConfig,
-  MeasuredTemplate: MassMeasuredTemplateConfig,
-  Note: MassNoteConfig,
-  Scene: MassSceneConfig,
-};
+const CLIPBOARD = {};

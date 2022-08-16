@@ -50,3 +50,55 @@
 .mass-edit-randomizer-form .folder-picker {
   flex: 0 !important;
 }
+
+/* ===================== 
+   ====== Presets ======
+   ===================== */
+
+.mass-edit-preset-form .item-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  color: #7a7971;
+  margin-bottom: 10px;
+}
+
+.mass-edit-preset-form .item-control {
+  text-align: center;
+}
+
+.mass-edit-preset-form .item-control.preset-delete {
+  padding-top: 10px;
+  color: rgb(168, 49, 49);
+}
+
+.mass-edit-preset-form .items-header {
+  height: 28px;
+  margin: 2px 0;
+  padding: 0;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.05);
+  border: 2px groove #eeede0;
+  font-weight: bold;
+  color: black;
+}
+
+.mass-edit-preset-form .items-header .item-name {
+  padding-left: 4px;
+  font-weight: bold;
+}
+
+.mass-edit-preset-form .item-controls {
+  flex: 0 0 35px;
+  padding-bottom: 7px;
+}
+
+.mass-edit-preset-form .item-name > button {
+  text-align: left;
+}
+
+/* .mass-edit-preset-form .item {
+  height: 35px;
+} */

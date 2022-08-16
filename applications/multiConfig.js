@@ -1,5 +1,5 @@
 import { showPlaceableTypeSelectDialog } from '../scripts/dialogs.js';
-import { CONFIG_MAPPINGS } from './configs.js';
+import { pasteDataUpdate, WithMassConfig } from './configs.js';
 
 export const LAYER_MAPPINGS = {
   Actor: ['tokens'],
@@ -72,11 +72,11 @@ export function showMassSelect(basePlaceable) {
   const docName = selected[0].document
     ? selected[0].document.documentName
     : selected[0].documentName;
-  const commonData = flattenObject(selected[0].data.toObject());
-  const config = CONFIG_MAPPINGS[docName];
-  if (config) {
-    new config([selected[0]], commonData).render(true, {});
-  }
+  const MassConfig = WithMassConfig(docName);
+  new MassConfig([selected[0]], {
+    commonData: flattenObject(selected[0].data.toObject()),
+    massSelect: true,
+  }).render(true, {});
 }
 
 // show placeable edit
@@ -93,13 +93,40 @@ export function showMassConfig(found = null) {
     return;
   }
 
-  // Merge all data and determine what is common between the selected placeables
-  const areActors = selected[0] instanceof Actor;
-  const commonData = (areActors ? selected[0].data.token : selected[0].data).toObject();
-  for (let i = 1; i < selected.length; i++) {
-    const flatData = flattenObject(
-      (areActors ? selected[i].data.token : selected[i].data).toObject()
-    );
+  // Display modified config window
+  const docName = selected[0].document
+    ? selected[0].document.documentName
+    : selected[0].documentName;
+  const MassConfig = WithMassConfig(docName);
+  new MassConfig(selected, { commonData: getCommonData(selected) }).render(true, {});
+}
+
+// show placeable data copy
+export function showMassCopy() {
+  let selected;
+  if (!selected) selected = getSelectedDocuments();
+  if (!selected) selected = getControlled();
+  if (!selected) selected = getHover();
+
+  if (!selected || !selected.length) return;
+
+  // Display modified config window
+  const docName = selected[0].document
+    ? selected[0].document.documentName
+    : selected[0].documentName;
+  const MassConfig = WithMassConfig(docName);
+  new MassConfig(selected, { commonData: getCommonData(selected), massCopy: true }).render(
+    true,
+    {}
+  );
+}
+
+// Merge all data and determine what is common between the docs
+function getCommonData(docs) {
+  const areActors = docs[0] instanceof Actor;
+  const commonData = flattenObject((areActors ? docs[0].data.token : docs[0].data).toObject());
+  for (let i = 1; i < docs.length; i++) {
+    const flatData = flattenObject((areActors ? docs[i].data.token : docs[i].data).toObject());
     const diff = flattenObject(diffObject(commonData, flatData));
     for (const k of Object.keys(diff)) {
       // Special handling for empty/undefined data
@@ -110,13 +137,13 @@ export function showMassConfig(found = null) {
       }
     }
   }
+  return commonData;
+}
 
-  // Display modified config window
-  const config =
-    CONFIG_MAPPINGS[
-      selected[0].document ? selected[0].document.documentName : selected[0].documentName
-    ];
-  if (config) {
-    new config(selected, commonData).render(true, {});
-  }
+export function pasteData() {
+  let selected;
+  if (!selected) selected = getSelectedDocuments();
+  if (!selected) selected = getControlled();
+  if (!selected) selected = getHover();
+  pasteDataUpdate(selected);
 }

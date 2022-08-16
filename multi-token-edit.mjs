@@ -1,4 +1,9 @@
-import { showMassConfig, showMassSelect } from './applications/multiConfig.js';
+import {
+  pasteData,
+  showMassConfig,
+  showMassCopy,
+  showMassSelect,
+} from './applications/multiConfig.js';
 import CSSEdit, { STYLES } from './applications/cssEdit.js';
 import { IS_PRIVATE } from './scripts/private.js';
 
@@ -36,6 +41,38 @@ Hooks.once('init', () => {
     precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
   });
 
+  game.keybindings.register('multi-token-edit', 'copyKey', {
+    name: 'Open Placeable Data Copy',
+    hint: 'When pressed will open a Configuration window where you will be able to choose fields you wish to copy.',
+    editable: [
+      {
+        key: 'KeyC',
+        modifiers: ['Shift'],
+      },
+    ],
+    onDown: () => {
+      showMassCopy();
+    },
+    restricted: true,
+    precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
+  });
+
+  game.keybindings.register('multi-token-edit', 'pasteKey', {
+    name: 'Paste Placeable Data on Selected',
+    hint: 'Pastes copied placeable data on the selected placeables.',
+    editable: [
+      {
+        key: 'KeyV',
+        modifiers: ['Shift'],
+      },
+    ],
+    onDown: () => {
+      pasteData();
+    },
+    restricted: true,
+    precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
+  });
+
   // Register Settings
 
   game.settings.register('multi-token-edit', 'cssStyle', {
@@ -60,6 +97,13 @@ Hooks.once('init', () => {
     icon: 'fas fa-cog',
     type: CSSEdit,
     restricted: true,
+  });
+
+  game.settings.register('multi-token-edit', 'presets', {
+    scope: 'world',
+    config: false,
+    type: Object,
+    default: STYLES.Default,
   });
 
   if (IS_PRIVATE) {

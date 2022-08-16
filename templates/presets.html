@@ -1,0 +1,23 @@
+<form class="mass-edit-preset-form">
+    <ol class="item-list preset-items">
+        <li class="items-header flexrow">
+            <h3 class="item-name flexrow">Presets</h3>
+            <div class="item-controls flexrow">
+                <a class="item-control preset-create" title="Create New Preset" data-type="objective">
+                    <i class="fas fa-plus"></i>
+                </a>
+            </div>
+        </li>
+        {{#each presets as |preset|}}
+        <li class="item flexrow" name="{{preset}}">
+            <div class="item-name flexrow">
+                <button name="{{preset}}">{{preset}}</button>
+            </div>
+
+            <div class="item-controls flexrow">
+                <a class="item-control preset-delete" title="Delete Action"><i class="fas fa-trash"></i></a>
+            </div>
+        </li>
+        {{/each}}
+    </ol>
+</form>
