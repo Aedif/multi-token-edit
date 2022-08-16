@@ -22,17 +22,25 @@ Common data shared between all placeables will be highlighted as green, differin
 
 In addition to this key-binding Token and Tile HUDs will contain a new button if multiple tokens or tiles are selected which will also open up this modified configuration window.
 
+![simpleEdit](https://user-images.githubusercontent.com/7693704/184878288-e6f9294b-f988-4a3b-9a7b-5e6769f639e4.gif)
+
 ## Search
 
 An alternative to selecting placeables manually is to press '**Shift+F**' to open a configuration window which will allow you to perform scene wide searches using the selected fields.
+
+![simpleSearch](https://user-images.githubusercontent.com/7693704/184878790-ac87fb25-477c-4307-9b4d-74244aee6ac2.gif)
 
 ## Copy/Paste
 
 Specific data can be copied from placeables using 'Shift+C'. Data copied this way can be pasted on any selected or hovered over placeables using 'Shift+V'. Each placeable type has it's own "clipboard" from which data will be pasted.
 
+![simpleCopyPaste](https://user-images.githubusercontent.com/7693704/184879606-0674dc54-f05e-4866-b623-4b0c1e424698.gif)
+
 ## Presets
 
 Any configuration window opened using the module will have a 'Presets' header button. It will open up a window where you can store currently selected fields and re-use them later.
+
+![simplePreset](https://user-images.githubusercontent.com/7693704/184880356-fb816824-9624-4a2c-a673-09d9c57765c7.gif)
 
 ## Example Video
 
