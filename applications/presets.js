@@ -44,6 +44,9 @@ export default class MassEditPresets extends FormApplication {
       ui.notifications.warn('No fields selected.');
       return;
     }
+    if (this.configApp.randomizeFields && !isObjectEmpty(this.configApp.randomizeFields)) {
+      selectedFields['mass-edit-randomize'] = this.configApp.randomizeFields;
+    }
 
     const createPreset = (name) => {
       const presets = game.settings.get('multi-token-edit', 'presets');
@@ -82,6 +85,9 @@ export default class MassEditPresets extends FormApplication {
             }
           },
         },
+      },
+      render: (html) => {
+        html.find('input').focus();
       },
     }).render(true);
   }

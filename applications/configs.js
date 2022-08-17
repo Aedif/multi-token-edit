@@ -1,4 +1,9 @@
-import { IS_PRIVATE, applyRandomization, showRandomizeDialog } from '../scripts/private.js';
+import {
+  IS_PRIVATE,
+  applyRandomization,
+  showRandomizeDialog,
+  selectRandomizerFields,
+} from '../scripts/private.js';
 import { getInUseStyle } from './cssEdit.js';
 import { LAYER_MAPPINGS, showMassConfig } from './multiConfig.js';
 import MassEditPresets from './presets.js';
@@ -54,7 +59,7 @@ export const WithMassConfig = (docName) => {
 
       // Attach classes and controls to all relevant form-groups
       const commonData = flattenObject(this.commonData || {});
-      const massEdit = !this.options.massSelect && !this.options.massCopy;
+      const massSelect = this.options.massSelect;
       const processFormGroup = function (formGroup) {
         // We only want to attach extra controls if the form-group contains named fields
         if (!$(formGroup).find('[name]').length) return;
@@ -76,7 +81,7 @@ export const WithMassConfig = (docName) => {
 
         // Add randomizer controls
         let randomControl = '';
-        if (IS_PRIVATE && massEdit) {
+        if (IS_PRIVATE && !massSelect) {
           randomControl =
             '<div class="mass-edit-randomize"><a><i class="fas fa-dice"></i></a></div>';
         }
@@ -254,6 +259,9 @@ export const WithMassConfig = (docName) => {
       // Copy mode
       if (this.options.massCopy) {
         if (isObjectEmpty(selectedFields)) return;
+        if (!isObjectEmpty(this.randomizeFields)) {
+          selectedFields['mass-edit-randomize'] = this.randomizeFields;
+        }
         CLIPBOARD[this.object.documentName] = selectedFields;
 
         // Special handling for Actors/Tokens
@@ -344,12 +352,14 @@ export const WithMassConfig = (docName) => {
 
     _onConfigurePresets(event) {
       new MassEditPresets(this, async (preset) => {
+        // This will be called when a preset is selected
+        // The code bellow handled it being applied to the current form
+
         const form = $(this.form);
 
         // =====================
         // Module specific logic
         // =====================
-
         let timeoutRequired = false;
 
         // Monk's Active Tiles
@@ -373,17 +383,32 @@ export const WithMassConfig = (docName) => {
 
         if (timeoutRequired) {
           setTimeout(() => {
-            for (const key of Object.keys(preset)) {
-              $(this.form).find(`[name="${key}"]`).val(preset[key]).trigger('change');
-            }
+            this._applyPreset(preset);
           }, 250);
           return;
         }
 
-        for (const key of Object.keys(preset)) {
-          form.find(`[name="${key}"]`).val(preset[key]).trigger('change');
-        }
+        this._applyPreset(preset);
       }).render(true);
+    }
+
+    _applyPreset(preset) {
+      const form = $(this.form);
+      if (preset['mass-edit-randomize']) {
+        const customMerge = (obj1, obj2) => {
+          for (const [k, v] of Object.entries(obj2)) {
+            obj1[k] = v;
+          }
+          return obj1;
+        };
+
+        this.randomizeFields = customMerge(this.randomizeFields, preset['mass-edit-randomize']);
+        delete preset['mass-edit-randomize'];
+        selectRandomizerFields(form, this.randomizeFields);
+      }
+      for (const key of Object.keys(preset)) {
+        form.find(`[name="${key}"]`).val(preset[key]).trigger('change');
+      }
     }
 
     get id() {
@@ -408,7 +433,7 @@ export function pasteDataUpdate(docs) {
   if (!docs || !docs.length) return;
 
   let docName = docs[0].document ? docs[0].document.documentName : docs[0].documentName;
-  let data = CLIPBOARD[docName];
+  let data = deepClone(CLIPBOARD[docName]);
   let applyType;
 
   // Special handling for Tokens/Actors
@@ -423,7 +448,12 @@ export function pasteDataUpdate(docs) {
   }
 
   if (data) {
-    _applyUpdates(data, docs, docName, applyType);
+    const context = { placeables: docs };
+    if (data['mass-edit-randomize']) {
+      context.randomizeFields = data['mass-edit-randomize'];
+      delete data['mass-edit-randomize'];
+    }
+    _applyUpdates.call(context, data, docs, docName, applyType);
     ui.notifications.info(`Pasted data onto ${docs.length} ${docName}s`);
   }
 }

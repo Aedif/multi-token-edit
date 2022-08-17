@@ -1,14 +1,17 @@
 export const IS_PRIVATE = false;
 
-// Show a dialog to select randomization settings for this form-group
-export function showRandomizeDialog(formGroup, configApp) {
+export function showRandomizeDialog() {
   // empty
 }
 
-export function randomize(obj, index, total) {
+export function randomize() {
   // empty
 }
 
-export function applyRandomization(updates) {
+export function applyRandomization() {
+  // empty
+}
+
+export function selectRandomizerFields() {
   // empty
 }

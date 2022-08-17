@@ -1,3 +1,7 @@
+# 1.8.1
+
+- Fixed Presets not saving
+
 # 1.8.0
 
 New features:

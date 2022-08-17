@@ -103,7 +103,7 @@ Hooks.once('init', () => {
     scope: 'world',
     config: false,
     type: Object,
-    default: STYLES.Default,
+    default: {},
   });
 
   if (IS_PRIVATE) {
@@ -115,6 +115,14 @@ Hooks.once('init', () => {
       type: Boolean,
       default: true,
     });
+  }
+});
+
+// Fix for wrong default value being set
+Hooks.on('ready', () => {
+  const presets = game.settings.get('multi-token-edit', 'presets');
+  if (getType(presets) !== 'Object') {
+    game.settings.set('multi-token-edit', 'presets', {});
   }
 });
 
