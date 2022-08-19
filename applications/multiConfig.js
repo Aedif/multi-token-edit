@@ -88,9 +88,12 @@ export function showMassConfig(found = null) {
 
   // If there are no placeable in control or just one, then either exit or display the default config window
   if (!selected || !selected.length) return;
-  else if (selected.length === 1) {
-    if (selected[0].sheet) selected[0].sheet.render(true, {});
-    return;
+
+  if (game.settings.get('multi-token-edit', 'singleDocDefaultConfig')) {
+    if (selected.length === 1) {
+      if (selected[0].sheet) selected[0].sheet.render(true, {});
+      return;
+    }
   }
 
   // Display modified config window

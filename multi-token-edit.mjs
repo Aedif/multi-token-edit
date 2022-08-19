@@ -99,6 +99,15 @@ Hooks.once('init', () => {
     restricted: true,
   });
 
+  game.settings.register('multi-token-edit', 'singleDocDefaultConfig', {
+    name: 'Single placeable: Default Config',
+    hint: 'When a single placeable is selected or hovered over, open the default configuration window instead of the modified Mass Edit config.',
+    scope: 'world',
+    config: true,
+    type: Boolean,
+    default: false,
+  });
+
   game.settings.register('multi-token-edit', 'presets', {
     scope: 'world',
     config: false,

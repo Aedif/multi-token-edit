@@ -1,3 +1,5 @@
+import { exportPresets, importPresets, IS_PRIVATE } from '../scripts/private.js';
+
 export default class MassEditPresets extends FormApplication {
   constructor(configApp, callback) {
     super({}, {});
@@ -16,7 +18,7 @@ export default class MassEditPresets extends FormApplication {
       resizable: true,
       minimizable: false,
       title: 'Select or Create presets',
-      width: 250,
+      width: 270,
       height: 'auto',
       scrollY: ['ol.item-list'],
     });
@@ -104,6 +106,32 @@ export default class MassEditPresets extends FormApplication {
     game.settings.set('multi-token-edit', 'presets', presets);
     item.remove();
     this.setPosition();
+  }
+
+  _getHeaderButtons() {
+    const buttons = super._getHeaderButtons();
+    if (!IS_PRIVATE) return buttons;
+
+    buttons.unshift({
+      label: '',
+      class: 'mass-edit-export',
+      icon: 'fas fa-file-export',
+      onclick: (ev) => this._onExport(ev),
+    });
+    buttons.unshift({
+      label: '',
+      class: 'mass-edit-import',
+      icon: 'fas fa-file-import',
+      onclick: (ev) => this._onImport(ev),
+    });
+    return buttons;
+  }
+
+  _onImport() {
+    importPresets.call(this);
+  }
+  _onExport() {
+    exportPresets(this.docName);
   }
 
   /**

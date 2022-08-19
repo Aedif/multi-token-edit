@@ -15,3 +15,11 @@ export function applyRandomization() {
 export function selectRandomizerFields() {
   // empty
 }
+
+export function exportPresets() {
+  // empty
+}
+
+export function importPresets() {
+  // empty
+}
