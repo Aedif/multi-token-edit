@@ -1,3 +1,9 @@
+# 1.9.0
+
+- Changed default 'Shift+E' shortcut behaviour when only a single placeable is selected or hovered over
+  - Instead of opening the default configuration window the modified window will always be shown regardless of the number of placeables selected
+  - Previous behaviour can still be achieved via a new setting: **Single Placeable: Default Config**
+
 # 1.8.1
 
 - Fixed Presets not saving
