@@ -424,7 +424,7 @@ export const WithMassConfig = (docName) => {
       return `Mass-${this.object.documentName} EDIT [ ${this.placeables.length} ]`;
     }
   }
-  const constructorName = 'MassConfig';
+  const constructorName = `Mass${docName}Config`;
   Object.defineProperty(MassConfig.prototype.constructor, 'name', { value: constructorName });
   return MassConfig;
 };

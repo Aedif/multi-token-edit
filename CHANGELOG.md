@@ -1,3 +1,7 @@
+# 1.9.1
+
+- 'Tagger' module fields should now again work in modified config windows
+
 # 1.9.0
 
 - Changed default 'Shift+E' shortcut behaviour when only a single placeable is selected or hovered over
