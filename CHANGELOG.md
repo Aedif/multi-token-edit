@@ -1,3 +1,9 @@
+# 1.10.0
+
+- v10 support
+- SmallTime module support
+- Presets will now display the field they will modify when hovered over
+
 # 1.9.1
 
 - 'Tagger' module fields should now again work in modified config windows
