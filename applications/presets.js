@@ -1,4 +1,5 @@
 import { exportPresets, importPresets, IS_PRIVATE } from '../scripts/private.js';
+import { emptyObject } from '../scripts/utils.js';
 
 export default class MassEditPresets extends FormApplication {
   constructor(configApp, callback) {
@@ -27,7 +28,24 @@ export default class MassEditPresets extends FormApplication {
   async getData(options) {
     const data = super.getData(options);
     const presets = (game.settings.get('multi-token-edit', 'presets') || {})[this.docName] || {};
-    data.presets = Object.keys(presets);
+
+    data.presets = [];
+
+    for (const [name, fields] of Object.entries(presets)) {
+      const randomizer = fields['mass-edit-randomize'] || {};
+      delete fields['mass-edit-randomize'];
+
+      let title = '';
+      for (const k of Object.keys(fields)) {
+        if (k in randomizer) {
+          title += `${k}: {{randomized}}\n`;
+        } else {
+          title += `${k}: ${fields[k]}\n`;
+        }
+      }
+
+      data.presets.push({ name: name, title: title });
+    }
     return data;
   }
 
@@ -42,11 +60,12 @@ export default class MassEditPresets extends FormApplication {
 
   _onPresetCreate(event) {
     const selectedFields = this.configApp.getSelectedFields();
-    if (!selectedFields || isObjectEmpty(selectedFields)) {
+    if (!selectedFields || emptyObject(selectedFields)) {
       ui.notifications.warn('No fields selected.');
       return;
     }
-    if (this.configApp.randomizeFields && !isObjectEmpty(this.configApp.randomizeFields)) {
+
+    if (this.configApp.randomizeFields && !emptyObject(this.configApp.randomizeFields)) {
       selectedFields['mass-edit-randomize'] = this.configApp.randomizeFields;
     }
 
@@ -62,7 +81,7 @@ export default class MassEditPresets extends FormApplication {
         game.settings.set('multi-token-edit', 'presets', presets);
 
         $(event.target).closest('form').find('.item-list').append(`
-          <li class="item flexrow">
+          <li class="item flexrow" name="${name}">
             <div class="item-name flexrow">
                 <button name="${name}">${name}</button>
             </div>

@@ -9,6 +9,58 @@ import { IS_PRIVATE } from './scripts/private.js';
 
 // Initialize module
 Hooks.once('init', () => {
+  // Register Settings
+  game.settings.register('multi-token-edit', 'cssStyle', {
+    scope: 'world',
+    config: false,
+    type: String,
+    default: 'Default',
+  });
+
+  game.settings.register('multi-token-edit', 'cssCustom', {
+    scope: 'world',
+    config: false,
+    type: String,
+    default: STYLES.Default,
+  });
+
+  game.settings.registerMenu('multi-token-edit', 'cssEdit', {
+    name: 'Configure CSS',
+    hint: 'Change the look of the modified configuration window.',
+    label: '',
+    scope: 'world',
+    icon: 'fas fa-cog',
+    type: CSSEdit,
+    restricted: true,
+  });
+
+  game.settings.register('multi-token-edit', 'singleDocDefaultConfig', {
+    name: 'Single placeable: Default Config',
+    hint: 'When a single placeable is selected or hovered over, open the default configuration window instead of the modified Mass Edit config.',
+    scope: 'world',
+    config: true,
+    type: Boolean,
+    default: false,
+  });
+
+  game.settings.register('multi-token-edit', 'presets', {
+    scope: 'world',
+    config: false,
+    type: Object,
+    default: {},
+  });
+
+  if (IS_PRIVATE) {
+    game.settings.register('multi-token-edit', 'autoSnap', {
+      name: 'Auto-snap coordinates to Grid',
+      hint: 'When using "Select Range" in the coordinate randomizer menu, the range values will automatically be snapped to the grid.',
+      scope: 'world',
+      config: true,
+      type: Boolean,
+      default: true,
+    });
+  }
+
   game.keybindings.register('multi-token-edit', 'editKey', {
     name: 'Open Multi-Placeable Edit',
     hint: 'When pressed will open a Configuration window to simultaneously update all selected placeables.',
@@ -72,59 +124,6 @@ Hooks.once('init', () => {
     restricted: true,
     precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
   });
-
-  // Register Settings
-
-  game.settings.register('multi-token-edit', 'cssStyle', {
-    scope: 'world',
-    config: false,
-    type: String,
-    default: 'Default',
-  });
-
-  game.settings.register('multi-token-edit', 'cssCustom', {
-    scope: 'world',
-    config: false,
-    type: String,
-    default: STYLES.Default,
-  });
-
-  game.settings.registerMenu('multi-token-edit', 'cssEdit', {
-    name: 'Configure CSS',
-    hint: 'Change the look of the modified configuration window.',
-    label: '',
-    scope: 'world',
-    icon: 'fas fa-cog',
-    type: CSSEdit,
-    restricted: true,
-  });
-
-  game.settings.register('multi-token-edit', 'singleDocDefaultConfig', {
-    name: 'Single placeable: Default Config',
-    hint: 'When a single placeable is selected or hovered over, open the default configuration window instead of the modified Mass Edit config.',
-    scope: 'world',
-    config: true,
-    type: Boolean,
-    default: false,
-  });
-
-  game.settings.register('multi-token-edit', 'presets', {
-    scope: 'world',
-    config: false,
-    type: Object,
-    default: {},
-  });
-
-  if (IS_PRIVATE) {
-    game.settings.register('multi-token-edit', 'autoSnap', {
-      name: 'Auto-snap coordinates to Grid',
-      hint: 'When using "Select Range" in the coordinate randomizer menu, the range values will automatically be snapped to the grid.',
-      scope: 'world',
-      config: true,
-      type: Boolean,
-      default: true,
-    });
-  }
 });
 
 // Fix for wrong default value being set

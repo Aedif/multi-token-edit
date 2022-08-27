@@ -4,8 +4,9 @@ import {
   showRandomizeDialog,
   selectRandomizerFields,
 } from '../scripts/private.js';
+import { emptyObject, getData } from '../scripts/utils.js';
 import { getInUseStyle } from './cssEdit.js';
-import { LAYER_MAPPINGS, showMassConfig } from './multiConfig.js';
+import { getLayerMappings, showMassConfig } from './multiConfig.js';
 import MassEditPresets from './presets.js';
 
 export const SUPPORTED_CONFIGS = [
@@ -29,15 +30,17 @@ export const WithMassConfig = (docName) => {
   const sheets = CONFIG[docName].sheetClasses;
   let cls;
   if (docName === 'Drawing') {
-    cls = CONFIG.Drawing.sheetClasses.e['core.DrawingConfig'].cls;
+    if (CONFIG.Drawing.sheetClasses.e) {
+      cls = CONFIG.Drawing.sheetClasses.e['core.DrawingConfig'].cls;
+    } else {
+      cls = CONFIG.Drawing.sheetClasses.base['core.DrawingConfig'].cls;
+    }
   } else {
     cls = sheets.base[`core.${docName}Config`].cls;
   }
 
   class MassConfig extends cls {
     constructor(docs, options) {
-      // const tempDoc = new docs[0].document.constructor(docs[0].data.toObject());
-      // super(tempDoc, options);
       super(docs[0].document ? docs[0].document : docs[0], options);
       this.placeables = docs;
       this.commonData = options.commonData;
@@ -91,7 +94,7 @@ export const WithMassConfig = (docName) => {
           `<div class="mass-edit-checkbox ${fieldType}"><input class="mass-edit-control" type="checkbox" data-dtype="Boolean"}>${randomControl}</div>`
         );
         if ($(formGroup).find('p.hint, p.notes').length) {
-          $(formGroup).find('p.hint, p.notes').before(checkbox);
+          $(formGroup).find('p.hint, p.notes').first().before(checkbox);
         } else {
           $(formGroup).append(checkbox);
         }
@@ -244,12 +247,12 @@ export const WithMassConfig = (docName) => {
           flagVal == null ||
           flagVal === false ||
           flagVal === '' ||
-          (getType(flagVal) === 'Object' && isObjectEmpty(flagVal));
+          (getType(flagVal) === 'Object' && emptyObject(flagVal));
         const falseyDataVal =
           data[flag] == null ||
           data[flag] === false ||
           data[flag] === '' ||
-          (getType(data[flag]) === 'Object' && isObjectEmpty(data[flag]));
+          (getType(data[flag]) === 'Object' && emptyObject(data[flag]));
 
         if (falseyFlagVal && falseyDataVal) return true;
 
@@ -258,8 +261,8 @@ export const WithMassConfig = (docName) => {
 
       // Copy mode
       if (this.options.massCopy) {
-        if (isObjectEmpty(selectedFields)) return;
-        if (!isObjectEmpty(this.randomizeFields)) {
+        if (emptyObject(selectedFields)) return;
+        if (!emptyObject(this.randomizeFields)) {
           selectedFields['mass-edit-randomize'] = this.randomizeFields;
         }
         CLIPBOARD[this.object.documentName] = selectedFields;
@@ -279,7 +282,7 @@ export const WithMassConfig = (docName) => {
       // Search and Select mode
       else if (this.options.massSelect) {
         const found = [];
-        for (const layer of LAYER_MAPPINGS[this.object.documentName]) {
+        for (const layer of getLayerMappings()[this.object.documentName]) {
           // First release/de-select the currently selected placeable on the scene
           for (const c of canvas[layer].controlled) {
             c.release();
@@ -288,7 +291,7 @@ export const WithMassConfig = (docName) => {
           // Next select placeable that match the selected fields
           for (const c of canvas[layer].placeables) {
             let matches = true;
-            const data = flattenObject(c.data.toObject());
+            const data = flattenObject(getData(c).toObject());
             for (const [k, v] of Object.entries(selectedFields)) {
               // Special handling for flags
               if (k.startsWith('flags.')) {
@@ -355,8 +358,6 @@ export const WithMassConfig = (docName) => {
         // This will be called when a preset is selected
         // The code bellow handled it being applied to the current form
 
-        const form = $(this.form);
-
         // =====================
         // Module specific logic
         // =====================
@@ -411,13 +412,6 @@ export const WithMassConfig = (docName) => {
       }
     }
 
-    get id() {
-      if (this.placeables.length === 1) {
-        return `mass-select-config-${this.object.id}`;
-      }
-      return `mass-edit-config-${this.object.id}`;
-    }
-
     get title() {
       if (this.options.massSelect) return `Mass-${this.object.documentName} SEARCH`;
       if (this.options.massCopy) return `Mass-${this.object.documentName} COPY`;
@@ -459,7 +453,7 @@ export function pasteDataUpdate(docs) {
 }
 
 function _applyUpdates(data, placeables, docName, applyType) {
-  if (isObjectEmpty(data)) return;
+  if (emptyObject(data)) return;
   // Update docs
   const updates = [];
 
@@ -491,7 +485,7 @@ function _applyUpdates(data, placeables, docName, applyType) {
       const actor = placeables[i] instanceof Actor ? placeables[i] : placeables[i].actor;
       if (actor) actorUpdates[actor.id] = { _id: actor.id, token: updates[i] };
     }
-    if (!isObjectEmpty(actorUpdates)) {
+    if (!emptyObject(actorUpdates)) {
       const updates = [];
       for (const id of Object.keys(actorUpdates)) {
         updates.push(actorUpdates[id]);

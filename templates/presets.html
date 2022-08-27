@@ -9,9 +9,9 @@
             </div>
         </li>
         {{#each presets as |preset|}}
-        <li class="item flexrow" name="{{preset}}">
+        <li class="item flexrow" name="{{preset.name}}">
             <div class="item-name flexrow">
-                <button name="{{preset}}">{{preset}}</button>
+                <button title="{{preset.title}}" name="{{preset.name}}">{{preset.name}}</button>
             </div>
 
             <div class="item-controls flexrow">

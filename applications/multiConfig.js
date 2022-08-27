@@ -1,21 +1,38 @@
 import { showPlaceableTypeSelectDialog } from '../scripts/dialogs.js';
+import { getData } from '../scripts/utils.js';
 import { pasteDataUpdate, WithMassConfig } from './configs.js';
 
-export const LAYER_MAPPINGS = {
-  Actor: ['tokens'],
-  Token: ['tokens'],
-  Tile: ['background', 'foreground'],
-  Drawing: ['drawings'],
-  Wall: ['walls'],
-  AmbientLight: ['lighting'],
-  AmbientSound: ['sounds'],
-  MeasuredTemplate: ['templates'],
-  Note: ['notes'],
-};
+export function getLayerMappings() {
+  return isNewerVersion('10', game.version)
+    ? {
+        // v9
+        Actor: ['tokens'],
+        Token: ['tokens'],
+        Tile: ['background', 'foreground'],
+        Drawing: ['drawings'],
+        Wall: ['walls'],
+        AmbientLight: ['lighting'],
+        AmbientSound: ['sounds'],
+        MeasuredTemplate: ['templates'],
+        Note: ['notes'],
+      }
+    : // v10
+      {
+        Actor: ['tokens'],
+        Token: ['tokens'],
+        Tile: ['tiles'],
+        Drawing: ['drawings'],
+        Wall: ['walls'],
+        AmbientLight: ['lighting'],
+        AmbientSound: ['sounds'],
+        MeasuredTemplate: ['templates'],
+        Note: ['notes'],
+      };
+}
 
 // Retrieve currently controlled placeables
 export function getControlled() {
-  for (const layers of Object.values(LAYER_MAPPINGS)) {
+  for (const layers of Object.values(getLayerMappings())) {
     for (const layer of layers) {
       if (canvas[layer].controlled.length) {
         return canvas[layer].controlled;
@@ -27,10 +44,15 @@ export function getControlled() {
 
 // Retrieve hovered over placeable
 function getHover() {
-  for (const layers of Object.values(LAYER_MAPPINGS)) {
+  for (const layers of Object.values(getLayerMappings())) {
     for (const layer of layers) {
+      // v9
       if (canvas[layer]._hover) {
         return [canvas[layer]._hover];
+      }
+      // v10
+      if (canvas[layer].hover) {
+        return [canvas[layer].hover];
       }
     }
   }
@@ -74,7 +96,7 @@ export function showMassSelect(basePlaceable) {
     : selected[0].documentName;
   const MassConfig = WithMassConfig(docName);
   new MassConfig([selected[0]], {
-    commonData: flattenObject(selected[0].data.toObject()),
+    commonData: flattenObject(getData(selected[0]).toObject()),
     massSelect: true,
   }).render(true, {});
 }
@@ -127,9 +149,13 @@ export function showMassCopy() {
 // Merge all data and determine what is common between the docs
 function getCommonData(docs) {
   const areActors = docs[0] instanceof Actor;
-  const commonData = flattenObject((areActors ? docs[0].data.token : docs[0].data).toObject());
+  const commonData = flattenObject(
+    (areActors ? getData(docs[0]).token : getData(docs[0])).toObject()
+  );
   for (let i = 1; i < docs.length; i++) {
-    const flatData = flattenObject((areActors ? docs[i].data.token : docs[i].data).toObject());
+    const flatData = flattenObject(
+      (areActors ? getData(docs[i]).token : getData(docs[i])).toObject()
+    );
     const diff = flattenObject(diffObject(commonData, flatData));
     for (const k of Object.keys(diff)) {
       // Special handling for empty/undefined data
