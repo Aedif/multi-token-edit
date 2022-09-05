@@ -1,8 +1,14 @@
-# 1.10.0
+# 1.10.2
+
+- Fixed checkboxes not being selected in some cases when using presets
+- Fixed Token scale/mirror updates not registering in v10
+  - note: there are still issues with updating scale and mirroring independently using the module the in v10
+
+# 1.10.1
 
 - v10 support
 - SmallTime module support
-- Presets will now display the field they will modify when hovered over
+- Presets will now display the fields they will modify when hovered over
 
 # 1.9.1
 

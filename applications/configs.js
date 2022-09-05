@@ -216,6 +216,16 @@ export const WithMassConfig = (docName) => {
     getSelectedFields(formData) {
       if (!formData) formData = this._getSubmitData();
 
+      // Token _getSubmitData() performs conversions related to scale, we need to undo them here
+      // so that named fields on the form match up and can be selected
+      if (this.object.documentName === 'Token' && !isNewerVersion('10', game.version)) {
+        if (formData['texture.scaleX']) {
+          formData.scale = Math.abs(formData['texture.scaleX']);
+          formData.mirrorX = formData['texture.scaleX'] < 0;
+          formData.mirrorY = formData['texture.scaleY'] < 0;
+        }
+      }
+
       const selectedFields = {};
       const form = $(this.form);
 
@@ -303,6 +313,31 @@ export const WithMassConfig = (docName) => {
               } else if ((v === '' || v == null) && (data[k] !== '' || data[k] != null)) {
                 // matches
               } else if (data[k] != v) {
+                //
+                // In v10 token data can't be directly compared due to it being morphed in _getSubmitData()
+                //
+                if (
+                  !isNewerVersion('10', game.version) &&
+                  this.object.documentName === 'Token' &&
+                  ['scale', 'mirrorX', 'mirrorY'].includes(k)
+                ) {
+                  if (k === 'scale' && Math.abs(data['texture.scaleX']) === v) {
+                    continue;
+                  }
+
+                  if (k === 'mirrorX') {
+                    if ((!v && data['texture.scaleX'] >= 1) || (v && data['texture.scaleX'] < 0)) {
+                      continue;
+                    }
+                  }
+
+                  if (k === 'mirrorY') {
+                    if ((!v && data['texture.scaleY'] >= 1) || (v && data['texture.scaleY'] < 0)) {
+                      continue;
+                    }
+                  }
+                }
+
                 matches = false;
                 break;
               }
@@ -329,9 +364,9 @@ export const WithMassConfig = (docName) => {
     }
 
     // Overriding here to prevent the underlying object from being updated as inputs change on the form
-    // Relevant for AmbientLight and Tile sheets
+    // Relevant for AmbientLight, Tile, and Token sheets
     async _onChangeInput(event) {
-      if (!['AmbientLight', 'Tile'].includes(this.object.documentName)) {
+      if (!['AmbientLight', 'Tile', 'Token'].includes(this.object.documentName)) {
         super._onChangeInput(event);
         return;
       }
@@ -408,7 +443,13 @@ export const WithMassConfig = (docName) => {
         selectRandomizerFields(form, this.randomizeFields);
       }
       for (const key of Object.keys(preset)) {
-        form.find(`[name="${key}"]`).val(preset[key]).trigger('change');
+        const el = form.find(`[name="${key}"]`);
+        if (el.is(':checkbox')) {
+          el.prop('checked', preset[key]);
+        } else {
+          el.val(preset[key]);
+        }
+        el.trigger('change');
       }
     }
 
