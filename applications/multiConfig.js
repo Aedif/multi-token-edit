@@ -149,12 +149,17 @@ export function showMassCopy() {
 // Merge all data and determine what is common between the docs
 function getCommonData(docs) {
   const areActors = docs[0] instanceof Actor;
+
+  const getTokenData = function (actor) {
+    return isNewerVersion('10', game.version) ? getData(actor).token : actor.prototypeToken;
+  };
+
   const commonData = flattenObject(
-    (areActors ? getData(docs[0]).token : getData(docs[0])).toObject()
+    (areActors ? getTokenData(docs[0]) : getData(docs[0])).toObject()
   );
   for (let i = 1; i < docs.length; i++) {
     const flatData = flattenObject(
-      (areActors ? getData(docs[i]).token : getData(docs[i])).toObject()
+      (areActors ? getTokenData(docs[i]) : getData(docs[i])).toObject()
     );
     const diff = flattenObject(diffObject(commonData, flatData));
     for (const k of Object.keys(diff)) {

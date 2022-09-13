@@ -1,5 +1,6 @@
 import { exportPresets, importPresets, IS_PRIVATE } from '../scripts/private.js';
 import { emptyObject } from '../scripts/utils.js';
+import { TokenDataAdapter } from './dataAdapters.js';
 
 export default class MassEditPresets extends FormApplication {
   constructor(configApp, callback) {
@@ -33,10 +34,10 @@ export default class MassEditPresets extends FormApplication {
 
     for (const [name, fields] of Object.entries(presets)) {
       const randomizer = fields['mass-edit-randomize'] || {};
-      delete fields['mass-edit-randomize'];
 
       let title = '';
       for (const k of Object.keys(fields)) {
+        if (k === 'mass-edit-randomize') continue;
         if (k in randomizer) {
           title += `${k}: {{randomized}}\n`;
         } else {
@@ -65,8 +66,18 @@ export default class MassEditPresets extends FormApplication {
       return;
     }
 
-    if (this.configApp.randomizeFields && !emptyObject(this.configApp.randomizeFields)) {
-      selectedFields['mass-edit-randomize'] = this.configApp.randomizeFields;
+    const randomizeFields = deepClone(this.configApp.randomizeFields);
+
+    // Detection modes may have been selected out of order
+    // Fix that here
+    if (this.docName === 'Token') {
+      TokenDataAdapter.correctDetectionModeOrder(selectedFields, randomizeFields);
+    } else if (this.docName === 'Actor') {
+      TokenDataAdapter.correctDetectionModeOrder(selectedFields, randomizeFields);
+    }
+
+    if (!emptyObject(randomizeFields)) {
+      selectedFields['mass-edit-randomize'] = randomizeFields;
     }
 
     const createPreset = (name) => {
@@ -162,7 +173,7 @@ export default class MassEditPresets extends FormApplication {
     const presets = game.settings.get('multi-token-edit', 'presets') || {};
     const docPresets = presets[this.docName];
     if (docPresets[presetName]) {
-      this.callback(docPresets[presetName]);
+      this.callback(deepClone(docPresets[presetName]));
     }
   }
 }

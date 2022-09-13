@@ -7,13 +7,35 @@
 .mass-edit-checkbox > input {
   grid-column: 1;
   grid-row: 1;
+  z-index: 1;
+}
+
+@keyframes spin {
+  from {
+    transform: translate(-50%, -50%) rotate(0);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
 }
 
 .mass-edit-randomize {
+  display: inline-grid;
   grid-column: 1;
   grid-row: 1;
-  margin-top: 12px;
-  margin-left: 15px;
+  overflow: hidden;
+}
+
+.mass-edit-randomize.active::before {
+  content: '';
+  z-index: 0;
+  position: relative;
+  left: 50%;
+  top: 50%;
+  width: calc(100% * 1.5);
+  height: calc(100% * 1.5);
+  background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red);
+  animation: spin 11s linear infinite;
 }
 
 .form-group.meCommon {

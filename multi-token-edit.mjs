@@ -151,7 +151,11 @@ Hooks.on('renderTokenHUD', (hud, html, tokenData) => {
   }
 });
 Hooks.on('renderTileHUD', (hud, html, tileData) => {
-  if (canvas.background.controlled.concat(canvas.foreground.controlled).length >= 2) {
+  const controlledTiles = canvas.background
+    ? canvas.background.controlled.concat(canvas.foreground.controlled)
+    : canvas.tiles.controlled;
+
+  if (controlledTiles.length >= 2) {
     $(html)
       .find('.control-icon[data-action="underfoot"]')
       .after(

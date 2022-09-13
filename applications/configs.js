@@ -4,8 +4,9 @@ import {
   showRandomizeDialog,
   selectRandomizerFields,
 } from '../scripts/private.js';
-import { emptyObject, getData } from '../scripts/utils.js';
+import { emptyObject, flagCompare, getData } from '../scripts/utils.js';
 import { getInUseStyle } from './cssEdit.js';
+import { TokenDataAdapter } from './dataAdapters.js';
 import { getLayerMappings, showMassConfig } from './multiConfig.js';
 import MassEditPresets from './presets.js';
 
@@ -41,7 +42,11 @@ export const WithMassConfig = (docName) => {
 
   class MassConfig extends cls {
     constructor(docs, options) {
-      super(docs[0].document ? docs[0].document : docs[0], options);
+      if (docs[0] instanceof Actor) {
+        super(docs[0].prototypeToken ? docs[0].prototypeToken : docs[0], options);
+      } else {
+        super(docs[0].document ? docs[0].document : docs[0], options);
+      }
       this.placeables = docs;
       this.commonData = options.commonData;
     }
@@ -51,6 +56,9 @@ export const WithMassConfig = (docName) => {
       await super.activateListeners(html);
 
       this.randomizeFields = {};
+      const docName = this.placeables[0].document
+        ? this.placeables[0].document.documentName
+        : this.placeables[0].documentName;
 
       // Set style
       const [styleName, css] = getInUseStyle();
@@ -85,13 +93,12 @@ export const WithMassConfig = (docName) => {
         // Add randomizer controls
         let randomControl = '';
         if (IS_PRIVATE && !massSelect) {
-          randomControl =
-            '<div class="mass-edit-randomize"><a><i class="fas fa-dice"></i></a></div>';
+          randomControl = '<div class="mass-edit-randomize"></div>';
         }
 
         // Insert the checkbox
         const checkbox = $(
-          `<div class="mass-edit-checkbox ${fieldType}"><input class="mass-edit-control" type="checkbox" data-dtype="Boolean"}>${randomControl}</div>`
+          `<div class="mass-edit-checkbox ${fieldType}">${randomControl}<input class="mass-edit-control" type="checkbox" data-dtype="Boolean"}></div>`
         );
         if ($(formGroup).find('p.hint, p.notes').length) {
           $(formGroup).find('p.hint, p.notes').first().before(checkbox);
@@ -113,7 +120,7 @@ export const WithMassConfig = (docName) => {
 
       // Register randomize listener if enabled
       if (IS_PRIVATE) {
-        $(html).on('click', '.mass-edit-randomize > a', (event) => {
+        $(html).on('contextmenu', '.mass-edit-checkbox', (event) => {
           showRandomizeDialog($(event.target).closest('.form-group'), context);
         });
       }
@@ -211,6 +218,14 @@ export const WithMassConfig = (docName) => {
         childList: true,
         subtree: true,
       });
+
+      if (docName === 'Token' || docName === 'Actor') {
+        $(html)
+          .find('fieldset.detection-mode')
+          .each(function (_) {
+            $(this).wrap('<div class="form-group"></div>');
+          });
+      }
     }
 
     getSelectedFields(formData) {
@@ -247,119 +262,117 @@ export const WithMassConfig = (docName) => {
     async _updateObject(event, formData) {
       // Gather up all named fields that have mass-edit-checkbox checked
       const selectedFields = this.getSelectedFields(formData);
+      const docName = this.placeables[0].document
+        ? this.placeables[0].document.documentName
+        : this.placeables[0].documentName;
 
-      // Flags are stored inconsistently. Absence of a flag, being set to null, undefined, empty object or empty string
-      // should all be considered equal
-      const flagCompare = function (data, flag, flagVal) {
-        if (data[flag] == flagVal) return true;
-
-        const falseyFlagVal =
-          flagVal == null ||
-          flagVal === false ||
-          flagVal === '' ||
-          (getType(flagVal) === 'Object' && emptyObject(flagVal));
-        const falseyDataVal =
-          data[flag] == null ||
-          data[flag] === false ||
-          data[flag] === '' ||
-          (getType(data[flag]) === 'Object' && emptyObject(data[flag]));
-
-        if (falseyFlagVal && falseyDataVal) return true;
-
-        return false;
-      };
+      // Detection modes may have been selected out of order
+      // Fix that here
+      if (this.object.documentName === 'Token') {
+        TokenDataAdapter.correctDetectionModeOrder(selectedFields, this.randomizeFields);
+      } else if (this.object.documentName === 'Actor') {
+        TokenDataAdapter.correctDetectionModeOrder(selectedFields, this.randomizeFields);
+      }
 
       // Copy mode
       if (this.options.massCopy) {
-        if (emptyObject(selectedFields)) return;
-        if (!emptyObject(this.randomizeFields)) {
-          selectedFields['mass-edit-randomize'] = this.randomizeFields;
-        }
-        CLIPBOARD[this.object.documentName] = selectedFields;
-
-        // Special handling for Actors/Tokens
-        if (this.object.documentName === 'Actor') {
-          delete CLIPBOARD['Actor'];
-          CLIPBOARD['TokenProto'] = selectedFields;
-        } else if (this.object.documentName === 'Token') {
-          if (event.submitter.value === 'copyProto') {
-            delete CLIPBOARD['Token'];
-            CLIPBOARD['TokenProto'] = selectedFields;
-          }
-        }
-        ui.notifications.info(`Copied ${this.object.documentName} data to clipboard`);
+        this.performMassCopy(event.submitter.value, selectedFields, docName);
       }
       // Search and Select mode
       else if (this.options.massSelect) {
-        const found = [];
-        for (const layer of getLayerMappings()[this.object.documentName]) {
-          // First release/de-select the currently selected placeable on the scene
-          for (const c of canvas[layer].controlled) {
-            c.release();
-          }
-
-          // Next select placeable that match the selected fields
-          for (const c of canvas[layer].placeables) {
-            let matches = true;
-            const data = flattenObject(getData(c).toObject());
-            for (const [k, v] of Object.entries(selectedFields)) {
-              // Special handling for flags
-              if (k.startsWith('flags.')) {
-                if (!flagCompare(data, k, v)) {
-                  matches = false;
-                  break;
-                }
-                // Special handling for empty strings and undefined
-              } else if ((v === '' || v == null) && (data[k] !== '' || data[k] != null)) {
-                // matches
-              } else if (data[k] != v) {
-                //
-                // In v10 token data can't be directly compared due to it being morphed in _getSubmitData()
-                //
-                if (
-                  !isNewerVersion('10', game.version) &&
-                  this.object.documentName === 'Token' &&
-                  ['scale', 'mirrorX', 'mirrorY'].includes(k)
-                ) {
-                  if (k === 'scale' && Math.abs(data['texture.scaleX']) === v) {
-                    continue;
-                  }
-
-                  if (k === 'mirrorX') {
-                    if ((!v && data['texture.scaleX'] >= 1) || (v && data['texture.scaleX'] < 0)) {
-                      continue;
-                    }
-                  }
-
-                  if (k === 'mirrorY') {
-                    if ((!v && data['texture.scaleY'] >= 1) || (v && data['texture.scaleY'] < 0)) {
-                      continue;
-                    }
-                  }
-                }
-
-                matches = false;
-                break;
-              }
-            }
-            if (matches) {
-              found.push(c);
-              c.control({ releaseOthers: false });
-            }
-          }
-        }
-        if (event.submitter.value === 'searchAndEdit') {
-          showMassConfig(found);
-        }
-        // Edit mode
+        this.performMassSearch(event.submitter.value, selectedFields, docName);
       } else {
-        _applyUpdates.call(
+        // Edit mode
+        performMassUpdate.call(
           this,
           selectedFields,
           this.placeables,
-          this.object.documentName,
+          docName,
           event.submitter.value
         );
+      }
+    }
+
+    performMassCopy(command, selectedFields, docName) {
+      if (emptyObject(selectedFields)) return;
+      if (!emptyObject(this.randomizeFields)) {
+        selectedFields['mass-edit-randomize'] = this.randomizeFields;
+      }
+      CLIPBOARD[docName] = selectedFields;
+
+      // Special handling for Actors/Tokens
+      if (docName === 'Actor') {
+        delete CLIPBOARD['Actor'];
+        CLIPBOARD['TokenProto'] = selectedFields;
+      } else if (docName === 'Token') {
+        if (command === 'copyProto') {
+          delete CLIPBOARD['Token'];
+          CLIPBOARD['TokenProto'] = selectedFields;
+        }
+      }
+      ui.notifications.info(`Copied ${docName} data to clipboard`);
+    }
+
+    performMassSearch(command, selectedFields, docName) {
+      const found = [];
+      for (const layer of getLayerMappings()[docName]) {
+        // First release/de-select the currently selected placeable on the scene
+        for (const c of canvas[layer].controlled) {
+          c.release();
+        }
+
+        // Next select placeables that match the selected fields
+        for (const c of canvas[layer].placeables) {
+          let matches = true;
+          const data = flattenObject(getData(c).toObject());
+
+          // Special processing for some placeable types
+          // Necessary when form data is not directly mappable to placeable
+          if (docName === 'Token') TokenDataAdapter.dataToForm(c, data);
+          if (docName === 'Actor') TokenDataAdapter.dataToForm(c, data);
+
+          for (const [k, v] of Object.entries(selectedFields)) {
+            // Special handling for flags
+            if (k.startsWith('flags.')) {
+              if (!flagCompare(data, k, v)) {
+                matches = false;
+                break;
+              }
+              // Special handling for empty strings and undefined
+            } else if ((v === '' || v == null) && (data[k] !== '' || data[k] != null)) {
+              // matches
+            } else if (data[k] != v) {
+              // Detection mode keys cannot be treated in isolation
+              // We skip them here and will check them later
+              if (docName === 'Token' || docName === 'Actor') {
+                if (k.startsWith('detectionModes')) {
+                  continue;
+                }
+              }
+
+              matches = false;
+              break;
+            }
+          }
+          if (matches) {
+            // We skipped detectionMode matching in the previous step and do it now instead
+            if (docName === 'Token' || docName === 'Actor') {
+              const modes = Object.values(
+                foundry.utils.expandObject(selectedFields)?.detectionModes || {}
+              );
+
+              if (!TokenDataAdapter.detectionModeMatch(modes, c.detectionModes)) {
+                continue;
+              }
+            }
+
+            found.push(c);
+            c.control({ releaseOthers: false });
+          }
+        }
+      }
+      if (command === 'searchAndEdit') {
+        showMassConfig(found);
       }
     }
 
@@ -375,6 +388,29 @@ export const WithMassConfig = (docName) => {
       const el = event.target;
       if (el.type === 'color' && el.dataset.edit) this._onChangeColorPicker(event);
       else if (el.type === 'range') this._onChangeRange(event);
+    }
+
+    // Some forms will manipulate themselves via modifying internal objects and re-rendering
+    // In such cases we want to preserve the selected fields
+    render(force, options) {
+      // Form hasn't been rendered yet, aka first render pass, ignore it
+      if (!this.form) return super.render(force, options);
+
+      // Fetch the currently selected fields before re-rendering
+      const selectedFields = this.getSelectedFields();
+      selectedFields['mass-edit-randomize'] = this.randomizeFields;
+
+      // Render, the selections will be wiped
+      super.render(force, options);
+
+      // Re-select fields, we're reusing preset functions here.
+      // Timeout require for this module including others to apply their
+      // modifications to the configuration window
+      setTimeout(() => {
+        if (this.form) {
+          this._applyPreset(selectedFields);
+        }
+      }, 1000);
     }
 
     _getHeaderButtons() {
@@ -417,6 +453,10 @@ export const WithMassConfig = (docName) => {
           );
         }
 
+        if (this.object.documentName === 'Token') {
+          timeoutRequired = TokenDataAdapter.presetModify(this, preset);
+        }
+
         if (timeoutRequired) {
           setTimeout(() => {
             this._applyPreset(preset);
@@ -439,7 +479,6 @@ export const WithMassConfig = (docName) => {
         };
 
         this.randomizeFields = customMerge(this.randomizeFields, preset['mass-edit-randomize']);
-        delete preset['mass-edit-randomize'];
         selectRandomizerFields(form, this.randomizeFields);
       }
       for (const key of Object.keys(preset)) {
@@ -451,6 +490,14 @@ export const WithMassConfig = (docName) => {
         }
         el.trigger('change');
       }
+    }
+
+    get id() {
+      let pf;
+      if (this.options.massSelect) pf = 'SEARCH';
+      else if (this.options.massCopy) pf = 'COPY';
+      else pf = 'EDIT';
+      return super.id + pf;
     }
 
     get title() {
@@ -488,13 +535,14 @@ export function pasteDataUpdate(docs) {
       context.randomizeFields = data['mass-edit-randomize'];
       delete data['mass-edit-randomize'];
     }
-    _applyUpdates.call(context, data, docs, docName, applyType);
+    performMassUpdate.call(context, data, docs, docName, applyType);
     ui.notifications.info(`Pasted data onto ${docs.length} ${docName}s`);
   }
 }
 
-function _applyUpdates(data, placeables, docName, applyType) {
+function performMassUpdate(data, placeables, docName, applyType) {
   if (emptyObject(data)) return;
+
   // Update docs
   const updates = [];
 
@@ -509,6 +557,18 @@ function _applyUpdates(data, placeables, docName, applyType) {
 
   // Applies randomization
   if (this) applyRandomization.call(this, updates);
+
+  // Special processing for some placeable types
+  // Necessary when form data is not directly mappable to placeable
+  if (docName === 'Token') {
+    for (let i = 0; i < total; i++) {
+      TokenDataAdapter.formToData(placeables[i].document, updates[i]);
+    }
+  } else if (docName === 'Actor') {
+    for (let i = 0; i < total; i++) {
+      TokenDataAdapter.formToData(placeables[i].prototypeToken, updates[i]);
+    }
+  }
 
   // Need special handling for PrototypeTokens we don't update the Token itself but rather the actor
   if (docName === 'Actor') {

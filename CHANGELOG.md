@@ -1,8 +1,20 @@
+# 1.11.0
+
+- Config Forms that re-render themselves should no longer wipe currently selected fields
+- Fixed v10 token scale related bugs
+- v10 Token Detection Modes are now fully supported
+  - Works with Edit, Search, Copy, and Paste
+  - Instead of overriding all detection modes the module will attempt to merge the update with the existing modes
+
+Patreon
+
+- To make it more comfortable to manually select checkboxes randomizer will no longer use clickable dice icons. Instead the checkboxes added by the module can now be right-clicked and will show spinning backgrounds when randomization is enabled for that field
+
 # 1.10.2
 
 - Fixed checkboxes not being selected in some cases when using presets
 - Fixed Token scale/mirror updates not registering in v10
-  - note: there are still issues with updating scale and mirroring independently using the module the in v10
+  - note: there are still issues with updating scale and mirroring independently using the module in v10
 
 # 1.10.1
 
