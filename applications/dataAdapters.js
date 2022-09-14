@@ -1,4 +1,13 @@
-import { emptyObject } from '../scripts/utils.js';
+export class NoteDataAdapter {
+  static formToData(formData) {
+    if (isNewerVersion('10', game.version)) return;
+    if ('icon.selected' in formData || 'icon.custom' in formData) {
+      formData['texture.src'] = formData['icon.selected'] || formData['icon.custom'];
+      delete formData['icon.selected'];
+      delete formData['icon.custom'];
+    }
+  }
+}
 
 export class TokenDataAdapter {
   static dataToForm(token, data) {

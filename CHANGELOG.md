@@ -1,3 +1,10 @@
+# 1.12.0
+
+- Added support for JournalEntry selections performed using 'Multiple Document Selection' module
+  - Mass Edit key-bindings will open up configuration windows for Notes corresponding to selected Journals
+  - Updates can be performed just on the current scene or across all scenes
+- Fixed Note icon updates failing on Foundry v10
+
 # 1.11.0
 
 - Config Forms that re-render themselves should no longer wipe currently selected fields

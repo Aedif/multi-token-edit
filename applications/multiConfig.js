@@ -64,12 +64,30 @@ function getSelectedDocuments() {
   const supportedDocs = [
     { name: 'Actor', class: 'actor' },
     { name: 'Scene', class: 'scene' },
+    { name: 'JournalEntry', class: 'journalentry' },
   ];
   for (const doc of supportedDocs) {
     const selected = [];
     $(`.document.${doc.class}.selected`).each(function (_) {
       const d = game.collections.get(doc.name).get(this.dataset.documentId);
-      if (d) selected.push(d);
+      if (d) {
+        // JournalEntries themselves do not have configs, but notes that they correspond to on the scene do
+        if (doc.name === 'JournalEntry') {
+          game.collections.get('Scene').forEach((s) =>
+            s.notes.forEach((n) => {
+              const eid = n.entryId ?? n.data.entryId;
+              if (d.id === eid) {
+                selected.push(n);
+              }
+            })
+          );
+          // canvas.notes.placeables
+          //   .filter((n) => d.id === (n.entryId ?? n.data.entryId))
+          //   .forEach((n) => selected.push(n));
+        } else {
+          if (d) selected.push(d);
+        }
+      }
     });
     if (selected.length) {
       return selected;

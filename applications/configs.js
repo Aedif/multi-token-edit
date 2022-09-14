@@ -6,7 +6,7 @@ import {
 } from '../scripts/private.js';
 import { emptyObject, flagCompare, getData } from '../scripts/utils.js';
 import { getInUseStyle } from './cssEdit.js';
-import { TokenDataAdapter } from './dataAdapters.js';
+import { NoteDataAdapter, TokenDataAdapter } from './dataAdapters.js';
 import { getLayerMappings, showMassConfig } from './multiConfig.js';
 import MassEditPresets from './presets.js';
 
@@ -132,31 +132,56 @@ export const WithMassConfig = (docName) => {
       $(html).find('button[type="submit"]').remove();
 
       // Add submit buttons
-      let applyButtons;
+      let buttons = [];
       if (this.options.massSelect) {
-        applyButtons = `<button type="submit" value="search"><i class="fas fa-search"></i> Search</button>
-            <button type="submit" value="searchAndEdit"><i class="fas fa-search"></i> Search and Edit</button>`;
+        buttons = [
+          { title: 'Search', value: 'search', icon: 'fas fa-search' },
+          { title: 'Search and Edit', value: 'searchAndEdit', icon: 'fas fa-search' },
+        ];
       } else if (this.options.massCopy) {
-        applyButtons = `<button type="submit" value="copy"><i class="fas fa-copy"></i> Copy</button>`;
+        buttons = [{ title: 'Copy', value: 'copy', icon: 'fas fa-copy' }];
         // Extra control for Tokens to update their Actors Token prototype
         if (this.object.documentName === 'Token') {
-          applyButtons +=
-            '<button type="submit" value="copyProto"><i class="fas fa-copy"></i> Copy as Prototype</button>';
+          buttons.push({ title: 'Copy as Prototype', value: 'copyProto', icon: 'fas fa-copy' });
         }
+      } else if (this.object.documentName === 'Note') {
+        if (this.placeables.filter((n) => (n.scene ?? n.parent).id === canvas.scene.id).length) {
+          buttons.push({
+            title: 'Apply on Current Scene',
+            value: 'currentScene',
+            icon: 'far fa-save',
+          });
+        }
+        if (this.placeables.filter((n) => (n.scene ?? n.parent).id !== canvas.scene.id).length) {
+          buttons.push({
+            title: 'Apply on ALL Scenes',
+            value: 'allScenes',
+            icon: 'fas fa-globe',
+          });
+        }
+        // If we're editing notes and there are some on a different scene
       } else {
-        applyButtons =
-          '<button type="submit" value="apply"><i class="far fa-save"></i> Apply Changes</button>';
+        buttons = [{ title: 'Apply Changes', value: 'apply', icon: 'far fa-save' }];
         // Extra control for Tokens to update their Actors Token prototype
         if (this.object.documentName === 'Token') {
-          applyButtons +=
-            '<button type="submit" value="applyToPrototype"><i class="far fa-save"></i> Apply and Update Prototypes</button>';
+          buttons.push({
+            title: 'Apply and Update Prototypes',
+            value: 'applyToPrototype',
+            icon: 'far fa-save',
+          });
         }
       }
+
+      let htmlButtons = '';
+      for (const button of buttons) {
+        htmlButtons += `<button type="submit" value="${button.value}"><i class="${button.icon}"></i> ${button.title}</button>`;
+      }
+
       const footer = $(html).find('.sheet-footer');
       if (footer.length) {
-        footer.append(applyButtons);
+        footer.append(htmlButtons);
       } else {
-        $(html).closest('form').append(applyButtons);
+        $(html).closest('form').append(htmlButtons);
       }
 
       // =====================
@@ -238,6 +263,11 @@ export const WithMassConfig = (docName) => {
           formData.scale = Math.abs(formData['texture.scaleX']);
           formData.mirrorX = formData['texture.scaleX'] < 0;
           formData.mirrorY = formData['texture.scaleY'] < 0;
+        }
+      } else if (this.object.documentName === 'Note' && !isNewerVersion('10', game.version)) {
+        if (formData['texture.src']) {
+          formData['icon.selected'] = formData['texture.src'];
+          formData['icon.custom'] = formData['texture.src'];
         }
       }
 
@@ -568,6 +598,10 @@ function performMassUpdate(data, placeables, docName, applyType) {
     for (let i = 0; i < total; i++) {
       TokenDataAdapter.formToData(placeables[i].prototypeToken, updates[i]);
     }
+  } else if (docName === 'Note') {
+    for (let i = 0; i < total; i++) {
+      NoteDataAdapter.formToData(updates[i]);
+    }
   }
 
   // Need special handling for PrototypeTokens we don't update the Token itself but rather the actor
@@ -575,6 +609,20 @@ function performMassUpdate(data, placeables, docName, applyType) {
     // Do nothing
   } else if (docName === 'Scene') {
     Scene.updateDocuments(updates);
+  } else if (docName === 'Note') {
+    // Notes can be updated across different scenes
+    const splitUpdates = {};
+    for (let i = 0; i < updates.length; i++) {
+      const scene = placeables[i].scene ?? placeables[i].parent;
+      if (applyType === 'currentScene' && scene.id !== canvas.scene.id) continue;
+      if (!(scene.id in splitUpdates)) {
+        splitUpdates[scene.id] = { scene: scene, updates: [] };
+      }
+      splitUpdates[scene.id].updates.push(updates[i]);
+    }
+    for (const sceneUpdate of Object.values(splitUpdates)) {
+      sceneUpdate.scene.updateEmbeddedDocuments(docName, sceneUpdate.updates);
+    }
   } else {
     canvas.scene.updateEmbeddedDocuments(docName, updates);
   }
