@@ -1,3 +1,7 @@
+# 1.12.1
+
+- Fixing flags not being read/applied properly due to un-flattened form data
+
 # 1.12.0
 
 - Added support for JournalEntry selections performed using 'Multiple Document Selection' module

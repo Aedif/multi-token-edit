@@ -256,6 +256,10 @@ export const WithMassConfig = (docName) => {
     getSelectedFields(formData) {
       if (!formData) formData = this._getSubmitData();
 
+      // Some module flags get un-flattened
+      // Flatten them again before attempting to find selected
+      formData = flattenObject(formData);
+
       // Token _getSubmitData() performs conversions related to scale, we need to undo them here
       // so that named fields on the form match up and can be selected
       if (this.object.documentName === 'Token' && !isNewerVersion('10', game.version)) {
