@@ -272,3 +272,14 @@ export function flagCompare(data, flag, flagVal) {
 
   return false;
 }
+
+export function hasFlagRemove(flag, formData) {
+  const comp = flag.split('.');
+  for (let i = comp.length - 1; i >= 1; i--) {
+    const tempFlag = comp.slice(0, i).join('.') + '.-=' + comp[i];
+    if (tempFlag in formData) {
+      return tempFlag;
+    }
+  }
+  return null;
+}

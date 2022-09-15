@@ -4,7 +4,7 @@ import {
   showRandomizeDialog,
   selectRandomizerFields,
 } from '../scripts/private.js';
-import { emptyObject, flagCompare, getData } from '../scripts/utils.js';
+import { emptyObject, flagCompare, getData, hasFlagRemove } from '../scripts/utils.js';
 import { getInUseStyle } from './cssEdit.js';
 import { NoteDataAdapter, TokenDataAdapter } from './dataAdapters.js';
 import { getLayerMappings, showMassConfig } from './multiConfig.js';
@@ -285,7 +285,16 @@ export const WithMassConfig = (docName) => {
             .find('[name]')
             .each(function (_) {
               const name = $(this).attr('name');
-              selectedFields[name] = formData[name];
+              // Some modules will process their flags to remove them using -= notation
+              // Need to account for this when selecting fields
+              if (formData[name] === undefined && name.startsWith('flags.')) {
+                const removeFlag = hasFlagRemove(name, formData);
+                if (removeFlag) {
+                  selectedFields[removeFlag] = null;
+                }
+              } else {
+                selectedFields[name] = formData[name];
+              }
             });
         }
       });

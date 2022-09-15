@@ -1,3 +1,7 @@
+# 1.12.2
+
+- Fix for flags removed using -= notation not being picked up during Mass Updates
+
 # 1.12.1
 
 - Fixing flags not being read/applied properly due to un-flattened form data
