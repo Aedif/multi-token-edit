@@ -303,6 +303,10 @@ export const WithMassConfig = (docName) => {
     }
 
     async _updateObject(event, formData) {
+      return this.massUpdateObject(event, formData);
+    }
+
+    async massUpdateObject(event, formData, { copyForm = false } = {}) {
       // Gather up all named fields that have mass-edit-checkbox checked
       const selectedFields = this.getSelectedFields(formData);
       const docName = this.placeables[0].document
@@ -318,7 +322,7 @@ export const WithMassConfig = (docName) => {
       }
 
       // Copy mode
-      if (this.options.massCopy) {
+      if (this.options.massCopy || copyForm) {
         this.performMassCopy(event.submitter.value, selectedFields, docName);
       }
       // Search and Select mode

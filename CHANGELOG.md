@@ -1,3 +1,8 @@
+# 1.13.0
+
+- Shift+C will now copy data from an already open Mass Config form
+  - If no form is open it will default to the original behaviour
+
 # 1.12.2
 
 - Fix for flags removed using -= notation not being picked up during Mass Updates
