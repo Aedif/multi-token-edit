@@ -46,6 +46,9 @@ Any configuration window opened using the module will have a 'Presets' header bu
 
 Numerical fields can be added and subtracted instead of overriding the current value. This can be done by right-clicking the numerical controls in the Mass-Edit form. Green background indicating addition, and red subtraction.
 
+![addSubtract](https://user-images.githubusercontent.com/7693704/191852899-a9447d21-76b3-44c5-b586-dcbe68c7a692.gif)
+
+
 ## Example Video
 
 The video bellow shows off Mass Search and Edit being used on various placeables:
