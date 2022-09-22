@@ -1,3 +1,9 @@
+# 1.14.0
+
+- Numerical values can now be added or subtracted using Right-click
+- Import/Export of Presets
+- Scenes will no longer appear as an option in placeable search (Shift+F)
+
 # 1.13.0
 
 - Shift+C will now copy data from an already open Mass Config form

@@ -4,6 +4,7 @@ import { getLayerMappings, showMassSelect } from '../applications/multiConfig.js
 export function showPlaceableTypeSelectDialog() {
   let content = '';
   for (const config of SUPPORTED_CONFIGS) {
+    if (config === 'Scene') continue;
     content += `<option value="${config}">${config}</option>`;
   }
   content = `<label>Choose placeable type you wish to search:</label>

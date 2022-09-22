@@ -1,4 +1,4 @@
-import { exportPresets, importPresets, IS_PRIVATE } from '../scripts/private.js';
+import { exportPresets, importPresets } from '../scripts/private.js';
 import { emptyObject } from '../scripts/utils.js';
 import { TokenDataAdapter } from './dataAdapters.js';
 
@@ -34,12 +34,16 @@ export default class MassEditPresets extends FormApplication {
 
     for (const [name, fields] of Object.entries(presets)) {
       const randomizer = fields['mass-edit-randomize'] || {};
+      const addSubtract = fields['mass-edit-addSubtract'] || {};
 
       let title = '';
       for (const k of Object.keys(fields)) {
         if (k === 'mass-edit-randomize') continue;
+        if (k === 'mass-edit-addSubtract') continue;
         if (k in randomizer) {
           title += `${k}: {{randomized}}\n`;
+        } else if (k in addSubtract) {
+          title += `${k}: ${addSubtract[k].method === 'add' ? '+' : '-'}${fields[k]}\n`;
         } else {
           title += `${k}: ${fields[k]}\n`;
         }
@@ -67,6 +71,7 @@ export default class MassEditPresets extends FormApplication {
     }
 
     const randomizeFields = deepClone(this.configApp.randomizeFields);
+    const addSubtractFields = deepClone(this.configApp.addSubtractFields);
 
     // Detection modes may have been selected out of order
     // Fix that here
@@ -78,6 +83,9 @@ export default class MassEditPresets extends FormApplication {
 
     if (!emptyObject(randomizeFields)) {
       selectedFields['mass-edit-randomize'] = randomizeFields;
+    }
+    if (!emptyObject(addSubtractFields)) {
+      selectedFields['mass-edit-addSubtract'] = addSubtractFields;
     }
 
     const createPreset = (name) => {
@@ -140,7 +148,6 @@ export default class MassEditPresets extends FormApplication {
 
   _getHeaderButtons() {
     const buttons = super._getHeaderButtons();
-    if (!IS_PRIVATE) return buttons;
 
     buttons.unshift({
       label: '',

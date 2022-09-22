@@ -3,6 +3,8 @@ import {
   applyRandomization,
   showRandomizeDialog,
   selectRandomizerFields,
+  applyAddSubtract,
+  selectAddSubtractFields,
 } from '../scripts/private.js';
 import { emptyObject, flagCompare, getData, hasFlagRemove } from '../scripts/utils.js';
 import { getInUseStyle } from './cssEdit.js';
@@ -56,6 +58,7 @@ export const WithMassConfig = (docName) => {
       await super.activateListeners(html);
 
       this.randomizeFields = {};
+      this.addSubtractFields = {};
       const docName = this.placeables[0].document
         ? this.placeables[0].document.documentName
         : this.placeables[0].documentName;
@@ -124,6 +127,35 @@ export const WithMassConfig = (docName) => {
           showRandomizeDialog($(event.target).closest('.form-group'), context);
         });
       }
+
+      // Register numerical input listeners to toggle between subtract, and add modes
+      $(html).on('contextmenu', 'input[type=range], input[type=number]', (event) => {
+        const name = event.target.name;
+        if (!name) return;
+
+        const input = $(event.target);
+        if (name in this.addSubtractFields) {
+          if (this.addSubtractFields[name].method === 'add') {
+            this.addSubtractFields[name].method = 'subtract';
+            input.removeClass('me-add').addClass('me-subtract');
+            const ctrl = { method: 'subtract' };
+            if (event.target.min) {
+              ctrl.min = parseFloat(event.target.min);
+            }
+            this.addSubtractFields[name] = ctrl;
+          } else {
+            delete this.addSubtractFields[name];
+            input.removeClass('me-subtract');
+          }
+        } else {
+          input.addClass('me-add');
+          const ctrl = { method: 'add' };
+          if (event.target.max) {
+            ctrl.max = parseFloat(event.target.max);
+          }
+          this.addSubtractFields[name] = ctrl;
+        }
+      });
 
       // Remove all buttons in the footer
       $(html).find('.sheet-footer > button').remove();
@@ -343,7 +375,10 @@ export const WithMassConfig = (docName) => {
     performMassCopy(command, selectedFields, docName) {
       if (emptyObject(selectedFields)) return;
       if (!emptyObject(this.randomizeFields)) {
-        selectedFields['mass-edit-randomize'] = this.randomizeFields;
+        selectedFields['mass-edit-randomize'] = deepClone(this.randomizeFields);
+      }
+      if (!emptyObject(this.addSubtractFields)) {
+        selectedFields['mass-edit-addSubtract'] = deepClone(this.addSubtractFields);
       }
       CLIPBOARD[docName] = selectedFields;
 
@@ -446,6 +481,7 @@ export const WithMassConfig = (docName) => {
       // Fetch the currently selected fields before re-rendering
       const selectedFields = this.getSelectedFields();
       selectedFields['mass-edit-randomize'] = this.randomizeFields;
+      selectedFields['mass-edit-addSubtract'] = this.addSubtractFields;
 
       // Render, the selections will be wiped
       super.render(force, options);
@@ -517,17 +553,20 @@ export const WithMassConfig = (docName) => {
 
     _applyPreset(preset) {
       const form = $(this.form);
-      if (preset['mass-edit-randomize']) {
-        const customMerge = (obj1, obj2) => {
-          for (const [k, v] of Object.entries(obj2)) {
-            obj1[k] = v;
-          }
-          return obj1;
-        };
 
-        this.randomizeFields = customMerge(this.randomizeFields, preset['mass-edit-randomize']);
-        selectRandomizerFields(form, this.randomizeFields);
-      }
+      const customMerge = (obj1, obj2) => {
+        if (!obj2) return obj1;
+        for (const [k, v] of Object.entries(obj2)) {
+          obj1[k] = v;
+        }
+        return obj1;
+      };
+
+      this.randomizeFields = customMerge(this.randomizeFields, preset['mass-edit-randomize']);
+      this.addSubtractFields = customMerge(this.addSubtractFields, preset['mass-edit-addSubtract']);
+      selectRandomizerFields(form, this.randomizeFields);
+      selectAddSubtractFields(form, this.addSubtractFields);
+
       for (const key of Object.keys(preset)) {
         const el = form.find(`[name="${key}"]`);
         if (el.is(':checkbox')) {
@@ -582,6 +621,10 @@ export function pasteDataUpdate(docs) {
       context.randomizeFields = data['mass-edit-randomize'];
       delete data['mass-edit-randomize'];
     }
+    if (data['mass-edit-addSubtract']) {
+      context.addSubtractFields = data['mass-edit-addSubtract'];
+      delete data['mass-edit-addSubtract'];
+    }
     performMassUpdate.call(context, data, docs, docName, applyType);
     ui.notifications.info(`Pasted data onto ${docs.length} ${docName}s`);
   }
@@ -604,6 +647,7 @@ function performMassUpdate(data, placeables, docName, applyType) {
 
   // Applies randomization
   if (this) applyRandomization.call(this, updates);
+  if (this) applyAddSubtract.call(this, updates, placeables, docName);
 
   // Special processing for some placeable types
   // Necessary when form data is not directly mappable to placeable

@@ -121,6 +121,14 @@
   text-align: left;
 }
 
+input.me-add {
+  background-color: greenyellow;
+}
+
+input.me-subtract {
+  background-color: orangered;
+}
+
 /* .mass-edit-preset-form .item {
   height: 35px;
 } */

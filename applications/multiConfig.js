@@ -96,13 +96,33 @@ function getSelectedDocuments() {
   return null;
 }
 
-// Show placeable search
-export function showMassSelect(basePlaceable) {
+function getSelected(base) {
   let selected;
-  if (basePlaceable) selected = [basePlaceable];
+  if (base) {
+    if (Array.isArray(base)) selected = base;
+    else selected = [base];
+  }
   if (!selected) selected = getSelectedDocuments();
   if (!selected) selected = getControlled();
   if (!selected) selected = getHover();
+
+  // Sort placeable on the scene using their (x, y) coordinates
+  if (selected && selected.length > 1 && selected[0].x != null && selected[0].y != null) {
+    selected.sort((p1, p2) => {
+      const c = p1.y - p2.y;
+      if (c === 0) {
+        return p1.x - p2.x;
+      }
+      return c;
+    });
+  }
+
+  return selected;
+}
+
+// Show placeable search
+export function showMassSelect(basePlaceable) {
+  let selected = getSelected(basePlaceable);
 
   if (!selected || !selected.length) {
     showPlaceableTypeSelectDialog();
@@ -121,10 +141,7 @@ export function showMassSelect(basePlaceable) {
 
 // show placeable edit
 export function showMassConfig(found = null) {
-  let selected = found;
-  if (!selected) selected = getSelectedDocuments();
-  if (!selected) selected = getControlled();
-  if (!selected) selected = getHover();
+  let selected = getSelected(found);
 
   // If there are no placeable in control or just one, then either exit or display the default config window
   if (!selected || !selected.length) return;
@@ -146,10 +163,7 @@ export function showMassConfig(found = null) {
 
 // show placeable data copy
 export function showMassCopy() {
-  let selected;
-  if (!selected) selected = getSelectedDocuments();
-  if (!selected) selected = getControlled();
-  if (!selected) selected = getHover();
+  let selected = getSelected();
 
   if (!selected || !selected.length) return;
 

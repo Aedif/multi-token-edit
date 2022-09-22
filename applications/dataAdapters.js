@@ -125,6 +125,14 @@ export class TokenDataAdapter {
 
     const presetClone = deepClone(preset);
     const randomize = preset['mass-edit-randomize'] ?? {};
+    const addSubtract = preset['mass-edit-randomize'] ?? {};
+
+    const modCustomFields = function (fields, key, i, k, preset) {
+      if (`detectionModes.${i}.${k}` in fields) {
+        delete fields[`detectionModes.${i}.${k}`];
+        fields[`detectionModes.${j}.${k}`] = preset[key][`detectionModes.${i}.${k}`];
+      }
+    };
 
     const startingModeLength = modes.length;
     for (let i = 0; i < pModes.length; i++) {
@@ -136,11 +144,8 @@ export class TokenDataAdapter {
           Object.keys(pModes[i]).forEach((k) => {
             delete preset[`detectionModes.${i}.${k}`];
             preset[`detectionModes.${j}.${k}`] = presetClone[`detectionModes.${i}.${k}`];
-            if (`detectionModes.${i}.${k}` in randomize) {
-              delete randomize[`detectionModes.${i}.${k}`];
-              randomize[`detectionModes.${j}.${k}`] =
-                presetClone['mass-edit-randomize'][`detectionModes.${i}.${k}`];
-            }
+            modCustomFields(randomize, 'mass-edit-randomize', i, k, presetClone);
+            modCustomFields(addSubtract, 'mass-edit-addSubtract', i, k, presetClone);
           });
         }
       }
@@ -150,10 +155,16 @@ export class TokenDataAdapter {
           delete preset[`detectionModes.${i}.${k}`];
           preset[`detectionModes.${modes.length - 1}.${k}`] =
             presetClone[`detectionModes.${i}.${k}`];
+
           if (`detectionModes.${i}.${k}` in randomize) {
             delete randomize[`detectionModes.${i}.${k}`];
             randomize[`detectionModes.${modes.length - 1}.${k}`] =
               presetClone['mass-edit-randomize'][`detectionModes.${i}.${k}`];
+          }
+          if (`detectionModes.${i}.${k}` in addSubtract) {
+            delete addSubtract[`detectionModes.${i}.${k}`];
+            addSubtract[`detectionModes.${modes.length - 1}.${k}`] =
+              presetClone['mass-edit-addSubtract'][`detectionModes.${i}.${k}`];
           }
         });
       }
