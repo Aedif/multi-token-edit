@@ -7,14 +7,21 @@ export class NoteDataAdapter {
       delete formData['icon.custom'];
     }
   }
+
+  static dataToForm(note, data) {
+    if (isNewerVersion('10', game.version)) return;
+    data['icon.selected'] = note.document.texture.src;
+    data['icon.custom'] = note.document.texture.src;
+  }
 }
 
 export class TokenDataAdapter {
   static dataToForm(token, data) {
     if (isNewerVersion('10', game.version)) return;
-    data.scale = Math.abs(token.document.texture.scaleX);
-    data.mirrorX = token.document.texture.scaleX < 0;
-    data.mirrorY = token.document.texture.scaleY < 0;
+    const doc = token.document ? token.document : token;
+    data.scale = Math.abs(doc.texture.scaleX);
+    data.mirrorX = doc.texture.scaleX < 0;
+    data.mirrorY = doc.texture.scaleY < 0;
   }
 
   static formToData(token, formData) {

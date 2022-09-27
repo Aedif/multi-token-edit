@@ -1,4 +1,4 @@
-import { SUPPORTED_CONFIGS } from '../applications/configs.js';
+import { SUPPORTED_CONFIGS } from '../applications/forms.js';
 import { getLayerMappings, showMassSelect } from '../applications/multiConfig.js';
 
 export function showPlaceableTypeSelectDialog() {

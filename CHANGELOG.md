@@ -1,3 +1,10 @@
+# 1.16.0
+
+- Mass permission editing support for Notes and Actors
+  - New header button is available in the Mass Edit forms
+- Fixed note search using icons not working as intended on v10
+- Fixed common data highlighting for token scale/mirroring and note icons on v10
+
 # 1.14.0
 
 - Numerical values can now be added or subtracted using Right-click

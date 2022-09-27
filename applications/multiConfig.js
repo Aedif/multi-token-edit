@@ -1,6 +1,6 @@
 import { showPlaceableTypeSelectDialog } from '../scripts/dialogs.js';
 import { getData } from '../scripts/utils.js';
-import { pasteDataUpdate, WithMassConfig } from './configs.js';
+import { pasteDataUpdate, WithMassConfig } from './forms.js';
 
 export function getLayerMappings() {
   return isNewerVersion('10', game.version)
@@ -158,7 +158,7 @@ export function showMassConfig(found = null) {
     ? selected[0].document.documentName
     : selected[0].documentName;
   const MassConfig = WithMassConfig(docName);
-  new MassConfig(selected, { commonData: getCommonData(selected) }).render(true, {});
+  new MassConfig(selected, { massEdit: true }).render(true, {});
 }
 
 // show placeable data copy
@@ -172,38 +172,7 @@ export function showMassCopy() {
     ? selected[0].document.documentName
     : selected[0].documentName;
   const MassConfig = WithMassConfig(docName);
-  new MassConfig(selected, { commonData: getCommonData(selected), massCopy: true }).render(
-    true,
-    {}
-  );
-}
-
-// Merge all data and determine what is common between the docs
-function getCommonData(docs) {
-  const areActors = docs[0] instanceof Actor;
-
-  const getTokenData = function (actor) {
-    return isNewerVersion('10', game.version) ? getData(actor).token : actor.prototypeToken;
-  };
-
-  const commonData = flattenObject(
-    (areActors ? getTokenData(docs[0]) : getData(docs[0])).toObject()
-  );
-  for (let i = 1; i < docs.length; i++) {
-    const flatData = flattenObject(
-      (areActors ? getTokenData(docs[i]) : getData(docs[i])).toObject()
-    );
-    const diff = flattenObject(diffObject(commonData, flatData));
-    for (const k of Object.keys(diff)) {
-      // Special handling for empty/undefined data
-      if ((diff[k] === '' || diff[k] == null) && (commonData[k] === '' || commonData[k] == null)) {
-        // matches, do not remove
-      } else {
-        delete commonData[k];
-      }
-    }
-  }
-  return commonData;
+  new MassConfig(selected, { massCopy: true }).render(true, {});
 }
 
 export function pasteData() {

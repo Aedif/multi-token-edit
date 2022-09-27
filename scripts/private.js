@@ -1,4 +1,4 @@
-import { SUPPORTED_CONFIGS } from '../applications/configs.js';
+import { SUPPORTED_CONFIGS } from '../applications/forms.js';
 import { emptyObject, getData } from './utils.js';
 
 export const IS_PRIVATE = false;
