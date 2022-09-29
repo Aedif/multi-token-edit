@@ -96,6 +96,10 @@ function getSelectedDocuments() {
   return null;
 }
 
+function documentName(doc) {
+  return doc.document ? doc.document.documentName : doc.documentName;
+}
+
 function getSelected(base) {
   let selected;
   if (base) {
@@ -104,7 +108,6 @@ function getSelected(base) {
   }
   if (!selected) selected = getSelectedDocuments();
   if (!selected) selected = getControlled();
-  if (!selected) selected = getHover();
 
   // Sort placeable on the scene using their (x, y) coordinates
   if (selected && selected.length > 1 && selected[0].x != null && selected[0].y != null) {
@@ -117,31 +120,43 @@ function getSelected(base) {
     });
   }
 
-  return selected;
+  // We want one placeable to be treated as the target for the form
+  // Will prioritize hovered placeable for this purpose
+  let hover = getHover();
+  hover = hover ? hover[0] : hover;
+
+  if (!selected && hover) selected = [hover];
+  if (!hover && selected) hover = selected[0];
+
+  if (!hover && !selected) return [null, null];
+
+  if (hover && documentName(hover) !== documentName(selected[0])) {
+    hover = selected[0];
+  }
+
+  return [hover, selected];
 }
 
 // Show placeable search
 export function showMassSelect(basePlaceable) {
-  let selected = getSelected(basePlaceable);
+  const [target, selected] = getSelected(basePlaceable);
 
-  if (!selected || !selected.length) {
+  if (!target) {
     showPlaceableTypeSelectDialog();
     return;
   }
 
-  const docName = selected[0].document
-    ? selected[0].document.documentName
-    : selected[0].documentName;
+  const docName = target.document ? target.document.documentName : target.documentName;
   const MassConfig = WithMassConfig(docName);
-  new MassConfig([selected[0]], {
-    commonData: flattenObject(getData(selected[0]).toObject()),
+  new MassConfig(target, selected, {
+    commonData: flattenObject(getData(target).toObject()),
     massSelect: true,
   }).render(true, {});
 }
 
 // show placeable edit
 export function showMassConfig(found = null) {
-  let selected = getSelected(found);
+  const [target, selected] = getSelected(found);
 
   // If there are no placeable in control or just one, then either exit or display the default config window
   if (!selected || !selected.length) return;
@@ -154,25 +169,21 @@ export function showMassConfig(found = null) {
   }
 
   // Display modified config window
-  const docName = selected[0].document
-    ? selected[0].document.documentName
-    : selected[0].documentName;
+  const docName = target.document ? target.document.documentName : target.documentName;
   const MassConfig = WithMassConfig(docName);
-  new MassConfig(selected, { massEdit: true }).render(true, {});
+  new MassConfig(target, selected, { massEdit: true }).render(true, {});
 }
 
 // show placeable data copy
 export function showMassCopy() {
-  let selected = getSelected();
+  const [target, selected] = getSelected();
 
   if (!selected || !selected.length) return;
 
   // Display modified config window
-  const docName = selected[0].document
-    ? selected[0].document.documentName
-    : selected[0].documentName;
+  const docName = target.document ? target.document.documentName : target.documentName;
   const MassConfig = WithMassConfig(docName);
-  new MassConfig(selected, { massCopy: true }).render(true, {});
+  new MassConfig(target, selected, { massCopy: true }).render(true, {});
 }
 
 export function pasteData() {

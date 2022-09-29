@@ -114,33 +114,43 @@ export const WithMassEditForm = (cls) => {
       }
 
       // Register numerical input listeners to toggle between subtract, and add modes
-      $(html).on('contextmenu', 'input[type=range], input[type=number]', (event) => {
-        const name = event.target.name;
-        if (!name) return;
+      $(html).on(
+        'contextmenu',
+        'input[type=range], input[type=number], input[name="flags.tagger.tags"]',
+        (event) => {
+          const name = event.target.name;
+          if (!name) return;
 
-        const input = $(event.target);
-        if (name in this.addSubtractFields) {
-          if (this.addSubtractFields[name].method === 'add') {
-            this.addSubtractFields[name].method = 'subtract';
-            input.removeClass('me-add').addClass('me-subtract');
-            const ctrl = { method: 'subtract' };
-            if (event.target.min) {
-              ctrl.min = parseFloat(event.target.min);
+          const input = $(event.target);
+          if (name in this.addSubtractFields) {
+            if (this.addSubtractFields[name].method === 'add') {
+              this.addSubtractFields[name].method = 'subtract';
+              input.removeClass('me-add').addClass('me-subtract');
+              input.attr('title', '- Subtracting');
+              const ctrl = { method: 'subtract' };
+              if (event.target.min) {
+                ctrl.min = parseFloat(event.target.min);
+              }
+              this.addSubtractFields[name] = ctrl;
+            } else {
+              delete this.addSubtractFields[name];
+              input.removeClass('me-subtract');
+              input.attr('title', '');
+            }
+          } else {
+            input.addClass('me-add');
+            input.attr('title', '+ Adding');
+            const ctrl = { method: 'add' };
+            if (event.target.max) {
+              ctrl.max = parseFloat(event.target.max);
             }
             this.addSubtractFields[name] = ctrl;
-          } else {
-            delete this.addSubtractFields[name];
-            input.removeClass('me-subtract');
           }
-        } else {
-          input.addClass('me-add');
-          const ctrl = { method: 'add' };
-          if (event.target.max) {
-            ctrl.max = parseFloat(event.target.max);
-          }
-          this.addSubtractFields[name] = ctrl;
+
+          // Select nearest mass edit checkbox
+          onInputChange(event);
         }
-      });
+      );
 
       // Remove all buttons in the footer
       $(html).find('.sheet-footer > button').remove();
@@ -319,13 +329,13 @@ export const WithMassConfig = (docName) => {
   const MEF = WithMassEditForm(cls);
 
   class MassConfig extends MEF {
-    constructor(docs, options) {
+    constructor(target, docs, options) {
       if (options.massSelect) options.randomizerEnabled = false;
       options.commonData = getCommonData(docs);
-      if (docs[0] instanceof Actor) {
-        super(docs[0].prototypeToken ? docs[0].prototypeToken : docs[0], docs, options);
+      if (target instanceof Actor) {
+        super(target.prototypeToken ? target.prototypeToken : target, docs, options);
       } else {
-        super(docs[0].document ? docs[0].document : docs[0], docs, options);
+        super(target.document ? target.document : target, docs, options);
       }
 
       // Add submit buttons
@@ -527,7 +537,7 @@ export const WithMassConfig = (docName) => {
             icon: 'fas fa-lock fa-fw',
             onclick: () => {
               let MP = WithMassPermissions();
-              new MP(docs).render(true);
+              new MP(docs[0], docs).render(true);
             },
           });
       }
@@ -816,7 +826,7 @@ export const WithMassPermissions = () => {
   );
 
   class MassPermissions extends MEF {
-    constructor(docs, options = {}) {
+    constructor(target, docs, options = {}) {
       // Generate common permissions
       const data = getData(docs[0]);
       const commonData = flattenObject(
@@ -852,7 +862,7 @@ export const WithMassPermissions = () => {
       options.commonData = commonData;
       options.massPermissions = true;
 
-      super(docs[0], docs, options);
+      super(target, docs, options);
     }
 
     async _updateObject(event, formData) {

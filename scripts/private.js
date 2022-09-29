@@ -1,3 +1,4 @@
+import { TokenDataAdapter } from '../applications/dataAdapters.js';
 import { SUPPORTED_CONFIGS } from '../applications/forms.js';
 import { emptyObject, getData } from './utils.js';
 
@@ -25,7 +26,8 @@ export function selectAddSubtractFields(form, fields) {
       .find(`[name="${key}"]`)
       .removeClass('me-add')
       .removeClass('me-subtract')
-      .addClass(fields[key].method === 'add' ? 'me-add' : 'me-subtract');
+      .addClass(fields[key].method === 'add' ? 'me-add' : 'me-subtract')
+      .attr('title', fields[key].method === 'add' ? '+ Adding' : '- Subtracting');
   }
 }
 
@@ -156,6 +158,25 @@ export function applyAddSubtract(updates, placeables, docName) {
       if (field in this.addSubtractFields && field in data) {
         let val = data[field];
         const ctrl = this.addSubtractFields[field];
+
+        // Special processing for Tagger module fields
+        if (field === 'flags.tagger.tags') {
+          const currentTags = Array.isArray(val)
+            ? val
+            : (val ?? '').split(',').map((s) => s.trim());
+          const modTags = (update[field] ?? '').split(',').map((s) => s.trim());
+          for (const tag of modTags) {
+            if (ctrl.method === 'add') {
+              if (!currentTags.includes(tag)) currentTags.push(tag);
+            } else if (ctrl.method === 'subtract') {
+              const index = currentTags.indexOf(tag);
+              if (index > -1) currentTags.splice(index, 1);
+            }
+          }
+          update[field] = currentTags.filter((t) => t).join(',');
+          continue;
+        }
+
         if (ctrl.method === 'add') {
           val += update[field];
         } else {

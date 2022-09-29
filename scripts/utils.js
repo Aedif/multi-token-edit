@@ -270,6 +270,17 @@ export function flagCompare(data, flag, flagVal) {
 
   if (falseyFlagVal && falseyDataVal) return true;
 
+  // Special treatment for Tagger module's tags
+  // Instead of directly comparing string we check if it contains the string
+  if (flag === 'flags.tagger.tags') {
+    const tags = data[flag] || [];
+    const compTags = flagVal ? flagVal.split(',').map((s) => s.trim()) : [];
+    for (const t of compTags) {
+      if (!tags.includes(t)) return false;
+    }
+    return true;
+  }
+
   return false;
 }
 

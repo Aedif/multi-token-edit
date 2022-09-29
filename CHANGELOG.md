@@ -1,3 +1,24 @@
+# 1.19.0
+
+- Hovered over placeable will now always be attempted to be used as the "base" for the displayed form
+  - With placeables selected hover over the placeable you wish to open the form for and press one of the key-bindings to open a Mass Edit form
+  - Should be useful when wishing to apply data from a particular placeable to the others
+
+Tagger module support
+
+- Tagger fields now support adding/removing
+- Improved searching using Tagger fields
+  - Instead of attempting an exact match the module will treat entered strings as comma separated tags and will return a match as true if all tags being searched are present in a placeable
+  - Order of tags does not matter
+
+Patreon
+
+- Improved color randomization
+  - Exposed Color.js settings to control color space and hue
+  - Randomizer will now default to HSL/Longer with a full color palette
+- Find and Replace
+  - Randomizer menus now allow to search string fields and replace text within them
+
 # 1.16.0
 
 - Mass permission editing support for Notes and Actors
