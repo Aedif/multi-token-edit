@@ -48,6 +48,12 @@ Numerical fields can be added and subtracted instead of overriding the current v
 
 ![addSubtract](https://user-images.githubusercontent.com/7693704/191852899-a9447d21-76b3-44c5-b586-dcbe68c7a692.gif)
 
+## Permission Editing
+
+Note and Token/Actor forms will contain a 'Permissions' header button allowing you to change access for any selected note, token, or actor. 
+
+![Permissions](https://user-images.githubusercontent.com/7693704/192584817-7ed7b710-ad44-41f3-ab82-93a962084aa4.png)
+
 
 ## Example Video
 
