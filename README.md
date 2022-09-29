@@ -13,10 +13,10 @@ _Note that all keybinding referenced bellow can be changed via 'Configure Contro
 Recommended modules:
 
 - Select Tool Everywhere (https://foundryvtt.com/packages/select-tool-everywhere)
-  - Will allow to select normally un-selectable placeable such as lights and templates
+  - Will allow to select normally un-selectable placeables such as lights and templates
 - Multiple Document Selection (https://foundryvtt.com/packages/multiple-document-selection)
   - Will enable selection of multiple documents in the sidebar
-  - Mass Edit will recognise these selection for Actors, Scenes, and JournalEntries
+  - Mass Edit will recognise these selection for Actors, Scenes, and Journals
 
 ## Editing
 
