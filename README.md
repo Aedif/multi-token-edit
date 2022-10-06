@@ -10,6 +10,14 @@ Support me on [Patreon](https://www.patreon.com/Aedif) to get access to the the 
 
 _Note that all keybinding referenced bellow can be changed via 'Configure Controls'_
 
+Recommended modules:
+
+- Select Tool Everywhere (https://foundryvtt.com/packages/select-tool-everywhere)
+  - Will allow to select normally un-selectable placeables such as lights and templates
+- Multiple Document Selection (https://foundryvtt.com/packages/multiple-document-selection)
+  - Will enable selection of multiple documents in the sidebar
+  - Mass Edit will recognise these selection for Actors, Scenes, and Journals
+
 ## Editing
 
 Select the placeables you wish to edit and press '**Shift+E**'.
