@@ -56,6 +56,8 @@ export const WithMassEditForm = (cls) => {
       $(html).on('change', 'input, select', onInputChange);
       $(html).on('click', 'button', onInputChange);
 
+      const rangeSpanToTextbox = game.settings.get('multi-token-edit', 'rangeToTextbox');
+
       // Attach classes and controls to all relevant form-groups
       const commonData = flattenObject(this.commonData || {});
       const insertRNGControl = this.randomizerEnabled;
@@ -70,6 +72,19 @@ export const WithMassEditForm = (cls) => {
             .find('[name]')
             .each(function () {
               const name = $(this).attr('name');
+
+              if (rangeSpanToTextbox && $(this).attr('type') === 'range') {
+                const span = $(formGroup).find('span.range-value');
+                if (span.length) {
+                  span.replaceWith(
+                    $(
+                      `<input name="${name}" class="range-value" type="number" step="any" value="${this.defaultValue}" min="${this.min}" max="${this.max}"></input>`
+                    )
+                  );
+                  $(this).removeAttr('name');
+                }
+              }
+
               if (name.startsWith('flags.')) {
                 fieldType = 'meFlag';
               } else if (!(name in commonData)) {

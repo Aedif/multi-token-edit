@@ -1,3 +1,8 @@
+# 1.20.0.1
+
+- New setting: Allow manual input for range sliders
+  - Converts slider value labels to text boxes
+
 # 1.19.0
 
 - Hovered over placeable will now always be attempted to be used as the "base" for the displayed form

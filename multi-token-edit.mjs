@@ -43,6 +43,15 @@ Hooks.once('init', () => {
     default: false,
   });
 
+  game.settings.register('multi-token-edit', 'rangeToTextbox', {
+    name: 'Allow manual input for range sliders',
+    hint: 'Converts slider value labels to text boxes.',
+    scope: 'world',
+    config: true,
+    type: Boolean,
+    default: false,
+  });
+
   game.settings.register('multi-token-edit', 'presets', {
     scope: 'world',
     config: false,
