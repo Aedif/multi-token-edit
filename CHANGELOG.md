@@ -1,4 +1,10 @@
-# 1.20.0.1
+# 1.21.0
+
+- Added an option to export presets for ALL placeable at once
+- New key-binding: Shift+X
+  - Opens preset dialog for currently selected/hovered placeables to immediately apply them
+
+# 1.20.0
 
 - New setting: Allow manual input for range sliders
   - Converts slider value labels to text boxes

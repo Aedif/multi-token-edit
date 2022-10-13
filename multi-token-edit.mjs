@@ -1,4 +1,5 @@
 import {
+  getSelected,
   pasteData,
   showMassConfig,
   showMassCopy,
@@ -6,6 +7,8 @@ import {
 } from './applications/multiConfig.js';
 import CSSEdit, { STYLES } from './applications/cssEdit.js';
 import { IS_PRIVATE } from './scripts/private.js';
+import MassEditPresets from './applications/presets.js';
+import { pasteDataUpdate } from './applications/forms.js';
 
 // Initialize module
 Hooks.once('init', () => {
@@ -139,6 +142,34 @@ Hooks.once('init', () => {
     ],
     onDown: () => {
       pasteData();
+    },
+    restricted: true,
+    precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
+  });
+
+  game.keybindings.register('multi-token-edit', 'presetApply', {
+    name: 'Open Presets',
+    hint: 'Opens Preset dialog for the hovered/selected placeables to immediately apply them.',
+    editable: [
+      {
+        key: 'KeyX',
+        modifiers: ['Shift'],
+      },
+    ],
+    onDown: () => {
+      const [target, selected] = getSelected();
+      if (!target) return;
+      const docName = target.document ? target.document.documentName : target.documentName;
+
+      new MassEditPresets(
+        null,
+        (preset) => {
+          const [target2, selected2] = getSelected();
+          if (!(target2 || target)) return;
+          pasteDataUpdate(target2 ? selected2 : selected, preset);
+        },
+        docName
+      ).render(true);
     },
     restricted: true,
     precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,

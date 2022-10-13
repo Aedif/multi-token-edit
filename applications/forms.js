@@ -684,21 +684,23 @@ export const WithMassConfig = (docName) => {
 // ===== UTILS ========
 // ====================
 
-export function pasteDataUpdate(docs) {
+export function pasteDataUpdate(docs, preset) {
   if (!docs || !docs.length) return;
 
   let docName = docs[0].document ? docs[0].document.documentName : docs[0].documentName;
-  let data = deepClone(CLIPBOARD[docName]);
+  let data = preset ?? deepClone(CLIPBOARD[docName]);
   let applyType;
 
   // Special handling for Tokens/Actors
-  if (docName === 'Actor') {
-    data = CLIPBOARD['Token'];
-    if (!data) data = CLIPBOARD['TokenProto'];
-  } else if (docName === 'Token') {
-    if (!data) {
-      data = CLIPBOARD['TokenProto'];
-      applyType = 'applyToPrototype';
+  if (!preset) {
+    if (docName === 'Actor') {
+      data = CLIPBOARD['Token'];
+      if (!data) data = CLIPBOARD['TokenProto'];
+    } else if (docName === 'Token') {
+      if (!data) {
+        data = CLIPBOARD['TokenProto'];
+        applyType = 'applyToPrototype';
+      }
     }
   }
 

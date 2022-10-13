@@ -3,12 +3,17 @@ import { emptyObject } from '../scripts/utils.js';
 import { TokenDataAdapter } from './dataAdapters.js';
 
 export default class MassEditPresets extends FormApplication {
-  constructor(configApp, callback) {
+  constructor(configApp, callback, docName) {
     super({}, {});
     this.configApp = configApp;
     this.callback = callback;
 
-    this.docName = this.configApp.object.documentName;
+    if (docName) {
+      this.docName = docName;
+    } else {
+      this.configApp = configApp;
+      this.docName = this.configApp.object.documentName;
+    }
     if (this.docName === 'Actor') this.docName = 'Token';
   }
 
@@ -31,6 +36,7 @@ export default class MassEditPresets extends FormApplication {
     const presets = (game.settings.get('multi-token-edit', 'presets') || {})[this.docName] || {};
 
     data.presets = [];
+    data.createEnabled = Boolean(this.configApp);
 
     for (const [name, fields] of Object.entries(presets)) {
       const randomizer = fields['mass-edit-randomize'] || {};

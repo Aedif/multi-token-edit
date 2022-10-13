@@ -100,7 +100,7 @@ function documentName(doc) {
   return doc.document ? doc.document.documentName : doc.documentName;
 }
 
-function getSelected(base) {
+export function getSelected(base) {
   let selected;
   if (base) {
     if (Array.isArray(base)) selected = base;

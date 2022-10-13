@@ -48,7 +48,26 @@ export function exportPresets(docType) {
   }
   content += `</form><div class="form-group"><button type="button" class="select-all">Select all</div>`;
 
-  new Dialog({
+  class WithHeader extends Dialog {
+    _getHeaderButtons() {
+      const buttons = super._getHeaderButtons();
+      buttons.unshift({
+        label: 'Export ALL',
+        class: 'mass-edit-presets-export-all',
+        icon: 'fas fa-globe',
+        onclick: (ev) => {
+          saveDataToFile(
+            JSON.stringify(game.settings.get('multi-token-edit', 'presets') || {}, null, 2),
+            'text/json',
+            'mass-edit-presets-ALL.json'
+          );
+        },
+      });
+      return buttons;
+    }
+  }
+
+  new WithHeader({
     title: `Export`,
     content: content,
     buttons: {
