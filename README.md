@@ -66,6 +66,9 @@ Note and Token/Actor forms will contain a 'Permissions' header button allowing y
 
 All Mass Edit forms have a header button (**</>**) that will open up a dialog with currently selected fields displayed as JSON
 
+![image](https://user-images.githubusercontent.com/7693704/195932291-59d7e0ae-f279-4b09-9c9a-37d077ab3e35.png)
+
+
 ## Example Video
 
 The video bellow shows off Mass Search and Edit being used on various placeables:
