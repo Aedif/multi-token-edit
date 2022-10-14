@@ -525,6 +525,24 @@ export const WithMassConfig = (docName) => {
     _getHeaderButtons() {
       const buttons = super._getHeaderButtons();
 
+      buttons.unshift({
+        label: ' ',
+        class: 'mass-edit-json',
+        icon: 'fas fa-code',
+        onclick: (ev) => {
+          let content = `<textarea style="width:100%; height: 300px;">${JSON.stringify(
+            this.getSelectedFields(),
+            null,
+            2
+          )}</textarea>`;
+          new Dialog({
+            title: `Selected Fields`,
+            content: content,
+            buttons: {},
+          }).render(true);
+        },
+      });
+
       const docName = this.placeables[0].document
         ? this.placeables[0].document.documentName
         : this.placeables[0].documentName;

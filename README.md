@@ -58,10 +58,13 @@ Numerical fields can be added and subtracted instead of overriding the current v
 
 ## Permission Editing
 
-Note and Token/Actor forms will contain a 'Permissions' header button allowing you to change access for any selected note, token, or actor. 
+Note and Token/Actor forms will contain a 'Permissions' header button allowing you to change access for any selected note, token, or actor.
 
 ![Permissions](https://user-images.githubusercontent.com/7693704/192584817-7ed7b710-ad44-41f3-ab82-93a962084aa4.png)
 
+## View selected fields as JSON
+
+All Mass Edit forms have a header button (**</>**) that will open up a dialog with currently selected fields displayed as JSON
 
 ## Example Video
 

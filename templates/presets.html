@@ -2,7 +2,7 @@
     <ol class="item-list preset-items">
         <li class="items-header flexrow">
             <h3 class="item-name flexrow">Presets</h3>
-            <div class="item-controls flexrow">
+            <div class="item-controls flexrow {{#unless createEnabled}}short{{/unless}}">
                 {{#if createEnabled}}
                 <a class="item-control preset-create" title="Create New Preset" data-type="objective">
                     <i class="fas fa-plus"></i>
@@ -16,8 +16,19 @@
                 <button title="{{preset.title}}" name="{{preset.name}}">{{preset.name}}</button>
             </div>
 
-            <div class="item-controls flexrow">
-                <a class="item-control preset-delete" title="Delete Action"><i class="fas fa-trash"></i></a>
+            <div class="item-controls flexrow {{#unless ../createEnabled}}short{{/unless}}">
+                <div class="item-control up-down">
+                    <a class="preset-sort-up" title="Sort Up"><i class="fas fa-sort-up fa-lg"></i></a>
+                    <a class="preset-sort-down" title="Sort Down"><i class="fas fa-sort-down fa-lg"></i></a>
+                </div>
+                {{#if ../createEnabled}}
+                &nbsp;
+                <div class="item-control preset-update"><a title="Update Preset"><i class="fas fa-sync"></i></a></div>
+                &nbsp;
+                <div class="item-control preset-delete">
+                    <a title="Delete Preset"><i class="fas fa-trash"></i></a>
+                </div>
+                {{/if}}
             </div>
         </li>
         {{/each}}

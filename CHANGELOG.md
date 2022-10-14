@@ -1,3 +1,8 @@
+# 1.22.1
+
+- New controls to order presets and update/refresh them using currently selected fields
+- Mass Edit forms have a new header button (**</>**) to display selected fields as JSON
+
 # 1.21.0
 
 - Added an option to export presets for ALL placeable at once

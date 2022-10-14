@@ -96,6 +96,28 @@
   color: rgb(136, 0, 0);
 }
 
+.mass-edit-preset-form .item-control.up-down {
+  position: absolute;
+}
+
+.mass-edit-preset-form .item-control .preset-sort-down,
+.mass-edit-preset-form .item-control .preset-sort-up {
+  position: absolute;
+}
+
+.mass-edit-preset-form .item-control .preset-sort-up {
+  margin-top: 5px;
+}
+
+.mass-edit-preset-form .item-control .preset-sort-down {
+  margin-top: 10px;
+}
+
+.mass-edit-preset-form .item-control.preset-update {
+  color: rgb(230, 149, 0);
+  margin-left: 10px;
+  margin-top: 7px;
+}
 .mass-edit-preset-form .items-header {
   height: 28px;
   margin: 2px 0;
@@ -113,7 +135,12 @@
 }
 
 .mass-edit-preset-form .item-controls {
-  flex: 0 0 35px;
+  flex: 0 0 50px;
+  padding-bottom: 7px;
+}
+
+.mass-edit-preset-form .item-controls.short {
+  flex: 0 0 25px;
   padding-bottom: 7px;
 }
 
