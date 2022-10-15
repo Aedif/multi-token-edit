@@ -77,6 +77,44 @@ https://user-images.githubusercontent.com/7693704/179762435-e0f11294-35ed-4cd2-b
 
 ## Randomization
 
-At the moment a [Patreon](https://www.patreon.com/Aedif) exclusive feature:
+At the moment a [Patreon](https://www.patreon.com/Aedif) exclusive feature.
 
-https://user-images.githubusercontent.com/7693704/182151974-a5994aea-1975-4342-a0b5-1a2d5e5574c4.mp4
+Randomize any nuemrical, color, text, image, drop-down, or coordinate values.
+
+Text
+  - Can use either the provided name generators or your own list of strings to choose from
+  - Find and Replace text within the selected field
+
+Numerical
+  - Randomize value betweent the minimum and maximum ranges
+  - "Step Size" controls the granularity of the generated numbers
+    - Min: 0, Max: 10, Step Size: 0.1, RNG => 0.5, 7.2, 9.9 etc.
+    - Min: 0, Max: 10, Step Size: 1, RNG => 3, 5, 9 etc.
+  - Instead of picking random numbers the module can also be instructed to interpolate values, returning sequentially larger ones
+
+Coordinate
+  - Will pick random non-overlapping coordinates within the bounding square
+  - Define the bounds either manually or using the 'Select Range' tool
+  - Snap to grid tool will adjust the selected range to overlap with the grid
+
+Drop-down
+  - Will allow to select all values within the dropdown that you wish to include in the randomization
+
+Image
+  - Uses a list of image paths to randomly select images from
+  - The list can be populated either manually, using Folder Select tool, or Token Variant Art if installed
+  - Images can also be applied sequentially in list order rather than randomly
+  - Supports Find and Replace
+
+Color
+  - Randomizes using the range defined by two selected colors, space, and hue
+  - By default full color spectrum will be selected for you, but you may define your own color ranges
+  - Supports interpolation
+
+Boolean
+  - Simple On/Off randomization 50/50
+
+https://user-images.githubusercontent.com/7693704/196006020-9d308238-1888-4b98-b452-e7ce88a643ac.mp4
+
+
+
