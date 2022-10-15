@@ -79,14 +79,14 @@ https://user-images.githubusercontent.com/7693704/179762435-e0f11294-35ed-4cd2-b
 
 At the moment a [Patreon](https://www.patreon.com/Aedif) exclusive feature.
 
-Randomize any nuemrical, color, text, image, drop-down, or coordinate values.
+Randomize any numerical, color, text, image, drop-down, or coordinate values.
 
 Text
   - Can use either the provided name generators or your own list of strings to choose from
   - Find and Replace text within the selected field
 
 Numerical
-  - Randomize value betweent the minimum and maximum ranges
+  - Randomize value between the minimum and maximum ranges
   - "Step Size" controls the granularity of the generated numbers
     - Min: 0, Max: 10, Step Size: 0.1, RNG => 0.5, 7.2, 9.9 etc.
     - Min: 0, Max: 10, Step Size: 1, RNG => 3, 5, 9 etc.
