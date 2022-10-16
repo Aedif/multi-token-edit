@@ -53,8 +53,9 @@ export const WithMassEditForm = (cls) => {
       $(html).prepend(`<style>${css}</style>`);
 
       // On any field being changed we want to automatically select the form-group to be included in the update
-      $(html).on('change', 'input, select', onInputChange);
-      $(html).on('click', 'button', onInputChange);
+      html.on('change', 'input, select', onInputChange);
+      html.on('paste', 'input', onInputChange);
+      html.on('click', 'button', onInputChange);
 
       const rangeSpanToTextbox = game.settings.get('multi-token-edit', 'rangeToTextbox');
 
@@ -462,12 +463,11 @@ export const WithMassConfig = (docName) => {
       const found = [];
       for (const layer of getLayerMappings()[docName]) {
         // First release/de-select the currently selected placeable on the scene
-        for (const c of canvas[layer].controlled) {
-          c.release();
-        }
+        canvas[layer].controlled.map((c) => c).forEach((c) => c.release());
 
         // Next select placeables that match the selected fields
-        for (const c of canvas[layer].placeables) {
+        const placeables = canvas[layer].placeables.map((c) => c);
+        for (const c of placeables) {
           let matches = true;
           const data = flattenObject(getData(c).toObject());
 
@@ -525,6 +525,28 @@ export const WithMassConfig = (docName) => {
     _getHeaderButtons() {
       const buttons = super._getHeaderButtons();
 
+      const docName = this.placeables[0].document
+        ? this.placeables[0].document.documentName
+        : this.placeables[0].documentName;
+
+      // buttons.unshift({
+      //   label: ' ',
+      //   class: 'mass-edit-history',
+      //   icon: 'fas fa-history',
+      //   onclick: (ev) => {
+      //     let content = `<textarea style="width:100%; height: 300px;">${JSON.stringify(
+      //       HISTORY[docName] ?? [],
+      //       null,
+      //       2
+      //     )}</textarea>`;
+      //     new Dialog({
+      //       title: `Selected Fields`,
+      //       content: content,
+      //       buttons: {},
+      //     }).render(true);
+      //   },
+      // });
+
       buttons.unshift({
         label: ' ',
         class: 'mass-edit-json',
@@ -542,10 +564,6 @@ export const WithMassConfig = (docName) => {
           }).render(true);
         },
       });
-
-      const docName = this.placeables[0].document
-        ? this.placeables[0].document.documentName
-        : this.placeables[0].documentName;
 
       if (['Token', 'Note', 'Actor'].includes(docName)) {
         let docs = [];
@@ -822,7 +840,7 @@ function getTokenData(actor) {
   return isNewerVersion('10', game.version) ? getData(actor).token : actor.prototypeToken;
 }
 
-function getObjFormData(obj, docName) {
+export function getObjFormData(obj, docName) {
   let data = (docName === 'Actor' ? getTokenData(obj) : getData(obj)).toObject();
   data = flattenObject(data);
 

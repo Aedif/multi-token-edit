@@ -1,3 +1,8 @@
+# 1.22.2
+
+- Fixed Mass Search not selecting all matched placeables on v10
+- Select check-boxes should now auto-select immediately when pasting text
+
 # 1.22.1
 
 - New controls to order presets and update/refresh them using currently selected fields
