@@ -52,7 +52,8 @@ export default class MassEditPresets extends FormApplication {
         if (k in randomizer) {
           title += `${k}: {{randomized}}\n`;
         } else if (k in addSubtract) {
-          title += `${k}: ${addSubtract[k].method === 'add' ? '+' : '-'}${fields[k]}\n`;
+          const val = 'value' in addSubtract[k] ? addSubtract[k].value : fields[k];
+          title += `${k}: ${addSubtract[k].method === 'add' ? '+' : '-'}${val}\n`;
         } else {
           title += `${k}: ${fields[k]}\n`;
         }

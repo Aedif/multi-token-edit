@@ -1,3 +1,17 @@
+# 1.23.0
+
+- New setting: Update History
+  - Requires game re-load to take effect
+  - When enabled updates made to placeables will be tracked and accessible via Mass Edit forms
+  - Past updates can be selected to be applied on the currently open Mass Edit form or copied to the modules "clipboard"
+    - Updates applied to forms are limited to the fields available on the form itself, while updates copied to the clipboard are not
+  - The doc affected by the update can be panned to
+  - Mass Edit's randomization is supported and will be tracked in history
+- New Setting: History Max Length
+  - Controls how many updates will be stored by the module
+- Mass Edit's checkboxes will now auto-select as soon as the user begins to type in text boxes
+- Tabs will now be highlighted if they contain checked Mass Edit checkboxes
+
 # 1.22.2
 
 - Fixed Mass Search not selecting all matched placeables on v10

@@ -16,6 +16,18 @@ export class NoteDataAdapter {
 }
 
 export class TokenDataAdapter {
+  static updateToForm(update) {
+    if (isNewerVersion('10', game.version)) return;
+    if ('texture.scaleX' in update) {
+      update.mirrorX = update['texture.scaleX'] < 0;
+      update.scale = Math.abs(update['texture.scaleX']);
+    }
+    if ('texture.scaleY' in update) {
+      update.mirrorY = update['texture.scaleY'] < 0;
+      update.scale = Math.abs(update['texture.scaleY']);
+    }
+  }
+
   static dataToForm(token, data) {
     if (isNewerVersion('10', game.version)) return;
     const doc = token.document ? token.document : token;

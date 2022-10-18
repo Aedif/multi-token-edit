@@ -175,8 +175,8 @@ export function applyAddSubtract(updates, placeables, docName) {
 
     for (const field of Object.keys(update)) {
       if (field in this.addSubtractFields && field in data) {
-        let val = data[field];
         const ctrl = this.addSubtractFields[field];
+        let val = data[field];
 
         // Special processing for Tagger module fields
         if (field === 'flags.tagger.tags') {
@@ -197,9 +197,9 @@ export function applyAddSubtract(updates, placeables, docName) {
         }
 
         if (ctrl.method === 'add') {
-          val += update[field];
+          val += 'value' in ctrl ? ctrl.value : update[field];
         } else {
-          val -= update[field];
+          val -= 'value' in ctrl ? ctrl.value : update[field];
         }
         if ('min' in ctrl && val < ctrl.min) {
           val = ctrl.min;

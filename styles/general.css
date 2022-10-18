@@ -50,6 +50,16 @@
   margin-bottom: 5px;
 }
 
+.mass-edit-tab-selected {
+  outline: 2px solid green;
+  outline-offset: 3px;
+}
+
+.mass-edit-tab-selected-v10 {
+  outline: 2px solid green;
+  outline-offset: -3px;
+}
+
 /* ===================== 
    === Randomization ===
    ===================== */
@@ -156,6 +166,28 @@ input.me-subtract {
   background-color: orangered;
 }
 
-/* .mass-edit-preset-form .item {
-  height: 35px;
-} */
+/* ===================== 
+   ====== History ======
+   ===================== */
+
+.mass-edit-history-form .item-update {
+  flex: 2;
+}
+
+.mass-edit-history-form .item-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  scrollbar-width: thin;
+  color: #7a7971;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+.mass-edit-history-form .item-control {
+  text-align: center;
+}
+
+.mass-edit-history-form .me-diff {
+  background-color: orange;
+}

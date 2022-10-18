@@ -8,7 +8,10 @@ import {
 import CSSEdit, { STYLES } from './applications/cssEdit.js';
 import { IS_PRIVATE } from './scripts/private.js';
 import MassEditPresets from './applications/presets.js';
-import { pasteDataUpdate } from './applications/forms.js';
+import { getObjFormData, pasteDataUpdate, SUPPORTED_CONFIGS } from './applications/forms.js';
+import { emptyObject, flagCompare } from './scripts/utils.js';
+
+export const HISTORY = {};
 
 // Initialize module
 Hooks.once('init', () => {
@@ -62,6 +65,24 @@ Hooks.once('init', () => {
     default: {},
   });
 
+  game.settings.register('multi-token-edit', 'enableHistory', {
+    name: 'Update History',
+    hint: '(REQUIRED GAME RELOAD) When enabled updates made to placeables will be stored and accessible via Mass Edit forms.',
+    scope: 'world',
+    config: true,
+    type: Boolean,
+    default: false,
+  });
+
+  game.settings.register('multi-token-edit', 'historyMaxLength', {
+    name: 'History Max Length',
+    hint: 'Number of updates to be recorded in history.',
+    scope: 'world',
+    config: true,
+    type: Number,
+    default: 10,
+  });
+
   if (IS_PRIVATE) {
     game.settings.register('multi-token-edit', 'autoSnap', {
       name: 'Auto-snap coordinates to Grid',
@@ -72,6 +93,14 @@ Hooks.once('init', () => {
       default: true,
     });
   }
+
+  // Register history related hooks
+  if (game.settings.get('multi-token-edit', 'enableHistory'))
+    SUPPORTED_CONFIGS.forEach((docName) => {
+      Hooks.on(`preUpdate${docName}`, (doc, update, options, userId) => {
+        updateHistory(doc, update, userId);
+      });
+    });
 
   game.keybindings.register('multi-token-edit', 'editKey', {
     name: 'Open Multi-Placeable Edit',
@@ -218,3 +247,69 @@ Hooks.on('renderTileHUD', (hud, html, tileData) => {
     });
   }
 });
+
+//
+// History Utilities
+//
+
+// Retrieve only the data that is different
+function getDiffData(obj, update) {
+  const docName = obj.document ? obj.document.documentName : obj.documentName;
+
+  const cUpdate = deepClone(update);
+  const flatObjData = getObjFormData(obj, docName);
+  const flatUpdate = flattenObject(cUpdate);
+  const diff = diffObject(flatObjData, flatUpdate);
+
+  for (const [k, v] of Object.entries(diff)) {
+    // Special handling for empty/undefined data
+    if ((v === '' || v == null) && (flatObjData[k] === '' || flatObjData[k] == null)) {
+      // matches
+      delete diff[k];
+    }
+
+    if (k.startsWith('flags.'))
+      if (flagCompare(flatObjData, k, v)) {
+        delete diff[k];
+      }
+
+    if (docName === 'Token' && ['light.angle', 'rotation'].includes(k)) {
+      if (v % 360 === flatObjData[k] % 360) {
+        delete diff[k];
+      }
+    }
+  }
+
+  return diff;
+}
+
+function updateHistory(obj, update, userId) {
+  if (game.user.id !== userId || !game.settings.get('multi-token-edit', 'enableHistory')) return;
+
+  const historyItem = { timestamp: new Date().toLocaleTimeString(), ctrl: {} };
+  ['mass-edit-randomize', 'mass-edit-addSubtract'].forEach((ctrl) => {
+    if (ctrl in update) {
+      historyItem.ctrl[ctrl] = update[ctrl][0];
+      delete update[ctrl];
+    }
+  });
+  const cUpdate = flattenObject(deepClone(update));
+  delete cUpdate._id;
+
+  if (emptyObject(cUpdate)) return;
+
+  historyItem.update = cUpdate;
+  historyItem.diff = getDiffData(obj, update);
+  historyItem._id = update._id;
+
+  const maxLength = game.settings.get('multi-token-edit', 'historyMaxLength') ?? 0;
+  const docName = obj.document ? obj.document.documentName : obj.documentName;
+  const docHistory = HISTORY[docName] ?? [];
+  docHistory.push(historyItem);
+
+  if (docHistory.length > maxLength) {
+    docHistory.splice(0, 1);
+  }
+
+  HISTORY[docName] = docHistory;
+}

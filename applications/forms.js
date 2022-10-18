@@ -9,6 +9,7 @@ import {
 import { emptyObject, flagCompare, getData, hasFlagRemove } from '../scripts/utils.js';
 import { getInUseStyle } from './cssEdit.js';
 import { NoteDataAdapter, TokenDataAdapter } from './dataAdapters.js';
+import MassEditHistory from './history.js';
 import { getLayerMappings, showMassConfig } from './multiConfig.js';
 import MassEditPresets from './presets.js';
 
@@ -53,6 +54,7 @@ export const WithMassEditForm = (cls) => {
       $(html).prepend(`<style>${css}</style>`);
 
       // On any field being changed we want to automatically select the form-group to be included in the update
+      html.on('input', 'input[type="text"], input[type="number"]', onInputChange);
       html.on('change', 'input, select', onInputChange);
       html.on('paste', 'input', onInputChange);
       html.on('click', 'button', onInputChange);
@@ -89,7 +91,12 @@ export const WithMassEditForm = (cls) => {
               if (name.startsWith('flags.')) {
                 fieldType = 'meFlag';
               } else if (!(name in commonData)) {
-                fieldType = 'meDiff';
+                // We want to ignore certain fields from commonData checks e.g. light invert-radius
+
+                if (name === 'invert-radius') {
+                } else {
+                  fieldType = 'meDiff';
+                }
               }
             });
         }
@@ -280,6 +287,7 @@ export const WithMassEditForm = (cls) => {
 
       const selectedFields = {};
       const form = $(this.form);
+      const addSubtractFields = this.addSubtractFields;
 
       form.find('.form-group').each(function (_) {
         const me_checkbox = $(this).find('.mass-edit-checkbox > input');
@@ -297,6 +305,9 @@ export const WithMassEditForm = (cls) => {
                 }
               } else {
                 selectedFields[name] = formData[name];
+                if (name in addSubtractFields) {
+                  addSubtractFields[name].value = formData[name];
+                }
               }
             });
         }
@@ -444,19 +455,8 @@ export const WithMassConfig = (docName) => {
       if (!emptyObject(this.addSubtractFields)) {
         selectedFields['mass-edit-addSubtract'] = deepClone(this.addSubtractFields);
       }
-      CLIPBOARD[docName] = selectedFields;
 
-      // Special handling for Actors/Tokens
-      if (docName === 'Actor') {
-        delete CLIPBOARD['Actor'];
-        CLIPBOARD['TokenProto'] = selectedFields;
-      } else if (docName === 'Token') {
-        if (command === 'copyProto') {
-          delete CLIPBOARD['Token'];
-          CLIPBOARD['TokenProto'] = selectedFields;
-        }
-      }
-      ui.notifications.info(`Copied ${docName} data to clipboard`);
+      copyToClipboard(docName, selectedFields, command);
     }
 
     performMassSearch(command, selectedFields, docName) {
@@ -529,23 +529,15 @@ export const WithMassConfig = (docName) => {
         ? this.placeables[0].document.documentName
         : this.placeables[0].documentName;
 
-      // buttons.unshift({
-      //   label: ' ',
-      //   class: 'mass-edit-history',
-      //   icon: 'fas fa-history',
-      //   onclick: (ev) => {
-      //     let content = `<textarea style="width:100%; height: 300px;">${JSON.stringify(
-      //       HISTORY[docName] ?? [],
-      //       null,
-      //       2
-      //     )}</textarea>`;
-      //     new Dialog({
-      //       title: `Selected Fields`,
-      //       content: content,
-      //       buttons: {},
-      //     }).render(true);
-      //   },
-      // });
+      if (game.settings.get('multi-token-edit', 'enableHistory'))
+        buttons.unshift({
+          label: ' ',
+          class: 'mass-edit-history',
+          icon: 'fas fa-history',
+          onclick: (ev) => {
+            new MassEditHistory(this, async (preset) => this._processPreset(preset)).render(true);
+          },
+        });
 
       buttons.unshift({
         label: ' ',
@@ -597,7 +589,8 @@ export const WithMassConfig = (docName) => {
         label: 'Presets',
         class: 'mass-edit-presets',
         icon: 'fas fa-box',
-        onclick: (ev) => this._onConfigurePresets(ev),
+        onclick: (ev) =>
+          new MassEditPresets(this, async (preset) => this._processPreset(preset)).render(true),
       });
       return buttons;
     }
@@ -626,48 +619,46 @@ export const WithMassConfig = (docName) => {
       }, 1000);
     }
 
-    _onConfigurePresets(event) {
-      new MassEditPresets(this, async (preset) => {
-        // This will be called when a preset is selected
-        // The code bellow handled it being applied to the current form
+    async _processPreset(preset) {
+      // This will be called when a preset or history item is selected
+      // The code bellow handled it being applied to the current form
 
-        // =====================
-        // Module specific logic
-        // =====================
-        let timeoutRequired = false;
+      // =====================
+      // Module specific logic
+      // =====================
+      let timeoutRequired = false;
 
-        // Monk's Active Tiles
-        if ('flags.monks-active-tiles.actions' in preset) {
-          timeoutRequired = true;
-          await this.object.setFlag(
-            'monks-active-tiles',
-            'actions',
-            preset['flags.monks-active-tiles.actions']
-          );
-        }
+      // Monk's Active Tiles
+      if ('flags.monks-active-tiles.actions' in preset) {
+        timeoutRequired = true;
+        await this.object.setFlag(
+          'monks-active-tiles',
+          'actions',
+          preset['flags.monks-active-tiles.actions']
+        );
+      }
 
-        if ('flags.monks-active-tiles.files' in preset) {
-          timeoutRequired = true;
-          await this.object.setFlag(
-            'monks-active-tiles',
-            'files',
-            preset['flags.monks-active-tiles.files']
-          );
-        }
+      if ('flags.monks-active-tiles.files' in preset) {
+        timeoutRequired = true;
+        await this.object.setFlag(
+          'monks-active-tiles',
+          'files',
+          preset['flags.monks-active-tiles.files']
+        );
+      }
 
-        if (this.object.documentName === 'Token') {
-          timeoutRequired = TokenDataAdapter.presetModify(this, preset);
-        }
+      if (this.object.documentName === 'Token') {
+        timeoutRequired = TokenDataAdapter.presetModify(this, preset);
+      }
 
-        if (timeoutRequired) {
-          setTimeout(() => {
-            this._applyPreset(preset);
-          }, 250);
-          return;
-        }
+      if (timeoutRequired) {
+        setTimeout(() => {
+          this._applyPreset(preset);
+        }, 250);
+        return;
+      }
 
-        this._applyPreset(preset);
-      }).render(true);
+      this._applyPreset(preset);
     }
 
     _applyPreset(preset) {
@@ -758,6 +749,8 @@ export function pasteDataUpdate(docs, preset) {
 function performMassUpdate(data, placeables, docName, applyType) {
   if (emptyObject(data)) return;
 
+  const historyEnabled = game.settings.get('multi-token-edit', 'enableHistory');
+
   // Update docs
   const updates = [];
 
@@ -765,6 +758,13 @@ function performMassUpdate(data, placeables, docName, applyType) {
   for (let i = 0; i < total; i++) {
     const update = deepClone(data);
     update._id = placeables[i].id;
+
+    // If history is enabled we'll want to attach additional controls to the updates
+    // so that they can be tracked.
+    if (historyEnabled) {
+      update['mass-edit-randomize'] = [deepClone(this.randomizeFields)];
+      update['mass-edit-addSubtract'] = [deepClone(this.addSubtractFields)];
+    }
 
     // push update
     updates.push(update);
@@ -832,8 +832,47 @@ function performMassUpdate(data, placeables, docName, applyType) {
 
 // Toggle checkbox if input has been detected inside it's form-group
 async function onInputChange(event) {
-  if (event.target.className === 'mass-edit-control') return;
-  $(event.target).closest('.form-group').find('.mass-edit-checkbox input').prop('checked', true);
+  if (event.target.className === 'mass-edit-control') {
+    if (!event.target.checked) {
+      // If the checkbox has been unchecked we may need to remove highlighting from tabs
+      deselectTabs(event.target);
+      return;
+    }
+  }
+
+  const meChk = $(event.target).closest('.form-group').find('.mass-edit-checkbox input');
+  meChk.prop('checked', true);
+
+  // Highlight tabs if they exist
+  selectTabs(meChk[0]);
+}
+
+function tabSelectedClass() {
+  return isNewerVersion('10', game.version)
+    ? 'mass-edit-tab-selected'
+    : 'mass-edit-tab-selected-v10';
+}
+
+function selectTabs(target) {
+  const tab = $(target).parent().closest('div.tab');
+  if (tab.length) {
+    tab
+      .siblings('nav.tabs')
+      .find(`[data-tab="${tab.attr('data-tab')}"]`)
+      .addClass(tabSelectedClass());
+    selectTabs(tab[0]);
+  }
+}
+
+function deselectTabs(target) {
+  const tab = $(target).parent().closest('div.tab');
+  if (tab.length && tab.find('.mass-edit-checkbox input:checked').length === 0) {
+    tab
+      .siblings('nav.tabs')
+      .find(`[data-tab="${tab.attr('data-tab')}"]`)
+      .removeClass(tabSelectedClass());
+    deselectTabs(tab[0]);
+  }
 }
 
 function getTokenData(actor) {
@@ -970,3 +1009,19 @@ export const WithMassPermissions = () => {
 // ==================================
 
 const CLIPBOARD = {};
+
+export function copyToClipboard(docName, data, command) {
+  CLIPBOARD[docName] = data;
+
+  // Special handling for Actors/Tokens
+  if (docName === 'Actor') {
+    delete CLIPBOARD['Actor'];
+    CLIPBOARD['TokenProto'] = data;
+  } else if (docName === 'Token') {
+    if (command === 'copyProto') {
+      delete CLIPBOARD['Token'];
+      CLIPBOARD['TokenProto'] = data;
+    }
+  }
+  ui.notifications.info(`Copied ${docName} data to clipboard`);
+}
