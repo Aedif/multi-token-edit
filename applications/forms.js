@@ -199,7 +199,7 @@ export const WithMassEditForm = (cls) => {
       // =====================
 
       // Monk's Active Tiles
-      if (this.object.documentName === 'Tile' && this._createAction) {
+      if (this.documentName === 'Tile' && this._createAction) {
         let chk = $(`
           <div class="form-group">
             <label>Mass Edit: Actions</label>
@@ -272,13 +272,13 @@ export const WithMassEditForm = (cls) => {
 
       // Token _getSubmitData() performs conversions related to scale, we need to undo them here
       // so that named fields on the form match up and can be selected
-      if (this.object.documentName === 'Token' && !isNewerVersion('10', game.version)) {
+      if (this.documentName === 'Token' && !isNewerVersion('10', game.version)) {
         if (formData['texture.scaleX']) {
           formData.scale = Math.abs(formData['texture.scaleX']);
           formData.mirrorX = formData['texture.scaleX'] < 0;
           formData.mirrorY = formData['texture.scaleY'] < 0;
         }
-      } else if (this.object.documentName === 'Note' && !isNewerVersion('10', game.version)) {
+      } else if (this.documentName === 'Note' && !isNewerVersion('10', game.version)) {
         if (formData['texture.src']) {
           formData['icon.selected'] = formData['texture.src'];
           formData['icon.custom'] = formData['texture.src'];
@@ -319,7 +319,7 @@ export const WithMassEditForm = (cls) => {
     // Overriding here to prevent the underlying object from being updated as inputs change on the form
     // Relevant for AmbientLight, Tile, and Token sheets
     async _onChangeInput(event) {
-      if (!['AmbientLight', 'Tile', 'Token'].includes(this.object.documentName)) {
+      if (!['AmbientLight', 'Tile', 'Token', 'Actor'].includes(this.documentName)) {
         super._onChangeInput(event);
         return;
       }
@@ -361,8 +361,10 @@ export const WithMassConfig = (docName) => {
       options.commonData = getCommonData(docs);
       if (target instanceof Actor) {
         super(target.prototypeToken ? target.prototypeToken : target, docs, options);
+        this.documentName = 'Actor';
       } else {
         super(target.document ? target.document : target, docs, options);
+        this.documentName = this.object.documentName;
       }
 
       // Add submit buttons
@@ -375,10 +377,10 @@ export const WithMassConfig = (docName) => {
       } else if (this.options.massCopy) {
         buttons = [{ title: 'Copy', value: 'copy', icon: 'fas fa-copy' }];
         // Extra control for Tokens to update their Actors Token prototype
-        if (this.object.documentName === 'Token') {
+        if (this.documentName === 'Token') {
           buttons.push({ title: 'Copy as Prototype', value: 'copyProto', icon: 'fas fa-copy' });
         }
-      } else if (this.object.documentName === 'Note') {
+      } else if (this.documentName === 'Note') {
         // If we're editing notes and there are some on a different scene
         if (this.placeables.filter((n) => (n.scene ?? n.parent).id === canvas.scene.id).length) {
           buttons.push({
@@ -397,7 +399,7 @@ export const WithMassConfig = (docName) => {
       } else {
         buttons = [{ title: 'Apply Changes', value: 'apply', icon: 'far fa-save' }];
         // Extra control for Tokens to update their Actors Token prototype
-        if (this.object.documentName === 'Token') {
+        if (this.documentName === 'Token') {
           buttons.push({
             title: 'Apply and Update Prototypes',
             value: 'applyToPrototype',
@@ -534,8 +536,10 @@ export const WithMassConfig = (docName) => {
           label: ' ',
           class: 'mass-edit-history',
           icon: 'fas fa-history',
-          onclick: (ev) => {
-            new MassEditHistory(this, async (preset) => this._processPreset(preset)).render(true);
+          onclick: () => {
+            new MassEditHistory(docName, async (preset) => this._processPreset(preset)).render(
+              true
+            );
           },
         });
 
@@ -543,7 +547,7 @@ export const WithMassConfig = (docName) => {
         label: ' ',
         class: 'mass-edit-json',
         icon: 'fas fa-code',
-        onclick: (ev) => {
+        onclick: () => {
           let content = `<textarea style="width:100%; height: 300px;">${JSON.stringify(
             this.getSelectedFields(),
             null,
@@ -647,7 +651,7 @@ export const WithMassConfig = (docName) => {
         );
       }
 
-      if (this.object.documentName === 'Token') {
+      if (this.documentName === 'Token') {
         timeoutRequired = TokenDataAdapter.presetModify(this, preset);
       }
 
@@ -696,9 +700,9 @@ export const WithMassConfig = (docName) => {
     }
 
     get title() {
-      if (this.options.massSelect) return `Mass-${this.object.documentName} SEARCH`;
-      if (this.options.massCopy) return `Mass-${this.object.documentName} COPY`;
-      return `Mass-${this.object.documentName} EDIT [ ${this.placeables.length} ]`;
+      if (this.options.massSelect) return `Mass-${this.documentName} SEARCH`;
+      if (this.options.massCopy) return `Mass-${this.documentName} COPY`;
+      return `Mass-${this.documentName} EDIT [ ${this.placeables.length} ]`;
     }
   }
 
@@ -818,7 +822,14 @@ function performMassUpdate(data, placeables, docName, applyType) {
     const actorUpdates = {};
     for (let i = 0; i < placeables.length; i++) {
       const actor = placeables[i] instanceof Actor ? placeables[i] : placeables[i].actor;
-      if (actor) actorUpdates[actor.id] = { _id: actor.id, token: updates[i] };
+      if (actor) {
+        delete updates[i]._id;
+        if (isNewerVersion('10', game.version)) {
+          actorUpdates[actor.id] = { _id: actor.id, token: updates[i] };
+        } else {
+          actorUpdates[actor.id] = { _id: actor.id, prototypeToken: updates[i] };
+        }
+      }
     }
     if (!emptyObject(actorUpdates)) {
       const updates = [];
@@ -847,19 +858,13 @@ async function onInputChange(event) {
   selectTabs(meChk[0]);
 }
 
-function tabSelectedClass() {
-  return isNewerVersion('10', game.version)
-    ? 'mass-edit-tab-selected'
-    : 'mass-edit-tab-selected-v10';
-}
-
 function selectTabs(target) {
   const tab = $(target).parent().closest('div.tab');
   if (tab.length) {
     tab
       .siblings('nav.tabs')
       .find(`[data-tab="${tab.attr('data-tab')}"]`)
-      .addClass(tabSelectedClass());
+      .addClass('mass-edit-tab-selected');
     selectTabs(tab[0]);
   }
 }
@@ -870,7 +875,7 @@ function deselectTabs(target) {
     tab
       .siblings('nav.tabs')
       .find(`[data-tab="${tab.attr('data-tab')}"]`)
-      .removeClass(tabSelectedClass());
+      .removeClass('mass-edit-tab-selected');
     deselectTabs(tab[0]);
   }
 }
@@ -997,7 +1002,7 @@ export const WithMassPermissions = () => {
     }
 
     get title() {
-      return `Mass-${this.object.documentName} PERMISSIONS EDIT [ ${this.placeables.length} ]`;
+      return `Mass-${this.documentName} PERMISSIONS EDIT [ ${this.placeables.length} ]`;
     }
   }
 

@@ -1,3 +1,10 @@
+# 1.23.1
+
+- Fixed Note history update errors
+- Fixed PrototypeToken updates not appearing in history
+- Fixed PrototypeToken updates via MDS module not applying in some cases
+- Changed the look of tabs containing checked Mass Edit checkboxes
+
 # 1.23.0
 
 - New setting: Update History

@@ -10,8 +10,8 @@ export class NoteDataAdapter {
 
   static dataToForm(note, data) {
     if (isNewerVersion('10', game.version)) return;
-    data['icon.selected'] = note.document.texture.src;
-    data['icon.custom'] = note.document.texture.src;
+    data['icon.selected'] = (note.document ?? note).texture.src;
+    data['icon.custom'] = (note.document ?? note).texture.src;
   }
 }
 

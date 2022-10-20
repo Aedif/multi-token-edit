@@ -1,20 +1,13 @@
 import { HISTORY } from '../multi-token-edit.mjs';
-import { recursiveTraverse } from '../scripts/utils.js';
 import { TokenDataAdapter } from './dataAdapters.js';
 import { copyToClipboard } from './forms.js';
 import { getLayerMappings } from './multiConfig.js';
 
 export default class MassEditHistory extends FormApplication {
-  constructor(configApp, callback, docName) {
+  constructor(docName, callback) {
     super({}, {});
     this.callback = callback;
-
-    if (docName) {
-      this.docName = docName;
-    } else {
-      this.configApp = configApp;
-      this.docName = this.configApp.object.documentName;
-    }
+    this.docName = docName;
     if (this.docName === 'Actor') this.docName = 'Token';
 
     this.history = deepClone(HISTORY);

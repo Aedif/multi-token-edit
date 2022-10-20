@@ -51,13 +51,7 @@
 }
 
 .mass-edit-tab-selected {
-  outline: 2px solid green;
-  outline-offset: 3px;
-}
-
-.mass-edit-tab-selected-v10 {
-  outline: 2px solid green;
-  outline-offset: -3px;
+  background: rgba(255, 202, 58, 0.8);
 }
 
 /* ===================== 
