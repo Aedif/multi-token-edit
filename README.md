@@ -68,6 +68,12 @@ All Mass Edit forms have a header button (**</>**) that will open up a dialog wi
 
 ![image](https://user-images.githubusercontent.com/7693704/195932291-59d7e0ae-f279-4b09-9c9a-37d077ab3e35.png)
 
+## History
+
+When enabled in the module settings, updates made to placeables will be tracked and available via Mass Edit forms. These updates can be selected to be applied to the currently open form or copied to the module's clipboard to be pasted on other placeables.
+
+![History](https://user-images.githubusercontent.com/7693704/197341186-503648b5-5703-4b78-b27d-0895b4b5dc76.gif)
+
 
 ## Example Video
 
