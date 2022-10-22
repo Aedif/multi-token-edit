@@ -1,3 +1,7 @@
+# 1.24.0
+
+- PlaylistSound support when selected using MDS module
+
 # 1.23.1
 
 - Fixed Note history update errors

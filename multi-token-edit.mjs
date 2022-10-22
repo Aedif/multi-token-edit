@@ -96,7 +96,7 @@ Hooks.once('init', () => {
 
   // Register history related hooks
   if (game.settings.get('multi-token-edit', 'enableHistory'))
-    SUPPORTED_CONFIGS.forEach((docName) => {
+    [...SUPPORTED_CONFIGS, 'Actor', 'PlaylistSound'].forEach((docName) => {
       Hooks.on(`preUpdate${docName}`, (doc, update, options, userId) => {
         updateHistory(doc, update, userId);
       });
@@ -256,9 +256,8 @@ Hooks.on('renderTileHUD', (hud, html, tileData) => {
 function getDiffData(obj, update) {
   const docName = obj.document ? obj.document.documentName : obj.documentName;
 
-  const cUpdate = deepClone(update);
+  const flatUpdate = flattenObject(update);
   const flatObjData = getObjFormData(obj, docName);
-  const flatUpdate = flattenObject(cUpdate);
   const diff = diffObject(flatObjData, flatUpdate);
 
   for (const [k, v] of Object.entries(diff)) {
@@ -293,17 +292,23 @@ function updateHistory(obj, update, userId) {
       delete update[ctrl];
     }
   });
-  const cUpdate = flattenObject(deepClone(update));
+  let cUpdate = deepClone(update);
   delete cUpdate._id;
+
+  let docName = obj.document ? obj.document.documentName : obj.documentName;
+  if (docName === 'Actor') {
+    docName = 'Token';
+    cUpdate = (isNewerVersion('10', game.version) ? cUpdate.token : cUpdate.prototypeToken) ?? {};
+  }
 
   if (emptyObject(cUpdate)) return;
 
-  historyItem.update = cUpdate;
-  historyItem.diff = getDiffData(obj, update);
+  historyItem.update = flattenObject(cUpdate);
+  historyItem.diff = getDiffData(obj, cUpdate);
   historyItem._id = update._id;
 
   const maxLength = game.settings.get('multi-token-edit', 'historyMaxLength') ?? 0;
-  const docName = obj.document ? obj.document.documentName : obj.documentName;
+  if (docName === 'Actor') docName = 'Token';
   const docHistory = HISTORY[docName] ?? [];
   docHistory.push(historyItem);
 

@@ -1,5 +1,5 @@
 import { HISTORY } from '../multi-token-edit.mjs';
-import { TokenDataAdapter } from './dataAdapters.js';
+import { PlaylistSoundDataAdapter, TokenDataAdapter } from './dataAdapters.js';
 import { copyToClipboard } from './forms.js';
 import { getLayerMappings } from './multiConfig.js';
 
@@ -127,6 +127,7 @@ export default class MassEditHistory extends FormApplication {
     if (historyItem) {
       const update = deepClone(historyItem[event.submitter.name]);
       if (this.docName === 'Token') TokenDataAdapter.updateToForm(update);
+      else if (this.docName === 'PlaylistSound') PlaylistSoundDataAdapter.updateToForm(update);
       if ('mass-edit-randomize' in historyItem.ctrl)
         update['mass-edit-randomize'] = historyItem.ctrl['mass-edit-randomize'];
       if ('mass-edit-addSubtract' in historyItem.ctrl)

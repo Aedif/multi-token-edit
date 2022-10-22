@@ -65,11 +65,20 @@ function getSelectedDocuments() {
     { name: 'Actor', class: 'actor' },
     { name: 'Scene', class: 'scene' },
     { name: 'JournalEntry', class: 'journalentry' },
+    { name: 'Playlist', class: 'sound' },
   ];
   for (const doc of supportedDocs) {
     const selected = [];
-    $(`.document.${doc.class}.selected`).each(function (_) {
-      const d = game.collections.get(doc.name).get(this.dataset.documentId);
+    $(`.directory-list .${doc.class}.selected`).each(function (_) {
+      let d;
+      if (doc.name === 'Playlist') {
+        d = game.collections
+          .get(doc.name)
+          .get(this.dataset.playlistId)
+          ?.sounds.get(this.dataset.soundId);
+      } else {
+        d = game.collections.get(doc.name).get(this.dataset.documentId);
+      }
       if (d) {
         // JournalEntries themselves do not have configs, but notes that they correspond to on the scene do
         if (doc.name === 'JournalEntry') {

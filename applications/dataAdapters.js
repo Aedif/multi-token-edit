@@ -1,3 +1,26 @@
+export class PlaylistSoundDataAdapter {
+  static formToData(formData) {
+    if (isNewerVersion('10', game.version)) return;
+    if ('lvolume' in formData) {
+      formData['volume'] = AudioHelper.inputToVolume(formData['lvolume']);
+      delete formData['lvolume'];
+    }
+  }
+
+  static dataToForm(note, data) {
+    if (isNewerVersion('10', game.version)) return;
+    data['lvolume'] = (note.document ?? note).volume;
+  }
+
+  static updateToForm(update) {
+    if (isNewerVersion('10', game.version)) return;
+    if ('volume' in update) {
+      update['lvolume'] = AudioHelper.volumeToInput(update['volume']);
+      delete update.volume;
+    }
+  }
+}
+
 export class NoteDataAdapter {
   static formToData(formData) {
     if (isNewerVersion('10', game.version)) return;

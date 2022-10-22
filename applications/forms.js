@@ -8,7 +8,7 @@ import {
 } from '../scripts/private.js';
 import { emptyObject, flagCompare, getData, hasFlagRemove } from '../scripts/utils.js';
 import { getInUseStyle } from './cssEdit.js';
-import { NoteDataAdapter, TokenDataAdapter } from './dataAdapters.js';
+import { NoteDataAdapter, PlaylistSoundDataAdapter, TokenDataAdapter } from './dataAdapters.js';
 import MassEditHistory from './history.js';
 import { getLayerMappings, showMassConfig } from './multiConfig.js';
 import MassEditPresets from './presets.js';
@@ -54,8 +54,8 @@ export const WithMassEditForm = (cls) => {
       $(html).prepend(`<style>${css}</style>`);
 
       // On any field being changed we want to automatically select the form-group to be included in the update
-      html.on('input', 'input[type="text"], input[type="number"]', onInputChange);
-      html.on('change', 'input, select', onInputChange);
+      html.on('input', 'textarea, input[type="text"], input[type="number"]', onInputChange);
+      html.on('change', 'textarea, input, select', onInputChange);
       html.on('paste', 'input', onInputChange);
       html.on('click', 'button', onInputChange);
 
@@ -792,6 +792,10 @@ function performMassUpdate(data, placeables, docName, applyType) {
     for (let i = 0; i < total; i++) {
       NoteDataAdapter.formToData(updates[i]);
     }
+  } else if (docName === 'PlaylistSound') {
+    for (let i = 0; i < total; i++) {
+      PlaylistSoundDataAdapter.formToData(updates[i]);
+    }
   }
 
   // Need special handling for PrototypeTokens we don't update the Token itself but rather the actor
@@ -799,6 +803,11 @@ function performMassUpdate(data, placeables, docName, applyType) {
     // Do nothing
   } else if (docName === 'Scene') {
     Scene.updateDocuments(updates);
+  } else if (docName === 'PlaylistSound') {
+    for (let i = 0; i < placeables.length; i++) {
+      delete updates[i]._id;
+      placeables[i].update(updates[i]);
+    }
   } else if (docName === 'Note') {
     // Notes can be updated across different scenes
     const splitUpdates = {};
@@ -893,6 +902,7 @@ export function getObjFormData(obj, docName) {
   if (docName === 'Token') TokenDataAdapter.dataToForm(obj, data);
   else if (docName === 'Actor') TokenDataAdapter.dataToForm(getTokenData(obj), data);
   else if (docName === 'Note') NoteDataAdapter.dataToForm(obj, data);
+  else if (docName === 'PlaylistSound') PlaylistSoundDataAdapter.dataToForm(obj, data);
 
   return data;
 }
