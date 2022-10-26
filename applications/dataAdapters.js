@@ -1,5 +1,5 @@
-export class PlaylistSoundDataAdapter {
-  static formToData(formData) {
+class PlaylistSoundDataAdapter {
+  static formToData(obj, formData) {
     if (isNewerVersion('10', game.version)) return;
     if ('lvolume' in formData) {
       formData['volume'] = AudioHelper.inputToVolume(formData['lvolume']);
@@ -21,8 +21,8 @@ export class PlaylistSoundDataAdapter {
   }
 }
 
-export class NoteDataAdapter {
-  static formToData(formData) {
+class NoteDataAdapter {
+  static formToData(obj, formData) {
     if (isNewerVersion('10', game.version)) return;
     if ('icon.selected' in formData || 'icon.custom' in formData) {
       formData['texture.src'] = formData['icon.selected'] || formData['icon.custom'];
@@ -53,6 +53,8 @@ export class TokenDataAdapter {
 
   static dataToForm(token, data) {
     if (isNewerVersion('10', game.version)) return;
+    if (token instanceof Actor) token = token.prototypeToken ?? token.token;
+
     const doc = token.document ? token.document : token;
     data.scale = Math.abs(doc.texture.scaleX);
     data.mirrorX = doc.texture.scaleX < 0;
@@ -62,18 +64,21 @@ export class TokenDataAdapter {
   static formToData(token, formData) {
     if (isNewerVersion('10', game.version)) return;
 
+    if (token instanceof Actor) token = token.prototypeToken ?? token.token;
+    const doc = token.document ? token.document : token;
+
     // Scale/mirroring
     if ('scale' in formData || 'mirrorX' in formData || 'mirrorY' in formData) {
-      if (!('scale' in formData)) formData.scale = Math.abs(token.texture.scaleX);
-      if (!('mirrorX' in formData)) formData.mirrorX = token.texture.scaleX < 0;
-      if (!('mirrorY' in formData)) formData.mirrorY = token.texture.scaleY < 0;
+      if (!('scale' in formData)) formData.scale = Math.abs(doc.texture.scaleX);
+      if (!('mirrorX' in formData)) formData.mirrorX = doc.texture.scaleX < 0;
+      if (!('mirrorY' in formData)) formData.mirrorY = doc.texture.scaleY < 0;
       formData['texture.scaleX'] = formData.scale * (formData.mirrorX ? -1 : 1);
       formData['texture.scaleY'] = formData.scale * (formData.mirrorY ? -1 : 1);
       ['scale', 'mirrorX', 'mirrorY'].forEach((k) => delete formData[k]);
     }
 
     // Detection modes
-    TokenDataAdapter.correctDetectionModes(token, formData);
+    TokenDataAdapter.correctDetectionModes(doc, formData);
   }
 
   static correctDetectionModeOrder(data, randomizeFields) {
@@ -216,6 +221,39 @@ export class TokenDataAdapter {
       app._previewChanges({ detectionModes: modes });
       app.render();
       return true;
+    }
+  }
+}
+
+const ADAPTERS = {
+  Token: TokenDataAdapter,
+  Actor: TokenDataAdapter,
+  PlaylistSound: PlaylistSoundDataAdapter,
+  Note: NoteDataAdapter,
+};
+
+export class GeneralDataAdapter {
+  static formToData(docName, obj, formData) {
+    if (isNewerVersion('10', game.version)) return;
+    const adapter = ADAPTERS[docName];
+    if (adapter && adapter.formToData) {
+      adapter.formToData(obj, formData);
+    }
+  }
+
+  static dataToForm(docName, obj, formData) {
+    if (isNewerVersion('10', game.version)) return;
+    const adapter = ADAPTERS[docName];
+    if (adapter && adapter.dataToForm) {
+      adapter.dataToForm(obj, formData);
+    }
+  }
+
+  static updateToForm(docName, update) {
+    if (isNewerVersion('10', game.version)) return;
+    const adapter = ADAPTERS[docName];
+    if (adapter && adapter.updateToForm) {
+      adapter.updateToForm(update);
     }
   }
 }

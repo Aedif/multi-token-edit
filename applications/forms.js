@@ -8,8 +8,9 @@ import {
 } from '../scripts/private.js';
 import { emptyObject, flagCompare, getData, hasFlagRemove } from '../scripts/utils.js';
 import { getInUseStyle } from './cssEdit.js';
-import { NoteDataAdapter, PlaylistSoundDataAdapter, TokenDataAdapter } from './dataAdapters.js';
+import { GeneralDataAdapter, TokenDataAdapter } from './dataAdapters.js';
 import MassEditHistory from './history.js';
+import MacroForm from './macro.js';
 import { getLayerMappings, showMassConfig } from './multiConfig.js';
 import MassEditPresets from './presets.js';
 
@@ -139,7 +140,7 @@ export const WithMassEditForm = (cls) => {
       // Register numerical input listeners to toggle between subtract, and add modes
       $(html).on(
         'contextmenu',
-        'input[type=range], input[type=number], input[name="flags.tagger.tags"]',
+        'input[type=range], input[type=number], input[name="flags.tagger.tags"], input[type="text"]',
         (event) => {
           const name = event.target.name;
           if (!name) return;
@@ -154,6 +155,7 @@ export const WithMassEditForm = (cls) => {
               if (event.target.min) {
                 ctrl.min = parseFloat(event.target.min);
               }
+              ctrl.type = input.attr('type');
               this.addSubtractFields[name] = ctrl;
             } else {
               delete this.addSubtractFields[name];
@@ -167,6 +169,7 @@ export const WithMassEditForm = (cls) => {
             if (event.target.max) {
               ctrl.max = parseFloat(event.target.max);
             }
+            ctrl.type = input.attr('type');
             this.addSubtractFields[name] = ctrl;
           }
 
@@ -475,9 +478,7 @@ export const WithMassConfig = (docName) => {
 
           // Special processing for some placeable types
           // Necessary when form data is not directly mappable to placeable
-          if (docName === 'Token') TokenDataAdapter.dataToForm(c, data);
-          else if (docName === 'Actor') TokenDataAdapter.dataToForm(c, data);
-          else if (docName === 'Note') NoteDataAdapter.dataToForm(c, data);
+          GeneralDataAdapter.dataToForm(docName, c, data);
 
           for (const [k, v] of Object.entries(selectedFields)) {
             // Special handling for flags
@@ -531,9 +532,40 @@ export const WithMassConfig = (docName) => {
         ? this.placeables[0].document.documentName
         : this.placeables[0].documentName;
 
+      if (
+        IS_PRIVATE &&
+        !isNewerVersion('10', game.version) &&
+        [
+          'Token',
+          'Tile',
+          'Drawing',
+          'Wall',
+          'AmbientLight',
+          'AmbientSound',
+          'MeasuredTemplate',
+          'Note',
+        ].includes(docName)
+      ) {
+        buttons.unshift({
+          label: '',
+          class: 'mass-edit-macro',
+          icon: 'fas fa-terminal',
+          onclick: () => {
+            const selectedFields = this.getSelectedFields();
+            if (emptyObject(selectedFields)) {
+              ui.notifications.warn('No fields selected, unable to generate a macro.');
+              return;
+            }
+            GeneralDataAdapter.formToData(docName, this.object, selectedFields);
+
+            new MacroForm(this.object, this.placeables, selectedFields).render(true);
+          },
+        });
+      }
+
       if (game.settings.get('multi-token-edit', 'enableHistory'))
         buttons.unshift({
-          label: ' ',
+          label: '',
           class: 'mass-edit-history',
           icon: 'fas fa-history',
           onclick: () => {
@@ -579,7 +611,7 @@ export const WithMassConfig = (docName) => {
 
         if (docs.length)
           buttons.unshift({
-            label: 'Permissions',
+            label: '',
             class: 'mass-edit-permissions',
             icon: 'fas fa-lock fa-fw',
             onclick: () => {
@@ -590,7 +622,7 @@ export const WithMassConfig = (docName) => {
       }
 
       buttons.unshift({
-        label: 'Presets',
+        label: '',
         class: 'mass-edit-presets',
         icon: 'fas fa-box',
         onclick: (ev) =>
@@ -780,22 +812,8 @@ function performMassUpdate(data, placeables, docName, applyType) {
 
   // Special processing for some placeable types
   // Necessary when form data is not directly mappable to placeable
-  if (docName === 'Token') {
-    for (let i = 0; i < total; i++) {
-      TokenDataAdapter.formToData(placeables[i].document, updates[i]);
-    }
-  } else if (docName === 'Actor') {
-    for (let i = 0; i < total; i++) {
-      TokenDataAdapter.formToData(placeables[i].prototypeToken, updates[i]);
-    }
-  } else if (docName === 'Note') {
-    for (let i = 0; i < total; i++) {
-      NoteDataAdapter.formToData(updates[i]);
-    }
-  } else if (docName === 'PlaylistSound') {
-    for (let i = 0; i < total; i++) {
-      PlaylistSoundDataAdapter.formToData(updates[i]);
-    }
+  for (let i = 0; i < total; i++) {
+    GeneralDataAdapter.formToData(docName, placeables[i], updates[i]);
   }
 
   // Need special handling for PrototypeTokens we don't update the Token itself but rather the actor
@@ -832,7 +850,6 @@ function performMassUpdate(data, placeables, docName, applyType) {
     for (let i = 0; i < placeables.length; i++) {
       const actor = placeables[i] instanceof Actor ? placeables[i] : placeables[i].actor;
       if (actor) {
-        delete updates[i]._id;
         if (isNewerVersion('10', game.version)) {
           actorUpdates[actor.id] = { _id: actor.id, token: updates[i] };
         } else {
@@ -899,10 +916,7 @@ export function getObjFormData(obj, docName) {
 
   // Special processing for some placeable types
   // Necessary when form data is not directly mappable to placeable
-  if (docName === 'Token') TokenDataAdapter.dataToForm(obj, data);
-  else if (docName === 'Actor') TokenDataAdapter.dataToForm(getTokenData(obj), data);
-  else if (docName === 'Note') NoteDataAdapter.dataToForm(obj, data);
-  else if (docName === 'PlaylistSound') PlaylistSoundDataAdapter.dataToForm(obj, data);
+  GeneralDataAdapter.dataToForm(docName, obj, data);
 
   return data;
 }

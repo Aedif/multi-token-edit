@@ -1,6 +1,19 @@
+# 1.25.0
+
+- Adding/Subtracting support for text fields
+  - Text marked for removal will be removed from anywhere within the field
+  - Text marked to be added will be inserted at the end of the field
+  - Text to be added can be prefixed with **>>** to insert it at the beginning of the field
+
+Patreon
+
+- First iteration of Macro Generator
+  - Accessed via a new header button
+  - Allows to generate update/toggle macros for the currently selected or selected at macro run-time placeables using the fields in the Mass Edit form
+
 # 1.24.0
 
-- PlaylistSound support when selected using MDS module
+- Added PlaylistSound support when selected using MDS module
 
 # 1.23.1
 

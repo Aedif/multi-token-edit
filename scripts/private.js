@@ -1,4 +1,4 @@
-import { TokenDataAdapter } from '../applications/dataAdapters.js';
+import { GeneralDataAdapter } from '../applications/dataAdapters.js';
 import { SUPPORTED_CONFIGS } from '../applications/forms.js';
 import { emptyObject, getData } from './utils.js';
 
@@ -170,8 +170,7 @@ export function applyAddSubtract(updates, placeables, docName) {
       (areActors ? getTokenData(placeables[i]) : getData(placeables[i])).toObject()
     );
 
-    if (docName === 'Token') TokenDataAdapter.dataToForm(placeables[i], data);
-    if (docName === 'Actor') TokenDataAdapter.dataToForm(placeables[i].prototypeToken, data);
+    GeneralDataAdapter.formToData(docName, placeables[i], data);
 
     for (const field of Object.keys(update)) {
       if (field in this.addSubtractFields && field in data) {
@@ -194,6 +193,19 @@ export function applyAddSubtract(updates, placeables, docName) {
           }
           update[field] = currentTags.filter((t) => t).join(',');
           continue;
+        } else if (ctrl.type === 'text') {
+          if (ctrl.method === 'add') {
+            const toAdd = 'value' in ctrl ? ctrl.value : update[field];
+            if (toAdd.startsWith('>>')) {
+              val = toAdd.replace('>>', '') + val;
+            } else {
+              val += toAdd;
+            }
+          } else {
+            val = val.replace('value' in ctrl ? ctrl.value : update[field], '');
+          }
+          update[field] = val;
+          continue;
         }
 
         if (ctrl.method === 'add') {
@@ -210,4 +222,8 @@ export function applyAddSubtract(updates, placeables, docName) {
       }
     }
   }
+}
+
+export async function generateMacro() {
+  // empty
 }
