@@ -1,5 +1,6 @@
 import { emptyObject } from '../scripts/utils.js';
 import { TokenDataAdapter } from './dataAdapters.js';
+import { SUPPORTED_CONFIGS } from './forms.js';
 
 export default class MassEditPresets extends FormApplication {
   constructor(configApp, callback, docName) {
@@ -264,7 +265,7 @@ export default class MassEditPresets extends FormApplication {
   }
 
   async importPresets() {
-    let json = await _importFromJSONDialog();
+    let json = await this._importFromJSONDialog();
     json = JSON.parse(json);
     if (!json || emptyObject(json)) return;
 

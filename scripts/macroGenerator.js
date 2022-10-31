@@ -31,14 +31,13 @@ export async function generateMacro(
   if (method === 'toggle') command += `const update2 = ${str(toggleFields)};\n\n`;
 
   // Insert Mass Edit control objects
-  if (random || addSubtract) {
+  if (random || addSubtract || toggleRandom || toggleAddSubtract) {
     command += `const randomizeFields = ${str(random)};\n\n`;
     command += `const addSubtractFields = ${str(addSubtract)};\n\n`;
-  }
-
-  if (toggleRandom || toggleAddSubtract) {
-    command += `const randomizeFieldsToggleOff = ${str(toggleRandom)};\n\n`;
-    command += `const addSubtractFieldsToggleOff = ${str(toggleAddSubtract)};\n\n`;
+    if (method === 'toggle') {
+      command += `const randomizeFieldsToggleOff = ${str(toggleRandom)};\n\n`;
+      command += `const addSubtractFieldsToggleOff = ${str(toggleAddSubtract)};\n\n`;
+    }
   }
 
   // Targeting related code

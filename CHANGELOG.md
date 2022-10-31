@@ -1,3 +1,19 @@
+# 1.25.1
+
+- Began localization process
+- History Randomizer and Add/Subtract bug fixes
+- Add/Subtract bug fixes
+- Fixed Tagger field parsing bug
+
+Patreon: Macro Generation
+
+- Generated Macros will now check and throw dependency warnings
+- Removed non-empty selection restriction
+- Added visibility control
+- Support added for Randomizer and Add/subtract
+- Added 'All in active Scene' targeting option
+- Added 'Tagger' targeting option in macro generator
+
 # 1.25.0
 
 - Adding/Subtracting support for text fields
