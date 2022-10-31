@@ -6,7 +6,7 @@
 
 FoundryVTT module for searching and editing multiple placeables at the same time.
 
-Support me on [Patreon](https://www.patreon.com/Aedif) to get access to the the version that supports field [randomization](#randomization).
+Support me on [Patreon](https://www.patreon.com/Aedif) to get access to the the version that supports field [randomization](#randomization) and automatic [Macro Generation](#macro-generator).
 
 _Note that all keybinding referenced bellow can be changed via 'Configure Controls'_
 
@@ -87,40 +87,31 @@ At the moment a [Patreon](https://www.patreon.com/Aedif) exclusive feature.
 
 Randomize any numerical, color, text, image, drop-down, or coordinate values.
 
-Text
-  - Can use either the provided name generators or your own list of strings to choose from
-  - Find and Replace text within the selected field
-
-Numerical
-  - Randomize value between the minimum and maximum ranges
-  - "Step Size" controls the granularity of the generated numbers
-    - Min: 0, Max: 10, Step Size: 0.1, RNG => 0.5, 7.2, 9.9 etc.
-    - Min: 0, Max: 10, Step Size: 1, RNG => 3, 5, 9 etc.
-  - Instead of picking random numbers the module can also be instructed to interpolate values, returning sequentially larger ones
-
-Coordinate
-  - Will pick random non-overlapping coordinates within the bounding square
-  - Define the bounds either manually or using the 'Select Range' tool
-  - Snap to grid tool will adjust the selected range to overlap with the grid
-
-Drop-down
-  - Will allow to select all values within the dropdown that you wish to include in the randomization
-
-Image
-  - Uses a list of image paths to randomly select images from
-  - The list can be populated either manually, using Folder Select tool, or Token Variant Art if installed
-  - Images can also be applied sequentially in list order rather than randomly
-  - Supports Find and Replace
-
-Color
-  - Randomizes using the range defined by two selected colors, space, and hue
-  - By default full color spectrum will be selected for you, but you may define your own color ranges
-  - Supports interpolation
-
-Boolean
-  - Simple On/Off randomization 50/50
-
 https://user-images.githubusercontent.com/7693704/196006020-9d308238-1888-4b98-b452-e7ce88a643ac.mp4
 
+## Macro Generator
 
+Using the selected fields the module will generate simple macros that will update/toggle data on plceables.
+
+**Target**
+
+Select the target for the update.
+
+- IDs of Current Select (IDs of placeable are stored within the macro and will onyl affect them)
+- All Selected (macro will target selected placeables at run-time)
+- All in active Scene (macro will target all placeable on the active scene)
+- Tagger (macro will target Tagger module's tags)
+
+**Method**
+
+How the fields will be applied.
+
+- Update (direct update)
+- Toggle (2 alternating updates)
+
+Randomization and Add/Subtract operators are supported but will add a dependency and require Mass Edit to be active when they are run.
+
+Example video:
+
+https://user-images.githubusercontent.com/7693704/199100945-1f338240-ace7-41cc-ac74-b59e67681c50.mp4
 
