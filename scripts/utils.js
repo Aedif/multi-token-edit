@@ -274,7 +274,10 @@ export function flagCompare(data, flag, flagVal) {
   // Instead of directly comparing string we check if it contains the string
   if (flag === 'flags.tagger.tags') {
     const tags = data[flag] || [];
-    const compTags = flagVal ? flagVal.split(',').map((s) => s.trim()) : [];
+    let compTags = flagVal;
+    if (!Array.isArray(compTags)) {
+      compTags = flagVal ? flagVal.split(',').map((s) => s.trim()) : [];
+    }
     for (const t of compTags) {
       if (!tags.includes(t)) return false;
     }
@@ -293,4 +296,84 @@ export function hasFlagRemove(flag, formData) {
     }
   }
   return null;
+}
+
+export function selectAddSubtractFields(form, fields) {
+  for (const key of Object.keys(fields)) {
+    form
+      .find(`[name="${key}"]`)
+      .removeClass('me-add')
+      .removeClass('me-subtract')
+      .addClass(fields[key].method === 'add' ? 'me-add' : 'me-subtract')
+      .attr('title', fields[key].method === 'add' ? '+ Adding' : '- Subtracting');
+  }
+}
+
+export function applyAddSubtract(updates, placeables, docName, addSubtractFields) {
+  // See if any field need to be added or subtracted
+  if (!addSubtractFields || emptyObject(addSubtractFields)) return;
+
+  const areActors = placeables[0] instanceof Actor;
+  const getTokenData = function (actor) {
+    return isNewerVersion('10', game.version) ? getData(actor).token : actor.prototypeToken;
+  };
+
+  for (let i = 0; i < updates.length; i++) {
+    const update = updates[i];
+    const data = flattenObject(
+      (areActors ? getTokenData(placeables[i]) : getData(placeables[i])).toObject()
+    );
+
+    GeneralDataAdapter.dataToForm(docName, placeables[i], data);
+
+    for (const field of Object.keys(update)) {
+      if (field in addSubtractFields && field in data) {
+        const ctrl = addSubtractFields[field];
+        let val = data[field];
+
+        // Special processing for Tagger module fields
+        if (field === 'flags.tagger.tags') {
+          const currentTags = Array.isArray(val)
+            ? val
+            : (val ?? '').split(',').map((s) => s.trim());
+          const modTags = (update[field] ?? '').split(',').map((s) => s.trim());
+          for (const tag of modTags) {
+            if (ctrl.method === 'add') {
+              if (!currentTags.includes(tag)) currentTags.push(tag);
+            } else if (ctrl.method === 'subtract') {
+              const index = currentTags.indexOf(tag);
+              if (index > -1) currentTags.splice(index, 1);
+            }
+          }
+          update[field] = currentTags.filter((t) => t).join(',');
+          continue;
+        } else if (ctrl.type === 'text') {
+          if (ctrl.method === 'add') {
+            const toAdd = 'value' in ctrl ? ctrl.value : update[field];
+            if (toAdd.startsWith('>>')) {
+              val = toAdd.replace('>>', '') + val;
+            } else {
+              val += toAdd;
+            }
+          } else {
+            val = val.replace('value' in ctrl ? ctrl.value : update[field], '');
+          }
+          update[field] = val;
+          continue;
+        }
+
+        if (ctrl.method === 'add') {
+          val += 'value' in ctrl ? ctrl.value : update[field];
+        } else {
+          val -= 'value' in ctrl ? ctrl.value : update[field];
+        }
+        if ('min' in ctrl && val < ctrl.min) {
+          val = ctrl.min;
+        } else if ('max' in ctrl && val > ctrl.max) {
+          val = ctrl.max;
+        }
+        update[field] = val;
+      }
+    }
+  }
 }

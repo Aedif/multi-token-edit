@@ -1,0 +1,87 @@
+{
+  "multi-token-edit": {
+    "macro": {
+      "dependency-warning": "This macro requires {module} module to be active."
+    },
+    "keybindings": {
+      "pasteKey": {
+        "name": "Paste Placeable Data on Selected",
+        "hint": "Pastes copied placeable data on the selected placeables."
+      },
+      "presetApply": {
+        "name": "Open Presets",
+        "hint": "Opens Preset dialog for the hovered/selected placeables to immediately apply them."
+      },
+      "copyKey": {
+        "name": "Open Placeable Data Copy",
+        "hint": "When pressed will open a Configuration window where you will be able to choose fields you wish to copy."
+      },
+      "selectKey": {
+        "name": "Open Placeable Search and Select",
+        "hint": "When pressed will open a Configuration window where you will be able to choose fields using which the module will search and select placeables on the current scene."
+      },
+      "editKey": {
+        "name": "Open Multi-Placeable Edit",
+        "hint": "When pressed will open a Configuration window to simultaneously update all selected placeables."
+      }
+    },
+    "settings": {
+      "autoSnap": {
+        "name": "Auto-snap coordinates to Grid",
+        "hint": "When using \"Select Range\" in the coordinate randomizer menu, the range values will automatically be snapped to the grid."
+      },
+      "historyMaxLength": {
+        "name": "History Max Length",
+        "hint": "Number of updates to be recorded in history."
+      },
+      "enableHistory": {
+        "name": "Update History",
+        "hint": "(REQUIRES GAME RELOAD) When enabled updates made to placeables will be stored and accessible via Mass Edit forms."
+      },
+      "rangeToTextbox": {
+        "name": "Allow manual input for range sliders",
+        "hint": "Converts slider value labels to text boxes."
+      },
+      "singleDocDefaultConfig": {
+        "name": "Single placeable: Default Config",
+        "hint": "When a single placeable is selected or hovered over, open the default configuration window instead of the modified Mass Edit config."
+      },
+      "cssEdit": {
+        "name": "Configure CSS",
+        "hint": "Change the look of the modified configuration window."
+      }
+    },
+    "randomizer": {
+      "interpolate": "Interpolate",
+      "interpolateReverse": "Interpolate (reverse)",
+      "pickRange": "Pick a range",
+      "addImagesToList": "Add images to the list",
+      "listOfImages": "List of images to be used during randomization",
+      "selectFolder": "Select folder",
+      "includeSubfolders": "Include subfolders",
+      "sequential": "Sequential",
+      "findAndReplace": "Find and Replace",
+      "generators": "Generators",
+      "listOfStrings": "List of strings to be used during randomization",
+      "allowDuplicates": "Allow Duplicates",
+      "stepSize": "Step size",
+      "snapToGrid": "Snap to grid"
+    },
+    "presets": {
+      
+    },
+    "common": {
+      "range": "Range",
+      "min": "Min",
+      "max": "Max",
+      "random": "Random",
+      "randomize": "Randomize",
+      "color": "Color",
+      "method": "Method",
+      "find": "Find",
+      "replace": "Replace",
+      "list": "List",
+      "generate": "Generate"
+    }
+  }
+}

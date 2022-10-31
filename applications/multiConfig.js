@@ -79,6 +79,7 @@ function getSelectedDocuments() {
       } else {
         d = game.collections.get(doc.name).get(this.dataset.documentId);
       }
+
       if (d) {
         // JournalEntries themselves do not have configs, but notes that they correspond to on the scene do
         if (doc.name === 'JournalEntry') {

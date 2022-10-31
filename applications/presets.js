@@ -1,4 +1,3 @@
-import { exportPresets, importPresets } from '../scripts/private.js';
 import { emptyObject } from '../scripts/utils.js';
 import { TokenDataAdapter } from './dataAdapters.js';
 
@@ -258,10 +257,68 @@ export default class MassEditPresets extends FormApplication {
   }
 
   _onImport() {
-    importPresets.call(this);
+    this.importPresets();
   }
   _onExport() {
     exportPresets(this.docName);
+  }
+
+  async importPresets() {
+    let json = await _importFromJSONDialog();
+    json = JSON.parse(json);
+    if (!json || emptyObject(json)) return;
+
+    const presets = game.settings.get('multi-token-edit', 'presets') || {};
+
+    for (const dType of Object.keys(json)) {
+      if (SUPPORTED_CONFIGS.includes(dType)) {
+        for (const preset of Object.keys(json[dType])) {
+          presets[dType][preset] = json[dType][preset];
+        }
+      }
+    }
+
+    await game.settings.set('multi-token-edit', 'presets', presets);
+    this.render();
+  }
+
+  async _importFromJSONDialog() {
+    const content = await renderTemplate('templates/apps/import-data.html', {
+      entity: 'multi-token-edit',
+      name: 'presets',
+    });
+    let dialog = new Promise((resolve, reject) => {
+      new Dialog(
+        {
+          title: 'Import Presets',
+          content: content,
+          buttons: {
+            import: {
+              icon: '<i class="fas fa-file-import"></i>',
+              label: 'Import',
+              callback: (html) => {
+                const form = html.find('form')[0];
+                if (!form.data.files.length)
+                  return ui.notifications?.error('You did not upload a data file!');
+                readTextFromFile(form.data.files[0]).then((json) => {
+                  resolve(json);
+                });
+              },
+            },
+            no: {
+              icon: '<i class="fas fa-times"></i>',
+              label: 'Cancel',
+              callback: (html) => resolve(false),
+            },
+          },
+          default: 'import',
+        },
+        {
+          width: 400,
+        }
+      ).render(true);
+    });
+    return await dialog;
   }
 
   /**
@@ -279,4 +336,70 @@ export default class MassEditPresets extends FormApplication {
       this.callback(cPreset);
     }
   }
+}
+
+function exportPresets(docType) {
+  const presets = (game.settings.get('multi-token-edit', 'presets') || {})[docType];
+  if (!presets || emptyObject(presets)) return;
+
+  let content = '<form><h2>Select Presets to export:</h2>';
+  for (const key of Object.keys(presets)) {
+    content += `
+    <div class="form-group">
+      <label>${key}</label>
+      <div class="form-fields">
+          <input type="checkbox" name="${key}" data-dtype="Boolean">
+      </div>
+    </div>
+    `;
+  }
+  content += `</form><div class="form-group"><button type="button" class="select-all">Select all</div>`;
+
+  class WithHeader extends Dialog {
+    _getHeaderButtons() {
+      const buttons = super._getHeaderButtons();
+      buttons.unshift({
+        label: 'Export ALL',
+        class: 'mass-edit-presets-export-all',
+        icon: 'fas fa-globe',
+        onclick: (ev) => {
+          saveDataToFile(
+            JSON.stringify(game.settings.get('multi-token-edit', 'presets') || {}, null, 2),
+            'text/json',
+            'mass-edit-presets-ALL.json'
+          );
+        },
+      });
+      return buttons;
+    }
+  }
+
+  new WithHeader({
+    title: `Export`,
+    content: content,
+    buttons: {
+      Ok: {
+        label: `Export`,
+        callback: (html) => {
+          const exportData = {};
+          html.find('input[type="checkbox"]').each(function () {
+            if (this.checked && presets[this.name]) {
+              exportData[this.name] = presets[this.name];
+            }
+          });
+          if (!emptyObject(exportData)) {
+            const data = {};
+            data[docType] = exportData;
+            const filename = `mass-edit-presets-${docType}.json`;
+            saveDataToFile(JSON.stringify(data, null, 2), 'text/json', filename);
+          }
+        },
+      },
+    },
+    render: (html) => {
+      html.find('.select-all').click(() => {
+        html.find('input[type="checkbox"]').prop('checked', true);
+      });
+    },
+  }).render(true);
 }

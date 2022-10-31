@@ -6,10 +6,11 @@ import {
   showMassSelect,
 } from './applications/multiConfig.js';
 import CSSEdit, { STYLES } from './applications/cssEdit.js';
-import { IS_PRIVATE } from './scripts/private.js';
+import { applyRandomization, IS_PRIVATE } from './scripts/private.js';
 import MassEditPresets from './applications/presets.js';
 import { getObjFormData, pasteDataUpdate, SUPPORTED_CONFIGS } from './applications/forms.js';
-import { emptyObject, flagCompare } from './scripts/utils.js';
+import { applyAddSubtract, emptyObject, flagCompare } from './scripts/utils.js';
+import { GeneralDataAdapter } from './applications/dataAdapters.js';
 
 export const HISTORY = {};
 
@@ -31,8 +32,8 @@ Hooks.once('init', () => {
   });
 
   game.settings.registerMenu('multi-token-edit', 'cssEdit', {
-    name: 'Configure CSS',
-    hint: 'Change the look of the modified configuration window.',
+    name: game.i18n.format('multi-token-edit.settings.cssEdit.name'),
+    hint: game.i18n.format('multi-token-edit.settings.cssEdit.hint'),
     label: '',
     scope: 'world',
     icon: 'fas fa-cog',
@@ -41,8 +42,8 @@ Hooks.once('init', () => {
   });
 
   game.settings.register('multi-token-edit', 'singleDocDefaultConfig', {
-    name: 'Single placeable: Default Config',
-    hint: 'When a single placeable is selected or hovered over, open the default configuration window instead of the modified Mass Edit config.',
+    name: game.i18n.format('multi-token-edit.settings.singleDocDefaultConfig.name'),
+    hint: game.i18n.format('multi-token-edit.settings.singleDocDefaultConfig.hint'),
     scope: 'world',
     config: true,
     type: Boolean,
@@ -50,8 +51,8 @@ Hooks.once('init', () => {
   });
 
   game.settings.register('multi-token-edit', 'rangeToTextbox', {
-    name: 'Allow manual input for range sliders',
-    hint: 'Converts slider value labels to text boxes.',
+    name: game.i18n.format('multi-token-edit.settings.rangeToTextbox.name'),
+    hint: game.i18n.format('multi-token-edit.settings.rangeToTextbox.hint'),
     scope: 'world',
     config: true,
     type: Boolean,
@@ -66,8 +67,8 @@ Hooks.once('init', () => {
   });
 
   game.settings.register('multi-token-edit', 'enableHistory', {
-    name: 'Update History',
-    hint: '(REQUIRED GAME RELOAD) When enabled updates made to placeables will be stored and accessible via Mass Edit forms.',
+    name: game.i18n.format('multi-token-edit.settings.enableHistory.name'),
+    hint: game.i18n.format('multi-token-edit.settings.enableHistory.hint'),
     scope: 'world',
     config: true,
     type: Boolean,
@@ -75,8 +76,8 @@ Hooks.once('init', () => {
   });
 
   game.settings.register('multi-token-edit', 'historyMaxLength', {
-    name: 'History Max Length',
-    hint: 'Number of updates to be recorded in history.',
+    name: game.i18n.format('multi-token-edit.settings.historyMaxLength.name'),
+    hint: game.i18n.format('multi-token-edit.settings.historyMaxLength.hint'),
     scope: 'world',
     config: true,
     type: Number,
@@ -85,8 +86,8 @@ Hooks.once('init', () => {
 
   if (IS_PRIVATE) {
     game.settings.register('multi-token-edit', 'autoSnap', {
-      name: 'Auto-snap coordinates to Grid',
-      hint: 'When using "Select Range" in the coordinate randomizer menu, the range values will automatically be snapped to the grid.',
+      name: game.i18n.format('multi-token-edit.settings.autoSnap.name'),
+      hint: game.i18n.format('multi-token-edit.settings.autoSnap.hint'),
       scope: 'world',
       config: true,
       type: Boolean,
@@ -98,13 +99,13 @@ Hooks.once('init', () => {
   if (game.settings.get('multi-token-edit', 'enableHistory'))
     [...SUPPORTED_CONFIGS, 'Actor', 'PlaylistSound'].forEach((docName) => {
       Hooks.on(`preUpdate${docName}`, (doc, update, options, userId) => {
-        updateHistory(doc, update, userId);
+        updateHistory(doc, update, options, userId);
       });
     });
 
   game.keybindings.register('multi-token-edit', 'editKey', {
-    name: 'Open Multi-Placeable Edit',
-    hint: 'When pressed will open a Configuration window to simultaneously update all selected placeables.',
+    name: game.i18n.format('multi-token-edit.keybindings.editKey.name'),
+    hint: game.i18n.format('multi-token-edit.keybindings.editKey.hint'),
     editable: [
       {
         key: 'KeyE',
@@ -119,8 +120,8 @@ Hooks.once('init', () => {
   });
 
   game.keybindings.register('multi-token-edit', 'selectKey', {
-    name: 'Open Placeable Search and Select',
-    hint: 'When pressed will open a Configuration window where you will be able to choose fields using which the module will search and select placeables on the current scene.',
+    name: game.i18n.format('multi-token-edit.keybindings.selectKey.name'),
+    hint: game.i18n.format('multi-token-edit.keybindings.selectKey.hint'),
     editable: [
       {
         key: 'KeyF',
@@ -135,8 +136,8 @@ Hooks.once('init', () => {
   });
 
   game.keybindings.register('multi-token-edit', 'copyKey', {
-    name: 'Open Placeable Data Copy',
-    hint: 'When pressed will open a Configuration window where you will be able to choose fields you wish to copy.',
+    name: game.i18n.format('multi-token-edit.keybindings.copyKey.name'),
+    hint: game.i18n.format('multi-token-edit.keybindings.copyKey.hint'),
     editable: [
       {
         key: 'KeyC',
@@ -161,8 +162,8 @@ Hooks.once('init', () => {
   });
 
   game.keybindings.register('multi-token-edit', 'pasteKey', {
-    name: 'Paste Placeable Data on Selected',
-    hint: 'Pastes copied placeable data on the selected placeables.',
+    name: game.i18n.format('multi-token-edit.keybindings.pasteKey.name'),
+    hint: game.i18n.format('multi-token-edit.keybindings.pasteKey.hint'),
     editable: [
       {
         key: 'KeyV',
@@ -177,8 +178,8 @@ Hooks.once('init', () => {
   });
 
   game.keybindings.register('multi-token-edit', 'presetApply', {
-    name: 'Open Presets',
-    hint: 'Opens Preset dialog for the hovered/selected placeables to immediately apply them.',
+    name: game.i18n.format('multi-token-edit.keybindings.presetApply.name'),
+    hint: game.i18n.format('multi-token-edit.keybindings.presetApply.hint'),
     editable: [
       {
         key: 'KeyX',
@@ -203,6 +204,12 @@ Hooks.once('init', () => {
     restricted: true,
     precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
   });
+
+  game.modules.get('multi-token-edit').api = {
+    applyRandomization,
+    applyAddSubtract,
+    GeneralDataAdapter,
+  };
 });
 
 // Fix for wrong default value being set
@@ -282,14 +289,13 @@ function getDiffData(obj, update) {
   return diff;
 }
 
-function updateHistory(obj, update, userId) {
+function updateHistory(obj, update, options, userId) {
   if (game.user.id !== userId || !game.settings.get('multi-token-edit', 'enableHistory')) return;
 
   const historyItem = { timestamp: new Date().toLocaleTimeString(), ctrl: {} };
   ['mass-edit-randomize', 'mass-edit-addSubtract'].forEach((ctrl) => {
-    if (ctrl in update) {
-      historyItem.ctrl[ctrl] = update[ctrl][0];
-      delete update[ctrl];
+    if (ctrl in options) {
+      historyItem.ctrl[ctrl] = options[ctrl][0];
     }
   });
   let cUpdate = deepClone(update);

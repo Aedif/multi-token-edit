@@ -3,10 +3,15 @@ import {
   applyRandomization,
   showRandomizeDialog,
   selectRandomizerFields,
-  applyAddSubtract,
-  selectAddSubtractFields,
 } from '../scripts/private.js';
-import { emptyObject, flagCompare, getData, hasFlagRemove } from '../scripts/utils.js';
+import {
+  applyAddSubtract,
+  emptyObject,
+  flagCompare,
+  getData,
+  hasFlagRemove,
+  selectAddSubtractFields,
+} from '../scripts/utils.js';
 import { getInUseStyle } from './cssEdit.js';
 import { GeneralDataAdapter, TokenDataAdapter } from './dataAdapters.js';
 import MassEditHistory from './history.js';
@@ -552,13 +557,13 @@ export const WithMassConfig = (docName) => {
           icon: 'fas fa-terminal',
           onclick: () => {
             const selectedFields = this.getSelectedFields();
-            if (emptyObject(selectedFields)) {
-              ui.notifications.warn('No fields selected, unable to generate a macro.');
-              return;
-            }
-            GeneralDataAdapter.formToData(docName, this.object, selectedFields);
-
-            new MacroForm(this.object, this.placeables, selectedFields).render(true);
+            new MacroForm(
+              this.object,
+              this.placeables,
+              selectedFields,
+              this.randomizeFields,
+              this.addSubtractFields
+            ).render(true);
           },
         });
       }
@@ -785,30 +790,29 @@ export function pasteDataUpdate(docs, preset) {
 function performMassUpdate(data, placeables, docName, applyType) {
   if (emptyObject(data)) return;
 
-  const historyEnabled = game.settings.get('multi-token-edit', 'enableHistory');
-
   // Update docs
   const updates = [];
+  const context = {};
 
   const total = placeables.length;
   for (let i = 0; i < total; i++) {
     const update = deepClone(data);
     update._id = placeables[i].id;
 
-    // If history is enabled we'll want to attach additional controls to the updates
-    // so that they can be tracked.
-    if (historyEnabled) {
-      update['mass-edit-randomize'] = [deepClone(this.randomizeFields)];
-      update['mass-edit-addSubtract'] = [deepClone(this.addSubtractFields)];
-    }
-
     // push update
     updates.push(update);
   }
 
+  // If history is enabled we'll want to attach additional controls to the updates
+  // so that they can be tracked.
+  if (game.settings.get('multi-token-edit', 'enableHistory')) {
+    context['mass-edit-randomize'] = [deepClone(this.randomizeFields)];
+    context['mass-edit-addSubtract'] = [deepClone(this.addSubtractFields)];
+  }
+
   // Applies randomization
-  if (this) applyRandomization.call(this, updates, placeables);
-  if (this) applyAddSubtract.call(this, updates, placeables, docName);
+  if (this) applyRandomization(updates, placeables, this.randomizeFields);
+  if (this) applyAddSubtract(updates, placeables, docName, this.addSubtractFields);
 
   // Special processing for some placeable types
   // Necessary when form data is not directly mappable to placeable
@@ -820,11 +824,11 @@ function performMassUpdate(data, placeables, docName, applyType) {
   if (docName === 'Actor') {
     // Do nothing
   } else if (docName === 'Scene') {
-    Scene.updateDocuments(updates);
+    Scene.updateDocuments(updates, context);
   } else if (docName === 'PlaylistSound') {
     for (let i = 0; i < placeables.length; i++) {
       delete updates[i]._id;
-      placeables[i].update(updates[i]);
+      placeables[i].update(updates[i], context);
     }
   } else if (docName === 'Note') {
     // Notes can be updated across different scenes
@@ -838,10 +842,10 @@ function performMassUpdate(data, placeables, docName, applyType) {
       splitUpdates[scene.id].updates.push(updates[i]);
     }
     for (const sceneUpdate of Object.values(splitUpdates)) {
-      sceneUpdate.scene.updateEmbeddedDocuments(docName, sceneUpdate.updates);
+      sceneUpdate.scene.updateEmbeddedDocuments(docName, sceneUpdate.updates, context);
     }
   } else {
-    canvas.scene.updateEmbeddedDocuments(docName, updates);
+    canvas.scene.updateEmbeddedDocuments(docName, updates, context);
   }
 
   // May need to also update Token prototypes
