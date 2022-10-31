@@ -95,16 +95,16 @@ Using the selected fields the module will generate simple macros that will updat
 
 **Target**
 
-Select the target for the update.
+Define the target for the macro
 
-- IDs of Current Select (IDs of placeable are stored within the macro and will onyl affect them)
+- IDs of Current Selected (IDs of placeables are stored within the macro and will only affect them)
 - All Selected (macro will target selected placeables at run-time)
 - All in active Scene (macro will target all placeable on the active scene)
 - Tagger (macro will target Tagger module's tags)
 
 **Method**
 
-How the fields will be applied.
+How the fields should be be applied
 
 - Update (direct update)
 - Toggle (2 alternating updates)
