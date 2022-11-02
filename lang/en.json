@@ -67,9 +67,7 @@
       "stepSize": "Step size",
       "snapToGrid": "Snap to grid"
     },
-    "presets": {
-      
-    },
+    "presets": {},
     "common": {
       "range": "Range",
       "min": "Min",
@@ -81,7 +79,8 @@
       "find": "Find",
       "replace": "Replace",
       "list": "List",
-      "generate": "Generate"
+      "generate": "Generate",
+      "hidden": "Hidden"
     }
   }
 }

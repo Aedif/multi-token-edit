@@ -1,3 +1,7 @@
+# 1.26.0
+
+- AmbientLight and AmbientSound forms will now include a 'Hidden' field allowing them to be turned on/off en masse
+
 # 1.25.1
 
 - Began localization process

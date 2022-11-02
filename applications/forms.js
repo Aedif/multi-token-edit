@@ -1,3 +1,4 @@
+import { injectVisibility } from '../scripts/fieldInjector.js';
 import {
   IS_PRIVATE,
   applyRandomization,
@@ -48,6 +49,7 @@ export const WithMassEditForm = (cls) => {
     // Add styles and controls to the sheet
     async activateListeners(html) {
       await super.activateListeners(html);
+      injectVisibility(this);
 
       this.randomizeFields = {};
       this.addSubtractFields = {};
