@@ -20,6 +20,8 @@ Recommended modules:
 
 Checkout v1.9.1 showcase by BaileyWiki [here](https://www.youtube.com/watch?v=_X5NHwiw0Cw).
 
+As well as a v1.13.0 showcase in German by TomVTT [here](https://www.youtube.com/watch?v=j7gUJHveU7s)
+
 ## Editing
 
 Select the placeables you wish to edit and press '**Shift+E**'.
