@@ -1,5 +1,22 @@
 import { GeneralDataAdapter } from '../applications/dataAdapters.js';
 
+export const SUPPORTED_PLACEABLES = [
+  'Token',
+  'Tile',
+  'Drawing',
+  'Wall',
+  'AmbientLight',
+  'AmbientSound',
+  'MeasuredTemplate',
+  'Note',
+];
+
+export const SUPPORT_SHEET_CONFIGS = [...SUPPORTED_PLACEABLES, 'Actor', 'PlaylistSound', 'Scene'];
+
+export const SUPPORTED_HISTORY_DOCS = [...SUPPORTED_PLACEABLES, 'Scene', 'Actor', 'PlaylistSound'];
+
+export const SUPPORTED_COLLECTIONS = ['Item', 'Cards', 'RollTable', 'Actor', 'JournalEntry'];
+
 export function hexToRgb(hex) {
   var shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
   hex = hex.replace(shorthandRegex, function (m, r, g, b) {
@@ -311,22 +328,15 @@ export function selectAddSubtractFields(form, fields) {
   }
 }
 
-export function applyAddSubtract(updates, placeables, docName, addSubtractFields) {
+export function applyAddSubtract(updates, objects, docName, addSubtractFields) {
   // See if any field need to be added or subtracted
   if (!addSubtractFields || emptyObject(addSubtractFields)) return;
 
-  const areActors = placeables[0] instanceof Actor;
-  const getTokenData = function (actor) {
-    return isNewerVersion('10', game.version) ? getData(actor).token : actor.prototypeToken;
-  };
-
   for (let i = 0; i < updates.length; i++) {
     const update = updates[i];
-    const data = flattenObject(
-      (areActors ? getTokenData(placeables[i]) : getData(placeables[i])).toObject()
-    );
+    const data = flattenObject(getData(objects[i]).toObject());
 
-    GeneralDataAdapter.dataToForm(docName, placeables[i], data);
+    GeneralDataAdapter.dataToForm(docName, objects[i], data);
 
     for (const field of Object.keys(update)) {
       if (field in addSubtractFields && field in data) {
@@ -375,6 +385,41 @@ export function applyAddSubtract(updates, placeables, docName, addSubtractFields
           val = ctrl.max;
         }
         update[field] = val;
+      }
+    }
+  }
+}
+
+export function getCommonData(objects) {
+  if (!objects || !objects.length) return {};
+  const commonData = flattenObject(objects[0]);
+  for (let i = 1; i < objects.length; i++) {
+    const diff = flattenObject(diffObject(commonData, flattenObject(objects[i])));
+    for (const k of Object.keys(diff)) {
+      // Special handling for empty/undefined data
+      if ((diff[k] === '' || diff[k] == null) && (commonData[k] === '' || commonData[k] == null)) {
+        // matches, do not remove
+      } else {
+        delete commonData[k];
+      }
+    }
+  }
+  return commonData;
+}
+
+/**
+ * Merges 'other' into 'original' without expanding and duplicating the 'original' if it contains dot notation using keys
+ */
+export function mergeObjectPreserveDot(original, other = {}, nestedKey = '') {
+  if (!other) return;
+  for (const [key, val] of Object.entries(original)) {
+    const fullKey = nestedKey ? nestedKey + '.' + key : key;
+    const t = getType(val);
+    if (t === 'Object') mergeObjectPreserveDot(val, other, fullKey);
+    else {
+      const prop = getProperty(other, fullKey);
+      if (prop !== undefined) {
+        original[key] = prop;
       }
     }
   }

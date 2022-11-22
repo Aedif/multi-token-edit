@@ -1,0 +1,30 @@
+<div class="form-group">
+    {{#unless disabled}}
+    <a class="me-pinned {{#if pinned}}active{{/if}}" title="{{localize 'multi-token-edit.common.pin'}}"><i class="fas fa-thumbtack"></i></a>&nbsp;
+    {{/unless}}
+    
+    {{#if editableLabel}}
+    <input class="me-editable-label" type="text" value="{{label}}"/>
+    {{else}}
+    <label>{{label}}</label>
+    {{/if}}
+    
+    <div class="form-fields">
+        {{#if text}}
+        <input {{#if colorPicker}}class="color"{{/if}} type="text" name="{{name}}" value="{{value}}" {{disabled disabled}}/>
+            {{#if filePicker}}
+            <button type="button" class="file-picker" data-type="imagevideo" data-target="{{name}}" title="{{localize 'FILES.BrowseTooltip'}}" tabindex="-1">
+                <i class="fas fa-file-import fa-fw"></i>
+            </button>
+            {{else if colorPicker}}
+            <input type="color" value="{{value}}" data-edit="{{name}}">
+            {{/if}}
+        {{else if number}}
+        <input type="number" name="{{name}}" step="any" value="{{value}}" {{disabled disabled}}/>
+        {{else if boolean}}
+        <input type="checkbox" name="{{name}}" {{checked value}} {{disabled disabled}}/>
+        {{else if array}}
+        <input class="array" type="text" name="{{name}}" value="{{value}}" {{disabled disabled}}/>
+        {{/if}}
+    </div>
+</div>

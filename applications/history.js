@@ -8,8 +8,6 @@ export default class MassEditHistory extends FormApplication {
     super({}, {});
     this.callback = callback;
     this.docName = docName;
-    if (this.docName === 'Actor') this.docName = 'Token';
-
     this.history = deepClone(HISTORY);
   }
 
@@ -24,6 +22,10 @@ export default class MassEditHistory extends FormApplication {
       width: 400,
       height: 'auto',
     });
+  }
+
+  get title() {
+    return `[${this.docName}] ${game.i18n.localize('multi-token-edit.common.history')}`;
   }
 
   async getData(options) {

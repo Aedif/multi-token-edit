@@ -1,7 +1,7 @@
 export function injectVisibility(app) {
-  const docName = app.placeables[0].document
-    ? app.placeables[0].document.documentName
-    : app.placeables[0].documentName;
+  const docName = app.meObjects[0].document
+    ? app.meObjects[0].document.documentName
+    : app.meObjects[0].documentName;
 
   // Only the following docs necessitate hidden field
   if (!['AmbientLight', 'AmbientSound'].includes(docName)) return;

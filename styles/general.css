@@ -185,3 +185,24 @@ input.me-subtract {
 .mass-edit-history-form .me-diff {
   background-color: orange;
 }
+
+/* ===================== 
+   === Generic Form ====
+   ===================== */
+
+nav > a[data-tab='me-pinned'] {
+  color: orangered;
+}
+
+.me-pinned {
+  flex: 0.1 !important;
+  color: gray;
+}
+
+.me-pinned.active {
+  color: gold;
+}
+
+.me-editable-label {
+  border: none !important;
+}

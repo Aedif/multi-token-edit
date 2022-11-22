@@ -9,28 +9,20 @@ import {
   applyAddSubtract,
   emptyObject,
   flagCompare,
+  getCommonData,
   getData,
   hasFlagRemove,
+  mergeObjectPreserveDot,
   selectAddSubtractFields,
+  SUPPORTED_COLLECTIONS,
+  SUPPORTED_HISTORY_DOCS,
+  SUPPORTED_PLACEABLES,
 } from '../scripts/utils.js';
 import { getInUseStyle } from './cssEdit.js';
 import { GeneralDataAdapter, TokenDataAdapter } from './dataAdapters.js';
 import MassEditHistory from './history.js';
-import MacroForm from './macro.js';
-import { getLayerMappings, showMassConfig } from './multiConfig.js';
+import { getLayerMappings, showMassActorForm, showMassConfig } from './multiConfig.js';
 import MassEditPresets from './presets.js';
-
-export const SUPPORTED_CONFIGS = [
-  'Token',
-  'Tile',
-  'Drawing',
-  'Wall',
-  'AmbientLight',
-  'AmbientSound',
-  'MeasuredTemplate',
-  'Note',
-  'Scene',
-];
 
 // ==================================
 // ========= Applications ===========
@@ -40,7 +32,9 @@ export const WithMassEditForm = (cls) => {
   class MassEditForm extends cls {
     constructor(doc, docs, options) {
       super(doc, options);
-      this.placeables = docs;
+      this.meObjects = docs;
+      this.documentName =
+        options.documentName ?? doc.document?.documentName ?? doc.documentName ?? 'NONE';
       this.commonData = options.commonData || {};
       this.randomizerEnabled = IS_PRIVATE && (options.massCopy || options.massEdit);
       this.massFormButtons = [{ title: 'Apply', value: 'permissions', icon: 'far fa-save' }];
@@ -53,9 +47,6 @@ export const WithMassEditForm = (cls) => {
 
       this.randomizeFields = {};
       this.addSubtractFields = {};
-      const docName = this.placeables[0].document
-        ? this.placeables[0].document.documentName
-        : this.placeables[0].documentName;
 
       // Set style
       const [styleName, css] = getInUseStyle();
@@ -75,6 +66,7 @@ export const WithMassEditForm = (cls) => {
       const processFormGroup = function (formGroup) {
         // We only want to attach extra controls if the form-group contains named fields
         if (!$(formGroup).find('[name]').length) return;
+        if ($(formGroup).find('[name]:disabled').length) return;
 
         // Check if fields within this form-group are part of common data or control a flag
         let fieldType = 'meCommon';
@@ -264,7 +256,7 @@ export const WithMassEditForm = (cls) => {
         subtree: true,
       });
 
-      if (docName === 'Token' || docName === 'Actor') {
+      if (this.documentName === 'Token') {
         $(html)
           .find('fieldset.detection-mode')
           .each(function (_) {
@@ -329,7 +321,7 @@ export const WithMassEditForm = (cls) => {
     // Overriding here to prevent the underlying object from being updated as inputs change on the form
     // Relevant for AmbientLight, Tile, and Token sheets
     async _onChangeInput(event) {
-      if (!['AmbientLight', 'Tile', 'Token', 'Actor'].includes(this.documentName)) {
+      if (!['AmbientLight', 'Tile', 'Token'].includes(this.documentName)) {
         super._onChangeInput(event);
         return;
       }
@@ -349,16 +341,19 @@ export const WithMassEditForm = (cls) => {
   return MassEditForm;
 };
 
-export const WithMassConfig = (docName) => {
+export const WithMassConfig = (docName = 'NONE') => {
   let cls;
-  if (docName === 'Actor') docName = 'Token';
-  const sheets = CONFIG[docName].sheetClasses;
-  if (docName === 'Drawing') {
+  const sheets = CONFIG[docName]?.sheetClasses;
+  if (!sheets) {
+    cls = FormApplication;
+  } else if (docName === 'Drawing') {
     if (CONFIG.Drawing.sheetClasses.e) {
       cls = CONFIG.Drawing.sheetClasses.e['core.DrawingConfig'].cls;
     } else {
       cls = CONFIG.Drawing.sheetClasses.base['core.DrawingConfig'].cls;
     }
+  } else if (docName === 'Actor') {
+    cls = FormApplication;
   } else {
     cls = sheets.base[`core.${docName}Config`].cls;
   }
@@ -368,14 +363,9 @@ export const WithMassConfig = (docName) => {
   class MassConfig extends MEF {
     constructor(target, docs, options) {
       if (options.massSelect) options.randomizerEnabled = false;
-      options.commonData = getCommonData(docs);
-      if (target instanceof Actor) {
-        super(target.prototypeToken ? target.prototypeToken : target, docs, options);
-        this.documentName = 'Actor';
-      } else {
-        super(target.document ? target.document : target, docs, options);
-        this.documentName = this.object.documentName;
-      }
+      if (!options.commonData) options.commonData = getCommonDocData(docs);
+
+      super(target.document ? target.document : target, docs, options);
 
       // Add submit buttons
       let buttons = [];
@@ -386,20 +376,20 @@ export const WithMassConfig = (docName) => {
         ];
       } else if (this.options.massCopy) {
         buttons = [{ title: 'Copy', value: 'copy', icon: 'fas fa-copy' }];
-        // Extra control for Tokens to update their Actors Token prototype
+        // Extra control for Tokens to update their Actors' Token prototype
         if (this.documentName === 'Token') {
           buttons.push({ title: 'Copy as Prototype', value: 'copyProto', icon: 'fas fa-copy' });
         }
       } else if (this.documentName === 'Note') {
         // If we're editing notes and there are some on a different scene
-        if (this.placeables.filter((n) => (n.scene ?? n.parent).id === canvas.scene.id).length) {
+        if (this.meObjects.filter((n) => (n.scene ?? n.parent).id === canvas.scene.id).length) {
           buttons.push({
             title: 'Apply on Current Scene',
             value: 'currentScene',
             icon: 'far fa-save',
           });
         }
-        if (this.placeables.filter((n) => (n.scene ?? n.parent).id !== canvas.scene.id).length) {
+        if (this.meObjects.filter((n) => (n.scene ?? n.parent).id !== canvas.scene.id).length) {
           buttons.push({
             title: 'Apply on ALL Scenes',
             value: 'allScenes',
@@ -428,15 +418,13 @@ export const WithMassConfig = (docName) => {
     async massUpdateObject(event, formData, { copyForm = false } = {}) {
       // Gather up all named fields that have mass-edit-checkbox checked
       const selectedFields = this.getSelectedFields(formData);
-      const docName = this.placeables[0].document
-        ? this.placeables[0].document.documentName
-        : this.placeables[0].documentName;
+      const docName = this.meObjects[0].document
+        ? this.meObjects[0].document.documentName
+        : this.meObjects[0].documentName;
 
       // Detection modes may have been selected out of order
       // Fix that here
       if (docName === 'Token') {
-        TokenDataAdapter.correctDetectionModeOrder(selectedFields, this.randomizeFields);
-      } else if (docName === 'Actor') {
         TokenDataAdapter.correctDetectionModeOrder(selectedFields, this.randomizeFields);
       }
 
@@ -452,7 +440,7 @@ export const WithMassConfig = (docName) => {
         performMassUpdate.call(
           this,
           selectedFields,
-          this.placeables,
+          this.meObjects,
           docName,
           event.submitter.value
         );
@@ -468,7 +456,7 @@ export const WithMassConfig = (docName) => {
         selectedFields['mass-edit-addSubtract'] = deepClone(this.addSubtractFields);
       }
 
-      copyToClipboard(docName, selectedFields, command);
+      copyToClipboard(docName, selectedFields, command, this.isPrototype);
     }
 
     performMassSearch(command, selectedFields, docName) {
@@ -500,7 +488,7 @@ export const WithMassConfig = (docName) => {
             } else if (data[k] != v) {
               // Detection mode keys cannot be treated in isolation
               // We skip them here and will check them later
-              if (docName === 'Token' || docName === 'Actor') {
+              if (docName === 'Token') {
                 if (k.startsWith('detectionModes')) {
                   continue;
                 }
@@ -512,7 +500,7 @@ export const WithMassConfig = (docName) => {
           }
           if (matches) {
             // We skipped detectionMode matching in the previous step and do it now instead
-            if (docName === 'Token' || docName === 'Actor') {
+            if (docName === 'Token') {
               const modes = Object.values(
                 foundry.utils.expandObject(selectedFields)?.detectionModes || {}
               );
@@ -534,53 +522,7 @@ export const WithMassConfig = (docName) => {
 
     _getHeaderButtons() {
       const buttons = super._getHeaderButtons();
-
-      const docName = this.placeables[0].document
-        ? this.placeables[0].document.documentName
-        : this.placeables[0].documentName;
-
-      if (
-        IS_PRIVATE &&
-        !isNewerVersion('10', game.version) &&
-        [
-          'Token',
-          'Tile',
-          'Drawing',
-          'Wall',
-          'AmbientLight',
-          'AmbientSound',
-          'MeasuredTemplate',
-          'Note',
-        ].includes(docName)
-      ) {
-        buttons.unshift({
-          label: '',
-          class: 'mass-edit-macro',
-          icon: 'fas fa-terminal',
-          onclick: () => {
-            const selectedFields = this.getSelectedFields();
-            new MacroForm(
-              this.object,
-              this.placeables,
-              selectedFields,
-              this.randomizeFields,
-              this.addSubtractFields
-            ).render(true);
-          },
-        });
-      }
-
-      if (game.settings.get('multi-token-edit', 'enableHistory'))
-        buttons.unshift({
-          label: '',
-          class: 'mass-edit-history',
-          icon: 'fas fa-history',
-          onclick: () => {
-            new MassEditHistory(docName, async (preset) => this._processPreset(preset)).render(
-              true
-            );
-          },
-        });
+      const docName = this.documentName;
 
       buttons.unshift({
         label: ' ',
@@ -603,7 +545,7 @@ export const WithMassConfig = (docName) => {
       if (['Token', 'Note', 'Actor'].includes(docName)) {
         let docs = [];
         const ids = new Set();
-        for (const p of this.placeables) {
+        for (const p of this.meObjects) {
           let d;
           if (docName === 'Actor' || docName === 'JournalEntry') d = p;
           else if (docName === 'Token' && p.actor) d = p.actor;
@@ -633,8 +575,45 @@ export const WithMassConfig = (docName) => {
         class: 'mass-edit-presets',
         icon: 'fas fa-box',
         onclick: (ev) =>
-          new MassEditPresets(this, async (preset) => this._processPreset(preset)).render(true),
+          new MassEditPresets(this, async (preset) => this._processPreset(preset), docName).render(
+            true
+          ),
       });
+
+      if (
+        game.settings.get('multi-token-edit', 'enableHistory') &&
+        SUPPORTED_HISTORY_DOCS.includes(docName)
+      ) {
+        buttons.unshift({
+          label: '',
+          class: 'mass-edit-history',
+          icon: 'fas fa-history',
+          onclick: () => {
+            new MassEditHistory(docName, async (preset) => this._processPreset(preset)).render(
+              true
+            );
+          },
+        });
+      }
+
+      if (this.documentName === 'Token' && this.meObjects.filter((t) => t.actor).length) {
+        buttons.unshift({
+          label: '',
+          class: 'mass-edit-actors',
+          icon: 'fas fa-user',
+          onclick: () => {
+            if (
+              showMassActorForm(this.meObjects, {
+                massEdit: this.options.massEdit,
+                massCopy: this.options.massCopy,
+              })
+            ) {
+              this.close();
+            }
+          },
+        });
+      }
+
       return buttons;
     }
 
@@ -741,7 +720,7 @@ export const WithMassConfig = (docName) => {
     get title() {
       if (this.options.massSelect) return `Mass-${this.documentName} SEARCH`;
       if (this.options.massCopy) return `Mass-${this.documentName} COPY`;
-      return `Mass-${this.documentName} EDIT [ ${this.placeables.length} ]`;
+      return `Mass-${this.documentName} EDIT [ ${this.meObjects.length} ]`;
     }
   }
 
@@ -763,19 +742,22 @@ export function pasteDataUpdate(docs, preset) {
 
   // Special handling for Tokens/Actors
   if (!preset) {
-    if (docName === 'Actor') {
-      data = CLIPBOARD['Token'];
-      if (!data) data = CLIPBOARD['TokenProto'];
-    } else if (docName === 'Token') {
+    if (docName === 'Token') {
       if (!data) {
         data = CLIPBOARD['TokenProto'];
         applyType = 'applyToPrototype';
+      }
+
+      if (!data) {
+        data = CLIPBOARD['Actor'];
+        docName = 'Actor';
+        docs = docs.filter((d) => d.actor).map((d) => d.actor);
       }
     }
   }
 
   if (data) {
-    const context = { placeables: docs };
+    const context = { meObjects: docs };
     if (data['mass-edit-randomize']) {
       context.randomizeFields = data['mass-edit-randomize'];
       delete data['mass-edit-randomize'];
@@ -789,17 +771,22 @@ export function pasteDataUpdate(docs, preset) {
   }
 }
 
-function performMassUpdate(data, placeables, docName, applyType) {
-  if (emptyObject(data)) return;
+function performMassUpdate(data, objects, docName, applyType) {
+  if (emptyObject(data)) {
+    if (this.callbackOnUpdate) {
+      this.callbackOnUpdate(objects);
+    }
+    return;
+  }
 
   // Update docs
   const updates = [];
   const context = {};
 
-  const total = placeables.length;
+  const total = objects.length;
   for (let i = 0; i < total; i++) {
     const update = deepClone(data);
-    update._id = placeables[i].id;
+    update._id = objects[i].id;
 
     // push update
     updates.push(update);
@@ -813,30 +800,38 @@ function performMassUpdate(data, placeables, docName, applyType) {
   }
 
   // Applies randomization
-  if (this) applyRandomization(updates, placeables, this.randomizeFields);
-  if (this) applyAddSubtract(updates, placeables, docName, this.addSubtractFields);
+  if (this) applyRandomization(updates, objects, this.randomizeFields);
+  if (this) applyAddSubtract(updates, objects, docName, this.addSubtractFields);
 
   // Special processing for some placeable types
   // Necessary when form data is not directly mappable to placeable
   for (let i = 0; i < total; i++) {
-    GeneralDataAdapter.formToData(docName, placeables[i], updates[i]);
+    GeneralDataAdapter.formToData(docName, objects[i], updates[i]);
   }
 
-  // Need special handling for PrototypeTokens we don't update the Token itself but rather the actor
+  // Perform Updates
   if (docName === 'Actor') {
-    // Do nothing
+    // There is a lot of wonkiness related to updating of real/synthetic actors. It's probably best
+    // to simply update the Actors directly
+
+    for (let i = 0; i < updates.length; i++) {
+      const update = updates[i];
+      delete update._id;
+      if (this.options?.tokens) this.options.tokens[i].actor.update(update);
+      else objects[i].update(update);
+    }
   } else if (docName === 'Scene') {
     Scene.updateDocuments(updates, context);
   } else if (docName === 'PlaylistSound') {
-    for (let i = 0; i < placeables.length; i++) {
+    for (let i = 0; i < objects.length; i++) {
       delete updates[i]._id;
-      placeables[i].update(updates[i], context);
+      objects[i].update(updates[i], context);
     }
   } else if (docName === 'Note') {
     // Notes can be updated across different scenes
     const splitUpdates = {};
     for (let i = 0; i < updates.length; i++) {
-      const scene = placeables[i].scene ?? placeables[i].parent;
+      const scene = objects[i].scene ?? objects[i].parent;
       if (applyType === 'currentScene' && scene.id !== canvas.scene.id) continue;
       if (!(scene.id in splitUpdates)) {
         splitUpdates[scene.id] = { scene: scene, updates: [] };
@@ -846,15 +841,28 @@ function performMassUpdate(data, placeables, docName, applyType) {
     for (const sceneUpdate of Object.values(splitUpdates)) {
       sceneUpdate.scene.updateEmbeddedDocuments(docName, sceneUpdate.updates, context);
     }
-  } else {
+  } else if (!this.isPrototype && SUPPORTED_PLACEABLES.includes(docName)) {
     canvas.scene.updateEmbeddedDocuments(docName, updates, context);
+  } else if (SUPPORTED_COLLECTIONS.includes(docName)) {
+    objects[0].constructor?.updateDocuments(updates);
+  } else {
+    // Not a placeable or otherwise a specially handled doc type
+    // Simply merge the fields directly into the object
+    for (let i = 0; i < updates.length; i++) {
+      const update = updates[i];
+      delete update._id;
+      mergeObjectPreserveDot(objects[i], mergeObject(objects[i], update));
+    }
+    if (this.callbackOnUpdate) {
+      this.callbackOnUpdate(objects);
+    }
   }
 
   // May need to also update Token prototypes
-  if (docName === 'Actor' || (applyType === 'applyToPrototype' && docName === 'Token')) {
+  if ((applyType === 'applyToPrototype' || this.isPrototype) && docName === 'Token') {
     const actorUpdates = {};
-    for (let i = 0; i < placeables.length; i++) {
-      const actor = placeables[i] instanceof Actor ? placeables[i] : placeables[i].actor;
+    for (let i = 0; i < objects.length; i++) {
+      const actor = objects[i].actor;
       if (actor) {
         if (isNewerVersion('10', game.version)) {
           actorUpdates[actor.id] = { _id: actor.id, token: updates[i] };
@@ -912,13 +920,8 @@ function deselectTabs(target) {
   }
 }
 
-function getTokenData(actor) {
-  return isNewerVersion('10', game.version) ? getData(actor).token : actor.prototypeToken;
-}
-
 export function getObjFormData(obj, docName) {
-  let data = (docName === 'Actor' ? getTokenData(obj) : getData(obj)).toObject();
-  data = flattenObject(data);
+  const data = flattenObject(getData(obj).toObject());
 
   // Special processing for some placeable types
   // Necessary when form data is not directly mappable to placeable
@@ -928,23 +931,10 @@ export function getObjFormData(obj, docName) {
 }
 
 // Merge all data and determine what is common between the docs
-function getCommonData(docs) {
+function getCommonDocData(docs) {
   const docName = docs[0].document ? docs[0].document.documentName : docs[0].documentName;
-
-  const commonData = getObjFormData(docs[0], docName);
-  for (let i = 1; i < docs.length; i++) {
-    const flatData = getObjFormData(docs[i], docName);
-    const diff = flattenObject(diffObject(commonData, flatData));
-    for (const k of Object.keys(diff)) {
-      // Special handling for empty/undefined data
-      if ((diff[k] === '' || diff[k] == null) && (commonData[k] === '' || commonData[k] == null)) {
-        // matches, do not remove
-      } else {
-        delete commonData[k];
-      }
-    }
-  }
-  return commonData;
+  const objects = docs.map((d) => getObjFormData(d, docName));
+  return getCommonData(objects);
 }
 
 export const WithMassPermissions = () => {
@@ -1003,7 +993,7 @@ export const WithMassPermissions = () => {
 
       const ids = new Set();
       const updates = [];
-      for (const d of this.placeables) {
+      for (const d of this.meObjects) {
         if (!ids.has(d.id)) {
           const data = getData(d);
           const ownership = foundry.utils.deepClone(
@@ -1024,7 +1014,7 @@ export const WithMassPermissions = () => {
         }
       }
 
-      this.placeables[0].constructor.updateDocuments(updates, {
+      this.meObjects[0].constructor.updateDocuments(updates, {
         diff: false,
         recursive: false,
         noHook: true,
@@ -1032,7 +1022,7 @@ export const WithMassPermissions = () => {
     }
 
     get title() {
-      return `Mass-${this.documentName} PERMISSIONS EDIT [ ${this.placeables.length} ]`;
+      return `Mass-${this.documentName} PERMISSIONS EDIT [ ${this.meObjects.length} ]`;
     }
   }
 
@@ -1045,12 +1035,11 @@ export const WithMassPermissions = () => {
 
 const CLIPBOARD = {};
 
-export function copyToClipboard(docName, data, command) {
+export function copyToClipboard(docName, data, command, isPrototype) {
   CLIPBOARD[docName] = data;
 
   // Special handling for Actors/Tokens
-  if (docName === 'Actor') {
-    delete CLIPBOARD['Actor'];
+  if (docName === 'Token' && isPrototype) {
     CLIPBOARD['TokenProto'] = data;
   } else if (docName === 'Token') {
     if (command === 'copyProto') {

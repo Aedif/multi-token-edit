@@ -1,10 +1,9 @@
-import { SUPPORTED_CONFIGS } from '../applications/forms.js';
 import { getLayerMappings, showMassSelect } from '../applications/multiConfig.js';
+import { SUPPORTED_PLACEABLES } from './utils.js';
 
 export function showPlaceableTypeSelectDialog() {
   let content = '';
-  for (const config of SUPPORTED_CONFIGS) {
-    if (config === 'Scene') continue;
+  for (const config of SUPPORTED_PLACEABLES) {
     content += `<option value="${config}">${config}</option>`;
   }
   content = `<label>Choose placeable type you wish to search:</label>

@@ -1,19 +1,17 @@
 import { emptyObject } from '../scripts/utils.js';
 import { TokenDataAdapter } from './dataAdapters.js';
-import { SUPPORTED_CONFIGS } from './forms.js';
 
 export default class MassEditPresets extends FormApplication {
   constructor(configApp, callback, docName) {
     super({}, {});
     this.callback = callback;
 
-    if (docName) {
+    if (!configApp) {
       this.docName = docName;
     } else {
       this.configApp = configApp;
-      this.docName = this.configApp.object.documentName;
+      this.docName = this.configApp.documentName;
     }
-    if (this.docName === 'Actor') this.docName = 'Token';
   }
 
   static get defaultOptions() {
@@ -23,11 +21,15 @@ export default class MassEditPresets extends FormApplication {
       template: 'modules/multi-token-edit/templates/presets.html',
       resizable: true,
       minimizable: false,
-      title: `Select${this.configApp ? ' or Create ' : ' '}presets`,
+      title: `Presets`,
       width: 270,
       height: 'auto',
       scrollY: ['ol.item-list'],
     });
+  }
+
+  get title() {
+    return `[${this.docName}] ${game.i18n.localize('multi-token-edit.common.presets')}`;
   }
 
   async getData(options) {
@@ -135,8 +137,6 @@ export default class MassEditPresets extends FormApplication {
     // Detection modes may have been selected out of order
     // Fix that here
     if (this.docName === 'Token') {
-      TokenDataAdapter.correctDetectionModeOrder(selectedFields, randomizeFields);
-    } else if (this.docName === 'Actor') {
       TokenDataAdapter.correctDetectionModeOrder(selectedFields, randomizeFields);
     }
 
@@ -272,10 +272,8 @@ export default class MassEditPresets extends FormApplication {
     const presets = game.settings.get('multi-token-edit', 'presets') || {};
 
     for (const dType of Object.keys(json)) {
-      if (SUPPORTED_CONFIGS.includes(dType)) {
-        for (const preset of Object.keys(json[dType])) {
-          presets[dType][preset] = json[dType][preset];
-        }
+      for (const preset of Object.keys(json[dType])) {
+        presets[dType][preset] = json[dType][preset];
       }
     }
 

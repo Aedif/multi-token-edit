@@ -1,12 +1,12 @@
 import { showPlaceableTypeSelectDialog } from '../scripts/dialogs.js';
-import { getData } from '../scripts/utils.js';
+import { getData, SUPPORTED_PLACEABLES, SUPPORT_SHEET_CONFIGS } from '../scripts/utils.js';
 import { pasteDataUpdate, WithMassConfig } from './forms.js';
+import { MassEditGenericForm } from './genericForm.js';
 
 export function getLayerMappings() {
   return isNewerVersion('10', game.version)
     ? {
         // v9
-        Actor: ['tokens'],
         Token: ['tokens'],
         Tile: ['background', 'foreground'],
         Drawing: ['drawings'],
@@ -18,7 +18,6 @@ export function getLayerMappings() {
       }
     : // v10
       {
-        Actor: ['tokens'],
         Token: ['tokens'],
         Tile: ['tiles'],
         Drawing: ['drawings'],
@@ -60,12 +59,15 @@ function getHover() {
 }
 
 // Retrieve documents selected using Multiple Document Selection module (https://github.com/ironmonk88/multiple-document-selection)
-function getSelectedDocuments() {
+function getSelectedDocuments(placeableSelect) {
   const supportedDocs = [
     { name: 'Actor', class: 'actor' },
     { name: 'Scene', class: 'scene' },
     { name: 'JournalEntry', class: 'journalentry' },
     { name: 'Playlist', class: 'sound' },
+    { name: 'Item', class: 'item' },
+    { name: 'RollTable', class: 'rolltable' },
+    { name: 'Cards', class: 'cards' },
   ];
   for (const doc of supportedDocs) {
     const selected = [];
@@ -82,7 +84,7 @@ function getSelectedDocuments() {
 
       if (d) {
         // JournalEntries themselves do not have configs, but notes that they correspond to on the scene do
-        if (doc.name === 'JournalEntry') {
+        if (placeableSelect && doc.name === 'JournalEntry') {
           game.collections.get('Scene').forEach((s) =>
             s.notes.forEach((n) => {
               const eid = n.entryId ?? n.data.entryId;
@@ -110,13 +112,13 @@ function documentName(doc) {
   return doc.document ? doc.document.documentName : doc.documentName;
 }
 
-export function getSelected(base) {
+export function getSelected(base, placeable = true) {
   let selected;
   if (base) {
     if (Array.isArray(base)) selected = base;
     else selected = [base];
   }
-  if (!selected) selected = getSelectedDocuments();
+  if (!selected) selected = getSelectedDocuments(placeable);
   if (!selected) selected = getControlled();
 
   // Sort placeable on the scene using their (x, y) coordinates
@@ -130,7 +132,7 @@ export function getSelected(base) {
     });
   }
 
-  // We want one placeable to be treated as the target for the form
+  // We want one object to be treated as the target for the form
   // Will prioritize hovered placeable for this purpose
   let hover = getHover();
   hover = hover ? hover[0] : hover;
@@ -149,7 +151,7 @@ export function getSelected(base) {
 
 // Show placeable search
 export function showMassSelect(basePlaceable) {
-  const [target, selected] = getSelected(basePlaceable);
+  let [target, selected] = getSelected(basePlaceable);
 
   if (!target) {
     showPlaceableTypeSelectDialog();
@@ -157,16 +159,19 @@ export function showMassSelect(basePlaceable) {
   }
 
   const docName = target.document ? target.document.documentName : target.documentName;
+  if (!SUPPORTED_PLACEABLES.includes(docName)) return;
+
   const MassConfig = WithMassConfig(docName);
   new MassConfig(target, selected, {
     commonData: flattenObject(getData(target).toObject()),
     massSelect: true,
+    documentName: docName,
   }).render(true, {});
 }
 
 // show placeable edit
-export function showMassConfig(found = null) {
-  const [target, selected] = getSelected(found);
+export function showMassConfig(found = null, documentName) {
+  let [target, selected] = getSelected(found);
 
   // If there are no placeable in control or just one, then either exit or display the default config window
   if (!selected || !selected.length) return;
@@ -179,21 +184,64 @@ export function showMassConfig(found = null) {
   }
 
   // Display modified config window
-  const docName = target.document ? target.document.documentName : target.documentName;
-  const MassConfig = WithMassConfig(docName);
-  new MassConfig(target, selected, { massEdit: true }).render(true, {});
+  if (!documentName)
+    documentName = target.document ? target.document.documentName : target.documentName;
+  const options = { massEdit: true, documentName };
+  if (SUPPORT_SHEET_CONFIGS.includes(documentName)) {
+    if (documentName === 'Actor') {
+      target = target.prototypeToken ?? target.token;
+      selected = selected.map((s) => s.prototypeToken ?? s.token);
+      options.documentName = 'Token';
+    }
+    const MassConfig = WithMassConfig(options.documentName);
+    new MassConfig(target, selected, options).render(true, {});
+  } else {
+    new MassEditGenericForm(selected, options).render(true);
+  }
 }
 
 // show placeable data copy
 export function showMassCopy() {
-  const [target, selected] = getSelected();
+  let [target, selected] = getSelected();
 
   if (!selected || !selected.length) return;
 
   // Display modified config window
-  const docName = target.document ? target.document.documentName : target.documentName;
-  const MassConfig = WithMassConfig(docName);
-  new MassConfig(target, selected, { massCopy: true }).render(true, {});
+  const documentName = target.document ? target.document.documentName : target.documentName;
+  const options = { massCopy: true, documentName };
+  if (SUPPORT_SHEET_CONFIGS.includes(documentName)) {
+    if (documentName === 'Actor') {
+      target = target.prototypeToken ?? target.token;
+      selected = selected.map((s) => s.prototypeToken ?? s.token);
+      options.documentName = 'Token';
+    }
+
+    const MassConfig = WithMassConfig(options.documentName);
+    new MassConfig(target, selected, options).render(true, {});
+  } else {
+    new MassEditGenericForm(selected, options).render(true);
+  }
+}
+
+export function showMassActorForm(selectedTokens, options) {
+  const tokens = [];
+  const actors = [];
+  selectedTokens.forEach((s) => {
+    if (s.actor) {
+      tokens.push(s);
+      actors.push(s.actor);
+    }
+  });
+
+  if (actors.length) {
+    new MassEditGenericForm(actors, {
+      tokens,
+      documentName: 'Actor',
+      ...options,
+    }).render(true);
+    return true;
+  }
+  return false;
 }
 
 export function pasteData() {
@@ -202,4 +250,19 @@ export function pasteData() {
   if (!selected) selected = getControlled();
   if (!selected) selected = getHover();
   pasteDataUpdate(selected);
+}
+
+/**
+ * Displays a Generic Mass Edit form for the passed in data object/s
+ * @param {Array|Object} data Object/s to be edited using the form
+ * @param {String} name the name to be assigned internally to this data which will be used to manage presets and pins
+ * @returns Promised resolved once the opened form is submitted
+ */
+export function showGenericForm(data, name = 'GenericData') {
+  return new Promise((resolve) => {
+    new MassEditGenericForm(Array.isArray(data) ? data : [data], {
+      documentName: name,
+      callback: () => resolve(),
+    }).render(true);
+  });
 }

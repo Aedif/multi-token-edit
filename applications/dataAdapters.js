@@ -53,7 +53,6 @@ export class TokenDataAdapter {
 
   static dataToForm(token, data) {
     if (isNewerVersion('10', game.version)) return;
-    if (token instanceof Actor) token = token.prototypeToken ?? token.token;
 
     const doc = token.document ? token.document : token;
     data.scale = Math.abs(doc.texture.scaleX);
@@ -64,7 +63,6 @@ export class TokenDataAdapter {
   static formToData(token, formData) {
     if (isNewerVersion('10', game.version)) return;
 
-    if (token instanceof Actor) token = token.prototypeToken ?? token.token;
     const doc = token.document ? token.document : token;
 
     // Scale/mirroring
@@ -227,7 +225,6 @@ export class TokenDataAdapter {
 
 const ADAPTERS = {
   Token: TokenDataAdapter,
-  Actor: TokenDataAdapter,
   PlaylistSound: PlaylistSoundDataAdapter,
   Note: NoteDataAdapter,
 };

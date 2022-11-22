@@ -1,15 +1,24 @@
 import {
   getSelected,
   pasteData,
+  showMassActorForm,
   showMassConfig,
   showMassCopy,
   showMassSelect,
+  showGenericForm,
 } from './applications/multiConfig.js';
 import CSSEdit, { STYLES } from './applications/cssEdit.js';
 import { applyRandomization, IS_PRIVATE } from './scripts/private.js';
 import MassEditPresets from './applications/presets.js';
-import { getObjFormData, pasteDataUpdate, SUPPORTED_CONFIGS } from './applications/forms.js';
-import { applyAddSubtract, emptyObject, flagCompare } from './scripts/utils.js';
+import { getObjFormData, pasteDataUpdate } from './applications/forms.js';
+import { MassEditGenericForm } from './applications/genericForm.js';
+import {
+  applyAddSubtract,
+  emptyObject,
+  flagCompare,
+  SUPPORTED_COLLECTIONS,
+  SUPPORTED_HISTORY_DOCS,
+} from './scripts/utils.js';
 import { GeneralDataAdapter } from './applications/dataAdapters.js';
 
 export const HISTORY = {};
@@ -32,8 +41,8 @@ Hooks.once('init', () => {
   });
 
   game.settings.registerMenu('multi-token-edit', 'cssEdit', {
-    name: game.i18n.format('multi-token-edit.settings.cssEdit.name'),
-    hint: game.i18n.format('multi-token-edit.settings.cssEdit.hint'),
+    name: game.i18n.localize('multi-token-edit.settings.cssEdit.name'),
+    hint: game.i18n.localize('multi-token-edit.settings.cssEdit.hint'),
     label: '',
     scope: 'world',
     icon: 'fas fa-cog',
@@ -42,8 +51,8 @@ Hooks.once('init', () => {
   });
 
   game.settings.register('multi-token-edit', 'singleDocDefaultConfig', {
-    name: game.i18n.format('multi-token-edit.settings.singleDocDefaultConfig.name'),
-    hint: game.i18n.format('multi-token-edit.settings.singleDocDefaultConfig.hint'),
+    name: game.i18n.localize('multi-token-edit.settings.singleDocDefaultConfig.name'),
+    hint: game.i18n.localize('multi-token-edit.settings.singleDocDefaultConfig.hint'),
     scope: 'world',
     config: true,
     type: Boolean,
@@ -51,8 +60,8 @@ Hooks.once('init', () => {
   });
 
   game.settings.register('multi-token-edit', 'rangeToTextbox', {
-    name: game.i18n.format('multi-token-edit.settings.rangeToTextbox.name'),
-    hint: game.i18n.format('multi-token-edit.settings.rangeToTextbox.hint'),
+    name: game.i18n.localize('multi-token-edit.settings.rangeToTextbox.name'),
+    hint: game.i18n.localize('multi-token-edit.settings.rangeToTextbox.hint'),
     scope: 'world',
     config: true,
     type: Boolean,
@@ -66,9 +75,16 @@ Hooks.once('init', () => {
     default: {},
   });
 
+  game.settings.register('multi-token-edit', 'pinnedFields', {
+    scope: 'world',
+    config: false,
+    type: Object,
+    default: {},
+  });
+
   game.settings.register('multi-token-edit', 'enableHistory', {
-    name: game.i18n.format('multi-token-edit.settings.enableHistory.name'),
-    hint: game.i18n.format('multi-token-edit.settings.enableHistory.hint'),
+    name: game.i18n.localize('multi-token-edit.settings.enableHistory.name'),
+    hint: game.i18n.localize('multi-token-edit.settings.enableHistory.hint'),
     scope: 'world',
     config: true,
     type: Boolean,
@@ -76,8 +92,8 @@ Hooks.once('init', () => {
   });
 
   game.settings.register('multi-token-edit', 'historyMaxLength', {
-    name: game.i18n.format('multi-token-edit.settings.historyMaxLength.name'),
-    hint: game.i18n.format('multi-token-edit.settings.historyMaxLength.hint'),
+    name: game.i18n.localize('multi-token-edit.settings.historyMaxLength.name'),
+    hint: game.i18n.localize('multi-token-edit.settings.historyMaxLength.hint'),
     scope: 'world',
     config: true,
     type: Number,
@@ -86,8 +102,8 @@ Hooks.once('init', () => {
 
   if (IS_PRIVATE) {
     game.settings.register('multi-token-edit', 'autoSnap', {
-      name: game.i18n.format('multi-token-edit.settings.autoSnap.name'),
-      hint: game.i18n.format('multi-token-edit.settings.autoSnap.hint'),
+      name: game.i18n.localize('multi-token-edit.settings.autoSnap.name'),
+      hint: game.i18n.localize('multi-token-edit.settings.autoSnap.hint'),
       scope: 'world',
       config: true,
       type: Boolean,
@@ -97,15 +113,15 @@ Hooks.once('init', () => {
 
   // Register history related hooks
   if (game.settings.get('multi-token-edit', 'enableHistory'))
-    [...SUPPORTED_CONFIGS, 'Actor', 'PlaylistSound'].forEach((docName) => {
+    SUPPORTED_HISTORY_DOCS.forEach((docName) => {
       Hooks.on(`preUpdate${docName}`, (doc, update, options, userId) => {
         updateHistory(doc, update, options, userId);
       });
     });
 
   game.keybindings.register('multi-token-edit', 'editKey', {
-    name: game.i18n.format('multi-token-edit.keybindings.editKey.name'),
-    hint: game.i18n.format('multi-token-edit.keybindings.editKey.hint'),
+    name: game.i18n.localize('multi-token-edit.keybindings.editKey.name'),
+    hint: game.i18n.localize('multi-token-edit.keybindings.editKey.hint'),
     editable: [
       {
         key: 'KeyE',
@@ -120,8 +136,8 @@ Hooks.once('init', () => {
   });
 
   game.keybindings.register('multi-token-edit', 'selectKey', {
-    name: game.i18n.format('multi-token-edit.keybindings.selectKey.name'),
-    hint: game.i18n.format('multi-token-edit.keybindings.selectKey.hint'),
+    name: game.i18n.localize('multi-token-edit.keybindings.selectKey.name'),
+    hint: game.i18n.localize('multi-token-edit.keybindings.selectKey.hint'),
     editable: [
       {
         key: 'KeyF',
@@ -136,8 +152,8 @@ Hooks.once('init', () => {
   });
 
   game.keybindings.register('multi-token-edit', 'copyKey', {
-    name: game.i18n.format('multi-token-edit.keybindings.copyKey.name'),
-    hint: game.i18n.format('multi-token-edit.keybindings.copyKey.hint'),
+    name: game.i18n.localize('multi-token-edit.keybindings.copyKey.name'),
+    hint: game.i18n.localize('multi-token-edit.keybindings.copyKey.hint'),
     editable: [
       {
         key: 'KeyC',
@@ -148,7 +164,7 @@ Hooks.once('init', () => {
       // Check if a Mass Config form is already open and if so copy data from there
       const re = new RegExp('Mass.*Config');
       for (const app of Object.values(ui.windows)) {
-        if (re.test(app.constructor.name)) {
+        if (re.test(app.constructor.name) || app.constructor.name === 'MassEditGenericForm') {
           app.massUpdateObject({ submitter: { value: '' } }, null, { copyForm: true });
           return;
         }
@@ -162,8 +178,8 @@ Hooks.once('init', () => {
   });
 
   game.keybindings.register('multi-token-edit', 'pasteKey', {
-    name: game.i18n.format('multi-token-edit.keybindings.pasteKey.name'),
-    hint: game.i18n.format('multi-token-edit.keybindings.pasteKey.hint'),
+    name: game.i18n.localize('multi-token-edit.keybindings.pasteKey.name'),
+    hint: game.i18n.localize('multi-token-edit.keybindings.pasteKey.hint'),
     editable: [
       {
         key: 'KeyV',
@@ -178,8 +194,8 @@ Hooks.once('init', () => {
   });
 
   game.keybindings.register('multi-token-edit', 'presetApply', {
-    name: game.i18n.format('multi-token-edit.keybindings.presetApply.name'),
-    hint: game.i18n.format('multi-token-edit.keybindings.presetApply.hint'),
+    name: game.i18n.localize('multi-token-edit.keybindings.presetApply.name'),
+    hint: game.i18n.localize('multi-token-edit.keybindings.presetApply.hint'),
     editable: [
       {
         key: 'KeyX',
@@ -205,10 +221,37 @@ Hooks.once('init', () => {
     precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
   });
 
+  game.keybindings.register('multi-token-edit', 'genericFormKey', {
+    name: game.i18n.localize('multi-token-edit.keybindings.genericForm.name'),
+    hint: game.i18n.localize('multi-token-edit.keybindings.genericForm.hint'),
+    editable: [
+      {
+        key: 'KeyR',
+        modifiers: ['Shift'],
+      },
+    ],
+    onDown: () => {
+      let [target, selected] = getSelected(null, false);
+      if (!target) return;
+      const docName = target.document ? target.document.documentName : target.documentName;
+      if (![...SUPPORTED_COLLECTIONS, 'Token'].includes(docName)) return;
+
+      if (docName === 'Token') {
+        showMassActorForm(selected, { massEdit: true });
+      } else {
+        new MassEditGenericForm(selected, { massEdit: true, documentName: docName }).render(true);
+      }
+    },
+    restricted: true,
+    precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
+  });
+
   game.modules.get('multi-token-edit').api = {
     applyRandomization,
     applyAddSubtract,
     GeneralDataAdapter,
+    MassEditGenericForm,
+    showGenericForm,
   };
 });
 
@@ -260,11 +303,9 @@ Hooks.on('renderTileHUD', (hud, html, tileData) => {
 //
 
 // Retrieve only the data that is different
-function getDiffData(obj, update) {
-  const docName = obj.document ? obj.document.documentName : obj.documentName;
-
+function getDiffData(obj, docName, update, protoData = true) {
   const flatUpdate = flattenObject(update);
-  const flatObjData = getObjFormData(obj, docName);
+  const flatObjData = getObjFormData(obj, docName, protoData);
   const diff = diffObject(flatObjData, flatUpdate);
 
   for (const [k, v] of Object.entries(diff)) {
@@ -303,18 +344,28 @@ function updateHistory(obj, update, options, userId) {
 
   let docName = obj.document ? obj.document.documentName : obj.documentName;
   if (docName === 'Actor') {
-    docName = 'Token';
-    cUpdate = (isNewerVersion('10', game.version) ? cUpdate.token : cUpdate.prototypeToken) ?? {};
+    if (cUpdate.prototypeToken || cUpdate.token) {
+      saveHistory(
+        obj.prototypeToken ?? obj.token,
+        cUpdate.prototypeToken ?? cUpdate.token,
+        deepClone(historyItem),
+        update._id,
+        'Token'
+      );
+    }
   }
 
-  if (emptyObject(cUpdate)) return;
+  saveHistory(obj, cUpdate, historyItem, update._id, docName);
+}
 
-  historyItem.update = flattenObject(cUpdate);
-  historyItem.diff = getDiffData(obj, cUpdate);
-  historyItem._id = update._id;
+function saveHistory(obj, update, historyItem, _id, docName) {
+  if (!obj || emptyObject(update)) return;
+
+  historyItem.update = flattenObject(update);
+  historyItem.diff = getDiffData(obj, docName, update);
+  historyItem._id = _id;
 
   const maxLength = game.settings.get('multi-token-edit', 'historyMaxLength') ?? 0;
-  if (docName === 'Actor') docName = 'Token';
   const docHistory = HISTORY[docName] ?? [];
   docHistory.push(historyItem);
 

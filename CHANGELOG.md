@@ -1,3 +1,22 @@
+# 1.27.5
+
+Generic Forms
+
+- Implemented a Generic Mass Edit form that can be opened for any list of objects
+  - Behaves as any other Mass Edit form with one notable exception; fields can be pinned and renamed for easier access
+- Through this form partial support is now provided for Actors, Items, RollTables, JournalEntries, and Cards
+- A new header button has been added to Actor/Token forms to switch between them
+- Shift+E will now open generic forms for documents that do not have their own sheets
+- New keybinding: Shift+R
+  - Will open Actor form for selected tokens without needing to switch to it through the Token form
+- New method added to the API: `showGenericForm`
+
+  - e.g. `game.modules.get("multi-token-edit").api.showGenericForm({abc : 1, def: "foo"})`
+  - Returns a promise that will be resolved once the Mass Edit form has been submitted
+  - The form will directly update the object/s passed to it
+  - A custom name can given to the function which will be used to determine presets and pinned fields available in the form
+    - e.g. `showGenericForm({color1: '#ffffff', color2: '#000000'}, 'ColorMixer')`
+
 # 1.26.0
 
 - AmbientLight and AmbientSound forms will now include a 'Hidden' field allowing them to be turned on/off en masse

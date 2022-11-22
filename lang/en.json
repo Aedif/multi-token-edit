@@ -23,6 +23,10 @@
       "editKey": {
         "name": "Open Multi-Placeable Edit",
         "hint": "When pressed will open a Configuration window to simultaneously update all selected placeables."
+      },
+      "genericForm": {
+        "name": "Open Generic Multi-Object Edit",
+        "hint": "When pressed will open a Configuration window to simultaneously update all selected objects."
       }
     },
     "settings": {
@@ -80,7 +84,11 @@
       "replace": "Replace",
       "list": "List",
       "generate": "Generate",
-      "hidden": "Hidden"
+      "hidden": "Hidden",
+      "pin": "Pin",
+      "pinned": "Pinned",
+      "presets": "Presets",
+      "history": "History"
     }
   }
 }
