@@ -1,9 +1,10 @@
-# 1.27.7
+# 1.27.8
 
 Generic Form
 
 - Now provides pickers for numerical color fields
 - A function can be passed as 'inputChangeCallback' to return selected fields every time form input changes
+- Added horizontal scrollbar for particularly long navigation bars
 
 # 1.27.5
 

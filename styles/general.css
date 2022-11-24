@@ -190,6 +190,10 @@ input.me-subtract {
    === Generic Form ====
    ===================== */
 
+.mass-edit-generic-form nav {
+  overflow-x: auto;
+}
+
 nav > a[data-tab='me-pinned'] {
   color: orangered;
 }
