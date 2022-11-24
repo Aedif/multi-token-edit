@@ -258,11 +258,12 @@ export function pasteData() {
  * @param {String} name the name to be assigned internally to this data which will be used to manage presets and pins
  * @returns Promised resolved once the opened form is submitted
  */
-export function showGenericForm(data, name = 'GenericData') {
+export function showGenericForm(data, name = 'GenericData', options) {
   return new Promise((resolve) => {
     new MassEditGenericForm(Array.isArray(data) ? data : [data], {
       documentName: name,
       callback: () => resolve(),
+      ...options,
     }).render(true);
   });
 }

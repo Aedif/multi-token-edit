@@ -113,6 +113,26 @@ export class MassEditGenericForm extends WMC {
       const name = $(event.target).closest('.form-group').find('[name]').attr('name');
       this.editableLabels[name] = event.target.value;
     });
+
+    html.find('.color-number').on('change', (event) => {
+      if (event.target.dataset?.editNumber) {
+        let col = 0;
+        try {
+          col = Number(Color.fromString(event.target.value));
+        } catch (e) {}
+
+        $(event.target)
+          .siblings(`[name="${event.target.dataset.editNumber}"]`)
+          .val(col)
+          .trigger('input');
+      }
+    });
+
+    if (this.options.inputChangeCallback) {
+      html.find('input').on('change', (event) => {
+        this.options.inputChangeCallback(this.getSelectedFields());
+      });
+    }
   }
 
   /**
@@ -211,6 +231,13 @@ function genControl(type, label, value, name, pinned, editableLabel = false) {
   let control = { label: label, value, name, editableLabel };
   if (type === 'number') {
     control.number = true;
+    const varName = name.split('.').pop();
+    if (COLOR_FIELDS.includes(varName) || varName.toLowerCase().includes('color')) {
+      control.colorPickerNumber = true;
+      try {
+        control.colorValue = new Color(value).toString();
+      } catch (e) {}
+    }
   } else if (type === 'string') {
     control.text = true;
     const varName = name.split('.').pop();
