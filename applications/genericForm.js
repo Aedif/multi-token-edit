@@ -129,8 +129,12 @@ export class MassEditGenericForm extends WMC {
     });
 
     if (this.options.inputChangeCallback) {
-      html.find('input').on('change', (event) => {
-        this.options.inputChangeCallback(this.getSelectedFields());
+      html.find('input').on('change', async (event) => {
+        if ($(event.target).attr('type') == 'checkbox') {
+          setTimeout(() => this.options.inputChangeCallback(this.getSelectedFields()), 100);
+        } else {
+          this.options.inputChangeCallback(this.getSelectedFields());
+        }
       });
     }
   }
