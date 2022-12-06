@@ -9,14 +9,14 @@
 {{#each tabs}}
 <div class="tab" data-group="{{../dataGroup}}" data-tab="{{dataTab}}">
     {{#if nav}}
-    {{>modules/multi-token-edit/templates/generic/navHeaderPartial.html nav}}
+    {{~>modules/multi-token-edit/templates/generic/navHeaderPartial.html nav}}
     {{/if}}
     {{#each groups}}
-    {{>modules/multi-token-edit/templates/generic/form-group.html this}}
+    {{~>modules/multi-token-edit/templates/generic/form-group.html this}}
     {{/each}}
 </div>
 {{/each}}
 
 {{#each groups}}
-{{>modules/multi-token-edit/templates/generic/form-group.html this}}
+{{~>modules/multi-token-edit/templates/generic/form-group.html this}}
 {{/each}}

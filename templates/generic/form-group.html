@@ -28,6 +28,17 @@
         <input type="checkbox" name="{{name}}" {{checked value}} {{disabled disabled}}/>
         {{else if array}}
         <input class="array" type="text" name="{{name}}" value="{{value}}" {{disabled disabled}}/>
+        {{else if range}}
+        <input type="range" name="{{name}}" value="{{value}}" min="{{min}}" max="{{max}}" step="{{step}}">
+        <span class="range-value">{{value}}</span>
+        {{else if select}}
+        <select name="{{name}}" data-dtype="string">
+            {{#each options}}
+            <option value="{{this}}">{{this}}</option>
+            {{/each}}
+        </select>
+        {{else if jsonArray}}
+        <textarea class="jsonArray" name="{{name}}">{{value}}</textarea>
         {{/if}}
     </div>
 </div>

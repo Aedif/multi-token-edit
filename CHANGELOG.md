@@ -1,3 +1,11 @@
+# 1.27.10
+
+Generic Forms
+
+- Labels of numeric and text inputs can now be right-clicked and converted to sliders and dropdown boxes
+- Input containing arrays will no longer be disabled. Instead they can be edited as text input
+  - Double click the text boxes to display a resizable popups
+
 # 1.27.9
 
 - Small bug fix

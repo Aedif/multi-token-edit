@@ -82,6 +82,13 @@ Hooks.once('init', () => {
     default: {},
   });
 
+  game.settings.register('multi-token-edit', 'customControls', {
+    scope: 'world',
+    config: false,
+    type: Object,
+    default: {},
+  });
+
   game.settings.register('multi-token-edit', 'enableHistory', {
     name: game.i18n.localize('multi-token-edit.settings.enableHistory.name'),
     hint: game.i18n.localize('multi-token-edit.settings.enableHistory.hint'),

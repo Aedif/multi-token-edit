@@ -62,15 +62,15 @@ async function configureParam() {
           configureParam();
         } else {
           let content = `
-             <textarea style="width:100%; height: 300px;">let params = ${JSON.stringify(
-               params,
-               null,
-               2
-             )};</textarea>
-             <label>Preset Name</label><input class="presetName" type="text" value="${
-               params[0].filterId ?? params[0].filterType
-             }"/>
-             `;
+            <textarea style="width:100%; height: 300px;">let params = ${JSON.stringify(
+              params,
+              null,
+              2
+            )};</textarea>
+            <label>Preset Name</label><input class="presetName" type="text" value="${
+              params[0].filterId ?? params[0].filterType
+            }"/>
+            `;
           new Dialog({
             title: `Params`,
             content: content,
