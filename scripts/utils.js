@@ -424,3 +424,43 @@ export function mergeObjectPreserveDot(original, other = {}, nestedKey = '') {
     }
   }
 }
+
+export function panToFitPlaceables(placeables) {
+  if (placeables && placeables.length) {
+    if (placeables.length === 1) {
+      if (placeables[0].center?.x) {
+        canvas.animatePan({ x: placeables[0].center.x, y: placeables[0].center.y, duration: 250 });
+      }
+    } else {
+      // Determine top left and bottom right corners to later determine the view's center position and scale
+      const topLeft = { x: 999999999, y: 999999999 };
+      const bottomRight = { x: -999999999, y: -999999999 };
+
+      for (const p of placeables) {
+        if (p.x < topLeft.x) topLeft.x = p.x;
+        if (p.y < topLeft.y) topLeft.y = p.y;
+        if (p.x + p.width > bottomRight.x) bottomRight.x = p.x + p.width;
+        if (p.y + p.height > bottomRight.y) bottomRight.y = p.y + p.height;
+      }
+
+      // Checking if screen at current scale fits placeables along x and y axis
+      let scale = canvas.scene._viewPosition.scale;
+      // Adjust the size of the rectangle that placeable occupy in our scale calculations
+      // to account for UI elements
+      const padding = 100;
+      if (bottomRight.x - topLeft.x + padding > canvas.screenDimensions[0] / scale) {
+        scale = canvas.screenDimensions[0] / (bottomRight.x - topLeft.x + padding);
+      }
+      if (bottomRight.y - topLeft.y + padding > canvas.screenDimensions[1] / scale) {
+        scale = canvas.screenDimensions[1] / (bottomRight.y - topLeft.y + padding);
+      }
+
+      canvas.animatePan({
+        duration: 250,
+        scale,
+        x: (bottomRight.x - topLeft.x) / 2 + topLeft.x,
+        y: (bottomRight.y - topLeft.y) / 2 + topLeft.y,
+      });
+    }
+  }
+}

@@ -34,6 +34,10 @@
         "name": "Auto-snap coordinates to Grid",
         "hint": "When using \"Select Range\" in the coordinate randomizer menu, the range values will automatically be snapped to the grid."
       },
+      "panToSearch": {
+        "name": "Pan to Search Target",
+        "hint": "Automatically centers the screen on the first found placeable."
+      },
       "historyMaxLength": {
         "name": "History Max Length",
         "hint": "Number of updates to be recorded in history."

@@ -13,6 +13,7 @@ import {
   getData,
   hasFlagRemove,
   mergeObjectPreserveDot,
+  panToFitPlaceables,
   selectAddSubtractFields,
   SUPPORTED_COLLECTIONS,
   SUPPORTED_HISTORY_DOCS,
@@ -515,6 +516,9 @@ export const WithMassConfig = (docName = 'NONE') => {
           }
         }
       }
+      if (found.length && game.settings.get('multi-token-edit', 'panToSearch')) {
+        panToFitPlaceables(found);
+      }
       if (command === 'searchAndEdit') {
         showMassConfig(found);
       }
@@ -846,7 +850,7 @@ function performMassUpdate(data, objects, docName, applyType) {
   } else if (SUPPORTED_COLLECTIONS.includes(docName)) {
     objects[0].constructor?.updateDocuments(updates);
   } else {
-    // Not a placeable or otherwise a specially handled doc type
+    // Note a placeable or otherwise specially handled doc type
     // Simply merge the fields directly into the object
     for (let i = 0; i < updates.length; i++) {
       const update = updates[i];

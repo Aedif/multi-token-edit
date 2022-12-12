@@ -118,6 +118,15 @@ Hooks.once('init', () => {
     });
   }
 
+  game.settings.register('multi-token-edit', 'panToSearch', {
+    name: game.i18n.localize('multi-token-edit.settings.panToSearch.name'),
+    hint: game.i18n.localize('multi-token-edit.settings.panToSearch.hint'),
+    scope: 'world',
+    config: true,
+    type: Boolean,
+    default: true,
+  });
+
   // Register history related hooks
   if (game.settings.get('multi-token-edit', 'enableHistory'))
     SUPPORTED_HISTORY_DOCS.forEach((docName) => {

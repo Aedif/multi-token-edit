@@ -1,3 +1,8 @@
+# 1.28.0
+
+- New Setting: **Pan to Search**
+  - Automatically centers the screen on found placeables
+
 # 1.27.10
 
 Generic Forms
