@@ -18,6 +18,35 @@ let params = filters.map((f) => {
 });
 if (!params.length) return;
 
+async function savePreset() {
+  let content = `
+  <textarea style="width:100%; height: 300px;" readonly>let params = ${JSON.stringify(
+    params,
+    null,
+    2
+  )};</textarea>
+  <label>Preset Name</label><input class="presetName" type="text" value="${
+    params[0].filterId ?? params[0].filterType
+  }"/>
+  `;
+  new Dialog({
+    title: `Params`,
+    content: content,
+    buttons: {
+      save: {
+        label: 'Save As Preset',
+        callback: async (html) => {
+          const presetName = html.find('.presetName').val();
+          if (TokenMagic.getPreset(presetName)) {
+            TokenMagic.deletePreset(presetName);
+          }
+          TokenMagic.addPreset(presetName, params);
+        },
+      },
+    },
+  }).render(true);
+}
+
 async function promptParamChoice(params) {
   return new Promise((resolve, reject) => {
     const buttons = {};
@@ -25,17 +54,25 @@ async function promptParamChoice(params) {
       let label = params[i].filterType ?? params[i].filterId;
       if (label in buttons) label = label + ' ' + i;
       buttons[label] = {
-        label,
+        label: params[i].filterId + ' {' + params[i].filterType + '}',
         callback: () => {
           resolve(i);
         },
       };
     }
 
-    const dialog = new Dialog({
-      title: 'Select Filter To Edit',
-      content: '',
+    let dialog;
+    dialog = new Dialog({
+      title: 'TMFX Filter Editor',
+      content:
+        '<button class="savePreset">Save as Preset</button><p></p><h2 style="text-align: center;">Edit Filter</h2>',
       buttons,
+      render: (html) => {
+        html.find('.savePreset').click((event) => {
+          savePreset();
+          dialog.close();
+        });
+      },
       close: () => resolve(-1),
     });
     dialog.render(true);
@@ -43,52 +80,13 @@ async function promptParamChoice(params) {
 }
 
 async function configureParam() {
-  let param;
-  if (params.length === 1) param = params[0];
-  else {
-    let i = await promptParamChoice(params);
-    if (i < 0) return;
-    param = params[i];
-  }
+  let i = await promptParamChoice(params);
+  if (i < 0) return;
+  let param = params[i];
 
   if (param)
     game.modules.get('multi-token-edit').api.showGenericForm(param, param.filterType ?? 'TMFX', {
-      callback: async (obj) => {
-        const confirmation = await Dialog.confirm({
-          content: 'Continue Editing?',
-        });
-
-        if (confirmation) {
-          configureParam();
-        } else {
-          let content = `
-            <textarea style="width:100%; height: 300px;">let params = ${JSON.stringify(
-              params,
-              null,
-              2
-            )};</textarea>
-            <label>Preset Name</label><input class="presetName" type="text" value="${
-              params[0].filterId ?? params[0].filterType
-            }"/>
-            `;
-          new Dialog({
-            title: `Params`,
-            content: content,
-            buttons: {
-              save: {
-                label: 'Save As Preset',
-                callback: async (html) => {
-                  const presetName = html.find('.presetName').val();
-                  if (TokenMagic.getPreset(presetName)) {
-                    TokenMagic.deletePreset(presetName);
-                  }
-                  TokenMagic.addPreset(presetName, params);
-                },
-              },
-            },
-          }).render(true);
-        }
-      },
+      callback: async (obj) => configureParam(),
       inputChangeCallback: (selected) => {
         mergeObject(param, selected, { inplace: true });
         TokenMagic.addUpdateFiltersOnSelected(deepClone(params));
