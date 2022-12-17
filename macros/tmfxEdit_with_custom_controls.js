@@ -68,6 +68,14 @@ async function promptParamChoice(params) {
         '<button class="savePreset">Save as Preset</button><p></p><h2 style="text-align: center;">Edit Filter</h2>',
       buttons,
       render: (html) => {
+        html.find('.dialog-button').attr('title', 'Right-click to remove filter.');
+        html.find('.dialog-button').contextmenu((event) => {
+          dialog.close();
+          const index = $(event.target).index();
+          TokenMagic.deleteFiltersOnSelected(params[index].filterId);
+          params.splice(index, 1);
+          configureParam();
+        });
         html.find('.savePreset').click((event) => {
           savePreset();
           dialog.close();
@@ -80,6 +88,7 @@ async function promptParamChoice(params) {
 }
 
 async function configureParam() {
+  if (!params || !params.length) return;
   let i = await promptParamChoice(params);
   if (i < 0) return;
   let param = params[i];
