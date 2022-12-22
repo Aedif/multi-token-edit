@@ -1,3 +1,7 @@
+# 1.28.1
+
+- Small Time module compatibility fix
+
 # 1.28.0
 
 - New Setting: **Pan to Search**

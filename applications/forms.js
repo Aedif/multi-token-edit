@@ -714,13 +714,6 @@ export const WithMassConfig = (docName = 'NONE') => {
       }
     }
 
-    get id() {
-      let pf = 'EDIT';
-      if (this.options.massSelect) pf = 'SEARCH';
-      else if (this.options.massCopy) pf = 'COPY';
-      return super.id + pf;
-    }
-
     get title() {
       if (this.options.massSelect) return `Mass-${this.documentName} SEARCH`;
       if (this.options.massCopy) return `Mass-${this.documentName} COPY`;
@@ -728,7 +721,7 @@ export const WithMassConfig = (docName = 'NONE') => {
     }
   }
 
-  const constructorName = `Mass${docName}Config`;
+  const constructorName = `${docName}Config`;
   Object.defineProperty(MassConfig.prototype.constructor, 'name', { value: constructorName });
   return MassConfig;
 };
