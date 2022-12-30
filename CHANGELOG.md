@@ -1,3 +1,10 @@
+# 1.29.0
+
+- Presets can now be registered as controls
+  - This is done by clicking the new gamepad icon added to the preset menu
+  - Requires game reload for the control to be registered
+  - Registered controls can be found under **Configure Controls** > **Mass Edit**
+
 # 1.28.1
 
 - Small Time module compatibility fix

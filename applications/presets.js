@@ -40,6 +40,7 @@ export default class MassEditPresets extends FormApplication {
     data.presets = [];
 
     data.createEnabled = Boolean(this.configApp);
+    data.v10 = !isNewerVersion('10', game.version);
 
     for (const p of presetList) {
       const fields = p.fields;
@@ -49,7 +50,14 @@ export default class MassEditPresets extends FormApplication {
 
       let title = '';
       for (const k of Object.keys(fields)) {
-        if (['mass-edit-randomize', 'mass-edit-addSubtract', 'mass-edit-preset-order'].includes(k))
+        if (
+          [
+            'mass-edit-randomize',
+            'mass-edit-addSubtract',
+            'mass-edit-preset-order',
+            'mass-edit-keybind',
+          ].includes(k)
+        )
           continue;
         if (k in randomizer) {
           title += `${k}: {{randomized}}\n`;
@@ -64,6 +72,7 @@ export default class MassEditPresets extends FormApplication {
       data.presets.push({
         name: p.name,
         title: title,
+        hasKeybind: fields['mass-edit-keybind'],
       });
     }
 
@@ -80,6 +89,31 @@ export default class MassEditPresets extends FormApplication {
     $(html).on('click', '.preset-update a', this._onPresetUpdate.bind(this));
     $(html).on('click', '.preset-sort-up', this._onPresetOrderUp.bind(this));
     $(html).on('click', '.preset-sort-down', this._onPresetOrderDown.bind(this));
+    $(html).on('click', '.preset-keybind', this._onPresetKeybind.bind(this));
+  }
+
+  async _onPresetKeybind(event) {
+    const presetName = $(event.target).closest('li').find('.item-name button').attr('name');
+
+    const control = $(event.target).closest('.preset-keybind');
+
+    const presets = game.settings.get('multi-token-edit', 'presets');
+
+    let docPresets = presets[this.docName];
+    if (!docPresets) {
+      control.removeClass('active');
+    } else {
+      const preset = docPresets[presetName];
+      if (preset['mass-edit-keybind']) {
+        delete preset['mass-edit-keybind'];
+        control.removeClass('active');
+      } else {
+        preset['mass-edit-keybind'] = true;
+        control.addClass('active');
+      }
+    }
+
+    await game.settings.set('multi-token-edit', 'presets', presets);
   }
 
   _onPresetUpdate(event) {
@@ -157,6 +191,7 @@ export default class MassEditPresets extends FormApplication {
       selectedFields['mass-edit-preset-order'] = Object.keys(docPresets).length;
     else {
       selectedFields['mass-edit-preset-order'] = docPresets[name]['mass-edit-preset-order'];
+      selectedFields['mass-edit-keybind'] = docPresets[name]['mass-edit-keybind'];
     }
 
     docPresets[name] = selectedFields;

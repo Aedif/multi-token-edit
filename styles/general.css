@@ -95,6 +95,14 @@
   text-align: center;
 }
 
+.mass-edit-preset-form .item-control.preset-keybind {
+  padding-top: 10px;
+}
+
+.mass-edit-preset-form .item-control.preset-keybind.active {
+  color: green;
+}
+
 .mass-edit-preset-form .item-control.preset-delete {
   padding-top: 10px;
   color: rgb(136, 0, 0);
@@ -139,7 +147,7 @@
 }
 
 .mass-edit-preset-form .item-controls {
-  flex: 0 0 50px;
+  flex: 0 0 70px;
   padding-bottom: 7px;
 }
 

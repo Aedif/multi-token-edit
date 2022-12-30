@@ -730,11 +730,11 @@ export const WithMassConfig = (docName = 'NONE') => {
 // ===== UTILS ========
 // ====================
 
-export function pasteDataUpdate(docs, preset) {
+export function pasteDataUpdate(docs, preset, suppressNotif = false) {
   if (!docs || !docs.length) return;
 
   let docName = docs[0].document ? docs[0].document.documentName : docs[0].documentName;
-  let data = preset ?? deepClone(CLIPBOARD[docName]);
+  let data = preset ? deepClone(preset) : deepClone(CLIPBOARD[docName]);
   let applyType;
 
   // Special handling for Tokens/Actors
@@ -764,7 +764,7 @@ export function pasteDataUpdate(docs, preset) {
       delete data['mass-edit-addSubtract'];
     }
     performMassUpdate.call(context, data, docs, docName, applyType);
-    ui.notifications.info(`Pasted data onto ${docs.length} ${docName}s`);
+    if (!suppressNotif) ui.notifications.info(`Pasted data onto ${docs.length} ${docName}s`);
   }
 }
 

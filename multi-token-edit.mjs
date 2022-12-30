@@ -16,6 +16,7 @@ import {
   applyAddSubtract,
   emptyObject,
   flagCompare,
+  hashCode,
   SUPPORTED_COLLECTIONS,
   SUPPORTED_HISTORY_DOCS,
 } from './scripts/utils.js';
@@ -261,6 +262,35 @@ Hooks.once('init', () => {
     restricted: true,
     precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
   });
+
+  // Register Preset key-bindings if needed
+  const allPresets = game.settings.get('multi-token-edit', 'presets');
+  for (const [docName, presets] of Object.entries(allPresets)) {
+    for (const [presetName, fields] of Object.entries(presets)) {
+      if (fields['mass-edit-keybind']) {
+        const hash = hashCode(`${docName}-${presetName}`).toString();
+        game.keybindings.register('multi-token-edit', hash, {
+          name: `Apply Preset: ${docName} - ${presetName}`,
+          hint: `When pressed will apply the data in the ${presetName} preset to the currently selected placeables.`,
+          onDown: () => {
+            const [target, selected] = getSelected();
+            if (!target) return;
+            const documentName = target.document
+              ? target.document.documentName
+              : target.documentName;
+            if (documentName === docName) {
+              const preset = game.settings.get('multi-token-edit', 'presets')?.[docName]?.[
+                presetName
+              ];
+              if (preset) pasteDataUpdate(target ? [target] : selected, preset, true);
+            }
+          },
+          restricted: true,
+          precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
+        });
+      }
+    }
+  }
 
   game.modules.get('multi-token-edit').api = {
     applyRandomization,
