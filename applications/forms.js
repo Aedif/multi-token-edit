@@ -721,7 +721,7 @@ export const WithMassConfig = (docName = 'NONE') => {
     }
   }
 
-  const constructorName = `${docName}Config`;
+  const constructorName = `Mass${docName}Config`;
   Object.defineProperty(MassConfig.prototype.constructor, 'name', { value: constructorName });
   return MassConfig;
 };

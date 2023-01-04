@@ -1,3 +1,7 @@
+# 1.29.1
+
+- Compatibility fix for 'Health Estimate'
+
 # 1.29.0
 
 - Presets can now be registered as controls
