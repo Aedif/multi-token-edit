@@ -1,3 +1,11 @@
+# 1.29.2
+
+- Macro Compendium added
+  - Currently includes:
+    - TMFX Editor
+    - TMFX Apply Preset
+    - Configure color replace Vision Mode
+
 # 1.29.1
 
 - Compatibility fix for 'Health Estimate'
