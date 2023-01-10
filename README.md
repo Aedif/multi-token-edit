@@ -60,6 +60,15 @@ Numerical fields can be added and subtracted instead of overriding the current v
 
 ![addSubtract](https://user-images.githubusercontent.com/7693704/191852899-a9447d21-76b3-44c5-b586-dcbe68c7a692.gif)
 
+## Brush Tool
+
+This tool can be activated by clicking the brush icon in the header of Mass Edit forms
+
+Once selected your cursor will be transformed into a brush allowing you click and drag over placeables on the canvas to apply fields selected in the form onto them.
+
+https://user-images.githubusercontent.com/7693704/211565859-0cc6105d-f023-4f84-9b85-5593475e5bc0.mp4
+
+
 ## Permission Editing
 
 Note and Token/Actor forms will contain a 'Permissions' header button allowing you to change access for any selected note, token, or actor.
