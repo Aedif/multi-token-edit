@@ -1,3 +1,4 @@
+import { Brush } from '../scripts/brush.js';
 import { injectVisibility } from '../scripts/fieldInjector.js';
 import {
   IS_PRIVATE,
@@ -18,10 +19,12 @@ import {
   SUPPORTED_COLLECTIONS,
   SUPPORTED_HISTORY_DOCS,
   SUPPORTED_PLACEABLES,
+  SUPPORT_SHEET_CONFIGS,
 } from '../scripts/utils.js';
 import { getInUseStyle } from './cssEdit.js';
 import { GeneralDataAdapter, TokenDataAdapter } from './dataAdapters.js';
 import MassEditHistory from './history.js';
+import MacroForm from './macro.js';
 import { getLayerMappings, showMassActorForm, showMassConfig } from './multiConfig.js';
 import MassEditPresets from './presets.js';
 
@@ -175,6 +178,9 @@ export const WithMassEditForm = (cls) => {
 
           // Select nearest mass edit checkbox
           onInputChange(event);
+
+          // Make brush aware of add/subtract changes
+          Brush.refreshFields();
         }
       );
 
@@ -195,6 +201,12 @@ export const WithMassEditForm = (cls) => {
         footer.append(htmlButtons);
       } else {
         $(html).closest('form').append(htmlButtons);
+      }
+
+      if (this.options.inputChangeCallback) {
+        html.on('change', 'input, select', async (event) => {
+          setTimeout(() => this.options.inputChangeCallback(this.getSelectedFields()), 100);
+        });
       }
 
       // =====================
@@ -221,6 +233,19 @@ export const WithMassEditForm = (cls) => {
             </div>
           `);
         chk.insertBefore('.matt-tab[data-tab="trigger-images"] .files-list');
+        processFormGroup(chk);
+      }
+
+      // 3D Canvas
+      if ((this.documentName === 'Tile' || this.documentName === 'Token') && game.Levels3DPreview) {
+        let chk = $(`
+          <div class="form-group">
+            <label>Mass Edit: Shaders</label>
+            <div class="form-fields">
+                <input type="hidden" name="flags.levels-3d-preview.shaders">
+            </div>
+          `);
+        $(html).find('#shader-config').after(chk);
         processFormGroup(chk);
       }
       //
@@ -272,6 +297,15 @@ export const WithMassEditForm = (cls) => {
       // Some module flags get un-flattened
       // Flatten them again before attempting to find selected
       formData = flattenObject(formData);
+
+      // Modules Specific Logic
+      // 3D Canvas
+      if ('flags.levels-3d-preview.shaders' in formData) {
+        formData['flags.levels-3d-preview.shaders'] = this.object.getFlag(
+          'levels-3d-preview',
+          'shaders'
+        );
+      }
 
       // Token _getSubmitData() performs conversions related to scale, we need to undo them here
       // so that named fields on the form match up and can be selected
@@ -417,6 +451,8 @@ export const WithMassConfig = (docName = 'NONE') => {
     }
 
     async massUpdateObject(event, formData, { copyForm = false } = {}) {
+      if (!event.submitter?.value) return;
+
       // Gather up all named fields that have mass-edit-checkbox checked
       const selectedFields = this.getSelectedFields(formData);
       const docName = this.meObjects[0].document
@@ -528,6 +564,39 @@ export const WithMassConfig = (docName = 'NONE') => {
       const buttons = super._getHeaderButtons();
       const docName = this.documentName;
 
+      if (
+        IS_PRIVATE &&
+        !isNewerVersion('10', game.version) &&
+        (SUPPORT_SHEET_CONFIGS.includes(docName) || SUPPORTED_COLLECTIONS.includes(docName))
+      ) {
+        buttons.unshift({
+          label: '',
+          class: 'mass-edit-macro',
+          icon: 'fas fa-terminal',
+          onclick: () => {
+            const selectedFields = this.getSelectedFields();
+            new MacroForm(
+              this.object,
+              this.meObjects,
+              selectedFields,
+              this.randomizeFields,
+              this.addSubtractFields
+            ).render(true);
+          },
+        });
+      }
+
+      if (SUPPORTED_PLACEABLES.includes(docName) && !isNewerVersion('10', game.version)) {
+        buttons.unshift({
+          label: '',
+          class: 'mass-edit-brush',
+          icon: 'fas fa-paint-brush',
+          onclick: () => {
+            Brush.activate({ app: this });
+          },
+        });
+      }
+
       buttons.unshift({
         label: ' ',
         class: 'mass-edit-json',
@@ -621,6 +690,22 @@ export const WithMassConfig = (docName = 'NONE') => {
       return buttons;
     }
 
+    async activateListeners(html) {
+      await super.activateListeners(html);
+      // We want to update fields used by brush control every time a field changes on the form
+      html.on('input', 'textarea, input[type="text"], input[type="number"]', () =>
+        Brush.refreshFields()
+      );
+      html.on('change', 'textarea, input, select', () => Brush.refreshFields());
+      html.on('paste', 'input', () => Brush.refreshFields());
+      html.on('click', 'button', () => Brush.refreshFields());
+    }
+
+    async close(options = {}) {
+      Brush.deactivate();
+      return super.close(options);
+    }
+
     // Some forms will manipulate themselves via modifying internal objects and re-rendering
     // In such cases we want to preserve the selected fields
     render(force, options) {
@@ -673,6 +758,16 @@ export const WithMassConfig = (docName = 'NONE') => {
         );
       }
 
+      // 3D Canvas
+      if ('flags.levels-3d-preview.shaders') {
+        timeoutRequired = true;
+        await this.object.setFlag(
+          'levels-3d-preview',
+          'shaders',
+          preset['flags.levels-3d-preview.shaders']
+        );
+      }
+
       if (this.documentName === 'Token') {
         timeoutRequired = TokenDataAdapter.presetModify(this, preset);
       }
@@ -712,6 +807,9 @@ export const WithMassConfig = (docName = 'NONE') => {
         }
         el.trigger('change');
       }
+
+      // Make brush aware of randomized field changes
+      Brush.refreshFields();
     }
 
     get title() {

@@ -2,7 +2,7 @@
   "name": "multi-token-edit",
   "title": "Mass Edit",
   "description": "Search and edit multiple placeables at the same time.",
-  "version": "1.29.2",
+  "version": "1.30.0",
   "download": "https://github.com/Aedif/multi-token-edit/releases/download/1.29.2/multi-token-edit.zip",
   "url": "https://github.com/Aedif/multi-token-edit",
   "manifest": "https://github.com/Aedif/multi-token-edit/releases/latest/download/module.json",
@@ -15,6 +15,10 @@
   ],
   "minimumCoreVersion": "9",
   "compatibleCoreVersion": "10",
+  "compatibility": {
+    "minimum": 9,
+    "verified": "10.291"
+  },
   "esmodules": ["multi-token-edit.mjs"],
   "styles": ["styles/general.css"],
   "languages": [

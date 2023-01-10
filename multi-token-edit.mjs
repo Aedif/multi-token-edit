@@ -221,8 +221,9 @@ Hooks.once('init', () => {
     ],
     onDown: () => {
       const [target, selected] = getSelected();
-      if (!target) return;
-      const docName = target.document ? target.document.documentName : target.documentName;
+      const p = target ?? canvas.activeLayer.placeables[0];
+      if (!p) return;
+      const docName = p.document ? p.document.documentName : p.documentName;
 
       new MassEditPresets(
         null,

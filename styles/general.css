@@ -108,6 +108,15 @@
   color: rgb(136, 0, 0);
 }
 
+.mass-edit-preset-form .item-control.preset-brush {
+  margin-left: 12px;
+  margin-top: 7px;
+}
+
+.mass-edit-preset-form .item-control.preset-brush.active {
+  color: green;
+}
+
 .mass-edit-preset-form .item-control.up-down {
   position: absolute;
 }
@@ -152,7 +161,7 @@
 }
 
 .mass-edit-preset-form .item-controls.short {
-  flex: 0 0 25px;
+  flex: 0 0 35px;
   padding-bottom: 7px;
 }
 

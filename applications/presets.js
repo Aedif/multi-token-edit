@@ -1,3 +1,4 @@
+import { Brush } from '../scripts/brush.js';
 import { emptyObject } from '../scripts/utils.js';
 import { TokenDataAdapter } from './dataAdapters.js';
 
@@ -90,6 +91,36 @@ export default class MassEditPresets extends FormApplication {
     $(html).on('click', '.preset-sort-up', this._onPresetOrderUp.bind(this));
     $(html).on('click', '.preset-sort-down', this._onPresetOrderDown.bind(this));
     $(html).on('click', '.preset-keybind', this._onPresetKeybind.bind(this));
+    $(html).on('click', '.preset-brush', this._onPresetBrush.bind(this));
+  }
+
+  async _onPresetBrush(event) {
+    const presetName = $(event.target).closest('li').find('.item-name button').attr('name');
+    const presets = game.settings.get('multi-token-edit', 'presets') || {};
+    const docPresets = presets[this.docName];
+    const preset = docPresets[presetName];
+    if (preset) {
+      let activated = Brush.activate({ fields: preset, documentName: this.docName });
+
+      const brushControl = $(event.target).closest('.preset-brush');
+      if (brushControl.hasClass('active')) {
+        brushControl.removeClass('active');
+      } else {
+        $(event.target).closest('form').find('.preset-brush').removeClass('active');
+        if (!activated) {
+          if (Brush.activate({ fields: preset, documentName: this.docName })) {
+            brushControl.addClass('active');
+          }
+        } else {
+          brushControl.addClass('active');
+        }
+      }
+    }
+  }
+
+  async close(options = {}) {
+    if (!Boolean(this.configApp)) Brush.deactivate();
+    return super.close(options);
   }
 
   async _onPresetKeybind(event) {

@@ -1,3 +1,20 @@
+# 1.30.0
+
+Brush Tool added
+
+- Available in Mass Edit forms and standalone preset form (Shift+X)
+- When selected the cursor is transformed to a brush allowing you click and drag over placeables to apply the fields selected in the Mass Edit form or the relevant preset
+- To deactivate the tool you can:
+  - Press the middle mouse button
+  - Close the form
+  - Click on the brush tool again
+- 3D Canvas is supported
+
+Misc.
+
+- Shift+X will now open the preset form for the currently active layer even if no placeable is selected or hovered over
+- 3D Canvas shaders are now supported in Mass Edit forms for Tiles and Tokens
+
 # 1.29.2
 
 - Macro Compendium added

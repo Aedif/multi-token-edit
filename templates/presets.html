@@ -33,6 +33,11 @@
                     <a title="Delete Preset"><i class="fas fa-trash"></i></a>
                 </div>
                 {{/if}}
+                {{#unless ../createEnabled}}
+                <div class="item-control preset-brush">
+                    <a title="Activate Brush"><i class="fas fa-paint-brush"></i></a>
+                </div>
+                {{/unless}}
             </div>
         </li>
         {{/each}}
