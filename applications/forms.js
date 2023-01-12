@@ -6,6 +6,7 @@ import {
   showRandomizeDialog,
   selectRandomizerFields,
 } from '../scripts/private.js';
+import { applyDDTint, applyTMFXPreset, getDDTint } from '../scripts/tmfx.js';
 import {
   applyAddSubtract,
   emptyObject,
@@ -143,7 +144,7 @@ export const WithMassEditForm = (cls) => {
       // Register numerical input listeners to toggle between subtract, and add modes
       $(html).on(
         'contextmenu',
-        'input[type=range], input[type=number], input[name="flags.tagger.tags"], input[type="text"]',
+        'input[type=range], input[type=number], input[name="flags.tagger.tags"], input[type="text"], input[name="tokenmagic.preset"]',
         (event) => {
           const name = event.target.name;
           if (!name) return;
@@ -249,6 +250,40 @@ export const WithMassEditForm = (cls) => {
         processFormGroup(chk);
       }
       //
+
+      // // Token Magic FX
+      if (
+        (this.documentName === 'Tile' || this.documentName === 'Token') &&
+        game.modules.get('tokenmagic')?.active &&
+        !isNewerVersion('10', game.version) &&
+        game.settings.get('multi-token-edit', 'tmfxFieldsEnable')
+      ) {
+        let content = '<datalist id="tmfxPresets"><option value="DELETE ALL">';
+        TokenMagic.getPresets().forEach((p) => (content += `<option value="${p.name}">`));
+        content += `</datalist><input list="tmfxPresets" name="tokenmagic.preset">`;
+
+        let chk = $(`
+          <div class="form-group">
+            <label>Preset <span class="units">(TMFX)</span></label>
+            <div class="form-fields">
+              ${content}
+            </div>
+          `);
+        $(html).find('[name="texture.tint"]').closest('.form-group').after(chk);
+        processFormGroup(chk);
+
+        const currentDDTint = getDDTint(this.object.object);
+        chk = $(`
+          <div class="form-group">
+            <label>DungeonDraft Tint <span class="units">(TMFX)</span></label>
+            <div class="form-fields">
+              <input class="color" type="text" name="tokenmagic.ddTint" value="${currentDDTint}">
+              <input type="color" value="${currentDDTint}" data-edit="tokenmagic.ddTint">
+            </div>
+          `);
+        $(html).find('[name="texture.tint"]').closest('.form-group').after(chk);
+        processFormGroup(chk);
+      }
 
       // Resizes the window
       this.setPosition();
@@ -866,7 +901,7 @@ export function pasteDataUpdate(docs, preset, suppressNotif = false) {
   }
 }
 
-function performMassUpdate(data, objects, docName, applyType) {
+async function performMassUpdate(data, objects, docName, applyType) {
   if (emptyObject(data)) {
     if (this.callbackOnUpdate) {
       this.callbackOnUpdate(objects);
@@ -904,8 +939,26 @@ function performMassUpdate(data, objects, docName, applyType) {
     GeneralDataAdapter.formToData(docName, objects[i], updates[i]);
   }
 
-  // Perform Updates
+  // Token Magic FX specific processing
+  if (typeof TokenMagic !== 'undefined' && (docName === 'Token' || docName === 'Tile')) {
+    if ('tokenmagic.ddTint' in data) {
+      for (let i = 0; i < updates.length; i++) {
+        await applyDDTint(objects[i], updates[i]['tokenmagic.ddTint']);
+      }
+    }
+    if ('tokenmagic.preset' in data) {
+      for (let i = 0; i < updates.length; i++) {
+        await applyTMFXPreset(
+          objects[i],
+          updates[i]['tokenmagic.preset'],
+          this?.addSubtractFields?.['tokenmagic.preset']?.method === 'subtract'
+        );
+      }
+    }
+  }
+
   if (docName === 'Actor') {
+    // Perform Updates
     // There is a lot of wonkiness related to updating of real/synthetic actors. It's probably best
     // to simply update the Actors directly
 

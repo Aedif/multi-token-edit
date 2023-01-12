@@ -128,6 +128,17 @@ Hooks.once('init', () => {
     default: true,
   });
 
+  if (game.modules.get('tokenmagic')?.active && !isNewerVersion('10', game.version)) {
+    game.settings.register('multi-token-edit', 'tmfxFieldsEnable', {
+      name: game.i18n.localize('multi-token-edit.settings.tmfxFieldsEnable.name'),
+      hint: game.i18n.localize('multi-token-edit.settings.tmfxFieldsEnable.hint'),
+      scope: 'world',
+      config: true,
+      type: Boolean,
+      default: true,
+    });
+  }
+
   // Register history related hooks
   if (game.settings.get('multi-token-edit', 'enableHistory'))
     SUPPORTED_HISTORY_DOCS.forEach((docName) => {

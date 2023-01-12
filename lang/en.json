@@ -38,6 +38,10 @@
         "name": "Pan to Search Target",
         "hint": "Automatically centers the screen on the first found placeable."
       },
+      "tmfxFieldsEnable": {
+        "name": "Insert TMFX Fields",
+        "hint": "DungeonDraft tint color and Preset filter fields will be added to Mass Edit forms. Selecting these fields will cause TokenMagicFX filters to be applied."
+      },
       "historyMaxLength": {
         "name": "History Max Length",
         "hint": "Number of updates to be recorded in history."

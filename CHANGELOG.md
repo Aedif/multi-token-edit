@@ -1,3 +1,10 @@
+# 1.31.0
+
+- New Setting: `Insert TMFX Fields`
+  - When enabled **Token** and **Tile** Mass Edit forms will be inserted with fields to apply/remove TokenMagicFX filters
+    - DungeonDraft Tint (TMFX)
+    - Preset (TMFX)
+
 # 1.30.1
 
 - Fixing broken release link
