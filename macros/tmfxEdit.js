@@ -19,12 +19,14 @@ let params = filters.map((f) => {
 if (!params.length) return;
 
 async function savePreset() {
-  let content = `
+  let content = `<label>Macro</label>
   <textarea style="width:100%; height: 300px;" readonly>let params = ${JSON.stringify(
     params,
     null,
     2
-  )};</textarea>
+  )};
+
+await TokenMagic.addUpdateFiltersOnSelected(params);</textarea>
   <label>Preset Name</label><input class="presetName" type="text" value="${
     params[0].filterId ?? params[0].filterType
   }"/>

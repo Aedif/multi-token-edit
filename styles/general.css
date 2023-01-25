@@ -54,6 +54,21 @@
   background: rgba(255, 202, 58, 0.8);
 }
 
+.me-update-on-input {
+  position: absolute;
+  right: -26px;
+  top: 50%;
+}
+
+.me-update-on-input > a > i {
+  border-width: 1px 1px 1px 0px;
+  border-style: solid solid solid solid;
+}
+
+.me-update-on-input.active {
+  color: orange;
+}
+
 /* ===================== 
    === Randomization ===
    ===================== */

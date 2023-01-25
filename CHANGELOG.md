@@ -1,3 +1,8 @@
+# 1.32.0
+
+- New control added to the side of Mass Edit forms
+  - When toggled changes on the Mass Edit forms will immediately trigger updates of the objects it is linked to
+
 # 1.31.0
 
 - New Setting: `Insert TMFX Fields`

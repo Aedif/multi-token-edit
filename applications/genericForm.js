@@ -309,7 +309,8 @@ function genControl(type, label, value, name, pinned, editableLabel = false, cus
   } else if (type === 'string') {
     control.text = true;
     const varName = name.split('.').pop();
-    if (IMAGE_FIELDS.includes(varName)) control.filePicker = true;
+    if (IMAGE_FIELDS.includes(varName) || varName.toLowerCase().includes('image'))
+      control.filePicker = true;
     else if (isColorField(varName)) control.colorPicker = true;
   } else if (type === 'boolean') {
     control.boolean = true;

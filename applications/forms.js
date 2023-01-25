@@ -45,10 +45,31 @@ export const WithMassEditForm = (cls) => {
       this.massFormButtons = [{ title: 'Apply', value: 'permissions', icon: 'far fa-save' }];
     }
 
+    _injectImmediateUpdateControl(html) {
+      const control = $(
+        `<div class="me-update-on-input"><a title="${game.i18n.localize(
+          'multi-token-edit.form.immediate-update-title'
+        )}"><i class="fas fa-arrow-alt-square-right fa-2x"></i></a></div>`
+      );
+      control.click((event) => {
+        if (control.hasClass('active')) {
+          this.updateObjectsOnInput = false;
+          control.removeClass('active');
+        } else {
+          this.updateObjectsOnInput = true;
+          control.addClass('active');
+        }
+      });
+      html.closest('form').append(control);
+    }
+
     // Add styles and controls to the sheet
     async activateListeners(html) {
       await super.activateListeners(html);
       injectVisibility(this);
+      if (!this.options.massCopy && !this.options.massSelect) {
+        this._injectImmediateUpdateControl(html);
+      }
 
       this.randomizeFields = {};
       this.addSubtractFields = {};
@@ -58,10 +79,14 @@ export const WithMassEditForm = (cls) => {
       $(html).prepend(`<style>${css}</style>`);
 
       // On any field being changed we want to automatically select the form-group to be included in the update
-      html.on('input', 'textarea, input[type="text"], input[type="number"]', onInputChange);
-      html.on('change', 'textarea, input, select', onInputChange);
-      html.on('paste', 'input', onInputChange);
-      html.on('click', 'button', onInputChange);
+      html.on(
+        'input',
+        'textarea, input[type="text"], input[type="number"]',
+        onInputChange.bind(this)
+      );
+      html.on('change', 'textarea, input, select', onInputChange.bind(this));
+      html.on('paste', 'input', onInputChange.bind(this));
+      html.on('click', 'button', onInputChange.bind(this));
 
       const rangeSpanToTextbox = game.settings.get('multi-token-edit', 'rangeToTextbox');
 
@@ -519,6 +544,15 @@ export const WithMassConfig = (docName = 'NONE') => {
       }
     }
 
+    _performOnInputChangeUpdate() {
+      const selectedFields = this.getSelectedFields();
+      const docName = this.meObjects[0].document
+        ? this.meObjects[0].document.documentName
+        : this.meObjects[0].documentName;
+
+      performMassUpdate.call(this, selectedFields, this.meObjects, docName);
+    }
+
     performMassCopy(command, selectedFields, docName) {
       if (emptyObject(selectedFields)) return;
       if (!emptyObject(this.randomizeFields)) {
@@ -743,7 +777,10 @@ export const WithMassConfig = (docName = 'NONE') => {
 
     // Some forms will manipulate themselves via modifying internal objects and re-rendering
     // In such cases we want to preserve the selected fields
-    render(force, options) {
+    render(force, options = {}) {
+      // If it's being re-rendered with an action "update" in means it's ClientDocumentMixin response to _onUpdate
+      // We can ignore these
+      if (options.action === 'update') return;
       // Form hasn't been rendered yet, aka first render pass, ignore it
       if (!this.form) return super.render(force, options);
 
@@ -1044,6 +1081,10 @@ async function onInputChange(event) {
 
   // Highlight tabs if they exist
   selectTabs(meChk[0]);
+
+  // Immediately update the placeables
+  if (this._performOnInputChangeUpdate && this.updateObjectsOnInput)
+    this._performOnInputChangeUpdate();
 }
 
 function selectTabs(target) {
