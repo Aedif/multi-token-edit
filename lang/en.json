@@ -1,7 +1,7 @@
 {
   "multi-token-edit": {
     "form": {
-      "immediate-update-title": "Perform updates on field changes."
+      "immediate-update-title": "Automatically apply updates on field changes."
     },
     "macro": {
       "dependency-warning": "This macro requires {module} module to be active."

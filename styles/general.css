@@ -55,18 +55,21 @@
 }
 
 .me-update-on-input {
-  position: absolute;
-  right: -26px;
-  top: 50%;
+  flex: 0 !important;
+  display: grid;
+  align-items: center;
 }
 
-.me-update-on-input > a > i {
-  border-width: 1px 1px 1px 0px;
-  border-style: solid solid solid solid;
+.me-update-on-input > input {
+  grid-column: 1;
+  grid-row: 1;
 }
 
-.me-update-on-input.active {
-  color: orange;
+.me-update-on-input > i {
+  grid-column: 1;
+  grid-row: 1;
+  pointer-events: none;
+  margin-left: 7px;
 }
 
 /* ===================== 
@@ -91,6 +94,8 @@
 .mass-edit-randomizer-form .folder-picker {
   flex: 0 !important;
 }
+
+.
 
 /* ===================== 
    ====== Presets ======

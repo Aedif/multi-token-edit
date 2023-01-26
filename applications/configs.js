@@ -197,7 +197,7 @@ export const WithMassConfig = (docName) => {
         // Extra control for Tokens to update their Actors Token prototype
         if (this.object.documentName === 'Token') {
           buttons.push({
-            title: 'Apply and Update Prototypes',
+            title: 'Apply and Update Proto',
             value: 'applyToPrototype',
             icon: 'far fa-save',
           });

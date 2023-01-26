@@ -45,31 +45,10 @@ export const WithMassEditForm = (cls) => {
       this.massFormButtons = [{ title: 'Apply', value: 'permissions', icon: 'far fa-save' }];
     }
 
-    _injectImmediateUpdateControl(html) {
-      const control = $(
-        `<div class="me-update-on-input"><a title="${game.i18n.localize(
-          'multi-token-edit.form.immediate-update-title'
-        )}"><i class="fas fa-arrow-alt-square-right fa-2x"></i></a></div>`
-      );
-      control.click((event) => {
-        if (control.hasClass('active')) {
-          this.updateObjectsOnInput = false;
-          control.removeClass('active');
-        } else {
-          this.updateObjectsOnInput = true;
-          control.addClass('active');
-        }
-      });
-      html.closest('form').append(control);
-    }
-
     // Add styles and controls to the sheet
     async activateListeners(html) {
       await super.activateListeners(html);
       injectVisibility(this);
-      if (!this.options.massCopy && !this.options.massSelect) {
-        this._injectImmediateUpdateControl(html);
-      }
 
       this.randomizeFields = {};
       this.addSubtractFields = {};
@@ -220,6 +199,14 @@ export const WithMassEditForm = (cls) => {
       let htmlButtons = '';
       for (const button of this.massFormButtons) {
         htmlButtons += `<button type="submit" value="${button.value}"><i class="${button.icon}"></i> ${button.title}</button>`;
+
+        // Auto update control
+        if (this.options.massEdit)
+          htmlButtons += `<div class="me-update-on-input" title="${game.i18n.localize(
+            'multi-token-edit.form.immediate-update-title'
+          )}"><input type="checkbox" data-submit="${
+            button.value
+          }"><i class="fas fa-cogs"></i></div>`;
       }
 
       const footer = $(html).find('.sheet-footer');
@@ -228,6 +215,16 @@ export const WithMassEditForm = (cls) => {
       } else {
         $(html).closest('form').append(htmlButtons);
       }
+
+      // Auto update listeners
+      footer.find('.me-update-on-input > input').on('change', (event) => {
+        event.stopPropagation();
+        const isChecked = event.target.checked;
+        footer.find('.me-update-on-input > input').not(this).prop('checked', false);
+        $(event.target).prop('checked', isChecked);
+        this.updateObjectsOnInput = isChecked;
+        this.updateObjectOnInputType = event.target.dataset?.submit;
+      });
 
       if (this.options.inputChangeCallback) {
         html.on('change', 'input, select', async (event) => {
@@ -496,7 +493,7 @@ export const WithMassConfig = (docName = 'NONE') => {
         // Extra control for Tokens to update their Actors Token prototype
         if (this.documentName === 'Token') {
           buttons.push({
-            title: 'Apply and Update Prototypes',
+            title: 'Apply and Update Proto',
             value: 'applyToPrototype',
             icon: 'far fa-save',
           });
@@ -550,7 +547,13 @@ export const WithMassConfig = (docName = 'NONE') => {
         ? this.meObjects[0].document.documentName
         : this.meObjects[0].documentName;
 
-      performMassUpdate.call(this, selectedFields, this.meObjects, docName);
+      performMassUpdate.call(
+        this,
+        selectedFields,
+        this.meObjects,
+        docName,
+        this.updateObjectOnInputType
+      );
     }
 
     performMassCopy(command, selectedFields, docName) {
