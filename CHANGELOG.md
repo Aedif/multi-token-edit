@@ -1,3 +1,7 @@
+# 1.34.0
+
+- Right-clicking the navigation tabs on Mass Edit forms will now toggle all Mass Edit checkboxes within it
+
 # 1.33.1
 
 - Preset bug fix

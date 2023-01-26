@@ -50,6 +50,35 @@ export const WithMassEditForm = (cls) => {
       await super.activateListeners(html);
       injectVisibility(this);
 
+      // Select/Deselect all Mass Edit checkboxes when right-clicking the navigation tabs
+      html.find('nav > .item').on('contextmenu', (event) => {
+        const tab = event.target.dataset?.tab;
+        if (tab) {
+          const group = $(event.target).closest('nav').attr('data-group');
+          const meCheckboxes = $(event.target)
+            .closest('form')
+            .find(`.tab[data-tab="${tab}"][data-group="${group}"]`)
+            .find('.mass-edit-control');
+
+          let selecting = true;
+
+          if (meCheckboxes.not(':checked').length === 0) {
+            selecting = false;
+          }
+          meCheckboxes.prop('checked', selecting);
+
+          // Select/Deselect tabs
+          meCheckboxes.each(function () {
+            if (selecting) selectTabs(this);
+            else deselectTabs(this);
+          });
+
+          // Trigger change on one of the checkboxes to initiate processes that respond to them
+          // being toggled
+          meCheckboxes.first().trigger('change');
+        }
+      });
+
       this.randomizeFields = {};
       this.addSubtractFields = {};
 
@@ -1086,7 +1115,7 @@ async function onInputChange(event) {
   selectTabs(meChk[0]);
 
   // Immediately update the placeables
-  if (this._performOnInputChangeUpdate && this.updateObjectsOnInput)
+  if (this && this._performOnInputChangeUpdate && this.updateObjectsOnInput)
     this._performOnInputChangeUpdate();
 }
 
