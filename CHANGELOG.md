@@ -1,3 +1,8 @@
+# 1.34.1
+
+- Right-click tab click support for `Monk's Active Tiles` module
+- Fixing layout issue for automatic apply checkboxes inside Templates, Walls, AmbientSounds, and Notes
+
 # 1.34.0
 
 - Right-clicking the navigation tabs on Mass Edit forms will now toggle all Mass Edit checkboxes within it

@@ -50,35 +50,6 @@ export const WithMassEditForm = (cls) => {
       await super.activateListeners(html);
       injectVisibility(this);
 
-      // Select/Deselect all Mass Edit checkboxes when right-clicking the navigation tabs
-      html.find('nav > .item').on('contextmenu', (event) => {
-        const tab = event.target.dataset?.tab;
-        if (tab) {
-          const group = $(event.target).closest('nav').attr('data-group');
-          const meCheckboxes = $(event.target)
-            .closest('form')
-            .find(`.tab[data-tab="${tab}"][data-group="${group}"]`)
-            .find('.mass-edit-control');
-
-          let selecting = true;
-
-          if (meCheckboxes.not(':checked').length === 0) {
-            selecting = false;
-          }
-          meCheckboxes.prop('checked', selecting);
-
-          // Select/Deselect tabs
-          meCheckboxes.each(function () {
-            if (selecting) selectTabs(this);
-            else deselectTabs(this);
-          });
-
-          // Trigger change on one of the checkboxes to initiate processes that respond to them
-          // being toggled
-          meCheckboxes.first().trigger('change');
-        }
-      });
-
       this.randomizeFields = {};
       this.addSubtractFields = {};
 
@@ -238,11 +209,12 @@ export const WithMassEditForm = (cls) => {
           }"><i class="fas fa-cogs"></i></div>`;
       }
 
-      const footer = $(html).find('.sheet-footer');
+      let footer = $(html).find('.sheet-footer');
       if (footer.length) {
         footer.append(htmlButtons);
       } else {
-        $(html).closest('form').append(htmlButtons);
+        footer = $(`<footer class="sheet-footer flexrow">${htmlButtons}</footer>`);
+        $(html).closest('form').append(footer);
       }
 
       // Auto update listeners
@@ -260,6 +232,46 @@ export const WithMassEditForm = (cls) => {
           setTimeout(() => this.options.inputChangeCallback(this.getSelectedFields()), 100);
         });
       }
+
+      // Select/Deselect all Mass Edit checkboxes when right-clicking the navigation tabs
+      html.on('contextmenu', 'nav > .item', (event) => {
+        const tab = event.target.dataset?.tab;
+        if (tab) {
+          const group = $(event.target).closest('nav').attr('data-group');
+          let meCheckboxes;
+          if (group) {
+            meCheckboxes = $(event.target)
+              .closest('form')
+              .find(
+                `.tab[data-tab="${tab}"][data-group="${group}"], .matt-tab[data-tab="${tab}"][data-group="${group}"]`
+              )
+              .find('.mass-edit-control');
+          }
+          if (!meCheckboxes || meCheckboxes.length === 0) {
+            meCheckboxes = $(event.target)
+              .closest('form')
+              .find(`.tab[data-tab="${tab}"], .matt-tab[data-tab="${tab}"]`)
+              .find('.mass-edit-control');
+          }
+
+          let selecting = true;
+
+          if (meCheckboxes.not(':checked').length === 0) {
+            selecting = false;
+          }
+          meCheckboxes.prop('checked', selecting);
+
+          // Select/Deselect tabs
+          meCheckboxes.each(function () {
+            if (selecting) selectTabs(this);
+            else deselectTabs(this);
+          });
+
+          // Trigger change on one of the checkboxes to initiate processes that respond to them
+          // being toggled
+          meCheckboxes.first().trigger('change');
+        }
+      });
 
       // =====================
       // Module specific logic
@@ -1120,7 +1132,7 @@ async function onInputChange(event) {
 }
 
 function selectTabs(target) {
-  const tab = $(target).parent().closest('div.tab');
+  const tab = $(target).parent().closest('div.tab, div.matt-tab');
   if (tab.length) {
     tab
       .siblings('nav.tabs')
@@ -1131,7 +1143,7 @@ function selectTabs(target) {
 }
 
 function deselectTabs(target) {
-  const tab = $(target).parent().closest('div.tab');
+  const tab = $(target).parent().closest('div.tab, div.matt-tab');
   if (tab.length && tab.find('.mass-edit-checkbox input:checked').length === 0) {
     tab
       .siblings('nav.tabs')
