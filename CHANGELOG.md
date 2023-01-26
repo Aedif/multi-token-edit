@@ -1,3 +1,7 @@
+# 1.33.1
+
+- Preset bug fix
+
 # 1.33.0
 
 - Auto apply update toggle on the side of Mass Edit forms has been replaced with checkboxes next to 'Apply' buttons

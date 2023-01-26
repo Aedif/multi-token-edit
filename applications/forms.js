@@ -834,7 +834,7 @@ export const WithMassConfig = (docName = 'NONE') => {
       }
 
       // 3D Canvas
-      if ('flags.levels-3d-preview.shaders') {
+      if ('flags.levels-3d-preview.shaders' in preset) {
         timeoutRequired = true;
         await this.object.setFlag(
           'levels-3d-preview',
