@@ -7,7 +7,7 @@
 
 FoundryVTT module for searching and editing multiple placeables at the same time.
 
-Support me on [Patreon](https://www.patreon.com/Aedif) to get access to the the version that supports field [randomization](#randomization) and automatic [Macro Generation](#macro-generator).
+Support me on [Patreon](https://www.patreon.com/Aedif) to get access to the the version that supports field [randomization](#randomization)
 
 _Note that all keybinding referenced bellow can be changed via 'Configure Controls'_
 
@@ -69,7 +69,6 @@ Once selected your cursor will be transformed into a brush allowing you click an
 
 https://user-images.githubusercontent.com/7693704/211565859-0cc6105d-f023-4f84-9b85-5593475e5bc0.mp4
 
-
 ## Permission Editing
 
 Note and Token/Actor forms will contain a 'Permissions' header button allowing you to change access for any selected note, token, or actor.
@@ -87,21 +86,6 @@ All Mass Edit forms have a header button (**</>**) that will open up a dialog wi
 When enabled in the module settings, updates made to placeables will be tracked and available via Mass Edit forms. These updates can be selected to be applied to the currently open form or copied to the module's clipboard to be pasted on other placeables.
 
 ![History](https://user-images.githubusercontent.com/7693704/197341186-503648b5-5703-4b78-b27d-0895b4b5dc76.gif)
-
-
-## Example Video
-
-The video bellow shows off Mass Search and Edit being used on various placeables:
-
-https://user-images.githubusercontent.com/7693704/179762435-e0f11294-35ed-4cd2-bb88-30d440a3a990.mp4
-
-## Randomization
-
-At the moment a [Patreon](https://www.patreon.com/Aedif) exclusive feature.
-
-Randomize any numerical, color, text, image, drop-down, or coordinate values.
-
-https://user-images.githubusercontent.com/7693704/196006020-9d308238-1888-4b98-b452-e7ce88a643ac.mp4
 
 ## Macro Generator
 
@@ -129,3 +113,16 @@ Example video:
 
 https://user-images.githubusercontent.com/7693704/199100945-1f338240-ace7-41cc-ac74-b59e67681c50.mp4
 
+## Example Video
+
+The video bellow shows off Mass Search and Edit being used on various placeables:
+
+https://user-images.githubusercontent.com/7693704/179762435-e0f11294-35ed-4cd2-bb88-30d440a3a990.mp4
+
+## Randomization
+
+At the moment a [Patreon](https://www.patreon.com/Aedif) exclusive feature.
+
+Randomize any numerical, color, text, image, drop-down, or coordinate values.
+
+https://user-images.githubusercontent.com/7693704/196006020-9d308238-1888-4b98-b452-e7ce88a643ac.mp4

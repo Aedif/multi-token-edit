@@ -678,7 +678,6 @@ export const WithMassConfig = (docName = 'NONE') => {
       const docName = this.documentName;
 
       if (
-        IS_PRIVATE &&
         !isNewerVersion('10', game.version) &&
         (SUPPORT_SHEET_CONFIGS.includes(docName) || SUPPORTED_COLLECTIONS.includes(docName))
       ) {

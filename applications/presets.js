@@ -308,18 +308,20 @@ export default class MassEditPresets extends FormApplication {
   _getHeaderButtons() {
     const buttons = super._getHeaderButtons();
 
-    buttons.unshift({
-      label: '',
-      class: 'mass-edit-export',
-      icon: 'fas fa-file-export',
-      onclick: (ev) => this._onExport(ev),
-    });
-    buttons.unshift({
-      label: '',
-      class: 'mass-edit-import',
-      icon: 'fas fa-file-import',
-      onclick: (ev) => this._onImport(ev),
-    });
+    if (this.configApp) {
+      buttons.unshift({
+        label: '',
+        class: 'mass-edit-export',
+        icon: 'fas fa-file-export',
+        onclick: (ev) => this._onExport(ev),
+      });
+      buttons.unshift({
+        label: '',
+        class: 'mass-edit-import',
+        icon: 'fas fa-file-import',
+        onclick: (ev) => this._onImport(ev),
+      });
+    }
     return buttons;
   }
 

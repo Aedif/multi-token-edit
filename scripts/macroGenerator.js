@@ -163,9 +163,9 @@ const toggleOn = function (obj) {
   }
 
   command += `
-//
-// Update
-//
+// ===============
+// === Update ====
+// ===============
 `;
 
   // If toggling and macro running is enabled we need to insert trackers
@@ -185,9 +185,9 @@ const toggledOffPlaceables = [];
 
   if (runMacro || runMacroToggle) {
     command += `\n
-// 
-// Macro Execution
-//
+// ===================
+// = Macro Execution =
+// ===================
 
 const advancedMacro = game.modules.get('advanced-macros')?.active;
 `;

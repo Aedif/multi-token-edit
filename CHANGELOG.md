@@ -1,3 +1,7 @@
+# 1.35.0
+
+- Previously a PATREON only feature, Macro Generator can now be accessed via the the header button: `>_`
+
 # 1.34.1
 
 - Right-click tab click support for `Monk's Active Tiles` module
