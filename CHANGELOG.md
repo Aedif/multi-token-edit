@@ -1,3 +1,10 @@
+# 1.36.0
+
+- Mass Search now supports wildcards: `*`
+  - Goblin\*
+  - \*Goblin
+  - *G*n\*
+
 # 1.35.0
 
 - Previously a PATREON only feature, Macro Generator can now be accessed via the the header button: `>_`

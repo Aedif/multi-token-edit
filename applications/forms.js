@@ -21,6 +21,7 @@ import {
   SUPPORTED_HISTORY_DOCS,
   SUPPORTED_PLACEABLES,
   SUPPORT_SHEET_CONFIGS,
+  wildcardStringMatch,
 } from '../scripts/utils.js';
 import { getInUseStyle } from './cssEdit.js';
 import { GeneralDataAdapter, TokenDataAdapter } from './dataAdapters.js';
@@ -635,6 +636,12 @@ export const WithMassConfig = (docName = 'NONE') => {
               // Special handling for empty strings and undefined
             } else if ((v === '' || v == null) && (data[k] !== '' || data[k] != null)) {
               // matches
+            } else if (
+              typeof v === 'string' &&
+              v.includes('*') &&
+              wildcardStringMatch(v, data[k])
+            ) {
+              // Wildcard matched
             } else if (data[k] != v) {
               // Detection mode keys cannot be treated in isolation
               // We skip them here and will check them later

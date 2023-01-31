@@ -303,6 +303,10 @@ export function flagCompare(data, flag, flagVal) {
     return true;
   }
 
+  if (flagVal && typeof flagVal === 'string' && flagVal.includes('*')) {
+    return wildcardStringMatch(flagVal, data[flag]);
+  }
+
   return false;
 }
 
@@ -479,4 +483,12 @@ export function hashCode(str) {
     hash |= 0; // Convert to 32bit integer
   }
   return hash;
+}
+
+function escapeRegex(string) {
+  return string.replace(/[/\-\\^$+?.()|[\]{}]/g, '\\$&');
+}
+
+export function wildcardStringMatch(sw, s2) {
+  return new RegExp('^' + escapeRegex(sw).replaceAll('*', '.*') + '$').test(s2);
 }
