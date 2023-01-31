@@ -190,10 +190,9 @@ Hooks.once('init', () => {
     ],
     onDown: () => {
       // Check if a Mass Config form is already open and if so copy data from there
-      const re = new RegExp('Mass.*Config');
       for (const app of Object.values(ui.windows)) {
         if (app.meObjects != null) {
-          app.massUpdateObject({ submitter: { value: '' } }, null, { copyForm: true });
+          app.massUpdateObject({ submitter: { value: 'Placeholder' } }, null, { copyForm: true });
           return;
         }
       }

@@ -492,3 +492,8 @@ function escapeRegex(string) {
 export function wildcardStringMatch(sw, s2) {
   return new RegExp('^' + escapeRegex(sw).replaceAll('*', '.*') + '$').test(s2);
 }
+
+export function wildcardStringReplace(sw, replaceWith, s2) {
+  let re = new RegExp(escapeRegex(sw).replaceAll('*', '.*'), 'g');
+  return s2.replaceAll(re, replaceWith);
+}

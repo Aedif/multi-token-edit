@@ -15,6 +15,7 @@ import {
   randomPlace,
   emptyObject,
   getData,
+  wildcardStringReplace,
 } from './utils.js';
 
 export const IS_PRIVATE = false;
@@ -512,9 +513,9 @@ export function applyRandomization(updates, objects, randomizeFields) {
             } else if (data[field]) {
               // special handling for Tagger tags
               if (field === 'flags.tagger.tags') {
-                update[field] = data[field].join(',').replaceAll(obj.find, obj.replace);
+                update[field] = wildcardStringReplace(obj.find, obj.replace, data[field].join(','));
               } else {
-                update[field] = data[field].replaceAll(obj.find, obj.replace);
+                update[field] = wildcardStringReplace(obj.find, obj.replace, data[field]);
               }
             }
           } else {

@@ -1,3 +1,11 @@
+# 1.36.1
+
+- Fixed `Shift+C` not triggering a field copy on opened Mass Update forms
+
+Patreon
+
+- Extended wildcard support to `Find and Replace`
+
 # 1.36.0
 
 - Mass Search now supports wildcards: `*`
