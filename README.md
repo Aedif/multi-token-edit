@@ -41,6 +41,11 @@ In addition to this key-binding Token and Tile HUDs will contain a new button if
 
 An alternative to selecting placeables manually is to press '**Shift+F**' to open a configuration window which will allow you to perform scene wide searches using the selected fields.
 
+Text fields allow the use of wildcards: `*`
+- Goblin\*
+- \*Goblin
+- \*Go\*n\*
+
 ![simpleSearch](https://user-images.githubusercontent.com/7693704/184878790-ac87fb25-477c-4307-9b4d-74244aee6ac2.gif)
 
 ## Copy/Paste
