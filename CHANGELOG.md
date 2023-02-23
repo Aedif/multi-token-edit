@@ -1,3 +1,10 @@
+# 1.36.2
+
+- 'TMFX Preset' and 'DDTint' fields are now supported in Macro Generator
+  - A Mass Edit dependency warning will be shown when these fields are selected
+- Implemented a workaround for TMFX bug related to re-applying the same preset multiple times on the same placeable
+- Shortened/simplified macros generated with the ME dependency
+
 # 1.36.1
 
 - Fixed `Shift+C` not triggering a field copy on opened Mass Update forms

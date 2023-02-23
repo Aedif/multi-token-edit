@@ -988,7 +988,7 @@ export function pasteDataUpdate(docs, preset, suppressNotif = false) {
   }
 }
 
-async function performMassUpdate(data, objects, docName, applyType) {
+export async function performMassUpdate(data, objects, docName, applyType) {
   if (emptyObject(data)) {
     if (this.callbackOnUpdate) {
       this.callbackOnUpdate(objects);
@@ -1026,23 +1026,7 @@ async function performMassUpdate(data, objects, docName, applyType) {
     GeneralDataAdapter.formToData(docName, objects[i], updates[i]);
   }
 
-  // Token Magic FX specific processing
-  if (typeof TokenMagic !== 'undefined' && (docName === 'Token' || docName === 'Tile')) {
-    if ('tokenmagic.ddTint' in data) {
-      for (let i = 0; i < updates.length; i++) {
-        await applyDDTint(objects[i], updates[i]['tokenmagic.ddTint']);
-      }
-    }
-    if ('tokenmagic.preset' in data) {
-      for (let i = 0; i < updates.length; i++) {
-        await applyTMFXPreset(
-          objects[i],
-          updates[i]['tokenmagic.preset'],
-          this?.addSubtractFields?.['tokenmagic.preset']?.method === 'subtract'
-        );
-      }
-    }
-  }
+  await checkApplySpecialFields(docName, updates, objects);
 
   if (docName === 'Actor') {
     // Perform Updates
@@ -1112,6 +1096,24 @@ async function performMassUpdate(data, objects, docName, applyType) {
         updates.push(actorUpdates[id]);
       }
       Actor.updateDocuments(updates);
+    }
+  }
+}
+
+export async function checkApplySpecialFields(docName, updates, objects) {
+  // Token Magic FX specific processing
+  if (typeof TokenMagic !== 'undefined' && (docName === 'Token' || docName === 'Tile')) {
+    for (let i = 0; i < updates.length; i++) {
+      if ('tokenmagic.ddTint' in updates[i]) {
+        await applyDDTint(objects[i], updates[i]['tokenmagic.ddTint']);
+      }
+      if ('tokenmagic.preset' in updates[i]) {
+        await applyTMFXPreset(
+          objects[i],
+          updates[i]['tokenmagic.preset'],
+          this?.addSubtractFields?.['tokenmagic.preset']?.method === 'subtract'
+        );
+      }
     }
   }
 }

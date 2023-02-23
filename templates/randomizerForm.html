@@ -22,6 +22,20 @@
             <option value="interpolateReverse">{{localize "multi-token-edit.randomizer.interpolateReverse"}}</option>
         </select>
     </div>
+    <!-- Link Randomized value to another field -->
+    {{#if linkFields}}
+    <datalist id="linkFields">
+        <option value=""></option>
+        {{#each linkFields}}
+        <option value="{{this}}">
+        {{/each}}
+    </datalist>
+    <div class="form-group">
+        <label>Link to Field:</label>
+        <input list="linkFields" name="linkField">
+    </div>
+    {{/if}}
+    <!-- Link Randomized value to another field -->
     {{/if}}
 
     {{#if rangeForm}}
@@ -48,6 +62,20 @@
             <option value="interpolateReverse">{{localize "multi-token-edit.randomizer.interpolateReverse"}}</option>
         </select>
     </div>
+    <!-- Link Randomized value to another field -->
+    {{#if linkFields}}
+    <datalist id="linkFields">
+        <option value=""></option>
+        {{#each linkFields}}
+        <option value="{{this}}">
+        {{/each}}
+    </datalist>
+    <div class="form-group">
+        <label>Link to Field:</label>
+        <input list="linkFields" name="linkField">
+    </div>
+    {{/if}}
+    <!-- Link Randomized value to another field -->
     {{/if}}
 
     {{#if selectForm}}

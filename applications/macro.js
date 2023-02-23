@@ -1,4 +1,4 @@
-import { generateMacro } from '../scripts/macroGenerator.js';
+import { generateMacro, hasSpecialField } from '../scripts/macroGenerator.js';
 import { emptyObject, SUPPORTED_PLACEABLES } from '../scripts/utils.js';
 import { GeneralDataAdapter } from './dataAdapters.js';
 
@@ -98,7 +98,7 @@ export default class MacroForm extends FormApplication {
       data.random = JSON.stringify(this.randomizeFields);
     }
 
-    data.hasMEControls = data.hasAddSubtract || data.hasRandom;
+    data.hasMEControls = data.hasAddSubtract || data.hasRandom || hasSpecialField(this.fields);
 
     // Visibility Toggle
     data.hiddenControl = [

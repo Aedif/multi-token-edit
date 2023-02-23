@@ -10,7 +10,12 @@ import {
 import CSSEdit, { STYLES } from './applications/cssEdit.js';
 import { applyRandomization, IS_PRIVATE } from './scripts/private.js';
 import MassEditPresets from './applications/presets.js';
-import { getObjFormData, pasteDataUpdate } from './applications/forms.js';
+import {
+  checkApplySpecialFields,
+  getObjFormData,
+  pasteDataUpdate,
+  performMassUpdate,
+} from './applications/forms.js';
 import { MassEditGenericForm } from './applications/genericForm.js';
 import {
   applyAddSubtract,
@@ -304,11 +309,13 @@ Hooks.once('init', () => {
   }
 
   game.modules.get('multi-token-edit').api = {
-    applyRandomization,
-    applyAddSubtract,
+    applyRandomization, // Deprecated
+    applyAddSubtract, // Deprecated
     GeneralDataAdapter,
     MassEditGenericForm,
     showGenericForm,
+    checkApplySpecialFields, // Deprecated
+    performMassUpdate,
   };
 });
 

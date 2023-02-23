@@ -29,6 +29,6 @@ export async function applyTMFXPreset(placeable, presetName, remove = false) {
     await TokenMagic.deleteFilters(placeable, presetName);
   } else {
     const preset = TokenMagic.getPreset(presetName);
-    if (preset) await TokenMagic.addUpdateFilters(placeable, preset);
+    if (preset) await TokenMagic.addUpdateFilters(placeable, deepClone(preset));
   }
 }

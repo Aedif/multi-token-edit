@@ -123,6 +123,17 @@ export default class RandomizerForm extends FormApplication {
       addGeneratorGroup('Taverns', TAVERN_GENERATOR);
     }
 
+    let linkFields;
+    if (this.configuration.numberForm || this.configuration.rangeForm) {
+      linkFields = $(this.configApp.form)
+        .find('input[type="number"], input[type="range"]')
+        .map(function () {
+          return $(this).attr('name');
+        })
+        .get();
+    }
+    data.linkFields = linkFields;
+
     return data;
   }
 
@@ -329,6 +340,7 @@ export default class RandomizerForm extends FormApplication {
           min: formData.min,
           max: formData.max,
           step: formData.step,
+          linkField: formData.linkField,
         };
       }
     } else if (this.configuration.booleanForm) {
@@ -458,6 +470,10 @@ export function applyRandomization(updates, objects, randomizeFields) {
             const stepsInRange =
               (obj.max - obj.min + (Number.isInteger(obj.step) ? 1 : 0)) / obj.step;
             update[field] = Math.floor(Math.random() * stepsInRange) * obj.step + obj.min;
+          }
+
+          if (obj.linkField) {
+            update[obj.linkField] = update[field];
           }
         } else if (obj.type === 'boolean') {
           update[field] = Math.random() < 0.5;

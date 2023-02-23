@@ -99,7 +99,10 @@ async function configureParam() {
     game.modules.get('multi-token-edit').api.showGenericForm(param, param.filterType ?? 'TMFX', {
       customControls: CUSTOM_CONTROLS,
       callback: async (obj) => configureParam(),
-      inputChangeCallback: (selected) => {
+      inputChangeCallback: async (selected) => {
+        if (selected.imagePath !== param.imagePath) {
+          await TokenMagic.deleteFiltersOnSelected(param.filterId);
+        }
         mergeObject(param, selected, { inplace: true });
         TokenMagic.addUpdateFiltersOnSelected(deepClone(params));
       },
