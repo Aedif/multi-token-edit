@@ -42,10 +42,25 @@ export default class RandomizerForm extends FormApplication {
         height,
       }
     );
+
     this.configuration = options;
     this.control = control;
     this.configApp = configApp;
     this.fieldName = control.attr('name');
+
+    if (configApp.randomizeFields && configApp.randomizeFields[this.fieldName]) {
+      if (options.rangeForm) {
+        let ctrl = deepClone(configApp.randomizeFields[this.fieldName]);
+        ctrl.minVal = ctrl.min;
+        ctrl.maxVal = ctrl.max;
+        delete ctrl.min;
+        delete ctrl.max;
+        mergeObject(this.configuration, ctrl);
+      } else {
+        mergeObject(this.configuration, configApp.randomizeFields[this.fieldName]);
+      }
+      this.configuration.existing = true;
+    }
   }
 
   static get defaultOptions() {
@@ -77,7 +92,7 @@ export default class RandomizerForm extends FormApplication {
     data.title = this.title;
 
     // Assign default values for some specific fields
-    if (this.configuration.numberForm) {
+    if (this.configuration.numberForm && !this.configuration.existing) {
       if (
         [
           'rotation',
@@ -121,19 +136,49 @@ export default class RandomizerForm extends FormApplication {
       addGeneratorGroup('Species', SPECIES_GENERATORS);
       addGeneratorGroup('Groups', GROUP_GENERATORS);
       addGeneratorGroup('Taverns', TAVERN_GENERATOR);
+
+      if (this.configuration.strings) {
+        data.strings = this.configuration.strings.join('\n');
+      }
+      data.duplicates = this.configuration.method === 'random';
+      data.find = this.configuration.find ?? this.configuration.current;
+      data.replace = this.configuration.replace ?? this.configuration.current;
     }
 
-    let linkFields;
-    if (this.configuration.numberForm || this.configuration.rangeForm) {
-      linkFields = $(this.configApp.form)
-        .find('input[type="number"], input[type="range"]')
-        .map(function () {
-          return $(this).attr('name');
-        })
-        .get();
+    if (this.configuration.imageForm) {
+      if (this.configuration.images) {
+        data.images = this.configuration.images.join('\n');
+      }
+      data.find = this.configuration.find ?? this.configuration.current;
+      data.replace = this.configuration.replace ?? this.configuration.current;
     }
-    data.linkFields = linkFields;
 
+    if (this.configuration.rangeForm && !this.configuration.existing) {
+      data.minVal = this.configuration.current;
+      data.maxVal = this.configuration.current;
+    }
+    if (this.configuration.coordinateForm) {
+      data.minX = this.configuration.x;
+      data.maxX = this.configuration.x;
+      data.minY = this.configuration.y;
+      data.maxY = this.configuration.y;
+      data.stepY = this.configuration.stepY ?? this.configuration.step;
+      data.stepX = this.configuration.stepX ?? this.configuration.step;
+      if (this.configuration.boundingBox) {
+        let box = this.configuration.boundingBox;
+        data.minX = box.x;
+        data.maxX = box.x + box.width;
+        data.minY = box.y;
+        data.maxY = box.y + box.height;
+      }
+    }
+    if (this.configuration.selectForm) {
+      this.configuration.options.forEach((opt) => {
+        opt.selected =
+          !this.configuration.selection ||
+          this.configuration.selection.find((sel) => sel == opt.value) != null;
+      });
+    }
     return data;
   }
 
@@ -226,6 +271,7 @@ export default class RandomizerForm extends FormApplication {
           html.find('.find-and-replace').hide();
         }
       });
+      $(html).find('[name="method"]').trigger('input');
     } else if (this.configuration.imageForm) {
       $(html).on('input', '[name="method"]', (e) => {
         if (e.target.value === 'findAndReplace') {
@@ -236,6 +282,7 @@ export default class RandomizerForm extends FormApplication {
           html.find('.find-and-replace').hide();
         }
       });
+      $(html).find('[name="method"]').trigger('input');
     }
 
     if (this.configuration.colorForm) {
@@ -322,6 +369,12 @@ export default class RandomizerForm extends FormApplication {
    */
   async _updateObject(event, formData) {
     const fieldName = this.control.attr('name');
+    if (event.submitter?.value === 'delete') {
+      delete this.configApp.randomizeFields[fieldName];
+      deselectField(this.control, this.configApp);
+      return;
+    }
+
     if (this.configuration.selectForm) {
       if (formData[fieldName]?.length) {
         this.configApp.randomizeFields[fieldName] = {
@@ -340,7 +393,6 @@ export default class RandomizerForm extends FormApplication {
           min: formData.min,
           max: formData.max,
           step: formData.step,
-          linkField: formData.linkField,
         };
       }
     } else if (this.configuration.booleanForm) {
@@ -471,10 +523,6 @@ export function applyRandomization(updates, objects, randomizeFields) {
               (obj.max - obj.min + (Number.isInteger(obj.step) ? 1 : 0)) / obj.step;
             update[field] = Math.floor(Math.random() * stepsInRange) * obj.step + obj.min;
           }
-
-          if (obj.linkField) {
-            update[obj.linkField] = update[field];
-          }
         } else if (obj.type === 'boolean') {
           update[field] = Math.random() < 0.5;
         } else if (obj.type === 'color') {
@@ -593,13 +641,6 @@ export function applyRandomization(updates, objects, randomizeFields) {
 // Show a dialog to select randomization settings for this form-group
 export function showRandomizeDialog(formGroup, configApp) {
   const singleInput = formGroup.find('[name]').length === 1;
-
-  // If field(s) have already been randomized remove them
-  if (formGroup.find('.mass-edit-randomize').hasClass('active')) {
-    // TODO: Open randomizer form so that fields can be changed instead of deselecting immediately
-    deselectField(formGroup, configApp);
-    return;
-  }
 
   // Special handling for coordinates
   // Depending on the placeable both x and y coordinates can either be set
@@ -773,13 +814,19 @@ function selectField(control) {
 
 function deselectField(control, configApp) {
   const formGroup = control.closest('.form-group');
-  formGroup.find('.mass-edit-checkbox input').prop('checked', false).trigger('change');
-  formGroup.find('.mass-edit-randomize').removeClass('active');
 
-  if (configApp)
+  let allRandomizedRemoved = true;
+  if (configApp) {
     formGroup.find('[name]').each(function () {
-      delete configApp.randomizeFields[this.name];
+      if (allRandomizedRemoved)
+        allRandomizedRemoved = !Boolean(configApp.randomizeFields[this.name]);
     });
+  }
+
+  if (allRandomizedRemoved) {
+    formGroup.find('.mass-edit-checkbox input').prop('checked', false).trigger('change');
+    formGroup.find('.mass-edit-randomize').removeClass('active');
+  }
 }
 
 export function selectRandomizerFields(form, fields) {

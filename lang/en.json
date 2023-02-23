@@ -99,7 +99,8 @@
       "pin": "Pin",
       "pinned": "Pinned",
       "presets": "Presets",
-      "history": "History"
+      "history": "History",
+      "delete": "Delete"
     }
   }
 }
