@@ -1,3 +1,17 @@
+# 1.37.0
+
+- Fields inserted by mass edit will now be assigned their own colours
+  - New CSS class: `meInsert`
+- Tile Mass Edit forms will now contain a `Scale` field that can be used to adjust Tile width and height simultaneously and proportionally
+- Fixed Mass Edit forms becoming frozen in some cases and unable to be closed
+
+Patreon
+
+- Randomizer options can now be re-opened and edited after being set
+  - Allows for easier testing and micro-adjustment of the randomizer
+  - Allows for presets containing randomization to be applied to the form and have their options changed
+- 'Tile Scale (Horizontal|Vertical)' field added to Tile forms to allow for randomizing vertical and horizontal scale simultaneously
+
 # 1.36.2
 
 - 'TMFX Preset' and 'DDTint' fields are now supported in Macro Generator

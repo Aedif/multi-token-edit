@@ -101,7 +101,17 @@ export const STYLES = {
 
 .mass-edit-checkbox.meFlag {
   outline: rgb(246, 175, 255) solid 2px;
-}`,
+}
+
+.form-group.meInsert {
+  outline: rgb(118, 242, 255) dotted 2px;
+  margin-bottom: 5px;
+}
+
+.mass-edit-checkbox.meInsert {
+  outline: rgb(118, 242, 255) solid 2px;
+}
+`,
   // ==================
   // No Outline
   // ==================
@@ -121,7 +131,13 @@ export const STYLES = {
 
 .mass-edit-checkbox.meFlag {
   outline: rgb(246, 175, 255) solid 2px;
-}     
+}
+
+.form-group.meInsert {}
+
+.mass-edit-checkbox.meInsert {
+  outline: rgb(118, 242, 255) solid 2px;
+}
 `,
   // ==================
   // Striped Background
@@ -137,7 +153,7 @@ export const STYLES = {
 }
 
 .mass-edit-checkbox.meCommon {
-outline: green solid 2px;
+  outline: green solid 2px;
 }
 
 .form-group.meDiff {
@@ -151,7 +167,7 @@ outline: green solid 2px;
 }
 
 .mass-edit-checkbox.meDiff {
-outline: rgb(255, 204, 110) solid 2px;
+  outline: rgb(255, 204, 110) solid 2px;
 }
 
 .form-group.meFlag {
@@ -165,8 +181,23 @@ outline: rgb(255, 204, 110) solid 2px;
 }
 
 .mass-edit-checkbox.meFlag {
-outline: rgb(246, 175, 255) solid 2px;
-}`,
+  outline: rgb(246, 175, 255) solid 2px;
+}
+
+.form-group.meInsert {
+  background: repeating-linear-gradient(
+  70deg,
+  rgba(118, 242, 255, 0.5),
+  rgba(118, 242, 255, 0.5) 10px,
+  rgba(0, 0, 0, 0) 10px,
+  rgba(0, 0, 0, 0) 20px
+  );
+}
+
+.mass-edit-checkbox.meInsert {
+  outline: rgb(246, 175, 255) solid 2px;
+}
+`,
   // ==================
   // Solid Background
   // ==================
@@ -183,7 +214,7 @@ outline: green solid 2px;
 }
 
 .mass-edit-checkbox.meDiff {
-outline: rgb(255, 204, 110) solid 2px;
+  outline: rgb(255, 204, 110) solid 2px;
 }
 
 .form-group.meFlag {
@@ -191,6 +222,14 @@ outline: rgb(255, 204, 110) solid 2px;
 }
 
 .mass-edit-checkbox.meFlag {
-outline: rgb(246, 175, 255) solid 2px;
+  outline: rgb(246, 175, 255) solid 2px;
+}
+
+.form-group.meInsert {
+  background: rgba(118, 242, 255, 0.5)
+}
+
+.mass-edit-checkbox.meInsert {
+  outline: rgb(118, 242, 255) solid 2px;
 }`,
 };

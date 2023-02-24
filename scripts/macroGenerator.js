@@ -403,5 +403,14 @@ await MassEdit.api.performMassUpdate.call({randomizeFields, addSubtractFields}, 
 }
 
 export function hasSpecialField(fields) {
-  return 'tokenmagic.ddTint' in fields || 'tokenmagic.preset' in fields;
+  const specialFields = [
+    'tokenmagic.ddTint',
+    'tokenmagic.preset',
+    'massedit.scale',
+    'massedit.texture.scale',
+  ];
+  for (const sf of specialFields) {
+    if (sf in fields) return true;
+  }
+  return false;
 }

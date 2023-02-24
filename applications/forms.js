@@ -73,7 +73,7 @@ export const WithMassEditForm = (cls) => {
       // Attach classes and controls to all relevant form-groups
       const commonData = flattenObject(this.commonData || {});
       const insertRNGControl = this.randomizerEnabled;
-      const processFormGroup = function (formGroup) {
+      const processFormGroup = function (formGroup, typeOverride = null) {
         // We only want to attach extra controls if the form-group contains named fields
         if (!$(formGroup).find('[name]').length) return;
         if ($(formGroup).find('[name]:disabled').length) return;
@@ -116,6 +116,8 @@ export const WithMassEditForm = (cls) => {
         if (insertRNGControl) {
           randomControl = '<div class="mass-edit-randomize"></div>';
         }
+
+        fieldType = typeOverride ?? fieldType;
 
         // Insert the checkbox
         const checkbox = $(
@@ -288,7 +290,7 @@ export const WithMassEditForm = (cls) => {
             </div>
           `);
         $(html).find('.matt-tab[data-tab="trigger-actions"]').prepend(chk);
-        processFormGroup(chk);
+        processFormGroup(chk, 'meInsert');
 
         chk = $(`
           <div class="form-group">
@@ -298,7 +300,7 @@ export const WithMassEditForm = (cls) => {
             </div>
           `);
         chk.insertBefore('.matt-tab[data-tab="trigger-images"] .files-list');
-        processFormGroup(chk);
+        processFormGroup(chk, 'meInsert');
       }
 
       // 3D Canvas
@@ -311,9 +313,13 @@ export const WithMassEditForm = (cls) => {
             </div>
           `);
         $(html).find('#shader-config').after(chk);
-        processFormGroup(chk);
+        processFormGroup(chk, 'meInsert');
       }
       //
+
+      // =====================
+      // = Additional Fields =
+      // =====================
 
       // // Token Magic FX
       if (
@@ -334,19 +340,45 @@ export const WithMassEditForm = (cls) => {
             </div>
           `);
         $(html).find('[name="texture.tint"]').closest('.form-group').after(chk);
-        processFormGroup(chk);
+        processFormGroup(chk, 'meInsert');
 
         const currentDDTint = getDDTint(this.object.object);
         chk = $(`
           <div class="form-group">
-            <label>DungeonDraft Tint <span class="units">(TMFX)</span></label>
+            <label>DungeonDraft <span class="units">(TMFX)</span></label>
             <div class="form-fields">
               <input class="color" type="text" name="tokenmagic.ddTint" value="${currentDDTint}">
               <input type="color" value="${currentDDTint}" data-edit="tokenmagic.ddTint">
             </div>
           `);
         $(html).find('[name="texture.tint"]').closest('.form-group').after(chk);
-        processFormGroup(chk);
+        processFormGroup(chk, 'meInsert');
+      }
+
+      if (this.documentName === 'Tile' && !isNewerVersion('10', game.version)) {
+        let scaleInput = $(`
+        <div class="form-group slim">
+          <label>Scale <span class="units">(Ratio)</span></label>
+          <div class="form-fields">
+            <label>Width | Height</label>
+            <input type="number" value="1" step="any" name="massedit.scale" min="0">
+          </div>
+        </div>`);
+        $(html).find('[name="width"]').closest('.form-group').before(scaleInput);
+        processFormGroup(scaleInput, 'meInsert');
+
+        if (IS_PRIVATE) {
+          scaleInput = $(`
+          <div class="form-group slim">
+            <label>Tile Scale <span class="units">(Ratio)</span></label>
+            <div class="form-fields">
+              <label>Horizontal | Vertical</label>
+              <input type="number" value="1" step="any" name="massedit.texture.scale" min="0">
+            </div>
+          </div>`);
+          $(html).find('[name="texture.scaleX"]').closest('.form-group').before(scaleInput);
+          processFormGroup(scaleInput, 'meInsert');
+        }
       }
 
       // Resizes the window
@@ -822,6 +854,7 @@ export const WithMassConfig = (docName = 'NONE') => {
 
     async close(options = {}) {
       Brush.deactivate();
+      options.force = true;
       return super.close(options);
     }
 
