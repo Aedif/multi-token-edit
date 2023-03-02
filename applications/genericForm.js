@@ -1,6 +1,6 @@
 import { emptyObject, getCommonData } from '../scripts/utils.js';
 import { WithMassConfig } from './forms.js';
-import { showMassConfig } from './multiConfig.js';
+import { showMassEdit } from './multiConfig.js';
 
 const WMC = WithMassConfig();
 export class MassEditGenericForm extends WMC {
@@ -60,7 +60,7 @@ export class MassEditGenericForm extends WMC {
         class: 'mass-edit-tokens',
         icon: 'fas fa-user-circle',
         onclick: () => {
-          showMassConfig(this.options.tokens, 'Token');
+          showMassEdit(this.options.tokens, 'Token');
           this.close();
         },
       });

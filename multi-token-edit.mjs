@@ -2,7 +2,7 @@ import {
   getSelected,
   pasteData,
   showMassActorForm,
-  showMassConfig,
+  showMassEdit,
   showMassCopy,
   showMassSelect,
   showGenericForm,
@@ -162,7 +162,7 @@ Hooks.once('init', () => {
       },
     ],
     onDown: () => {
-      showMassConfig();
+      showMassEdit();
     },
     restricted: true,
     precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
@@ -316,6 +316,7 @@ Hooks.once('init', () => {
     showGenericForm,
     checkApplySpecialFields, // Deprecated
     performMassUpdate,
+    showMassEdit,
   };
 });
 
@@ -339,7 +340,7 @@ Hooks.on('renderTokenHUD', (hud, html, tokenData) => {
         </div>`
       );
     $(html).on('click', '[data-action="massConfig"]', () => {
-      showMassConfig();
+      showMassEdit();
     });
   }
 });
@@ -357,7 +358,7 @@ Hooks.on('renderTileHUD', (hud, html, tileData) => {
         </div>`
       );
     $(html).on('click', '[data-action="massConfig"]', () => {
-      showMassConfig();
+      showMassEdit();
     });
   }
 });

@@ -1,3 +1,10 @@
+# 1.37.1
+
+- Exposing showMassEdit(...) through module's api
+  - accepts an object or a list of objects and opens up a MassEdit form for them
+  - e.g.
+    - `game.modules.get("multi-token-edit").api.showMassEdit(canvas.tokens.placeables)`
+
 # 1.37.0
 
 - Fields inserted by mass edit will now be assigned their own colours

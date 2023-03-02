@@ -27,7 +27,7 @@ import { getInUseStyle } from './cssEdit.js';
 import { GeneralDataAdapter, TokenDataAdapter } from './dataAdapters.js';
 import MassEditHistory from './history.js';
 import MacroForm from './macro.js';
-import { getLayerMappings, showMassActorForm, showMassConfig } from './multiConfig.js';
+import { getLayerMappings, showMassActorForm, showMassEdit } from './multiConfig.js';
 import MassEditPresets from './presets.js';
 
 // ==================================
@@ -437,6 +437,7 @@ export const WithMassEditForm = (cls) => {
           'shaders'
         );
       }
+      // == End of Module specific logic
 
       // Token _getSubmitData() performs conversions related to scale, we need to undo them here
       // so that named fields on the form match up and can be selected
@@ -480,6 +481,19 @@ export const WithMassEditForm = (cls) => {
             });
         }
       });
+
+      // // Module specific logic
+      // if (game.modules.get('barbrawl')?.active) {
+      //   for (const [k, v] of Object.entries(selectedFields)) {
+      //     if (k.startsWith('flags.barbrawl')) {
+      //       let details = form.find(`[name="${k}"]`).closest('.indent-details');
+      //       let id = details.attr('id');
+      //       if (id) selectedFields[`flags.barbrawl.resourceBars.${id}.id`] = id;
+      //     }
+      //   }
+      // }
+      // // End of Module specific logic
+      // console.log(selectedFields);
 
       return selectedFields;
     }
@@ -708,7 +722,7 @@ export const WithMassConfig = (docName = 'NONE') => {
         panToFitPlaceables(found);
       }
       if (command === 'searchAndEdit') {
-        showMassConfig(found);
+        showMassEdit(found);
       }
     }
 

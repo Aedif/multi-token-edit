@@ -170,7 +170,7 @@ export function showMassSelect(basePlaceable) {
 }
 
 // show placeable edit
-export function showMassConfig(found = null, documentName) {
+export function showMassEdit(found = null, documentName) {
   let [target, selected] = getSelected(found);
 
   // If there are no placeable in control or just one, then either exit or display the default config window
