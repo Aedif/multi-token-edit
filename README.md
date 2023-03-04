@@ -11,7 +11,7 @@ Support me on [Patreon](https://www.patreon.com/Aedif) to get access to the the 
 
 _Note that all keybinding referenced bellow can be changed via 'Configure Controls'_
 
-Recommended modules:
+#### Recommended modules:
 
 - Select Tool Everywhere (https://foundryvtt.com/packages/select-tool-everywhere)
   - Will allow to select normally un-selectable placeables such as lights and templates
@@ -19,9 +19,10 @@ Recommended modules:
   - Will enable selection of multiple documents in the sidebar
   - Mass Edit will recognise these selection for Actors, Scenes, and Journals
 
-Checkout v1.9.1 showcase by BaileyWiki [here](https://www.youtube.com/watch?v=_X5NHwiw0Cw).
-
-As well as a v1.13.0 showcase in German by TomVTT [here](https://www.youtube.com/watch?v=j7gUJHveU7s)
+#### Showcases by Foundry community members
+- v1.9.1 covered by BaileyWiki [YouTube](https://www.youtube.com/watch?v=_X5NHwiw0Cw).
+- v1.13.0 covered in German by TomVTT [YouTube](https://www.youtube.com/watch?v=j7gUJHveU7s)
+- Configure TMFX filters with Mass Edit by BaileyWiki [YouTube](https://www.youtube.com/watch?v=KvNCcFsDVDE)
 
 ## Editing
 
