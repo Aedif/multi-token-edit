@@ -1,3 +1,9 @@
+# 1.37.2
+
+- Added some inbuilt custom control for GeenricForms
+- Update macros in compendium
+- Variables with 'path' in their names will now have FilePickers present in GenericForms
+
 # 1.37.1
 
 - Exposing showMassEdit(...) through module's api

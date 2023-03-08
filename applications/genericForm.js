@@ -1,3 +1,4 @@
+import { CUSTOM_CONTROLS } from '../data/custom-controls.js';
 import { emptyObject, getCommonData } from '../scripts/utils.js';
 import { WithMassConfig } from './forms.js';
 import { showMassEdit } from './multiConfig.js';
@@ -10,11 +11,16 @@ export class MassEditGenericForm extends WMC {
     for (let i = objects.length; i >= 0; i--) {
       mergeObject(allData, objects[i]);
     }
-    const [nav, tabSelectors] = _constructNav(
-      allData,
-      options.documentName ?? 'NONE',
-      options.customControls
+
+    let documentName = options.documentName ?? 'NONE';
+
+    let customControls = mergeObject(
+      CUSTOM_CONTROLS[documentName] ?? {},
+      game.settings.get('multi-token-edit', 'customControls')[documentName] ?? {}
     );
+    customControls = mergeObject(customControls, options.customControls?.[documentName] ?? {});
+
+    const [nav, tabSelectors] = _constructNav(allData, documentName, customControls);
     const commonData = getCommonData(objects);
 
     super(docs[0], docs, {
@@ -27,12 +33,8 @@ export class MassEditGenericForm extends WMC {
     this.nav = nav;
     this.editableLabels = {};
 
-    this.pinnedFields =
-      game.settings.get('multi-token-edit', 'pinnedFields')[this.documentName] ?? {};
-    this.customControls = mergeObject(
-      game.settings.get('multi-token-edit', 'customControls')[this.documentName] ?? {},
-      options.customControls?.[this.documentName] ?? {}
-    );
+    this.pinnedFields = game.settings.get('multi-token-edit', 'pinnedFields')[this.documentName] ?? {};
+    this.customControls = customControls;
 
     if (options.callback) {
       this.callbackOnUpdate = options.callback;
@@ -136,10 +138,7 @@ export class MassEditGenericForm extends WMC {
           col = Number(Color.fromString(event.target.value));
         } catch (e) {}
 
-        $(event.target)
-          .siblings(`[name="${event.target.dataset.editNumber}"]`)
-          .val(col)
-          .trigger('input');
+        $(event.target).siblings(`[name="${event.target.dataset.editNumber}"]`).val(col).trigger('input');
       }
     });
 
@@ -223,9 +222,7 @@ function _constructNav(allData, documentName, customControls) {
     items: [],
     tabs: [],
   };
-  const tabSelectors = [
-    { navSelector: '.tabs[data-group="main"]', contentSelector: 'form', initial: 'me-pinned' },
-  ];
+  const tabSelectors = [{ navSelector: '.tabs[data-group="main"]', contentSelector: 'form', initial: 'me-pinned' }];
 
   // Limit the form to just the keys marked as editable
   let editableKeys;
@@ -244,10 +241,6 @@ function _constructNav(allData, documentName, customControls) {
   }
 
   const pinned = game.settings.get('multi-token-edit', 'pinnedFields')[documentName] || {};
-  customControls = mergeObject(
-    game.settings.get('multi-token-edit', 'customControls')[documentName] || {},
-    customControls?.[documentName] || {}
-  );
 
   _constructControls(nav, object, tabSelectors, '', pinned, customControls);
 
@@ -309,7 +302,11 @@ function genControl(type, label, value, name, pinned, editableLabel = false, cus
   } else if (type === 'string') {
     control.text = true;
     const varName = name.split('.').pop();
-    if (IMAGE_FIELDS.includes(varName) || varName.toLowerCase().includes('image'))
+    if (
+      IMAGE_FIELDS.includes(varName) ||
+      varName.toLowerCase().includes('image') ||
+      varName.toLowerCase().includes('path')
+    )
       control.filePicker = true;
     else if (isColorField(varName)) control.colorPicker = true;
   } else if (type === 'boolean') {
@@ -384,13 +381,7 @@ function _genLabel(key) {
   return key.charAt(0).toUpperCase() + key.slice(1);
 }
 
-function defineRangeControl(
-  name,
-  val,
-  customControls,
-  docName,
-  { min = null, max = null, step = null } = {}
-) {
+function defineRangeControl(name, val, customControls, docName, { min = null, max = null, step = null } = {}) {
   let content = `
 <div class="form-group slim">
   <label>Range</label>

@@ -11,20 +11,14 @@ if (!filters.length) return;
 
 let params = filters.map((f) => {
   const tmParams = deepClone(f.tmFilters.tmParams);
-  ['placeableId', 'placeableType', 'filterInternalId', 'filterOwner', 'updateId'].forEach(
-    (k) => delete tmParams[k]
-  );
+  ['placeableId', 'placeableType', 'filterInternalId', 'filterOwner', 'updateId'].forEach((k) => delete tmParams[k]);
   return tmParams;
 });
 if (!params.length) return;
 
 async function savePreset() {
   let content = `<label>Macro</label>
-  <textarea style="width:100%; height: 300px;" readonly>let params = ${JSON.stringify(
-    params,
-    null,
-    2
-  )};
+  <textarea style="width:100%; height: 300px;" readonly>let params = ${JSON.stringify(params, null, 2)};
 
 await TokenMagic.addUpdateFiltersOnSelected(params);</textarea>
   <label>Preset Name</label><input class="presetName" type="text" value="${
