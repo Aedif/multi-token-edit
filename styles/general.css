@@ -54,23 +54,35 @@
   background: rgba(255, 202, 58, 0.8);
 }
 
-.me-update-on-input {
+.me-mod-update {
   flex: 0 !important;
   display: grid;
   align-items: center;
 }
 
-.me-update-on-input > input {
+.me-mod-update > input {
   grid-column: 1;
   grid-row: 1;
 }
 
-.me-update-on-input > i {
+.me-mod-update > i {
   grid-column: 1;
   grid-row: 1;
   pointer-events: none;
   margin-left: 7px;
 }
+
+.me-global-delete {
+  position: absolute;
+  left: -26px;
+  top: 50%;
+  color: red;
+}
+
+/* .me-global-delete > a > i {
+  border-width: 0px 1px 1px 1px;
+  border-style: solid solid solid solid;
+} */
 
 /* ===================== 
    === Randomization ===

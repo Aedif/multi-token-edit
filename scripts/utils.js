@@ -24,9 +24,7 @@ export function hexToRgb(hex) {
   });
 
   var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return result
-    ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)]
-    : null;
+  return result ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)] : null;
 }
 
 export function rgbToHex(rgb) {
@@ -263,11 +261,7 @@ export function emptyObject(obj) {
 
 // To get rid of v10 warnings
 export function getData(obj) {
-  if (isNewerVersion('10', game.version)) {
-    return obj.data;
-  } else {
-    return obj.document ? obj.document : obj;
-  }
+  return obj.document ? obj.document : obj;
 }
 
 // Flags are stored inconsistently. Absence of a flag, being set to null, undefined, empty object or empty string
@@ -276,10 +270,7 @@ export function flagCompare(data, flag, flagVal) {
   if (data[flag] == flagVal) return true;
 
   const falseyFlagVal =
-    flagVal == null ||
-    flagVal === false ||
-    flagVal === '' ||
-    (getType(flagVal) === 'Object' && emptyObject(flagVal));
+    flagVal == null || flagVal === false || flagVal === '' || (getType(flagVal) === 'Object' && emptyObject(flagVal));
 
   const falseyDataVal =
     data[flag] == null ||
@@ -322,6 +313,7 @@ export function hasFlagRemove(flag, formData) {
 }
 
 export function selectAddSubtractFields(form, fields) {
+  if (!fields) return;
   for (const key of Object.keys(fields)) {
     form
       .find(`[name="${key}"]`)
@@ -349,9 +341,7 @@ export function applyAddSubtract(updates, objects, docName, addSubtractFields) {
 
         // Special processing for Tagger module fields
         if (field === 'flags.tagger.tags') {
-          const currentTags = Array.isArray(val)
-            ? val
-            : (val ?? '').split(',').map((s) => s.trim());
+          const currentTags = Array.isArray(val) ? val : (val ?? '').split(',').map((s) => s.trim());
           const modTags = (update[field] ?? '').split(',').map((s) => s.trim());
           for (const tag of modTags) {
             if (ctrl.method === 'add') {
@@ -430,7 +420,8 @@ export function mergeObjectPreserveDot(original, other = {}, nestedKey = '') {
 }
 
 export function panToFitPlaceables(placeables) {
-  if (placeables && placeables.length) {
+  placeables = placeables.map((p) => p.object ?? p).filter((p) => p.center);
+  if (placeables.length) {
     if (placeables.length === 1) {
       if (placeables[0].center?.x) {
         canvas.animatePan({ x: placeables[0].center.x, y: placeables[0].center.y, duration: 250 });
@@ -496,4 +487,12 @@ export function wildcardStringMatch(sw, s2) {
 export function wildcardStringReplace(sw, replaceWith, s2) {
   let re = new RegExp(escapeRegex(sw).replaceAll('*', '.*'), 'g');
   return s2.replaceAll(re, replaceWith);
+}
+
+export function regexStringReplace(sw, replaceWith, s2) {
+  try {
+    let re = new RegExp(sw, 'g');
+    return s2.replaceAll(re, replaceWith);
+  } catch (e) {}
+  return s2;
 }

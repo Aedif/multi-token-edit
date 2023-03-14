@@ -16,6 +16,7 @@ import {
   emptyObject,
   getData,
   wildcardStringReplace,
+  regexStringReplace,
 } from './utils.js';
 
 export const IS_PRIVATE = false;
@@ -106,14 +107,7 @@ export default class RandomizerForm extends FormApplication {
         data.min = 0;
         data.max = 360;
       } else if (
-        [
-          'dimSight',
-          'brightSight',
-          'light.dim',
-          'light.bright',
-          'config.dim',
-          'config.bright',
-        ].includes(this.fieldName)
+        ['dimSight', 'brightSight', 'light.dim', 'light.bright', 'config.dim', 'config.bright'].includes(this.fieldName)
       ) {
         data.min = 0;
       }
@@ -175,8 +169,7 @@ export default class RandomizerForm extends FormApplication {
     if (this.configuration.selectForm) {
       this.configuration.options.forEach((opt) => {
         opt.selected =
-          !this.configuration.selection ||
-          this.configuration.selection.find((sel) => sel == opt.value) != null;
+          !this.configuration.selection || this.configuration.selection.find((sel) => sel == opt.value) != null;
       });
     }
     return data;
@@ -201,11 +194,7 @@ export default class RandomizerForm extends FormApplication {
               files = fp.result.files;
             }
             const images_ta = $(html).find('.images');
-            images_ta.val(
-              images_ta.val().trim() +
-                '\n' +
-                files.filter((f) => isImage(f) || isVideo(f)).join('\n')
-            );
+            images_ta.val(images_ta.val().trim() + '\n' + files.filter((f) => isImage(f) || isVideo(f)).join('\n'));
           },
         }).render(true);
       });
@@ -220,11 +209,7 @@ export default class RandomizerForm extends FormApplication {
           callback: (results) => {
             if (!Array.isArray(results)) results = [results];
             const images_ta = $(html).find('.images');
-            images_ta.val(
-              images_ta.val().trim() +
-                '\n' +
-                results.filter((f) => isImage(f) || isVideo(f)).join('\n')
-            );
+            images_ta.val(images_ta.val().trim() + '\n' + results.filter((f) => isImage(f) || isVideo(f)).join('\n'));
           },
         });
       }
@@ -234,12 +219,7 @@ export default class RandomizerForm extends FormApplication {
       .click(() => {
         const generator = $(html).find('.generator').val();
 
-        for (const group of [
-          NAME_GENERATOR,
-          SPECIES_GENERATORS,
-          GROUP_GENERATORS,
-          TAVERN_GENERATOR,
-        ]) {
+        for (const group of [NAME_GENERATOR, SPECIES_GENERATORS, GROUP_GENERATORS, TAVERN_GENERATOR]) {
           if (generator in group) {
             const names = [];
             for (let i = 0; i < 20; i++) {
@@ -263,7 +243,7 @@ export default class RandomizerForm extends FormApplication {
 
     if (this.configuration.textForm) {
       $(html).on('input', '[name="method"]', (e) => {
-        if (e.target.value === 'findAndReplace') {
+        if (e.target.value === 'findAndReplace' || e.target.value === 'findAndReplaceRegex') {
           html.find('.string-list').hide();
           html.find('.find-and-replace').show();
         } else {
@@ -274,7 +254,7 @@ export default class RandomizerForm extends FormApplication {
       $(html).find('[name="method"]').trigger('input');
     } else if (this.configuration.imageForm) {
       $(html).on('input', '[name="method"]', (e) => {
-        if (e.target.value === 'findAndReplace') {
+        if (e.target.value === 'findAndReplace' || e.target.value === 'findAndReplaceRegex') {
           html.find('.image-controls').hide();
           html.find('.find-and-replace').show();
         } else {
@@ -296,9 +276,7 @@ export default class RandomizerForm extends FormApplication {
           let r = Color.range(c2, c1, { space: space, hue: hue });
           let stops = Color.steps(r, { steps: 5, maxDeltaE: 3 });
           let element = form.find('.colorStrip').get(0);
-          element.style.background = `linear-gradient(to right, ${stops
-            .map((c) => c.display())
-            .join(', ')})`;
+          element.style.background = `linear-gradient(to right, ${stops.map((c) => c.display()).join(', ')})`;
         }
       };
 
@@ -380,9 +358,7 @@ export default class RandomizerForm extends FormApplication {
         this.configApp.randomizeFields[fieldName] = {
           type: 'select',
           method: 'random',
-          selection: formData[fieldName].map((v) =>
-            this.configuration.dtype === 'Number' ? Number(v) : v
-          ),
+          selection: formData[fieldName].map((v) => (this.configuration.dtype === 'Number' ? Number(v) : v)),
         };
       }
     } else if (this.configuration.numberForm || this.configuration.rangeForm) {
@@ -412,7 +388,7 @@ export default class RandomizerForm extends FormApplication {
         };
       }
     } else if (this.configuration.imageForm) {
-      if (formData.method === 'findAndReplace') {
+      if (formData.method === 'findAndReplace' || formData.method === 'findAndReplaceRegex') {
         this.configApp.randomizeFields[fieldName] = {
           type: 'text',
           method: formData.method,
@@ -432,7 +408,7 @@ export default class RandomizerForm extends FormApplication {
         };
       }
     } else if (this.configuration.textForm) {
-      if (formData.method === 'findAndReplace') {
+      if (formData.method === 'findAndReplace' || formData.method === 'findAndReplaceRegex') {
         this.configApp.randomizeFields[fieldName] = {
           type: 'text',
           method: formData.method,
@@ -452,12 +428,7 @@ export default class RandomizerForm extends FormApplication {
         };
       }
     } else if (this.configuration.coordinateForm) {
-      if (
-        formData.minX != null &&
-        formData.maxX != null &&
-        formData.minY != null &&
-        formData.maxY != null
-      ) {
+      if (formData.minX != null && formData.maxX != null && formData.minY != null && formData.maxY != null) {
         const minX = Math.min(formData.minX, formData.maxX);
         const maxX = Math.max(formData.minX, formData.maxX);
         const minY = Math.min(formData.minY, formData.maxY);
@@ -508,8 +479,7 @@ export function applyRandomization(updates, objects, randomizeFields) {
         if (obj.type === 'select') {
           update[field] = obj.selection[Math.floor(Math.random() * obj.selection.length)];
         } else if (obj.type === 'number') {
-          if (obj.step === 'any')
-            obj.step = 1; // default to integer 1 just to avoid very large decimals
+          if (obj.step === 'any') obj.step = 1; // default to integer 1 just to avoid very large decimals
           else obj.step = Number(obj.step);
 
           if (obj.method === 'interpolate') {
@@ -519,8 +489,7 @@ export function applyRandomization(updates, objects, randomizeFields) {
             const stepsInRange = (obj.max - obj.min) / obj.step;
             update[field] = (stepsInRange - (i % (stepsInRange + 1))) * obj.step + obj.min;
           } else {
-            const stepsInRange =
-              (obj.max - obj.min + (Number.isInteger(obj.step) ? 1 : 0)) / obj.step;
+            const stepsInRange = (obj.max - obj.min + (Number.isInteger(obj.step) ? 1 : 0)) / obj.step;
             update[field] = Math.floor(Math.random() * stepsInRange) * obj.step + obj.min;
           }
         } else if (obj.type === 'boolean') {
@@ -547,14 +516,7 @@ export function applyRandomization(updates, objects, randomizeFields) {
             let hexColor = rgb3.toString({ format: 'hex' });
             if (hexColor.length < 7) {
               // 3 char hex, duplicate chars
-              hexColor =
-                '#' +
-                hexColor[1] +
-                hexColor[1] +
-                hexColor[2] +
-                hexColor[2] +
-                hexColor[3] +
-                hexColor[3];
+              hexColor = '#' + hexColor[1] + hexColor[1] + hexColor[2] + hexColor[2] + hexColor[3] + hexColor[3];
             }
             update[field] = hexColor;
           } else {
@@ -570,14 +532,18 @@ export function applyRandomization(updates, objects, randomizeFields) {
             update[field] = obj.images[Math.floor(Math.random() * obj.images.length)];
           }
         } else if (obj.type === 'text') {
-          if (obj.method === 'findAndReplace') {
+          if (obj.method === 'findAndReplace' || obj.method === 'findAndReplaceRegex') {
             const data = flattenObject(getData(objects[i]).toObject());
             if (!data[field] && !obj.find) {
               update[field] = obj.replace;
             } else if (data[field]) {
               // special handling for Tagger tags
               if (field === 'flags.tagger.tags') {
-                update[field] = wildcardStringReplace(obj.find, obj.replace, data[field].join(','));
+                data[field] = data[field].join(',');
+              }
+
+              if (obj.method === 'findAndReplaceRegex') {
+                update[field] = regexStringReplace(obj.find, obj.replace, data[field]);
               } else {
                 update[field] = wildcardStringReplace(obj.find, obj.replace, data[field]);
               }
@@ -612,10 +578,7 @@ export function applyRandomization(updates, objects, randomizeFields) {
     }
     pUpdates.sort(
       (a, b) =>
-        (b.p.w ?? b.p.width ?? 0) +
-        (b.p.h ?? b.p.height ?? 0) -
-        (a.p.w ?? a.p.width ?? 0) -
-        (a.p.h ?? a.p.height ?? 0)
+        (b.p.w ?? b.p.width ?? 0) + (b.p.h ?? b.p.height ?? 0) - (a.p.w ?? a.p.width ?? 0) - (a.p.h ?? a.p.height ?? 0)
     );
 
     for (const pUpdate of pUpdates) {
@@ -712,15 +675,11 @@ function processCoordinate(inputX, inputY, configApp, label) {
 }
 
 function showRandomTextDialog(input, configApp, label) {
-  new RandomizerForm(label, input, configApp, { textForm: true, current: input.val() }).render(
-    true
-  );
+  new RandomizerForm(label, input, configApp, { textForm: true, current: input.val() }).render(true);
 }
 
 function showRandomImageDialog(input, configApp, label) {
-  new RandomizerForm(label, input, configApp, { imageForm: true, current: input.val() }).render(
-    true
-  );
+  new RandomizerForm(label, input, configApp, { imageForm: true, current: input.val() }).render(true);
 }
 
 function showRandomColorDialog(input, configApp, label) {
@@ -818,8 +777,7 @@ function deselectField(control, configApp) {
   let allRandomizedRemoved = true;
   if (configApp) {
     formGroup.find('[name]').each(function () {
-      if (allRandomizedRemoved)
-        allRandomizedRemoved = !Boolean(configApp.randomizeFields[this.name]);
+      if (allRandomizedRemoved) allRandomizedRemoved = !Boolean(configApp.randomizeFields[this.name]);
     });
   }
 
@@ -830,6 +788,7 @@ function deselectField(control, configApp) {
 }
 
 export function selectRandomizerFields(form, fields) {
+  if (!fields) return;
   for (const key of Object.keys(fields)) {
     selectField(form.find(`[name="${key}"]`));
   }

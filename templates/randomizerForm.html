@@ -145,6 +145,7 @@
             <option value="random" {{#if (eq method "random")}}selected="selected"{{/if}}>{{localize "multi-token-edit.common.random"}}</option>
             <option value="sequential" {{#if (eq method "sequential")}}selected="selected"{{/if}}>{{localize "multi-token-edit.randomizer.sequential"}}</option>
             <option value="findAndReplace" {{#if (eq method "findAndReplace")}}selected="selected"{{/if}}>{{localize "multi-token-edit.randomizer.findAndReplace"}}</option>
+            <option value="findAndReplaceRegex" {{#if (eq method "findAndReplaceRegex")}}selected="selected"{{/if}}>{{localize "multi-token-edit.randomizer.findAndReplaceRegex"}}</option>
         </select>
     </div>
     {{/if}}
@@ -156,6 +157,7 @@
         <select name="method" data-dtype="string">
             <option value="list" {{#if (eq method "list")}}selected="selected"{{/if}}>{{localize "multi-token-edit.common.list"}}</option>
             <option value="findAndReplace" {{#if (eq method "findAndReplace")}}selected="selected"{{/if}}>{{localize "multi-token-edit.randomizer.findAndReplace"}}</option>
+            <option value="findAndReplaceRegex" {{#if (eq method "findAndReplaceRegex")}}selected="selected"{{/if}}>{{localize "multi-token-edit.randomizer.findAndReplaceRegex"}}</option>
         </select>
     </div>
     <div class="find-and-replace" hidden>
@@ -240,7 +242,7 @@
     {{/if}}
 
     <footer class="sheet-footer flexrow" style="margin-top: auto;">
-        <button type="submit"><i class="fas fa-dice"></i>{{localize "multi-token-edit.common.randomize"}}</button>
+        <button type="submit"><i class="fas fa-dice"></i>{{localize "multi-token-edit.common.apply"}}</button>
         {{#if existing}}
         <button type="submit" value="delete"><i class="fas fa-trash"></i>{{localize "multi-token-edit.common.delete"}}</button>
         {{/if}}

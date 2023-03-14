@@ -1,7 +1,7 @@
 import { HISTORY } from '../multi-token-edit.mjs';
 import { GeneralDataAdapter } from './dataAdapters.js';
 import { copyToClipboard } from './forms.js';
-import { getLayerMappings } from './multiConfig.js';
+import { LAYER_MAPPINGS } from './multiConfig.js';
 
 export default class MassEditHistory extends FormApplication {
   constructor(docName, callback) {
@@ -84,14 +84,12 @@ export default class MassEditHistory extends FormApplication {
     super.activateListeners(html);
     html.on('click', '.doc-id', (event) => {
       const id = $(event.target).closest('div').find('button')[0].dataset.id;
-      const layers = getLayerMappings()[this.docName] || [];
-      let placeable;
-      for (const layer of layers) {
-        placeable = canvas[layer].placeables.find((p) => p.id === id) || null;
-        if (placeable) break;
-      }
-      if (placeable) {
-        canvas.animatePan({ x: placeable.center.x, y: placeable.center.y, duration: 250 });
+      const layer = LAYER_MAPPINGS[this.docName];
+      if (layer) {
+        let placeable = canvas[layer].placeables.find((p) => p.id === id) || null;
+        if (placeable) {
+          canvas.animatePan({ x: placeable.center.x, y: placeable.center.y, duration: 250 });
+        }
       }
     });
 

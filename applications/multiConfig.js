@@ -3,39 +3,33 @@ import { getData, SUPPORTED_PLACEABLES, SUPPORT_SHEET_CONFIGS } from '../scripts
 import { pasteDataUpdate, WithMassConfig } from './forms.js';
 import { MassEditGenericForm } from './genericForm.js';
 
-export function getLayerMappings() {
-  return isNewerVersion('10', game.version)
-    ? {
-        // v9
-        Token: ['tokens'],
-        Tile: ['background', 'foreground'],
-        Drawing: ['drawings'],
-        Wall: ['walls'],
-        AmbientLight: ['lighting'],
-        AmbientSound: ['sounds'],
-        MeasuredTemplate: ['templates'],
-        Note: ['notes'],
-      }
-    : // v10
-      {
-        Token: ['tokens'],
-        Tile: ['tiles'],
-        Drawing: ['drawings'],
-        Wall: ['walls'],
-        AmbientLight: ['lighting'],
-        AmbientSound: ['sounds'],
-        MeasuredTemplate: ['templates'],
-        Note: ['notes'],
-      };
-}
+export const LAYER_MAPPINGS = {
+  Token: 'tokens',
+  Tile: 'tiles',
+  Drawing: 'drawings',
+  Wall: 'walls',
+  AmbientLight: 'lighting',
+  AmbientSound: 'sounds',
+  MeasuredTemplate: 'templates',
+  Note: 'notes',
+};
+
+export const SCENE_DOC_MAPPINGS = {
+  Token: 'tokens',
+  Tile: 'tiles',
+  Drawing: 'drawings',
+  Wall: 'walls',
+  AmbientLight: 'lights',
+  AmbientSound: 'sounds',
+  MeasuredTemplate: 'templates',
+  Note: 'notes',
+};
 
 // Retrieve currently controlled placeables
 export function getControlled() {
-  for (const layers of Object.values(getLayerMappings())) {
-    for (const layer of layers) {
-      if (canvas[layer].controlled.length) {
-        return canvas[layer].controlled;
-      }
+  for (const layer of Object.values(LAYER_MAPPINGS)) {
+    if (canvas[layer].controlled.length) {
+      return canvas[layer].controlled;
     }
   }
   return null;
@@ -43,16 +37,9 @@ export function getControlled() {
 
 // Retrieve hovered over placeable
 function getHover() {
-  for (const layers of Object.values(getLayerMappings())) {
-    for (const layer of layers) {
-      // v9
-      if (canvas[layer]._hover) {
-        return [canvas[layer]._hover];
-      }
-      // v10
-      if (canvas[layer].hover) {
-        return [canvas[layer].hover];
-      }
+  for (const layer of Object.values(LAYER_MAPPINGS)) {
+    if (canvas[layer].hover) {
+      return [canvas[layer].hover];
     }
   }
   return null;
@@ -74,10 +61,7 @@ function getSelectedDocuments(placeableSelect) {
     $(`.directory-list .${doc.class}.selected`).each(function (_) {
       let d;
       if (doc.name === 'Playlist') {
-        d = game.collections
-          .get(doc.name)
-          .get(this.dataset.playlistId)
-          ?.sounds.get(this.dataset.soundId);
+        d = game.collections.get(doc.name).get(this.dataset.playlistId)?.sounds.get(this.dataset.soundId);
       } else {
         d = game.collections.get(doc.name).get(this.dataset.documentId);
       }
@@ -170,7 +154,7 @@ export function showMassSelect(basePlaceable) {
 }
 
 // show placeable edit
-export function showMassEdit(found = null, documentName) {
+export async function showMassEdit(found = null, documentName, options = {}) {
   let [target, selected] = getSelected(found);
 
   // If there are no placeable in control or just one, then either exit or display the default config window
@@ -184,9 +168,8 @@ export function showMassEdit(found = null, documentName) {
   }
 
   // Display modified config window
-  if (!documentName)
-    documentName = target.document ? target.document.documentName : target.documentName;
-  const options = { massEdit: true, documentName };
+  if (!documentName) documentName = target.document ? target.document.documentName : target.documentName;
+  options = { ...options, massEdit: true, documentName };
   if (SUPPORT_SHEET_CONFIGS.includes(documentName)) {
     if (documentName === 'Actor') {
       target = target.prototypeToken ?? target.token;
@@ -194,9 +177,9 @@ export function showMassEdit(found = null, documentName) {
       options.documentName = 'Token';
     }
     const MassConfig = WithMassConfig(options.documentName);
-    new MassConfig(target, selected, options).render(true, {});
+    return new MassConfig(target, selected, options).render(true, {});
   } else {
-    new MassEditGenericForm(selected, options).render(true);
+    return new MassEditGenericForm(selected, options).render(true);
   }
 }
 

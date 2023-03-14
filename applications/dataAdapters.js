@@ -1,6 +1,5 @@
 class PlaylistSoundDataAdapter {
   static formToData(obj, formData) {
-    if (isNewerVersion('10', game.version)) return;
     if ('lvolume' in formData) {
       formData['volume'] = AudioHelper.inputToVolume(formData['lvolume']);
       delete formData['lvolume'];
@@ -22,11 +21,10 @@ class PlaylistSoundDataAdapter {
 }
 
 class TileDataAdapter {
-  static formToData(obj, formData) {
-    if (isNewerVersion('10', game.version)) return;
+  static formToData(tile, formData) {
     if ('massedit.scale' in formData) {
-      formData.width = obj.document.width * formData['massedit.scale'];
-      formData.height = obj.document.height * formData['massedit.scale'];
+      formData.width = (tile.document ?? tile).width * formData['massedit.scale'];
+      formData.height = (tile.document ?? tile).height * formData['massedit.scale'];
       delete formData['massedit.scale'];
     }
     if ('massedit.texture.scale' in formData) {
@@ -39,7 +37,6 @@ class TileDataAdapter {
 
 class NoteDataAdapter {
   static formToData(obj, formData) {
-    if (isNewerVersion('10', game.version)) return;
     if ('icon.selected' in formData || 'icon.custom' in formData) {
       formData['texture.src'] = formData['icon.selected'] || formData['icon.custom'];
       delete formData['icon.selected'];
@@ -48,7 +45,6 @@ class NoteDataAdapter {
   }
 
   static dataToForm(note, data) {
-    if (isNewerVersion('10', game.version)) return;
     data['icon.selected'] = (note.document ?? note).texture.src;
     data['icon.custom'] = (note.document ?? note).texture.src;
   }
@@ -56,7 +52,6 @@ class NoteDataAdapter {
 
 export class TokenDataAdapter {
   static updateToForm(update) {
-    if (isNewerVersion('10', game.version)) return;
     if ('texture.scaleX' in update) {
       update.mirrorX = update['texture.scaleX'] < 0;
       update.scale = Math.abs(update['texture.scaleX']);
@@ -70,7 +65,7 @@ export class TokenDataAdapter {
   static dataToForm(token, data) {
     if (isNewerVersion('10', game.version)) return;
 
-    const doc = token.document ? token.document : token;
+    const doc = token.document ?? token;
     data.scale = Math.abs(doc.texture.scaleX);
     data.mirrorX = doc.texture.scaleX < 0;
     data.mirrorY = doc.texture.scaleY < 0;
@@ -79,7 +74,7 @@ export class TokenDataAdapter {
   static formToData(token, formData) {
     if (isNewerVersion('10', game.version)) return;
 
-    const doc = token.document ? token.document : token;
+    const doc = token.document ?? token;
 
     // Scale/mirroring
     if ('scale' in formData || 'mirrorX' in formData || 'mirrorY' in formData) {
@@ -180,9 +175,7 @@ export class TokenDataAdapter {
     const pModes = Object.values(foundry.utils.expandObject(preset)?.detectionModes || {});
     if (!pModes.length) return;
 
-    const modes = Object.values(
-      foundry.utils.expandObject(app._getSubmitData())?.detectionModes || {}
-    );
+    const modes = Object.values(foundry.utils.expandObject(app._getSubmitData())?.detectionModes || {});
 
     const presetClone = deepClone(preset);
     const randomize = preset['mass-edit-randomize'] ?? {};
@@ -214,8 +207,7 @@ export class TokenDataAdapter {
         modes.push({ id: '', range: 0, enabled: true });
         Object.keys(pModes[i]).forEach((k) => {
           delete preset[`detectionModes.${i}.${k}`];
-          preset[`detectionModes.${modes.length - 1}.${k}`] =
-            presetClone[`detectionModes.${i}.${k}`];
+          preset[`detectionModes.${modes.length - 1}.${k}`] = presetClone[`detectionModes.${i}.${k}`];
 
           if (`detectionModes.${i}.${k}` in randomize) {
             delete randomize[`detectionModes.${i}.${k}`];
@@ -248,7 +240,6 @@ const ADAPTERS = {
 
 export class GeneralDataAdapter {
   static formToData(docName, obj, formData) {
-    if (isNewerVersion('10', game.version)) return;
     const adapter = ADAPTERS[docName];
     if (adapter && adapter.formToData) {
       adapter.formToData(obj, formData);
@@ -256,7 +247,6 @@ export class GeneralDataAdapter {
   }
 
   static dataToForm(docName, obj, formData) {
-    if (isNewerVersion('10', game.version)) return;
     const adapter = ADAPTERS[docName];
     if (adapter && adapter.dataToForm) {
       adapter.dataToForm(obj, formData);
@@ -264,7 +254,6 @@ export class GeneralDataAdapter {
   }
 
   static updateToForm(docName, update) {
-    if (isNewerVersion('10', game.version)) return;
     const adapter = ADAPTERS[docName];
     if (adapter && adapter.updateToForm) {
       adapter.updateToForm(update);
