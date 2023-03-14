@@ -1,3 +1,10 @@
+# 1.38.0
+
+- `Mass Search` forms (Shift+F) now support cross-scene searches
+  - Enabled via a new checkbox added to the bottom of the form
+  - Will look for placeables across all scenes
+  - Found placeables can be deleted via a new trash button
+
 # 1.37.2
 
 - Added some inbuilt custom control for GeenricForms

@@ -2,7 +2,8 @@
   "multi-token-edit": {
     "form": {
       "immediate-update-title": "Automatically apply updates on field changes.",
-      "global-search-title": "Perform search across ALL scenes."
+      "global-search-title": "Enable world search.",
+      "global-delete-title": "Delete all placeables."
     },
     "macro": {
       "dependency-warning": "This macro requires {module} module to be active."
