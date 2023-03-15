@@ -1,6 +1,7 @@
 import { Brush } from '../scripts/brush.js';
 import { injectVisibility } from '../scripts/fieldInjector.js';
-import { IS_PRIVATE, applyRandomization, showRandomizeDialog, selectRandomizerFields } from '../scripts/private.js';
+import { IS_PRIVATE, showRandomizeDialog } from '../scripts/randomizer/randomizerForm.js';
+import { applyRandomization, selectRandomizerFields } from '../scripts/randomizer/randomizerUtils.js';
 import { applyDDTint, applyTMFXPreset, getDDTint } from '../scripts/tmfx.js';
 import {
   applyAddSubtract,

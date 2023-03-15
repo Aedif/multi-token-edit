@@ -1,23 +1,10 @@
-import { SPECIES_GENERATORS } from './generator/fantasticSpeciesGenerator.js';
-import { GROUP_GENERATORS } from './generator/groupNamesGenerator.js';
-import { NAME_GENERATOR } from './generator/nameGenerator.js';
-import { TAVERN_GENERATOR } from './generator/tavernGenerator.js';
-import Color from './color/color.js';
-import {
-  hexToRgb,
-  isImage,
-  isVideo,
-  nearestStep,
-  randomizeColor,
-  recursiveTraverse,
-  rgbToHex,
-  shuffleArray,
-  randomPlace,
-  emptyObject,
-  getData,
-  wildcardStringReplace,
-  regexStringReplace,
-} from './utils.js';
+import Color from '../color/color.js';
+import { SPECIES_GENERATORS } from '../generator/fantasticSpeciesGenerator.js';
+import { GROUP_GENERATORS } from '../generator/groupNamesGenerator.js';
+import { NAME_GENERATOR } from '../generator/nameGenerator.js';
+import { TAVERN_GENERATOR } from '../generator/tavernGenerator.js';
+import { isImage, isVideo, recursiveTraverse } from '../utils.js';
+import { deselectField, nearestStep, selectField } from './randomizerUtils.js';
 
 export const IS_PRIVATE = false;
 
@@ -308,7 +295,7 @@ export default class RandomizerForm extends FormApplication {
     this.configApp.minimize();
 
     const t = this;
-    canvas.stage.addChild(getPickerOverlay()).once('pick', (position) => {
+    canvas.stage.addChild(_getPickerOverlay()).once('pick', (position) => {
       const form = $(event.target).closest('form');
 
       const minX = Math.min(position.start.x, position.end.x);
@@ -464,141 +451,30 @@ export default class RandomizerForm extends FormApplication {
   }
 }
 
-export function applyRandomization(updates, objects, randomizeFields) {
-  // See if any field is to be randomized
-  if (!randomizeFields || emptyObject(randomizeFields)) return;
+let pickerOverlay;
+let boundStart;
+let boundEnd;
 
-  let requiresCoordRandomization = false;
-
-  for (let i = 0; i < updates.length; i++) {
-    const update = updates[i];
-    for (const field of Object.keys(update)) {
-      if (field in randomizeFields) {
-        const obj = randomizeFields[field];
-
-        if (obj.type === 'select') {
-          update[field] = obj.selection[Math.floor(Math.random() * obj.selection.length)];
-        } else if (obj.type === 'number') {
-          if (obj.step === 'any') obj.step = 1; // default to integer 1 just to avoid very large decimals
-          else obj.step = Number(obj.step);
-
-          if (obj.method === 'interpolate') {
-            const stepsInRange = (obj.max - obj.min) / obj.step + 1;
-            update[field] = (i % stepsInRange) * obj.step + obj.min;
-          } else if (obj.method === 'interpolateReverse') {
-            const stepsInRange = (obj.max - obj.min) / obj.step;
-            update[field] = (stepsInRange - (i % (stepsInRange + 1))) * obj.step + obj.min;
-          } else {
-            const stepsInRange = (obj.max - obj.min + (Number.isInteger(obj.step) ? 1 : 0)) / obj.step;
-            update[field] = Math.floor(Math.random() * stepsInRange) * obj.step + obj.min;
-          }
-        } else if (obj.type === 'boolean') {
-          update[field] = Math.random() < 0.5;
-        } else if (obj.type === 'color') {
-          if (Color !== undefined) {
-            let color1 = new Color(obj.color1);
-            let color2 = new Color(obj.color2);
-            const space = obj.space || 'srgb';
-            const hue = obj.hue || 'shorter';
-            let range = color1.range(color2, {
-              space: space, // interpolation space
-              hue: hue,
-              outputSpace: 'srgb',
-            });
-            let rgb3;
-            if (obj.method === 'interpolate') {
-              rgb3 = range(1 - (i + 1) / updates.length);
-            } else if (obj.method === 'interpolateReverse') {
-              rgb3 = range((i + 1) / updates.length);
-            } else {
-              rgb3 = range(Math.random());
-            }
-            let hexColor = rgb3.toString({ format: 'hex' });
-            if (hexColor.length < 7) {
-              // 3 char hex, duplicate chars
-              hexColor = '#' + hexColor[1] + hexColor[1] + hexColor[2] + hexColor[2] + hexColor[3] + hexColor[3];
-            }
-            update[field] = hexColor;
-          } else {
-            const rgb1 = hexToRgb(obj.color1);
-            const rgb2 = hexToRgb(obj.color2);
-            const randomRGB = randomizeColor(rgb1, rgb2);
-            update[field] = rgbToHex(randomRGB);
-          }
-        } else if (obj.type === 'image') {
-          if (obj.method === 'sequential') {
-            update[field] = obj.images[i % obj.images.length];
-          } else {
-            update[field] = obj.images[Math.floor(Math.random() * obj.images.length)];
-          }
-        } else if (obj.type === 'text') {
-          if (obj.method === 'findAndReplace' || obj.method === 'findAndReplaceRegex') {
-            const data = flattenObject(getData(objects[i]).toObject());
-            if (!data[field] && !obj.find) {
-              update[field] = obj.replace;
-            } else if (data[field]) {
-              // special handling for Tagger tags
-              if (field === 'flags.tagger.tags') {
-                data[field] = data[field].join(',');
-              }
-
-              if (obj.method === 'findAndReplaceRegex') {
-                update[field] = regexStringReplace(obj.find, obj.replace, data[field]);
-              } else {
-                update[field] = wildcardStringReplace(obj.find, obj.replace, data[field]);
-              }
-            }
-          } else {
-            if (obj.method === 'unique') {
-              if (!obj.shuffled) {
-                shuffleArray(obj.strings);
-                obj.shuffled = true;
-                obj.i = -1;
-              }
-              obj.i++;
-              update[field] = obj.strings[obj.i % obj.strings.length];
-            } else {
-              update[field] = obj.strings[Math.floor(Math.random() * obj.strings.length)];
-            }
-          }
-        } else if (obj.type === 'coordinate') {
-          requiresCoordRandomization = true;
-        }
-      }
-    }
+function _getPickerOverlay() {
+  if (pickerOverlay) {
+    pickerOverlay.destroy(true);
   }
 
-  if (requiresCoordRandomization) {
-    let coordCtrl;
-
-    // Sort placeables based on size
-    let pUpdates = [];
-    for (let i = 0; i < objects.length; i++) {
-      pUpdates.push({ p: objects[i], update: updates[i] });
-    }
-    pUpdates.sort(
-      (a, b) =>
-        (b.p.w ?? b.p.width ?? 0) + (b.p.h ?? b.p.height ?? 0) - (a.p.w ?? a.p.width ?? 0) - (a.p.h ?? a.p.height ?? 0)
-    );
-
-    for (const pUpdate of pUpdates) {
-      const obj = randomizeFields.x ?? randomizeFields.y;
-      if (obj.method === 'noOverlap') {
-        if (!coordCtrl) {
-          coordCtrl = {
-            freeId: 0,
-            boundingBox: obj.boundingBox,
-            freeRectangles: { 0: obj.boundingBox },
-            stepX: obj.stepX,
-            stepY: obj.stepY,
-          };
-        }
-        const [x, y] = randomPlace(pUpdate.p, coordCtrl);
-        pUpdate.update.x = x;
-        pUpdate.update.y = y;
-      }
-    }
-  }
+  pickerOverlay = new PIXI.Container();
+  pickerOverlay.hitArea = canvas.dimensions.rect;
+  pickerOverlay.cursor = 'crosshair';
+  pickerOverlay.interactive = true;
+  pickerOverlay.zIndex = Infinity;
+  pickerOverlay.on('remove', () => pickerOverlay.off('pick'));
+  pickerOverlay.on('mousedown', (event) => {
+    boundStart = event.data.getLocalPosition(pickerOverlay);
+  });
+  pickerOverlay.on('mouseup', (event) => (boundEnd = event.data.getLocalPosition(pickerOverlay)));
+  pickerOverlay.on('click', (event) => {
+    pickerOverlay.emit('pick', { start: boundStart, end: boundEnd });
+    pickerOverlay.parent.removeChild(pickerOverlay);
+  });
+  return pickerOverlay;
 }
 
 // Show a dialog to select randomization settings for this form-group
@@ -631,9 +507,9 @@ export function showRandomizeDialog(formGroup, configApp) {
       }
 
       if (type === 'SELECT') {
-        processSelect($(this), configApp, label);
+        _showRandomSelectDialog($(this), configApp, label);
       } else if (type === 'INPUT') {
-        processInput($(this), configApp, label, singleInput);
+        _processInput($(this), configApp, label, singleInput);
       } else {
         console.log(label, type);
       }
@@ -642,22 +518,22 @@ export function showRandomizeDialog(formGroup, configApp) {
 }
 
 // Handle <input> tag
-function processInput(input, configApp, label, singleInput) {
+function _processInput(input, configApp, label, singleInput) {
   const type = input.attr('type');
   if (type === 'number' || (type === 'text' && input.attr('data-dtype') === 'Number')) {
-    showRandomNumberDialog(input, configApp, label);
+    _showRandomNumberDialog(input, configApp, label);
   } else if (type === 'range') {
-    showRandomRangeDialog(input, configApp, label);
+    _showRandomRangeDialog(input, configApp, label);
   } else if (type === 'checkbox') {
-    showRandomBoolDialog(input, configApp, label, singleInput);
+    _showRandomBoolDialog(input, configApp, label, singleInput);
   } else if (type === 'text' && input.hasClass('color')) {
-    showRandomColorDialog(input, configApp, label);
+    _showRandomColorDialog(input, configApp, label);
   } else if (type === 'text' && input.hasClass('image')) {
-    showRandomImageDialog(input, configApp, label);
+    _showRandomImageDialog(input, configApp, label);
   } else if (type === 'text') {
-    showRandomTextDialog(input, configApp, label);
+    _showRandomTextDialog(input, configApp, label);
   } else if (input.attr('list')) {
-    processList(input, configApp, label);
+    _processList(input, configApp, label);
   }
 }
 
@@ -674,15 +550,15 @@ function processCoordinate(inputX, inputY, configApp, label) {
   }).render(true);
 }
 
-function showRandomTextDialog(input, configApp, label) {
+function _showRandomTextDialog(input, configApp, label) {
   new RandomizerForm(label, input, configApp, { textForm: true, current: input.val() }).render(true);
 }
 
-function showRandomImageDialog(input, configApp, label) {
+function _showRandomImageDialog(input, configApp, label) {
   new RandomizerForm(label, input, configApp, { imageForm: true, current: input.val() }).render(true);
 }
 
-function showRandomColorDialog(input, configApp, label) {
+function _showRandomColorDialog(input, configApp, label) {
   new RandomizerForm(label, input, configApp, {
     colorForm: true,
     color1: '#ff0000',
@@ -691,21 +567,26 @@ function showRandomColorDialog(input, configApp, label) {
 }
 
 // Show dialog for checkboxes
-function showRandomBoolDialog(input, configApp, label, singleInput) {
+function _showRandomBoolDialog(input, configApp, label, singleInput) {
   if (singleInput) {
     const fieldName = input.attr('name');
-    configApp.randomizeFields[fieldName] = {
-      type: 'boolean',
-      method: 'random',
-    };
-    selectField(input);
+    if (configApp.randomizeFields[fieldName]) {
+      delete configApp.randomizeFields[fieldName];
+      deselectField(input, configApp);
+    } else {
+      configApp.randomizeFields[fieldName] = {
+        type: 'boolean',
+        method: 'random',
+      };
+      selectField(input);
+    }
   } else {
     new RandomizerForm(label, input, configApp, { booleanForm: true }).render(true);
   }
 }
 
 // show dialog for number inputs
-function showRandomNumberDialog(input, configApp, label) {
+function _showRandomNumberDialog(input, configApp, label) {
   const current = input.val() ?? 0;
   const step = input.attr('step') ?? 1;
   const min = input.attr('min') ?? current;
@@ -721,7 +602,7 @@ function showRandomNumberDialog(input, configApp, label) {
 }
 
 // show dialog for range inputs
-function showRandomRangeDialog(input, configApp, label) {
+function _showRandomRangeDialog(input, configApp, label) {
   const current = input.val() ?? 0;
   const step = input.attr('step') ?? 1;
   const min = input.attr('min') ?? 0;
@@ -737,7 +618,7 @@ function showRandomRangeDialog(input, configApp, label) {
   }).render(true);
 }
 
-function processSelect(select, configApp, label) {
+function _showRandomSelectDialog(select, configApp, label) {
   const options = [];
   const dtype = select.attr('data-dtype') ?? 'String';
   select.find('option').each(function (_) {
@@ -751,7 +632,7 @@ function processSelect(select, configApp, label) {
   }).render(true);
 }
 
-function processList(input, configApp, label) {
+function _processList(input, configApp, label) {
   const dataList = input.closest('.form-group').find(`#${input.attr('list')}`);
   const options = [];
   dataList.find('option').each(function (_) {
@@ -763,59 +644,4 @@ function processList(input, configApp, label) {
     options: options,
     dtype: 'String',
   }).render(true);
-}
-
-function selectField(control) {
-  const formGroup = control.closest('.form-group');
-  formGroup.find('.mass-edit-checkbox input').prop('checked', true).trigger('change');
-  formGroup.find('.mass-edit-randomize').addClass('active');
-}
-
-function deselectField(control, configApp) {
-  const formGroup = control.closest('.form-group');
-
-  let allRandomizedRemoved = true;
-  if (configApp) {
-    formGroup.find('[name]').each(function () {
-      if (allRandomizedRemoved) allRandomizedRemoved = !Boolean(configApp.randomizeFields[this.name]);
-    });
-  }
-
-  if (allRandomizedRemoved) {
-    formGroup.find('.mass-edit-checkbox input').prop('checked', false).trigger('change');
-    formGroup.find('.mass-edit-randomize').removeClass('active');
-  }
-}
-
-export function selectRandomizerFields(form, fields) {
-  if (!fields) return;
-  for (const key of Object.keys(fields)) {
-    selectField(form.find(`[name="${key}"]`));
-  }
-}
-
-let pickerOverlay;
-let boundStart;
-let boundEnd;
-
-function getPickerOverlay() {
-  if (pickerOverlay) {
-    pickerOverlay.destroy(true);
-  }
-
-  pickerOverlay = new PIXI.Container();
-  pickerOverlay.hitArea = canvas.dimensions.rect;
-  pickerOverlay.cursor = 'crosshair';
-  pickerOverlay.interactive = true;
-  pickerOverlay.zIndex = Infinity;
-  pickerOverlay.on('remove', () => pickerOverlay.off('pick'));
-  pickerOverlay.on('mousedown', (event) => {
-    boundStart = event.data.getLocalPosition(pickerOverlay);
-  });
-  pickerOverlay.on('mouseup', (event) => (boundEnd = event.data.getLocalPosition(pickerOverlay)));
-  pickerOverlay.on('click', (event) => {
-    pickerOverlay.emit('pick', { start: boundStart, end: boundEnd });
-    pickerOverlay.parent.removeChild(pickerOverlay);
-  });
-  return pickerOverlay;
 }

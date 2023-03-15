@@ -262,9 +262,7 @@ function adapt$1(W1, W2, XYZ, options = {}) {
 
   if (!W1 || !W2) {
     throw new TypeError(
-      `Missing white point to convert ${!W1 ? 'from' : ''}${!W1 && !W2 ? '/' : ''}${
-        !W2 ? 'to' : ''
-      }`
+      `Missing white point to convert ${!W1 ? 'from' : ''}${!W1 && !W2 ? '/' : ''}${!W2 ? 'to' : ''}`
     );
   }
 
@@ -375,9 +373,7 @@ class ColorSpace {
         }
 
         let [min, max] = meta.range;
-        return (
-          (min === undefined || c >= min - epsilon) && (max === undefined || c <= max + epsilon)
-        );
+        return (min === undefined || c >= min - epsilon) && (max === undefined || c <= max + epsilon);
       }
 
       return true;
@@ -513,9 +509,7 @@ class ColorSpace {
 
     if (!connectionSpace) {
       // This should never happen
-      throw new Error(
-        `Cannot convert between color spaces ${this} and ${space}: no connection space was found`
-      );
+      throw new Error(`Cannot convert between color spaces ${this} and ${space}: no connection space was found`);
     }
 
     // Go up from current space to connection space
@@ -683,9 +677,7 @@ class ColorSpace {
     }
 
     throw new TypeError(
-      `No "${coord}" coordinate found in ${space.name}. Its coordinates are: ${Object.keys(
-        space.coords
-      ).join(', ')}`
+      `No "${coord}" coordinate found in ${space.name}. Its coordinates are: ${Object.keys(space.coords).join(', ')}`
     );
   }
 
@@ -1469,20 +1461,14 @@ to.returns = 'color';
  */
 function serialize(
   color,
-  {
-    precision = defaults.precision,
-    format = 'default',
-    inGamut: inGamut$1 = true,
-    ...customOptions
-  } = {}
+  { precision = defaults.precision, format = 'default', inGamut: inGamut$1 = true, ...customOptions } = {}
 ) {
   let ret;
 
   color = getColor(color);
 
   let formatId = format;
-  format =
-    color.space.getFormat(format) ?? color.space.getFormat('default') ?? ColorSpace.DEFAULT_FORMAT;
+  format = color.space.getFormat(format) ?? color.space.getFormat('default') ?? ColorSpace.DEFAULT_FORMAT;
 
   inGamut$1 ||= format.toGamut;
 
@@ -1503,9 +1489,7 @@ function serialize(
     if (format.serialize) {
       ret = format.serialize(coords, color.alpha, customOptions);
     } else {
-      throw new TypeError(
-        `format ${formatId} can only be used to parse colors, not for serialization`
-      );
+      throw new TypeError(`format ${formatId} can only be used to parse colors, not for serialization`);
     }
   } else {
     // Functional syntax
@@ -2317,9 +2301,7 @@ function contrast(background, foreground, o = {}) {
     let algorithms = Object.keys(contrastMethods)
       .map((a) => a.replace(/^contrast/, ''))
       .join(', ');
-    throw new TypeError(
-      `contrast() function needs a contrast algorithm. Please specify one of: ${algorithms}`
-    );
+    throw new TypeError(`contrast() function needs a contrast algorithm. Please specify one of: ${algorithms}`);
   }
 
   background = getColor(background);

@@ -1546,34 +1546,8 @@ const names = {
       'shim',
       'wisp',
     ],
-    maleSuffixes: [
-      'aldo',
-      'allo',
-      'amo',
-      'ando',
-      'aroll',
-      'aron',
-      'asto',
-      'endo',
-      'eroll',
-      'eron',
-      'esto',
-      'ondo',
-    ],
-    femaleSuffixes: [
-      'afer',
-      'amer',
-      'anel',
-      'arel',
-      'asti',
-      'efer',
-      'enti',
-      'erel',
-      'ifer',
-      'imer',
-      'inel',
-      'irel',
-    ],
+    maleSuffixes: ['aldo', 'allo', 'amo', 'ando', 'aroll', 'aron', 'asto', 'endo', 'eroll', 'eron', 'esto', 'ondo'],
+    femaleSuffixes: ['afer', 'amer', 'anel', 'arel', 'asti', 'efer', 'enti', 'erel', 'ifer', 'imer', 'inel', 'irel'],
   },
   alternativeFaerykind: {
     prefixes: [
@@ -1614,34 +1588,8 @@ const names = {
       'ninka',
       'zando',
     ],
-    maleSuffixes: [
-      'bik',
-      'brix',
-      'frell',
-      'fret',
-      'kin',
-      'mist',
-      'mit',
-      'rix',
-      'tross',
-      'twik',
-      'win',
-      'zisk',
-    ],
-    femaleSuffixes: [
-      'dee',
-      'kiss',
-      'la',
-      'liss',
-      'mee',
-      'niss',
-      'nyx',
-      'ree',
-      'riss',
-      'sa',
-      'tiss',
-      'ynx',
-    ],
+    maleSuffixes: ['bik', 'brix', 'frell', 'fret', 'kin', 'mist', 'mit', 'rix', 'tross', 'twik', 'win', 'zisk'],
+    femaleSuffixes: ['dee', 'kiss', 'la', 'liss', 'mee', 'niss', 'nyx', 'ree', 'riss', 'sa', 'tiss', 'ynx'],
   },
   elegantEvil: {
     prefixesDarkElves: [
@@ -2372,34 +2320,8 @@ const names = {
       'valkar',
       'voltar',
     ],
-    maleSuffixes: [
-      'al',
-      'an',
-      'ar',
-      'as',
-      'at',
-      'ath',
-      'ath',
-      'ath',
-      'anth',
-      'athal',
-      'athar',
-      'athas',
-    ],
-    femaleSuffixes: [
-      'el',
-      'en',
-      'er',
-      'es',
-      'et',
-      'eth',
-      'eth',
-      'eth',
-      'enth',
-      'eleth',
-      'ereth',
-      'eseth',
-    ],
+    maleSuffixes: ['al', 'an', 'ar', 'as', 'at', 'ath', 'ath', 'ath', 'anth', 'athal', 'athar', 'athas'],
+    femaleSuffixes: ['el', 'en', 'er', 'es', 'et', 'eth', 'eth', 'eth', 'enth', 'eleth', 'ereth', 'eseth'],
     titles: ['ar-', 'sar-', 'tar-', 'var-', 'jal-', 'kal-', 'pal-', 'ral-', 'tal-'],
   },
 };
@@ -2407,99 +2329,63 @@ const names = {
 export const SPECIES_GENERATORS = {
   getGoblinName: function () {
     return (
-      names.vileAndCrude.small[
-        Math.floor(Math.random() * names.vileAndCrude.small.length)
-      ].capitalize() +
+      names.vileAndCrude.small[Math.floor(Math.random() * names.vileAndCrude.small.length)].capitalize() +
       names.vileAndCrude.small[Math.floor(Math.random() * names.vileAndCrude.small.length)]
     );
   },
   getOrcName: function () {
     return (
-      names.vileAndCrude.medium[
-        Math.floor(Math.random() * names.vileAndCrude.medium.length)
-      ].capitalize() +
+      names.vileAndCrude.medium[Math.floor(Math.random() * names.vileAndCrude.medium.length)].capitalize() +
       names.vileAndCrude.medium[Math.floor(Math.random() * names.vileAndCrude.medium.length)]
     );
   },
   getOgreName: function () {
     return (
-      names.vileAndCrude.large[
-        Math.floor(Math.random() * names.vileAndCrude.large.length)
-      ].capitalize() +
+      names.vileAndCrude.large[Math.floor(Math.random() * names.vileAndCrude.large.length)].capitalize() +
       names.vileAndCrude.large[Math.floor(Math.random() * names.vileAndCrude.large.length)]
     );
   },
   getMaleCavemenName: function () {
     var d10 = Math.floor(Math.random() * 10) + 1,
-      name =
-        names.primitive.names[
-          Math.floor(Math.random() * names.primitive.names.length)
-        ].capitalize();
+      name = names.primitive.names[Math.floor(Math.random() * names.primitive.names.length)].capitalize();
 
     if (d10 > 3) {
-      name +=
-        '-' +
-        names.primitive.names[
-          Math.floor(Math.random() * names.primitive.names.length)
-        ].capitalize();
+      name += '-' + names.primitive.names[Math.floor(Math.random() * names.primitive.names.length)].capitalize();
     }
 
     if (d10 > 8) {
-      name +=
-        '-' +
-        names.primitive.names[
-          Math.floor(Math.random() * names.primitive.names.length)
-        ].capitalize();
+      name += '-' + names.primitive.names[Math.floor(Math.random() * names.primitive.names.length)].capitalize();
     }
 
     return name;
   },
   getFemaleCavemenName: function () {
-    var name =
-      names.primitive.names[Math.floor(Math.random() * names.primitive.names.length)].capitalize();
+    var name = names.primitive.names[Math.floor(Math.random() * names.primitive.names.length)].capitalize();
     if (Math.random() >= 0.5) {
-      name +=
-        '-' +
-        names.primitive.names[
-          Math.floor(Math.random() * names.primitive.names.length)
-        ].capitalize();
+      name += '-' + names.primitive.names[Math.floor(Math.random() * names.primitive.names.length)].capitalize();
     }
-    name +=
-      '-' +
-      names.primitive.suffixes[
-        Math.floor(Math.random() * names.primitive.suffixes.length)
-      ].capitalize();
+    name += '-' + names.primitive.suffixes[Math.floor(Math.random() * names.primitive.suffixes.length)].capitalize();
 
     return name;
   },
   getMaleDwarfName: function () {
-    var name =
-      names.doughty.syllabes[
-        Math.floor(Math.random() * names.doughty.syllabes.length)
-      ].capitalize();
+    var name = names.doughty.syllabes[Math.floor(Math.random() * names.doughty.syllabes.length)].capitalize();
 
     if (Math.random() > 0.8) {
       name += isVowel(name.slice(-1)) ? 'r' : 'i';
     } else {
-      name +=
-        names.doughty.maleSuffixes[Math.floor(Math.random() * names.doughty.maleSuffixes.length)];
+      name += names.doughty.maleSuffixes[Math.floor(Math.random() * names.doughty.maleSuffixes.length)];
     }
 
     return name;
   },
   getFemaleDwarfName: function () {
-    var name =
-      names.doughty.syllabes[
-        Math.floor(Math.random() * names.doughty.syllabes.length)
-      ].capitalize();
+    var name = names.doughty.syllabes[Math.floor(Math.random() * names.doughty.syllabes.length)].capitalize();
 
     if (Math.random() > 0.8) {
       name += isVowel(name.slice(-1)) ? 'ra' : 'a';
     } else {
-      name +=
-        names.doughty.femaleSuffixes[
-          Math.floor(Math.random() * names.doughty.femaleSuffixes.length)
-        ];
+      name += names.doughty.femaleSuffixes[Math.floor(Math.random() * names.doughty.femaleSuffixes.length)];
     }
 
     return name;
@@ -2510,8 +2396,7 @@ export const SPECIES_GENERATORS = {
       names.homely.maleSuffixes[Math.floor(Math.random() * names.homely.maleSuffixes.length)];
 
     if (Math.random() > 0.7) {
-      name +=
-        ' ' + names.familyName.english[Math.floor(Math.random() * names.familyName.english.length)];
+      name += ' ' + names.familyName.english[Math.floor(Math.random() * names.familyName.english.length)];
     }
 
     return name;
@@ -2522,17 +2407,13 @@ export const SPECIES_GENERATORS = {
       names.homely.femaleSuffixes[Math.floor(Math.random() * names.homely.femaleSuffixes.length)];
 
     if (Math.random() > 0.7) {
-      name +=
-        ' ' + names.familyName.english[Math.floor(Math.random() * names.familyName.english.length)];
+      name += ' ' + names.familyName.english[Math.floor(Math.random() * names.familyName.english.length)];
     }
 
     return name;
   },
   getMaleGnomeName: function () {
-    var name =
-      names.doughty.syllabes[
-        Math.floor(Math.random() * names.doughty.syllabes.length)
-      ].capitalize();
+    var name = names.doughty.syllabes[Math.floor(Math.random() * names.doughty.syllabes.length)].capitalize();
 
     if (isVowel(name.slice(-1))) {
       name += 'l';
@@ -2541,54 +2422,38 @@ export const SPECIES_GENERATORS = {
     name += names.homely.maleSuffixes[Math.floor(Math.random() * names.homely.maleSuffixes.length)];
 
     if (Math.random() > 0.7) {
-      name +=
-        ' ' +
-        names.familyName.scottish[Math.floor(Math.random() * names.familyName.scottish.length)];
+      name += ' ' + names.familyName.scottish[Math.floor(Math.random() * names.familyName.scottish.length)];
     }
 
     return name;
   },
   getFemaleGnomeName: function () {
-    var name =
-      names.doughty.syllabes[
-        Math.floor(Math.random() * names.doughty.syllabes.length)
-      ].capitalize();
+    var name = names.doughty.syllabes[Math.floor(Math.random() * names.doughty.syllabes.length)].capitalize();
 
     if (isVowel(name.slice(-1))) {
       name += 'l';
     }
 
-    name +=
-      names.homely.femaleSuffixes[Math.floor(Math.random() * names.homely.femaleSuffixes.length)];
+    name += names.homely.femaleSuffixes[Math.floor(Math.random() * names.homely.femaleSuffixes.length)];
 
     if (Math.random() > 0.7) {
-      name +=
-        ' ' +
-        names.familyName.scottish[Math.floor(Math.random() * names.familyName.scottish.length)];
+      name += ' ' + names.familyName.scottish[Math.floor(Math.random() * names.familyName.scottish.length)];
     }
 
     return name;
   },
   getMaleElfName: function () {
     return (
-      names.fairAndNoble.elfprefixes[
-        Math.floor(Math.random() * names.fairAndNoble.elfprefixes.length)
-      ].capitalize() +
+      names.fairAndNoble.elfprefixes[Math.floor(Math.random() * names.fairAndNoble.elfprefixes.length)].capitalize() +
       names.fairAndNoble.middle[Math.floor(Math.random() * names.fairAndNoble.middle.length)] +
-      names.fairAndNoble.maleSuffixes[
-        Math.floor(Math.random() * names.fairAndNoble.maleSuffixes.length)
-      ]
+      names.fairAndNoble.maleSuffixes[Math.floor(Math.random() * names.fairAndNoble.maleSuffixes.length)]
     );
   },
   getFemaleElfName: function () {
     return (
-      names.fairAndNoble.elfprefixes[
-        Math.floor(Math.random() * names.fairAndNoble.elfprefixes.length)
-      ].capitalize() +
+      names.fairAndNoble.elfprefixes[Math.floor(Math.random() * names.fairAndNoble.elfprefixes.length)].capitalize() +
       names.fairAndNoble.middle[Math.floor(Math.random() * names.fairAndNoble.middle.length)] +
-      names.fairAndNoble.femaleSuffixes[
-        Math.floor(Math.random() * names.fairAndNoble.femaleSuffixes.length)
-      ]
+      names.fairAndNoble.femaleSuffixes[Math.floor(Math.random() * names.fairAndNoble.femaleSuffixes.length)]
     );
   },
   getAlternateMaleElfName: function () {
@@ -2597,9 +2462,7 @@ export const SPECIES_GENERATORS = {
         Math.floor(Math.random() * names.fairAndNoble.alternativeElfPrefixes.length)
       ].capitalize() +
       names.fairAndNoble.middle[Math.floor(Math.random() * names.fairAndNoble.middle.length)] +
-      names.fairAndNoble.femaleSuffixes[
-        Math.floor(Math.random() * names.fairAndNoble.femaleSuffixes.length)
-      ]
+      names.fairAndNoble.femaleSuffixes[Math.floor(Math.random() * names.fairAndNoble.femaleSuffixes.length)]
     );
   },
   getAlternateFemaleElfName: function () {
@@ -2608,27 +2471,19 @@ export const SPECIES_GENERATORS = {
         Math.floor(Math.random() * names.fairAndNoble.alternativeElfPrefixes.length)
       ].capitalize() +
       names.fairAndNoble.middle[Math.floor(Math.random() * names.fairAndNoble.middle.length)] +
-      names.fairAndNoble.maleSuffixes[
-        Math.floor(Math.random() * names.fairAndNoble.maleSuffixes.length)
-      ]
+      names.fairAndNoble.maleSuffixes[Math.floor(Math.random() * names.fairAndNoble.maleSuffixes.length)]
     );
   },
   getMaleFaerykindName: function () {
     return (
-      names.faerykind.prefixes[
-        Math.floor(Math.random() * names.faerykind.prefixes.length)
-      ].capitalize() +
+      names.faerykind.prefixes[Math.floor(Math.random() * names.faerykind.prefixes.length)].capitalize() +
       names.faerykind.maleSuffixes[Math.floor(Math.random() * names.faerykind.maleSuffixes.length)]
     );
   },
   getFemaleFaerykindName: function () {
     return (
-      names.faerykind.prefixes[
-        Math.floor(Math.random() * names.faerykind.prefixes.length)
-      ].capitalize() +
-      names.faerykind.femaleSuffixes[
-        Math.floor(Math.random() * names.faerykind.femaleSuffixes.length)
-      ]
+      names.faerykind.prefixes[Math.floor(Math.random() * names.faerykind.prefixes.length)].capitalize() +
+      names.faerykind.femaleSuffixes[Math.floor(Math.random() * names.faerykind.femaleSuffixes.length)]
     );
   },
   getAlternateMaleFaerykindName: function () {
@@ -2661,10 +2516,7 @@ export const SPECIES_GENERATORS = {
       name += names.elegantEvil.middle[Math.floor(Math.random() * names.elegantEvil.middle.length)];
     }
 
-    name +=
-      names.elegantEvil.maleSuffixes[
-        Math.floor(Math.random() * names.elegantEvil.maleSuffixes.length)
-      ];
+    name += names.elegantEvil.maleSuffixes[Math.floor(Math.random() * names.elegantEvil.maleSuffixes.length)];
 
     return name;
   },
@@ -2678,10 +2530,7 @@ export const SPECIES_GENERATORS = {
       name += names.elegantEvil.middle[Math.floor(Math.random() * names.elegantEvil.middle.length)];
     }
 
-    name +=
-      names.elegantEvil.femaleSuffixes[
-        Math.floor(Math.random() * names.elegantEvil.femaleSuffixes.length)
-      ];
+    name += names.elegantEvil.femaleSuffixes[Math.floor(Math.random() * names.elegantEvil.femaleSuffixes.length)];
 
     return name;
   },
@@ -2695,10 +2544,7 @@ export const SPECIES_GENERATORS = {
       name += names.elegantEvil.middle[Math.floor(Math.random() * names.elegantEvil.middle.length)];
     }
 
-    name +=
-      names.elegantEvil.maleSuffixes[
-        Math.floor(Math.random() * names.elegantEvil.maleSuffixes.length)
-      ];
+    name += names.elegantEvil.maleSuffixes[Math.floor(Math.random() * names.elegantEvil.maleSuffixes.length)];
 
     return name;
   },
@@ -2712,46 +2558,30 @@ export const SPECIES_GENERATORS = {
       name += names.elegantEvil.middle[Math.floor(Math.random() * names.elegantEvil.middle.length)];
     }
 
-    name +=
-      names.elegantEvil.femaleSuffixes[
-        Math.floor(Math.random() * names.elegantEvil.femaleSuffixes.length)
-      ];
+    name += names.elegantEvil.femaleSuffixes[Math.floor(Math.random() * names.elegantEvil.femaleSuffixes.length)];
 
     return name;
   },
   getMaleHalfDemonName: function () {
     return (
-      names.malevolent.prefixes[
-        Math.floor(Math.random() * names.malevolent.prefixes.length)
-      ].capitalize() +
-      names.malevolent.maleSuffixes[
-        Math.floor(Math.random() * names.malevolent.maleSuffixes.length)
-      ]
+      names.malevolent.prefixes[Math.floor(Math.random() * names.malevolent.prefixes.length)].capitalize() +
+      names.malevolent.maleSuffixes[Math.floor(Math.random() * names.malevolent.maleSuffixes.length)]
     );
   },
   getFemaleHalfDemonName: function () {
     return (
-      names.malevolent.prefixes[
-        Math.floor(Math.random() * names.malevolent.prefixes.length)
-      ].capitalize() +
-      names.malevolent.femaleSuffixes[
-        Math.floor(Math.random() * names.malevolent.femaleSuffixes.length)
-      ]
+      names.malevolent.prefixes[Math.floor(Math.random() * names.malevolent.prefixes.length)].capitalize() +
+      names.malevolent.femaleSuffixes[Math.floor(Math.random() * names.malevolent.femaleSuffixes.length)]
     );
   },
   getMaleDragonName: function () {
     return (
-      names.draconic.prefixes[
-        Math.floor(Math.random() * names.draconic.prefixes.length)
-      ].capitalize() +
+      names.draconic.prefixes[Math.floor(Math.random() * names.draconic.prefixes.length)].capitalize() +
       names.draconic.suffixes[Math.floor(Math.random() * names.draconic.suffixes.length)]
     );
   },
   getFemaleDragonName: function () {
-    var name =
-        names.draconic.prefixes[
-          Math.floor(Math.random() * names.draconic.prefixes.length)
-        ].capitalize(),
+    var name = names.draconic.prefixes[Math.floor(Math.random() * names.draconic.prefixes.length)].capitalize(),
       suffix = names.draconic.suffixes[Math.floor(Math.random() * names.draconic.suffixes.length)];
 
     if (suffix === 'bazius') {
@@ -2787,68 +2617,48 @@ export const SPECIES_GENERATORS = {
         names.infernal.sharps[Math.floor(Math.random() * names.infernal.sharps.length)];
     } else if (d6 === 5) {
       name =
-        names.infernal.sharps[
-          Math.floor(Math.random() * names.infernal.sharps.length)
-        ].capitalize() +
+        names.infernal.sharps[Math.floor(Math.random() * names.infernal.sharps.length)].capitalize() +
         names.infernal.softs[Math.floor(Math.random() * names.infernal.softs.length)];
     } else {
       name =
-        names.infernal.sharps[
-          Math.floor(Math.random() * names.infernal.sharps.length)
-        ].capitalize() +
+        names.infernal.sharps[Math.floor(Math.random() * names.infernal.sharps.length)].capitalize() +
         names.infernal.dulls[Math.floor(Math.random() * names.infernal.dulls.length)];
     }
 
     return name;
   },
   getMaleAngelName: function () {
-    var name =
-      names.empyreal.prefixes[
-        Math.floor(Math.random() * names.empyreal.prefixes.length)
-      ].capitalize();
+    var name = names.empyreal.prefixes[Math.floor(Math.random() * names.empyreal.prefixes.length)].capitalize();
 
     if (Math.random() <= 1 / 12) {
       if (name.slice(-2) !== 'ar' && name.slice(-2) !== 'al') {
-        name =
-          names.empyreal.titles[
-            Math.floor(Math.random() * names.empyreal.titles.length)
-          ].capitalize() + name;
+        name = names.empyreal.titles[Math.floor(Math.random() * names.empyreal.titles.length)].capitalize() + name;
       } else if (name.slice(-2) === 'ar') {
         name = names.empyreal.titles[Math.floor(Math.random() * 4) + 4].capitalize() + name;
       } else {
         name = names.empyreal.titles[Math.floor(Math.random() * 4)].capitalize() + name;
       }
     } else {
-      name +=
-        names.empyreal.maleSuffixes[Math.floor(Math.random() * names.empyreal.maleSuffixes.length)];
+      name += names.empyreal.maleSuffixes[Math.floor(Math.random() * names.empyreal.maleSuffixes.length)];
     }
 
     return name;
   },
   getFemaleAngelName: function () {
-    var name =
-      names.empyreal.prefixes[
-        Math.floor(Math.random() * names.empyreal.prefixes.length)
-      ].capitalize();
+    var name = names.empyreal.prefixes[Math.floor(Math.random() * names.empyreal.prefixes.length)].capitalize();
 
     if (Math.random() <= 1 / 12) {
       name = name.substr(0, name.lastIndexOf('a')) + 'e' + name.substr(name.lastIndexOf('a') + 1); // Replace the last 'a' by a 'e' for female
 
       if (name.slice(-2) !== 'ar' && name.slice(-2) !== 'al') {
-        name =
-          names.empyreal.titles[
-            Math.floor(Math.random() * names.empyreal.titles.length)
-          ].capitalize() + name;
+        name = names.empyreal.titles[Math.floor(Math.random() * names.empyreal.titles.length)].capitalize() + name;
       } else if (name.slice(-2) === 'ar') {
         name = names.empyreal.titles[Math.floor(Math.random() * 4)].capitalize() + name;
       } else {
         name = names.empyreal.titles[Math.floor(Math.random() * 4) + 4].capitalize() + name;
       }
     } else {
-      name +=
-        names.empyreal.femaleSuffixes[
-          Math.floor(Math.random() * names.empyreal.femaleSuffixes.length)
-        ];
+      name += names.empyreal.femaleSuffixes[Math.floor(Math.random() * names.empyreal.femaleSuffixes.length)];
     }
 
     return name;

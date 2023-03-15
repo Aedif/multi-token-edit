@@ -300,10 +300,8 @@ export const TAVERN_GENERATOR = {
       if (
         name.indexOf('ERROR_PATTERN') > -1 ||
         name.toLocaleLowerCase().substr(0, startWith.length) !== startWith.toLocaleLowerCase() ||
-        name.toLocaleLowerCase().substr(name.length - endWith.length) !==
-          endWith.toLocaleLowerCase() ||
-        (typeof contains !== 'undefined' &&
-          name.toLocaleLowerCase().indexOf(contains.toLocaleLowerCase()) === -1) ||
+        name.toLocaleLowerCase().substr(name.length - endWith.length) !== endWith.toLocaleLowerCase() ||
+        (typeof contains !== 'undefined' && name.toLocaleLowerCase().indexOf(contains.toLocaleLowerCase()) === -1) ||
         (typeof doesntContains !== 'undefined' &&
           doesntContains.length > 0 &&
           name.toLocaleLowerCase().indexOf(doesntContains.toLocaleLowerCase()) > -1)

@@ -8,14 +8,8 @@ import {
   showGenericForm,
 } from './applications/multiConfig.js';
 import CSSEdit, { STYLES } from './applications/cssEdit.js';
-import { applyRandomization, IS_PRIVATE } from './scripts/private.js';
 import MassEditPresets from './applications/presets.js';
-import {
-  checkApplySpecialFields,
-  getObjFormData,
-  pasteDataUpdate,
-  performMassUpdate,
-} from './applications/forms.js';
+import { checkApplySpecialFields, getObjFormData, pasteDataUpdate, performMassUpdate } from './applications/forms.js';
 import { MassEditGenericForm } from './applications/genericForm.js';
 import {
   applyAddSubtract,
@@ -26,6 +20,8 @@ import {
   SUPPORTED_HISTORY_DOCS,
 } from './scripts/utils.js';
 import { GeneralDataAdapter } from './applications/dataAdapters.js';
+import { applyRandomization } from './scripts/randomizer/randomizerUtils.js';
+import { IS_PRIVATE } from './scripts/randomizer/randomizerForm.js';
 
 export const HISTORY = {};
 
@@ -291,13 +287,9 @@ Hooks.once('init', () => {
           onDown: () => {
             const [target, selected] = getSelected();
             if (!target) return;
-            const documentName = target.document
-              ? target.document.documentName
-              : target.documentName;
+            const documentName = target.document ? target.document.documentName : target.documentName;
             if (documentName === docName) {
-              const preset = game.settings.get('multi-token-edit', 'presets')?.[docName]?.[
-                presetName
-              ];
+              const preset = game.settings.get('multi-token-edit', 'presets')?.[docName]?.[presetName];
               if (preset) pasteDataUpdate(target ? [target] : selected, preset, true);
             }
           },
