@@ -64,20 +64,6 @@
 
     {{#if colorForm}}
     <h3>{{localize "multi-token-edit.randomizer.pickRange"}}:</h3>
-    <div class="form-group slim">
-        <label>{{localize "multi-token-edit.common.color"}} 1</label>
-        <div class="form-fields">
-            <input class="color" type="text" name="color1" value="{{color1}}">
-            <input type="color" value="{{color1}}" data-edit="color1">
-        </div>
-    </div>
-    <div class="form-group slim">
-        <label>{{localize "multi-token-edit.common.color"}} 2</label>
-        <div class="form-fields">
-            <input class="color" type="text" name="color2" value="{{color2}}">
-            <input type="color" value="{{color2}}" data-edit="color2">
-        </div>
-    </div>
     <div class="form-group">
         <label>{{localize "multi-token-edit.common.method"}}</label>
         <select name="method" data-dtype="string">
@@ -106,6 +92,7 @@
         </select>
     </div>
     <div class="colorStrip" style="height: 20px"></div>
+    <div class="slide" id="slide1"></div>
     {{/if}}
 
     {{#if imageForm}}

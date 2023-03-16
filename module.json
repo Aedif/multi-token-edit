@@ -20,7 +20,7 @@
     "verified": "10.291"
   },
   "esmodules": ["multi-token-edit.mjs"],
-  "styles": ["styles/general.css"],
+  "styles": ["styles/slider.css", "styles/general.css"],
   "languages": [
     {
       "lang": "en",

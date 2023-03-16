@@ -6,7 +6,7 @@ import { TAVERN_GENERATOR } from '../generator/tavernGenerator.js';
 import { isImage, isVideo, recursiveTraverse } from '../utils.js';
 import { deselectField, nearestStep, selectField } from './randomizerUtils.js';
 
-export const IS_PRIVATE = false;
+export const IS_PRIVATE = true;
 
 export default class RandomizerForm extends FormApplication {
   constructor(title, control, configApp, options) {
@@ -44,6 +44,17 @@ export default class RandomizerForm extends FormApplication {
         delete ctrl.min;
         delete ctrl.max;
         mergeObject(this.configuration, ctrl);
+      } else if (options.colorForm) {
+        let ctrl = deepClone(configApp.randomizeFields[this.fieldName]);
+        if (ctrl.color1) {
+          ctrl.colors = [
+            { hex: ctrl.color1, offset: 0 },
+            { hex: ctrl.color2, offset: 100 },
+          ];
+          delete ctrl.color1;
+          delete ctrl.color2;
+          mergeObject(this.configuration, ctrl);
+        }
       } else {
         mergeObject(this.configuration, configApp.randomizeFields[this.fieldName]);
       }
@@ -167,6 +178,7 @@ export default class RandomizerForm extends FormApplication {
    */
   activateListeners(html) {
     super.activateListeners(html);
+
     const docName = this.configApp.object?.documentName;
     $(html)
       .find('.folder-picker')
@@ -253,34 +265,108 @@ export default class RandomizerForm extends FormApplication {
     }
 
     if (this.configuration.colorForm) {
-      const updateColorStrip = function (e) {
-        const form = $(e.target).closest('form');
-        if (Color !== undefined) {
-          const c1 = form.find('[name="color1"]').val() || '#000000';
-          const c2 = form.find('[name="color2"]').val() || '#FFFFFF';
-          const space = form.find('[name="space"]').val() || 'lch';
-          const hue = form.find('[name="hue"]').val() || 'shorter';
-          let r = Color.range(c2, c1, { space: space, hue: hue });
-          let stops = Color.steps(r, { steps: 5, maxDeltaE: 3 });
-          let element = form.find('.colorStrip').get(0);
-          element.style.background = `linear-gradient(to right, ${stops.map((c) => c.display()).join(', ')})`;
+      const configuration = this.configuration;
+      const colors = configuration.colors;
+
+      const slider = html.find('#slide1');
+
+      const slideMin = 0;
+      const slideMax = 100;
+
+      const getNextColor = (currColor, val) => {
+        let nextColor = currColor;
+        let nextColorVal = slideMax + 1;
+        for (let i = 0; i < colors.length; i++) {
+          let cVal = slider.slider('values', i);
+          if (cVal > val && cVal < nextColorVal) {
+            nextColor = colors[i].hex;
+            nextColorVal = cVal;
+          }
+        }
+        return [nextColor, Math.min(nextColorVal, slideMax)];
+      };
+
+      let appendStrip = (color, width, offset) => {
+        slider.append(
+          $('<div></div>').addClass('slide-back').width(width).css('background', color).css('left', offset)
+        );
+      };
+
+      let genGradient = (color1, color2) => {
+        const space = html.find('[name="space"]').val() || 'lch';
+        const hue = html.find('[name="hue"]').val() || 'shorter';
+        let r = Color.range(color2, color1, { space: space, hue: hue });
+        let stops = Color.steps(r, { steps: 5, maxDeltaE: 3 });
+        return `linear-gradient(to right, ${stops.map((c) => c.display()).join(', ')})`;
+      };
+
+      var updateColorStrip = function (event, ui) {
+        console.log('ui', ui);
+        if (ui) colors[ui.handleIndex].offset = ui.value;
+        slider.find('.slide-back').remove();
+
+        let lVal = slideMax + 1;
+        let lHandle;
+        let lIndex;
+
+        html.find(html.find('#slide1 span').get()).each(function (i) {
+          console.log('in each...');
+
+          let sliderVal = slider.slider('values', i);
+          colors[i].offset = sliderVal;
+
+          if (sliderVal < lVal) {
+            lHandle = $(this);
+            lVal = sliderVal;
+            lIndex = i;
+          }
+
+          $(this).css('background', colors[i].hex);
+
+          if (sliderVal !== slideMax) {
+            let [stripColor, stripColorVal] = getNextColor(colors[i].hex, sliderVal);
+            appendStrip(genGradient(stripColor, colors[i].hex), `${stripColorVal - sliderVal}%`, `${sliderVal}%`);
+          }
+        });
+
+        if (lVal !== slideMin) {
+          appendStrip(genGradient(colors[lIndex].hex, colors[lIndex].hex), `${slider.slider('values', lIndex)}%`, '0%');
         }
       };
 
-      var inputTimer; //timer identifier
+      let onCreateSlider = () => {
+        html.find(html.find('#slide1 span').get()).each(function (i) {});
+      };
 
-      $(html).on('input', '.color, [name="method"], [name="space"], [name="hue"]', (e) => {
-        clearTimeout(inputTimer);
-        inputTimer = setTimeout(() => updateColorStrip(e), 500);
-      });
-      // Respond better to DF Architect Color Picker
-      html.on('focusout', '.df-arch-colourpicker', (e) => {
-        clearTimeout(inputTimer);
-        inputTimer = setTimeout(() => updateColorStrip(e), 500);
-      });
+      import('../jquery-ui/jquery-ui.js').then((imp) => {
+        html.find('#slide1').slider({
+          // slide: updateColorStrip,
+          change: updateColorStrip,
+          create: onCreateSlider,
+          start: () => {
+            console.log('START');
+          },
+          stop: () => console.log('STOP'),
+          min: slideMin,
+          max: slideMax,
+          values: colors.map((c) => c.offset),
+        });
 
-      // Draw the initial color range
-      $(html).find('[name="method"]').trigger('input');
+        var inputTimer; //timer identifier
+
+        $(html).on('input', '.color, [name="method"], [name="space"], [name="hue"]', (e) => {
+          clearTimeout(inputTimer);
+          inputTimer = setTimeout(() => updateColorStrip(), 500);
+        });
+        // Respond better to DF Architect Color Picker
+        html.on('focusout', '.df-arch-colourpicker', (e) => {
+          clearTimeout(inputTimer);
+          inputTimer = setTimeout(() => updateColorStrip(), 500);
+        });
+
+        // Draw the initial color range
+        $(html).find('[name="method"]').trigger('input');
+      });
     }
   }
 
@@ -370,8 +456,7 @@ export default class RandomizerForm extends FormApplication {
           method: formData.method,
           space: formData.space,
           hue: formData.hue,
-          color1: formData.color1,
-          color2: formData.color2,
+          colors: deepClone(this.configuration.colors),
         };
       }
     } else if (this.configuration.imageForm) {
@@ -561,8 +646,10 @@ function _showRandomImageDialog(input, configApp, label) {
 function _showRandomColorDialog(input, configApp, label) {
   new RandomizerForm(label, input, configApp, {
     colorForm: true,
-    color1: '#ff0000',
-    color2: '#ff0000',
+    colors: [
+      { hex: '#ff0000', offset: 0 },
+      { hex: '#ff0000', offset: 100 },
+    ],
   }).render(true);
 }
 
