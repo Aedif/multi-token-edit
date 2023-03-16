@@ -261,3 +261,28 @@ nav > a[data-tab='me-pinned'] {
   height: 100px;
   white-space: pre-wrap;
 }
+
+/* Color Slider  */
+.slide {
+  margin-top: 20px;
+  margin-left: 10px;
+  margin-right: 10px;
+}
+.slide-back {
+  position: absolute;
+  height: 100%;
+}
+
+.slide.ui-slider .ui-slider-handle {
+  background: gray;
+}
+
+.slide.ui-slider-horizontal {
+  height: 2em;
+}
+
+.slide.ui-slider .ui-slider-handle {
+  height: 2.7em;
+  border-style: solid;
+  border-width: 1px;
+}

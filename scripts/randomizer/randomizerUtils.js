@@ -61,8 +61,64 @@ export function applyRandomization(updates, objects, randomizeFields) {
         } else if (obj.type === 'boolean') {
           update[field] = Math.random() < 0.5;
         } else if (obj.type === 'color') {
-          let color1 = new Color(obj.color1);
-          let color2 = new Color(obj.color2);
+          // Convert to new format if needed
+          if (obj.color1) {
+            obj.colors = [
+              { hex: obj.color1, offset: 0 },
+              { hex: obj.color2, offset: 100 },
+            ];
+          }
+
+          // If space is discrete we simple choose a color, no blending required
+          if (obj.space === 'discrete') {
+            if (obj.method === 'interpolate') {
+              update[field] = obj.colors[i % obj.colors.length].hex;
+            } else if (obj.method === 'interpolateReverse') {
+              update[field] = obj.colors[obj.colors.length - 1 - (i % obj.colors.length)].hex;
+            } else {
+              update[field] = obj.colors[Math.floor(Math.random() * obj.colors.length)].hex;
+            }
+            continue;
+          }
+
+          let colors = obj.colors.map((c) => c);
+          if (colors[0].offset > 0) {
+            colors.unshift({ hex: colors[0].hex, offset: 0 });
+          }
+          if (colors[colors.length - 1].offset < 100) {
+            colors.push({ hex: colors[colors.length - 1].hex, offset: 100 });
+          }
+
+          // Calculate random offset
+          let rOffset;
+          if (obj.method === 'interpolate') {
+            rOffset = 1 - (i + 1) / updates.length;
+          } else if (obj.method === 'interpolateReverse') {
+            rOffset = (i + 1) / updates.length;
+          } else {
+            rOffset = Math.random();
+          }
+          rOffset *= 100;
+
+          // Find the two colors the random offset falls between
+          let j = 0;
+          while (j < colors.length - 1 && colors[j + 1].offset < rOffset) j++;
+          let color1, color2;
+          if (j === colors.length - 1) {
+            color1 = colors[j - 1];
+            color2 = colors[j];
+          } else {
+            color1 = colors[j];
+            color2 = colors[j + 1];
+          }
+
+          // Normalize the random offset
+          let rnOffset = rOffset - color1.offset;
+          rnOffset = rnOffset / (color2.offset - color1.offset);
+
+          // Create a Color.js range
+          color1 = new Color(color1.hex);
+          color2 = new Color(color2.hex);
           const space = obj.space || 'srgb';
           const hue = obj.hue || 'shorter';
           let range = color1.range(color2, {
@@ -70,14 +126,9 @@ export function applyRandomization(updates, objects, randomizeFields) {
             hue: hue,
             outputSpace: 'srgb',
           });
-          let rgb3;
-          if (obj.method === 'interpolate') {
-            rgb3 = range(1 - (i + 1) / updates.length);
-          } else if (obj.method === 'interpolateReverse') {
-            rgb3 = range((i + 1) / updates.length);
-          } else {
-            rgb3 = range(Math.random());
-          }
+
+          // Pick a color from range using normalized random offset
+          let rgb3 = range(rnOffset);
           let hexColor = rgb3.toString({ format: 'hex' });
           if (hexColor.length < 7) {
             // 3 char hex, duplicate chars

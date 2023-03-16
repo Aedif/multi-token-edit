@@ -1,12 +1,12 @@
-import Color from '../color/color.js';
 import { SPECIES_GENERATORS } from '../generator/fantasticSpeciesGenerator.js';
 import { GROUP_GENERATORS } from '../generator/groupNamesGenerator.js';
 import { NAME_GENERATOR } from '../generator/nameGenerator.js';
 import { TAVERN_GENERATOR } from '../generator/tavernGenerator.js';
 import { isImage, isVideo, recursiveTraverse } from '../utils.js';
 import { deselectField, nearestStep, selectField } from './randomizerUtils.js';
+import { ColorSlider } from './slider.js';
 
-export const IS_PRIVATE = false;
+export const IS_PRIVATE = true;
 
 export default class RandomizerForm extends FormApplication {
   constructor(title, control, configApp, options) {
@@ -20,6 +20,9 @@ export default class RandomizerForm extends FormApplication {
       height = 210;
     } else if (options.imageForm) {
       width = 455;
+    } else if (options.colorForm) {
+      height = 340;
+      width = 650;
     }
 
     super(
@@ -43,6 +46,17 @@ export default class RandomizerForm extends FormApplication {
         ctrl.maxVal = ctrl.max;
         delete ctrl.min;
         delete ctrl.max;
+        mergeObject(this.configuration, ctrl);
+      } else if (options.colorForm) {
+        let ctrl = deepClone(configApp.randomizeFields[this.fieldName]);
+        if (ctrl.color1) {
+          ctrl.colors = [
+            { hex: ctrl.color1, offset: 0 },
+            { hex: ctrl.color2, offset: 100 },
+          ];
+          delete ctrl.color1;
+          delete ctrl.color2;
+        }
         mergeObject(this.configuration, ctrl);
       } else {
         mergeObject(this.configuration, configApp.randomizeFields[this.fieldName]);
@@ -167,6 +181,7 @@ export default class RandomizerForm extends FormApplication {
    */
   activateListeners(html) {
     super.activateListeners(html);
+
     const docName = this.configApp.object?.documentName;
     $(html)
       .find('.folder-picker')
@@ -253,34 +268,16 @@ export default class RandomizerForm extends FormApplication {
     }
 
     if (this.configuration.colorForm) {
-      const updateColorStrip = function (e) {
-        const form = $(e.target).closest('form');
-        if (Color !== undefined) {
-          const c1 = form.find('[name="color1"]').val() || '#000000';
-          const c2 = form.find('[name="color2"]').val() || '#FFFFFF';
-          const space = form.find('[name="space"]').val() || 'lch';
-          const hue = form.find('[name="hue"]').val() || 'shorter';
-          let r = Color.range(c2, c1, { space: space, hue: hue });
-          let stops = Color.steps(r, { steps: 5, maxDeltaE: 3 });
-          let element = form.find('.colorStrip').get(0);
-          element.style.background = `linear-gradient(to right, ${stops.map((c) => c.display()).join(', ')})`;
-        }
-      };
+      const hue = html.find('[name="hue"]');
+      const space = html.find('[name="space"]');
+      const method = html.find('[name="method"]');
+      const colorSlider = new ColorSlider(html.find('.slide'), this.configuration.colors, { hue, space });
 
-      var inputTimer; //timer identifier
+      hue.on('input', colorSlider.update.bind(colorSlider));
+      space.on('input', colorSlider.update.bind(colorSlider));
+      method.on('input', colorSlider.update.bind(colorSlider));
 
-      $(html).on('input', '.color, [name="method"], [name="space"], [name="hue"]', (e) => {
-        clearTimeout(inputTimer);
-        inputTimer = setTimeout(() => updateColorStrip(e), 500);
-      });
-      // Respond better to DF Architect Color Picker
-      html.on('focusout', '.df-arch-colourpicker', (e) => {
-        clearTimeout(inputTimer);
-        inputTimer = setTimeout(() => updateColorStrip(e), 500);
-      });
-
-      // Draw the initial color range
-      $(html).find('[name="method"]').trigger('input');
+      this.colorSlider = colorSlider;
     }
   }
 
@@ -364,16 +361,14 @@ export default class RandomizerForm extends FormApplication {
         method: 'random',
       };
     } else if (this.configuration.colorForm) {
-      if (formData.color1 && formData.color2) {
-        this.configApp.randomizeFields[fieldName] = {
-          type: 'color',
-          method: formData.method,
-          space: formData.space,
-          hue: formData.hue,
-          color1: formData.color1,
-          color2: formData.color2,
-        };
-      }
+      let colors = deepClone(this.colorSlider.colors).sort((a, b) => a.offset - b.offset);
+      this.configApp.randomizeFields[fieldName] = {
+        type: 'color',
+        method: formData.method,
+        space: formData.space,
+        hue: formData.hue,
+        colors,
+      };
     } else if (this.configuration.imageForm) {
       if (formData.method === 'findAndReplace' || formData.method === 'findAndReplaceRegex') {
         this.configApp.randomizeFields[fieldName] = {
@@ -561,8 +556,10 @@ function _showRandomImageDialog(input, configApp, label) {
 function _showRandomColorDialog(input, configApp, label) {
   new RandomizerForm(label, input, configApp, {
     colorForm: true,
-    color1: '#ff0000',
-    color2: '#ff0000',
+    colors: [
+      { hex: '#ff0000', offset: 0 },
+      { hex: '#ff0000', offset: 100 },
+    ],
   }).render(true);
 }
 
