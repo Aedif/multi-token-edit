@@ -70,6 +70,11 @@ export class ColorSlider {
 
   _genGradient(color1, color2) {
     const space = this.space?.val() || 'lch';
+
+    if (space === 'discrete') {
+      return 'rgba(0, 0, 0, 0)';
+    }
+
     const hue = this.hue?.val() || 'shorter';
     let r = Color.range(color2, color1, { space, hue });
     let stops = Color.steps(r, { steps: 5, maxDeltaE: 3 });
@@ -134,7 +139,7 @@ export class ColorSlider {
       let percentOffset = Math.round((x / this.slider.width()) * 100);
 
       if (!this._percentExists(percentOffset)) {
-        let [col, _] = this._getNextColor();
+        let [col, _] = this._getNextColor(null, percentOffset);
         if (!col) col = '#ff0000';
         this.colors.push({ hex: col, offset: percentOffset });
         this._createSlider();

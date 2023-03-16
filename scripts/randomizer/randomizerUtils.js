@@ -69,6 +69,18 @@ export function applyRandomization(updates, objects, randomizeFields) {
             ];
           }
 
+          // If space is discrete we simple choose a color, no blending required
+          if (obj.space === 'discrete') {
+            if (obj.method === 'interpolate') {
+              update[field] = obj.colors[i % obj.colors.length].hex;
+            } else if (obj.method === 'interpolateReverse') {
+              update[field] = obj.colors[obj.colors.length - 1 - (i % obj.colors.length)].hex;
+            } else {
+              update[field] = obj.colors[Math.floor(Math.random() * obj.colors.length)].hex;
+            }
+            continue;
+          }
+
           // Calculate random offset
           let rOffset;
           if (obj.method === 'interpolate') {
