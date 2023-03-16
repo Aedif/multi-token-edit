@@ -362,16 +362,6 @@ export default class RandomizerForm extends FormApplication {
       };
     } else if (this.configuration.colorForm) {
       let colors = deepClone(this.colorSlider.colors).sort((a, b) => a.offset - b.offset);
-      // Insert starting and ending colors if need be;
-      if (formData.space !== 'discrete') {
-        if (colors[0].offset > 0) {
-          colors.unshift({ hex: colors[0].hex, offset: 0 });
-        }
-        if (colors[colors.length - 1].offset < 100) {
-          colors.push({ hex: colors[colors.length - 1].hex, offset: 100 });
-        }
-      }
-
       this.configApp.randomizeFields[fieldName] = {
         type: 'color',
         method: formData.method,

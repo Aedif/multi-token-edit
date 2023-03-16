@@ -274,7 +274,7 @@ nav > a[data-tab='me-pinned'] {
 }
 
 .slide.ui-slider .ui-slider-handle {
-  background: blueviolet;
+  background: gray;
 }
 
 .slide.ui-slider-horizontal {

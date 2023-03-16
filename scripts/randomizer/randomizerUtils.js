@@ -62,7 +62,7 @@ export function applyRandomization(updates, objects, randomizeFields) {
           update[field] = Math.random() < 0.5;
         } else if (obj.type === 'color') {
           // Convert to new format if needed
-          if (obj.colors1) {
+          if (obj.color1) {
             obj.colors = [
               { hex: obj.color1, offset: 0 },
               { hex: obj.color2, offset: 100 },
@@ -81,6 +81,14 @@ export function applyRandomization(updates, objects, randomizeFields) {
             continue;
           }
 
+          let colors = obj.colors.map((c) => c);
+          if (colors[0].offset > 0) {
+            colors.unshift({ hex: colors[0].hex, offset: 0 });
+          }
+          if (colors[colors.length - 1].offset < 100) {
+            colors.push({ hex: colors[colors.length - 1].hex, offset: 100 });
+          }
+
           // Calculate random offset
           let rOffset;
           if (obj.method === 'interpolate') {
@@ -94,14 +102,14 @@ export function applyRandomization(updates, objects, randomizeFields) {
 
           // Find the two colors the random offset falls between
           let j = 0;
-          while (j < obj.colors.length - 1 && obj.colors[j + 1].offset < rOffset) j++;
+          while (j < colors.length - 1 && colors[j + 1].offset < rOffset) j++;
           let color1, color2;
-          if (j === obj.colors.length - 1) {
-            color1 = obj.colors[j - 1];
-            color2 = obj.colors[j];
+          if (j === colors.length - 1) {
+            color1 = colors[j - 1];
+            color2 = colors[j];
           } else {
-            color1 = obj.colors[j];
-            color2 = obj.colors[j + 1];
+            color1 = colors[j];
+            color2 = colors[j + 1];
           }
 
           // Normalize the random offset
