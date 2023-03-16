@@ -1,10 +1,10 @@
-import Color from '../color/color.js';
 import { SPECIES_GENERATORS } from '../generator/fantasticSpeciesGenerator.js';
 import { GROUP_GENERATORS } from '../generator/groupNamesGenerator.js';
 import { NAME_GENERATOR } from '../generator/nameGenerator.js';
 import { TAVERN_GENERATOR } from '../generator/tavernGenerator.js';
 import { isImage, isVideo, recursiveTraverse } from '../utils.js';
 import { deselectField, nearestStep, selectField } from './randomizerUtils.js';
+import { ColorSlider } from './slider.js';
 
 export const IS_PRIVATE = true;
 
@@ -20,6 +20,9 @@ export default class RandomizerForm extends FormApplication {
       height = 210;
     } else if (options.imageForm) {
       width = 455;
+    } else if (options.colorForm) {
+      height = 340;
+      width = 650;
     }
 
     super(
@@ -53,8 +56,8 @@ export default class RandomizerForm extends FormApplication {
           ];
           delete ctrl.color1;
           delete ctrl.color2;
-          mergeObject(this.configuration, ctrl);
         }
+        mergeObject(this.configuration, ctrl);
       } else {
         mergeObject(this.configuration, configApp.randomizeFields[this.fieldName]);
       }
@@ -265,108 +268,16 @@ export default class RandomizerForm extends FormApplication {
     }
 
     if (this.configuration.colorForm) {
-      const configuration = this.configuration;
-      const colors = configuration.colors;
+      const hue = html.find('[name="hue"]');
+      const space = html.find('[name="space"]');
+      const method = html.find('[name="method"]');
+      const colorSlider = new ColorSlider(html.find('.slide'), this.configuration.colors, { hue, space });
 
-      const slider = html.find('#slide1');
+      hue.on('input', colorSlider.update.bind(colorSlider));
+      space.on('input', colorSlider.update.bind(colorSlider));
+      method.on('input', colorSlider.update.bind(colorSlider));
 
-      const slideMin = 0;
-      const slideMax = 100;
-
-      const getNextColor = (currColor, val) => {
-        let nextColor = currColor;
-        let nextColorVal = slideMax + 1;
-        for (let i = 0; i < colors.length; i++) {
-          let cVal = slider.slider('values', i);
-          if (cVal > val && cVal < nextColorVal) {
-            nextColor = colors[i].hex;
-            nextColorVal = cVal;
-          }
-        }
-        return [nextColor, Math.min(nextColorVal, slideMax)];
-      };
-
-      let appendStrip = (color, width, offset) => {
-        slider.append(
-          $('<div></div>').addClass('slide-back').width(width).css('background', color).css('left', offset)
-        );
-      };
-
-      let genGradient = (color1, color2) => {
-        const space = html.find('[name="space"]').val() || 'lch';
-        const hue = html.find('[name="hue"]').val() || 'shorter';
-        let r = Color.range(color2, color1, { space: space, hue: hue });
-        let stops = Color.steps(r, { steps: 5, maxDeltaE: 3 });
-        return `linear-gradient(to right, ${stops.map((c) => c.display()).join(', ')})`;
-      };
-
-      var updateColorStrip = function (event, ui) {
-        console.log('ui', ui);
-        if (ui) colors[ui.handleIndex].offset = ui.value;
-        slider.find('.slide-back').remove();
-
-        let lVal = slideMax + 1;
-        let lHandle;
-        let lIndex;
-
-        html.find(html.find('#slide1 span').get()).each(function (i) {
-          console.log('in each...');
-
-          let sliderVal = slider.slider('values', i);
-          colors[i].offset = sliderVal;
-
-          if (sliderVal < lVal) {
-            lHandle = $(this);
-            lVal = sliderVal;
-            lIndex = i;
-          }
-
-          $(this).css('background', colors[i].hex);
-
-          if (sliderVal !== slideMax) {
-            let [stripColor, stripColorVal] = getNextColor(colors[i].hex, sliderVal);
-            appendStrip(genGradient(stripColor, colors[i].hex), `${stripColorVal - sliderVal}%`, `${sliderVal}%`);
-          }
-        });
-
-        if (lVal !== slideMin) {
-          appendStrip(genGradient(colors[lIndex].hex, colors[lIndex].hex), `${slider.slider('values', lIndex)}%`, '0%');
-        }
-      };
-
-      let onCreateSlider = () => {
-        html.find(html.find('#slide1 span').get()).each(function (i) {});
-      };
-
-      import('../jquery-ui/jquery-ui.js').then((imp) => {
-        html.find('#slide1').slider({
-          // slide: updateColorStrip,
-          change: updateColorStrip,
-          create: onCreateSlider,
-          start: () => {
-            console.log('START');
-          },
-          stop: () => console.log('STOP'),
-          min: slideMin,
-          max: slideMax,
-          values: colors.map((c) => c.offset),
-        });
-
-        var inputTimer; //timer identifier
-
-        $(html).on('input', '.color, [name="method"], [name="space"], [name="hue"]', (e) => {
-          clearTimeout(inputTimer);
-          inputTimer = setTimeout(() => updateColorStrip(), 500);
-        });
-        // Respond better to DF Architect Color Picker
-        html.on('focusout', '.df-arch-colourpicker', (e) => {
-          clearTimeout(inputTimer);
-          inputTimer = setTimeout(() => updateColorStrip(), 500);
-        });
-
-        // Draw the initial color range
-        $(html).find('[name="method"]').trigger('input');
-      });
+      this.colorSlider = colorSlider;
     }
   }
 
@@ -450,15 +361,22 @@ export default class RandomizerForm extends FormApplication {
         method: 'random',
       };
     } else if (this.configuration.colorForm) {
-      if (formData.color1 && formData.color2) {
-        this.configApp.randomizeFields[fieldName] = {
-          type: 'color',
-          method: formData.method,
-          space: formData.space,
-          hue: formData.hue,
-          colors: deepClone(this.configuration.colors),
-        };
+      // Insert starting and ending colors if need be
+      let colors = deepClone(this.colorSlider.colors).sort((a, b) => a.offset - b.offset);
+      if (colors[0].offset > 0) {
+        colors.unshift({ hex: colors[0].hex, offset: 0 });
       }
+      if (colors[colors.length - 1].offset < 100) {
+        colors.push({ hex: colors[colors.length - 1].hex, offset: 100 });
+      }
+
+      this.configApp.randomizeFields[fieldName] = {
+        type: 'color',
+        method: formData.method,
+        space: formData.space,
+        hue: formData.hue,
+        colors,
+      };
     } else if (this.configuration.imageForm) {
       if (formData.method === 'findAndReplace' || formData.method === 'findAndReplaceRegex') {
         this.configApp.randomizeFields[fieldName] = {

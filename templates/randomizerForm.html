@@ -91,8 +91,15 @@
             <option value="raw" {{#if (eq hue "raw")}}selected="selected"{{/if}}>Raw</option>
         </select>
     </div>
-    <div class="colorStrip" style="height: 20px"></div>
-    <div class="slide" id="slide1"></div>
+    <div class="slide"></div>
+    <hr>
+    <div class="form-group">
+        <p class="notes">
+            <b>Double-click</b> handles to change color.<br>
+            <b>Right-click</b> handles to remove them.<br>
+            <b>Right-click</b> on an empty slider spot to insert new handles.
+        </p>
+    </div>
     {{/if}}
 
     {{#if imageForm}}
