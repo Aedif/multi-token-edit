@@ -14,20 +14,28 @@
     <h3>Targeting</h3>
     <div class="form-group">
         <label>Target</label>
-        <select name="target" data-dtype="string">
+        <select name="target.method" data-dtype="string">
             {{#each targetingOptions}}
             <option value="{{this.value}}" title="{{this.title}}">{{this.label}}</option>
             {{/each}}
         </select>
     </div>
+    <div class="form-group">
+        <label>Scope</label>
+        <select name="target.scope" data-dtype="string">
+            <option value="selected" selected="selected">Selected</option>
+            <option value="scene">Active Scene</option>
+            <option value="world">World</option>
+        </select>
+    </div>
     <div class="taggerControl" hidden>
         <div class="form-group">
             <label>Tags</label>
-            <input name="tags" type="text" value=""></input>
+            <input name="target.tagger.tags" type="text" value=""></input>
         </div>
         <div class="form-group">
             <label>Must match</label>
-            <select name="taggerMatch" data-dtype="string">
+            <select name="target.tagger.match" data-dtype="string">
                 <option value="any" selected="selected">Any Tag</option>
                 <option value="all">All Tags</option>
             </select>
@@ -45,8 +53,8 @@
     <div class="toggleControl" hidden>
         <div class="form-group">
             <label>Toggle Detection</label>
-            <select name="toggleMethod" data-dtype="string">
-                <option value="fieldCompare" selected="selected">Field Compare</option>
+            <select name="toggle.method" data-dtype="string">
+                <option value="field" selected="selected">Field Compare</option>
                 <option value="flag">Flag</option>
             </select>
         </div>
@@ -63,7 +71,7 @@
     <div>
         {{#if hasRandom}}
         <a class="random" title="Randomized Fields"><i class="fas fa-dice"></i></a>
-        <input name="random" type="text" value="{{random}}" hidden>
+        <input name="randomize" type="text" value="{{random}}" hidden>
         {{/if}}
 
         {{#if hasAddSubtract}}
@@ -76,10 +84,10 @@
         <label>Run</label>
         <div class="form-fields">
             <label>Macro</label>
-            <input list="toRunMacro" name="runMacro">
+            <input list="toRunMacro" name="macro.name">
             {{#if selectable}}
             <label>Select Targets</label>
-            <input type="checkbox" name="selectTargets" />
+            <input type="checkbox" name="macro.select" />
             {{/if}}
         </div>
     </div>
@@ -88,22 +96,22 @@
         <div>
             {{#if hasRandom}}
             <a class="toggleRandom" title="Randomized Fields"><i class="fas fa-dice"></i></a>
-            <input name="toggleRandom" type="text" value="{{random}}" hidden>
+            <input name="toggle.random" type="text" value="{{random}}" hidden>
             {{/if}}
             {{#if hasAddSubtract}}
             <a class="toggleAddSubtract" title="Add/Subtract Fields"><i class="fas fa-calculator-alt"></i></a>
-            <input name="toggleAddSubtract" type="text" value="{{addSubtract}}" hidden>
+            <input name="toggle.addSubtract" type="text" value="{{addSubtract}}" hidden>
             {{/if}}
         </div>
-        <textarea name="toggleFields" style="width:100%; height: 200px;"></textarea>
+        <textarea name="toggle.fields" style="width:100%; height: 200px;"></textarea>
         <div class="form-group slim">
             <label>Run</label>
             <div class="form-fields">
                 <label>Macro</label>
-                <input list="toRunMacro" name="runMacroToggle">
+                <input list="toRunMacro" name="toggle.macro.name">
                 {{#if selectable}}
                 <label>Select Targets</label>
-                <input type="checkbox" name="selectTargetsToggle" />
+                <input type="checkbox" name="toggle.macro.select" />
                 {{/if}}
             </div>
         </div>

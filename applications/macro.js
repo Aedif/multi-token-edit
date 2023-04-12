@@ -1,4 +1,4 @@
-import { generateMacro, hasSpecialField } from '../scripts/macroGenerator.js';
+import { generateMacro, hasSpecialField } from '../scripts/macro/generator.js';
 import { emptyObject, SUPPORTED_PLACEABLES } from '../scripts/utils.js';
 import { GeneralDataAdapter } from './dataAdapters.js';
 
@@ -14,10 +14,7 @@ export default class MacroForm extends FormApplication {
     this.randomizeFields = randomizeFields;
     this.addSubtractFields = addSubtractFields;
 
-    if (
-      (randomizeFields && !emptyObject(randomizeFields)) ||
-      (addSubtractFields && !emptyObject(addSubtractFields))
-    ) {
+    if ((randomizeFields && !emptyObject(randomizeFields)) || (addSubtractFields && !emptyObject(addSubtractFields))) {
       // keep selected fields in form format
     } else {
       GeneralDataAdapter.formToData(this.docName, this.mainObject, this.fields);
@@ -47,23 +44,21 @@ export default class MacroForm extends FormApplication {
     // Define targeting options based on the document being updated
     const targetingOptions = [
       {
-        value: 'currentSelectedIDs',
-        title: `IDs of currently selected ${
-          data.selectable ? 'placeables' : 'documents'
-        } will be stored in the macro.`,
-        label: 'IDs of Current Selected',
+        value: 'all',
+        title: `Macro will target ALL ${this.docName}s at run-time using the selected 'scope'.`,
+        label: 'ALL',
       },
       {
-        value: 'selectedGeneric',
-        title: `Macro will target selected ${this.docName}s at run-time.`,
-        label: 'All Selected',
+        value: 'ids',
+        title: `IDs of currently selected ${data.selectable ? 'placeables' : 'documents'} will be stored in the macro.`,
+        label: 'IDs of Current Selected',
       },
     ];
     if (SUPPORTED_PLACEABLES.includes(this.docName)) {
       targetingOptions.push({
-        value: 'allGeneric',
-        title: `Macro will be run on all ${this.docName}s on the active scene at run-time.`,
-        label: 'All in active Scene',
+        value: 'search',
+        title: `Macro will search for ${this.docName}s matching specific fields at run-time.`,
+        label: 'Search',
       });
       if (game.modules.get('tagger')?.active) {
         targetingOptions.push({
@@ -72,19 +67,6 @@ export default class MacroForm extends FormApplication {
           label: 'Tagger',
         });
       }
-    } else {
-      targetingOptions.push({
-        value: 'allDocuments',
-        title: `Macro will run on all ${this.docName}s at run-time.`,
-        label: 'All Documents',
-      });
-    }
-    if (this.docName === 'Token') {
-      targetingOptions.push({
-        value: 'tokenGeneric',
-        title: 'Macro will target Token in control at run-time.',
-        label: 'Single Selected Token',
-      });
     }
     data.targetingOptions = targetingOptions;
 
@@ -101,14 +83,9 @@ export default class MacroForm extends FormApplication {
     data.hasMEControls = data.hasAddSubtract || data.hasRandom || hasSpecialField(this.fields);
 
     // Visibility Toggle
-    data.hiddenControl = [
-      'Token',
-      'Tile',
-      'Drawing',
-      'AmbientLight',
-      'AmbientSound',
-      'MeasuredTemplate',
-    ].includes(this.docName);
+    data.hiddenControl = ['Token', 'Tile', 'Drawing', 'AmbientLight', 'AmbientSound', 'MeasuredTemplate'].includes(
+      this.docName
+    );
 
     // Macros
     data.macros = game.collections.get('Macro').map((m) => m.name);
@@ -174,7 +151,7 @@ export default class MacroForm extends FormApplication {
 
     html.find('.toggleVisibility').click((event) => {
       const fields = html.find('[name="fields"]');
-      const toggleFields = html.find('[name="toggleFields"]');
+      const toggleFields = html.find('[name="toggle.fields"]');
 
       let update,
         update2 = {};
@@ -190,7 +167,8 @@ export default class MacroForm extends FormApplication {
       } catch (e) {}
     });
 
-    html.find('[name="target"]').change((event) => {
+    html.find('[name="target.method"]').change((event) => {
+      // Hide/show tagger controls
       if (event.target.value === 'tagger') {
         html.find('.taggerControl').show();
         html.find('[name="tags"').attr('required', true);
@@ -198,6 +176,11 @@ export default class MacroForm extends FormApplication {
         html.find('.taggerControl').hide();
         html.find('[name="tags"').attr('required', false);
       }
+
+      // Hide/show scope
+      if (event.target.value === 'ids') html.find('[name="target.scope"]').closest('.form-group').hide();
+      else html.find('[name="target.scope"]').closest('.form-group').show();
+
       this.setPosition({ height: 'auto' });
     });
 
@@ -207,7 +190,7 @@ export default class MacroForm extends FormApplication {
 
         const toggleFields = {};
         Object.keys(this.fields).forEach((k) => (toggleFields[k] = data[k]));
-        html.find('[name="toggleFields"]').val(JSON.stringify(toggleFields, null, 2));
+        html.find('[name="toggle.fields"]').val(JSON.stringify(toggleFields, null, 2));
         html.find('.toggleControl').show();
         this.setPosition({ height: 'auto' });
       } else {
@@ -222,33 +205,20 @@ export default class MacroForm extends FormApplication {
    * @param {Object} formData
    */
   async _updateObject(event, formData) {
+    formData = expandObject(formData);
+    console.log(formData);
+
+    // Cleanup form data, so that the macro generator only receives necessary information
     formData.fields = JSON.parse(formData.fields);
-    if (formData.method === 'toggle') {
-      formData.toggleFields = JSON.parse(formData.toggleFields);
-    } else {
-      ['toggleFields', 'toggleRandom', 'toggleAddSubtract'].forEach((k) => delete formData[k]);
-    }
+    if (formData.method !== 'toggle') delete formData.toggle;
+    else formData.toggle.fields = JSON.parse(formData.toggle.fields);
 
-    if (formData.target !== 'tagger') {
-      delete formData.tags;
-    }
+    if (!formData.macro.name) delete formData.macro;
+    if (formData.toggle?.macro && !formData.toggle.macro.name) delete formData.toggle.macro;
 
-    ['random', 'addSubtract', 'toggleRandom', 'toggleAddSubtract'].forEach((name) => {
-      if (formData[name]) {
-        formData[name] = JSON.parse(formData[name]);
-        for (const k of Object.keys(formData[name])) {
-          if (!(k in formData.fields)) {
-            delete formData[name][k];
-          }
-          if (emptyObject(formData[name])) {
-            delete formData[name];
-          }
-        }
-      }
-    });
+    if (formData.target.method !== 'tagger') delete formData.target.tagger;
 
-    formData.useMacroName = formData.useMacroName?.trim();
-    formData.useMacroNameToggle = formData.useMacroNameToggle?.trim();
+    console.log(formData);
 
     generateMacro(this.docName, this.placeables, formData);
   }
