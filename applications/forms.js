@@ -1045,6 +1045,7 @@ export function pasteDataUpdate(docs, preset, suppressNotif = false) {
 }
 
 export async function performMassUpdate(data, objects, docName, applyType) {
+  objects = objects.map((o) => o.document ?? o);
   if (this.options?.simplified) {
     if (this.options.callback) this.options.callback(data);
     return;
@@ -1121,13 +1122,17 @@ export async function performMassUpdate(data, objects, docName, applyType) {
       sceneUpdate.scene.updateEmbeddedDocuments(docName, sceneUpdate.updates, context);
     }
   } else if (!this.isPrototype && SUPPORTED_PLACEABLES.includes(docName)) {
-    for (let i = 0; i < objects.length; i++) {
-      delete updates[i]._id;
-      (objects[i].document ?? objects[i]).update(updates[i], context);
+    const splitUpdates = {};
+    for (let i = 0; i < updates.length; i++) {
+      const scene = objects[i].parent;
+      if (!splitUpdates[scene.id]) splitUpdates[scene.id] = [];
+      splitUpdates[scene.id].push(updates[i]);
     }
-    // canvas.scene.updateEmbeddedDocuments(docName, updates, context);
+    for (const sceneId of Object.keys(splitUpdates)) {
+      game.scenes.get(sceneId)?.updateEmbeddedDocuments(docName, splitUpdates[sceneId], context);
+    }
   } else if (SUPPORTED_COLLECTIONS.includes(docName)) {
-    objects[0].constructor?.updateDocuments(updates);
+    objects[0].constructor?.updateDocuments(updates, context);
   } else {
     // Note a placeable or otherwise specially handled doc type
     // Simply merge the fields directly into the object
