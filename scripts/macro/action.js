@@ -67,7 +67,7 @@ function genUpdate(options, docName) {
   let command = '';
 
   // Are there macros to execute?
-  const macroTracking = options.macro?.run || options.toggle?.macro?.run;
+  const macroTracking = (options.macro || options.toggle?.macro) && options.toggle;
 
   if (macroTracking) {
     command += `

@@ -16,7 +16,7 @@ export async function generateMacro(docName, placeables, options) {
   command += genTargets(options, docName, placeables);
   command += genAction(options, docName);
   if (options.macro || options.toggle?.macro) {
-    command += genRunMacro(options);
+    command += genRunMacro(options, docName);
   }
 
   if (command) {
@@ -31,57 +31,51 @@ export async function generateMacro(docName, placeables, options) {
   }
 }
 
-function genRunMacro(options) {
+function genRunMacro(options, docName) {
   let command = `\n
 // ===================
 // = Macro Execution =
 // ===================
 
 const advancedMacro = game.modules.get('advanced-macros')?.active;
+const layer = canvas.getLayerByEmbeddedName('${docName}');
 `;
-  if (options.macro) command += `const selectMacroTargets = ${selectTargets};\n`;
-  if (options.toggle?.macro) command += `const selectToggleMacroTargets = ${selectTargetsToggle};\n`;
-
   // Run macros if applicable
   if (options.macro) {
     command += `
 // Apply macro
-const applyMacro = game.collections.get('Macro').find(m => m.name === '${runMacro}')
-if (applyMacro && toggleOnTargets.length) {
-  if(selectMacroTargets) {
-    layer.activate();
-    layer.releaseAll();
-    toggleOnTargets.forEach(t => t.object?.control({ releaseOthers: false }));
+const applyMacro = game.collections.get('Macro').find(m => m.name === '${options.macro.name}')
+if (applyMacro && ${options.toggle ? 'toggleOnTargets' : 'targets'}.length) {
+  ${
+    options.macro.select
+      ? `layer.activate();\n  layer.releaseAll();\n  ${
+          options.toggle ? 'toggleOnTargets' : 'targets'
+        }.forEach(t => t.object?.control({ releaseOthers: false }));\n`
+      : ''
   }
-
-  if (advancedMacro) applyMacro.execute(toggleOnTargets);
+  if (advancedMacro) applyMacro.execute(${options.toggle ? 'toggleOnTargets' : 'targets'});
   else applyMacro.execute({token, actor});
-  
-  if(selectMacroTargets) {
-    layer.releaseAll();
-  }
+  ${options.macro.select ? '\n  layer.releaseAll();' : ''}
 }
 `;
   }
   if (options.toggle?.macro) {
     command += `
 // Apply macro on toggle off
-const offMacro = game.collections.get('Macro').find(m => m.name === '${runMacroToggle}')
+const offMacro = game.collections.get('Macro').find(m => m.name === '${options.toggle.macro.name}')
 if (offMacro && toggleOffTargets.length) {
-  if(selectToggleMacroTargets) {
-    layer.activate();
-    layer.releaseAll();
-    toggleOffTargets.forEach(t => t.object?.control({ releaseOthers: false }));
+  ${
+    options.toggle.macro.select
+      ? 'layer.activate();\n  layer.releaseAll();\n  toggleOffTargets.forEach(t => t.object?.control({ releaseOthers: false }));\n'
+      : ''
   }
   if (advancedMacro) offMacro.execute(toggleOffTargets);
   else offMacro.execute({token, actor});
-
-  if(selectToggleMacroTargets) {
-    layer.releaseAll();
-  }
+  ${options.toggle.macro.select ? '\n  layer.releaseAll();' : ''}
 }
 `;
   }
+  return command;
 }
 
 export function hasMassEditDependency(options) {
