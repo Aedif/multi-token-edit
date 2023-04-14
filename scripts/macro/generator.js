@@ -1,8 +1,8 @@
-import { SUPPORTED_PLACEABLES } from '../utils.js';
+import { genAction } from './action.js';
 import { genTargets } from './targets.js';
 
 // Util to stringify a json object
-function objToString(obj) {
+export function objToString(obj) {
   if (!obj) return null;
   return JSON.stringify(obj, null, 2);
 }
@@ -12,39 +12,8 @@ export async function generateMacro(docName, placeables, options) {
 
   // Dependencies get checked first
   command += genMacroDependencies(options);
-
-  // Insert 'update' objects
-  command += `// Updates to be applied
-const update = ${objToString(options.fields)};
-`;
-  if (options.method === 'toggle') command += `const update2 = ${objToString(options.toggle.fields)};\n\n`;
-
-  // Insert Mass Edit control objects
-  if (hasMassEditUpdateDependency(options)) {
-    command += `\n// Mass Edit control objects\n`;
-    command += `const randomizeFields = ${objToString(options.randomize)};\n`;
-    command += `const addSubtractFields = ${objToString(options.addSubtract)};\n`;
-    if (options.method === 'toggle') {
-      command += `const randomizeFieldsToggleOff = ${objToString(options.toggle.randomize)};\n`;
-      command += `const addSubtractFieldsToggleOff = ${objToString(options.toggle.addSubtract)};\n`;
-    }
-  }
-
   command += genTargets(options, docName, placeables);
-  if (options.method === 'toggle') command += genToggleUtil(options);
-
-  command += `
-// ===============
-// === Update ====
-// ===============
-`;
-
-  if (hasMassEditUpdateDependency(options)) {
-    command += genUpdateWithMassEditDep(options, docName);
-  } else {
-    command += genUpdate(options, docName);
-  }
-
+  command += genAction(options, docName);
   if (options.macro || options.toggle?.macro) {
     command += genRunMacro(options);
   }
@@ -115,110 +84,19 @@ if (offMacro && toggleOffTargets.length) {
   }
 }
 
-function genUpdate(options, docName) {
-  // Update related code
-  let command = '';
-
-  // Are there macros to execute?
-  const macroTracking = options.macro?.run || options.toggle?.macro?.run;
-
-  if (macroTracking) {
-    command += `
-const toggleOnTargets = [];
-const toggleOffTargets = [];
-`;
-  }
-
-  // Setting up updates
-  if (SUPPORTED_PLACEABLES.includes(docName)) {
-    command += '\nconst updates = {};';
-    if (options.method === 'toggle') {
-      command += `
-targets.forEach((t) => {
-  const sceneId = t.parent.id;
-  if(!updates[sceneId]) updates[sceneId] = [];
-
-  let u;
-  if(toggleOn(t, update)) {
-    u = deepClone(update2);${macroTracking ? '\ntoggleOffTargets.push(t);' : ''}
-  } else {
-    u = deepClone(update);${macroTracking ? '\ntoggleOnTargets.push(t);' : ''}
-  }
-  u._id = t.id;
-
-  updates[sceneId].push(u);
-});
-`;
-    } else {
-      command += `
-targets.forEach((t) => {
-  const sceneId = t.parent.id;
-  if(!updates[sceneId]) updates[sceneId] = [];
-  let u = deepClone(update);
-  u._id = t.id;
-  updates[sceneId].push(u);
-});
-`;
-    }
-  } else {
-    command += '\nconst updates = [];';
-    if (options.method === 'toggle') {
-      command += `
-targets.forEach((t) => {
-  let u;
-  if(toggleOn(t, update)) {
-    u = deepClone(update2);${macroTracking ? '\ntoggleOffTargets.push(t);' : ''}
-  } else {
-    u = deepClone(update);${macroTracking ? '\ntoggleOnTargets.push(t);' : ''}
-  }
-  u._id = t.id;
-  updates.push(u);
-});
-`;
-    } else {
-      command += `
-targets.forEach((t) => {
-  let u = deepClone(update);
-  u._id = t.id;
-  updates.push(u);
-});
-`;
-    }
-  }
-
-  // Executing updates
-  if (SUPPORTED_PLACEABLES.includes(docName)) {
-    command += `
-for(const sceneId of Object.keys(updates)) {
-  game.scenes.get(sceneId)?.updateEmbeddedDocuments('${docName}', updates[sceneId]);
-}
-`;
-  } else if (docName === 'PlaylistSound') {
-    command += `
-for (let i = 0; i < targets.length; i++) {
-  delete updates[i]._id;
-  targets[i].document.update(updates[i]);
-}
-`;
-  } else {
-    command += `\n${docName}.updateDocuments(updates);`;
-  }
-
-  return command;
-}
-
-function hasMassEditDependency(options) {
+export function hasMassEditDependency(options) {
   return (
     options.randomize ||
     options.addSubtract ||
     options.toggle?.randomize ||
     options.toggle?.addSubtract ||
     options.target.method === 'search' ||
+    options.method === 'massEdit' ||
     hasSpecialField(options.fields)
   );
 }
 
-function hasMassEditUpdateDependency(options) {
+export function hasMassEditUpdateDependency(options) {
   return (
     options.randomize ||
     options.addSubtract ||
@@ -259,57 +137,10 @@ if(!MassEdit?.active){
   return dep;
 }
 
-function genUpdateWithMassEditDep(options, docName) {
-  if (options.method === 'toggle') {
-    return `
-const toggleOnTargets = [];
-const toggleOffTargets = [];
-
-targets.forEach((t) => {
-  if(toggleOn(t, update)) toggleOffTargets.push(t);
-  else toggleOnTargets.push(t);
-});
-
-await MassEdit.api.performMassUpdate.call({randomizeFields, addSubtractFields}, update, toggleOnTargets, '${docName}');
-await MassEdit.api.performMassUpdate.call({randomizeFields, addSubtractFields}, update2, toggleOffTargets, '${docName}');
-`;
-  } else {
-    return `await MassEdit.api.performMassUpdate.call({randomizeFields, addSubtractFields}, update, targets, '${docName}');`;
-  }
-}
-
 export function hasSpecialField(fields) {
   const specialFields = ['tokenmagic.ddTint', 'tokenmagic.preset', 'massedit.scale', 'massedit.texture.scale'];
   for (const sf of specialFields) {
     if (sf in fields) return true;
   }
   return false;
-}
-
-function genToggleUtil(options) {
-  let command = `\n\n// Toggle; Helper function`;
-  if (options.toggle.method === 'field') {
-    command += `
-const toggleOn = function (obj, fields) {
-  const data = flattenObject(obj.toObject());
-  fields = flattenObject(fields);
-  return isEmpty(diffObject(data, fields));
-};
-`;
-  } else {
-    command += `
-const macro = this;
-const toggleOn = function (obj) {
-  if (obj.getFlag('world', \`macro-\${macro.id}-toggleOn\`)) {
-    obj.unsetFlag('world', \`macro-\${macro.id}-toggleOn\`);
-    return true;
-  } else {
-    obj.setFlag('world', \`macro-\${macro.id}-toggleOn\`, true);
-    return false;
-  }
-};
-`;
-  }
-
-  return command;
 }

@@ -691,6 +691,7 @@ export const WithMassConfig = (docName = 'NONE') => {
             new MacroForm(
               this.object,
               this.meObjects,
+              docName,
               selectedFields,
               this.randomizeFields,
               this.addSubtractFields
@@ -970,8 +971,11 @@ export function performMassSearch(
   console.log('Search', command, docName, selectedFields, scope);
 
   const found = [];
+
   if (scope === 'selected') {
     performDocSearch(selected, docName, selectedFields, found);
+  } else if (SUPPORTED_COLLECTIONS.includes(docName)) {
+    performDocSearch(Array.from(game.collections.get(docName)), docName, selectedFields, found);
   } else {
     let scenes = [];
     if (scope === 'world') scenes = Array.from(game.scenes);

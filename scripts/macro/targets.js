@@ -1,4 +1,5 @@
 import { SUPPORTED_PLACEABLES } from '../utils.js';
+import { objToString } from './generator.js';
 
 export function genTargets(options, docName, selected) {
   const target = options.target;
@@ -13,12 +14,6 @@ export function genTargets(options, docName, selected) {
   } else {
     throw new Error('Invalid target method: ' + target.method);
   }
-}
-
-// Util to stringify a json object
-function objToString(obj) {
-  if (!obj) return null;
-  return JSON.stringify(obj, null, 2);
 }
 
 function genSearch(target, docName) {

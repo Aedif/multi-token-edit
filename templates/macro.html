@@ -8,7 +8,7 @@
 
     <div class="form-group">
         <label>Macro Name</label>
-        <input name="name" type="text" value="{{docName}} Update Macro"></input>
+        <input name="name" type="text" value="{{docName}} Macro"></input>
     </div>
     <br>
     <h3>Targeting</h3>
@@ -46,12 +46,14 @@
         <textarea name="target.fields" style="width:100%; height: 100px;">{{fields}}</textarea>
     </div>
     <br>
-    <h3>Application Method</h3>
+    <h3>Action</h3>
     <div class="form-group">
-        <label>Method</label>
+        <label>Action</label>
         <select name="method" data-dtype="string">
             <option value="update" selected="selected">Update</option>
             <option value="toggle">Toggle</option>
+            <option value="massEdit">Open Mass Edit Form</option>
+            <option value="delete">Delete</option>
         </select>
     </div>
     <div class="toggleControl" hidden>
@@ -65,7 +67,7 @@
         <br>
     </div>
     {{#if hiddenControl}}
-    <div class="form-group">
+    <div class="form-group fields">
         <div style="text-align: right;">
             <a><img class="toggleVisibility" src="icons/svg/cowled.svg" width="25" height="25" title="Toggle Visibility State"></a>
         </div>
@@ -83,8 +85,8 @@
         <input name="addSubtract" type="text" value="{{addSubtract}}" hidden>
         {{/if}}
     </div>
-    <textarea name="fields" style="width:100%; height: 200px;">{{fields}}</textarea>
-    <div class="form-group slim">
+    <textarea class="fields" name="fields" style="width:100%; height: 200px;">{{fields}}</textarea>
+    <div class="form-group slim fields">
         <label>Run</label>
         <div class="form-fields">
             <label>Macro</label>

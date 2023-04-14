@@ -3,13 +3,11 @@ import { emptyObject, SUPPORTED_PLACEABLES } from '../scripts/utils.js';
 import { GeneralDataAdapter } from './dataAdapters.js';
 
 export default class MacroForm extends FormApplication {
-  constructor(object, placeables, fields, randomizeFields, addSubtractFields) {
+  constructor(object, placeables, docName, fields, randomizeFields, addSubtractFields) {
     super({}, {});
     this.mainObject = object;
     this.placeables = placeables;
-    this.docName = this.placeables[0].document
-      ? this.placeables[0].document.documentName
-      : this.placeables[0].documentName;
+    this.docName = docName;
     this.fields = fields;
     this.randomizeFields = randomizeFields;
     this.addSubtractFields = addSubtractFields;
@@ -53,20 +51,18 @@ export default class MacroForm extends FormApplication {
         title: `IDs of currently selected ${data.selectable ? 'placeables' : 'documents'} will be stored in the macro.`,
         label: 'IDs of Current Selected',
       },
-    ];
-    if (SUPPORTED_PLACEABLES.includes(this.docName)) {
-      targetingOptions.push({
+      {
         value: 'search',
         title: `Macro will search for ${this.docName}s matching specific fields at run-time.`,
         label: 'Search',
+      },
+    ];
+    if (SUPPORTED_PLACEABLES.includes(this.docName) && game.modules.get('tagger')?.active) {
+      targetingOptions.push({
+        value: 'tagger',
+        title: "Macro will target Tagger module's tags at run-time.",
+        label: 'Tagger',
       });
-      if (game.modules.get('tagger')?.active) {
-        targetingOptions.push({
-          value: 'tagger',
-          title: "Macro will target Tagger module's tags at run-time.",
-          label: 'Tagger',
-        });
-      }
     }
     data.targetingOptions = targetingOptions;
 
@@ -187,7 +183,7 @@ export default class MacroForm extends FormApplication {
       this.setPosition({ height: 'auto' });
     });
 
-    html.find('[name="method"]').change((event) => {
+    html.find('[name="method"]').on('change', (event) => {
       if (event.target.value === 'toggle') {
         let data = flattenObject(getData(this.mainObject).toObject());
 
@@ -198,6 +194,14 @@ export default class MacroForm extends FormApplication {
         this.setPosition({ height: 'auto' });
       } else {
         html.find('.toggleControl').hide();
+        this.setPosition({ height: 'auto' });
+      }
+
+      if (event.target.value === 'massEdit' || event.target.value === 'delete') {
+        html.find('.fields').hide();
+        this.setPosition({ height: 'auto' });
+      } else {
+        html.find('.fields').show();
         this.setPosition({ height: 'auto' });
       }
     });
