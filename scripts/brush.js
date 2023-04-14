@@ -1,5 +1,4 @@
 import { pasteDataUpdate } from '../applications/forms.js';
-import { emptyObject } from './utils.js';
 
 export class Brush {
   static app;
@@ -55,11 +54,7 @@ export class Brush {
       const pos = event.data.getLocalPosition(this.brushOverlay);
       const layer = canvas.getLayerByEmbeddedName(this.documentName);
       for (const p of layer.placeables) {
-        if (
-          p.visible &&
-          this.hitTest(pos, p) &&
-          !this.updatedPlaceables.find((u) => u.id === p.id)
-        ) {
+        if (p.visible && this.hitTest(pos, p) && !this.updatedPlaceables.find((u) => u.id === p.id)) {
           this._performBrushDocumentUpdate(pos, p);
         }
       }
@@ -80,11 +75,11 @@ export class Brush {
   static refreshFields() {
     if (this.active && this.app) {
       const selectedFields = this.app.getSelectedFields();
-      if (!emptyObject(selectedFields)) {
-        if (!emptyObject(this.app.randomizeFields)) {
+      if (!isEmpty(selectedFields)) {
+        if (!isEmpty(this.app.randomizeFields)) {
           selectedFields['mass-edit-randomize'] = deepClone(this.app.randomizeFields);
         }
-        if (!emptyObject(this.app.addSubtractFields)) {
+        if (!isEmpty(this.app.addSubtractFields)) {
           selectedFields['mass-edit-addSubtract'] = deepClone(this.app.addSubtractFields);
         }
       }
@@ -112,8 +107,7 @@ export class Brush {
 
     const interaction = canvas.app.renderer.plugins.interaction;
     if (!interaction.cursorStyles['brush']) {
-      interaction.cursorStyles['brush'] =
-        "url('modules/multi-token-edit/images/brush_icon.png'), auto";
+      interaction.cursorStyles['brush'] = "url('modules/multi-token-edit/images/brush_icon.png'), auto";
     }
 
     this.active = true;
@@ -179,16 +173,15 @@ export class Brush {
       const mPos = game.Levels3DPreview.interactionManager.canvas3dMousePosition;
       const cPos = game.Levels3DPreview.interactionManager.camera.position;
 
-      const intersects =
-        game.Levels3DPreview.interactionManager.computeSightCollisionFrom3DPositions(
-          cPos,
-          mPos,
-          'collision',
-          false,
-          false,
-          false,
-          true
-        );
+      const intersects = game.Levels3DPreview.interactionManager.computeSightCollisionFrom3DPositions(
+        cPos,
+        mPos,
+        'collision',
+        false,
+        false,
+        false,
+        true
+      );
 
       if (intersects[0]) {
         const intersect = intersects[0];
@@ -199,32 +192,16 @@ export class Brush {
   }
 
   static deactivate3DListeners() {
-    game.Levels3DPreview.renderer.domElement.removeEventListener(
-      'click',
-      this._boundOn3DBrushClick,
-      false
-    );
-    game.Levels3DPreview.renderer.domElement.removeEventListener(
-      'mousemove',
-      this._boundOn3dMouseMove,
-      false
-    );
+    game.Levels3DPreview.renderer.domElement.removeEventListener('click', this._boundOn3DBrushClick, false);
+    game.Levels3DPreview.renderer.domElement.removeEventListener('mousemove', this._boundOn3dMouseMove, false);
   }
 
   static _activate3DListeners() {
     // Remove listeners if they are already set
     this.deactivate3DListeners();
 
-    game.Levels3DPreview.renderer.domElement.addEventListener(
-      'click',
-      this._boundOn3DBrushClick,
-      false
-    );
-    game.Levels3DPreview.renderer.domElement.addEventListener(
-      'mousemove',
-      this._boundOn3dMouseMove,
-      false
-    );
+    game.Levels3DPreview.renderer.domElement.addEventListener('click', this._boundOn3DBrushClick, false);
+    game.Levels3DPreview.renderer.domElement.addEventListener('mousemove', this._boundOn3dMouseMove, false);
   }
 
   static _activate3d() {

@@ -5,7 +5,6 @@ import { applyRandomization, selectRandomizerFields } from '../scripts/randomize
 import { applyDDTint, applyTMFXPreset, getDDTint } from '../scripts/tmfx.js';
 import {
   applyAddSubtract,
-  emptyObject,
   flagCompare,
   getCommonData,
   getData,
@@ -16,7 +15,6 @@ import {
   SUPPORTED_COLLECTIONS,
   SUPPORTED_HISTORY_DOCS,
   SUPPORTED_PLACEABLES,
-  SUPPORT_SHEET_CONFIGS,
   wildcardStringMatch,
 } from '../scripts/utils.js';
 import { getInUseStyle } from './cssEdit.js';
@@ -662,11 +660,11 @@ export const WithMassConfig = (docName = 'NONE') => {
     }
 
     performMassCopy(command, selectedFields, docName) {
-      if (emptyObject(selectedFields)) return;
-      if (!emptyObject(this.randomizeFields)) {
+      if (isEmpty(selectedFields)) return;
+      if (!isEmpty(this.randomizeFields)) {
         selectedFields['mass-edit-randomize'] = deepClone(this.randomizeFields);
       }
-      if (!emptyObject(this.addSubtractFields)) {
+      if (!isEmpty(this.addSubtractFields)) {
         selectedFields['mass-edit-addSubtract'] = deepClone(this.addSubtractFields);
       }
 
@@ -1065,7 +1063,7 @@ export async function performMassUpdate(data, objects, docName, applyType) {
     if (this.options.callback) this.options.callback(data);
     return;
   }
-  if (emptyObject(data)) {
+  if (isEmpty(data)) {
     if (this.callbackOnUpdate) {
       this.callbackOnUpdate(objects);
     }
@@ -1168,7 +1166,7 @@ export async function performMassUpdate(data, objects, docName, applyType) {
       const actor = objects[i].actor;
       if (actor) actorUpdates[actor.id] = { _id: actor.id, prototypeToken: updates[i] };
     }
-    if (!emptyObject(actorUpdates)) {
+    if (!isEmpty(actorUpdates)) {
       const updates = [];
       for (const id of Object.keys(actorUpdates)) {
         updates.push(actorUpdates[id]);
@@ -1298,7 +1296,7 @@ export const WithMassPermissions = () => {
 
       const metaLevels = CONST.DOCUMENT_META_OWNERSHIP_LEVELS;
 
-      if (emptyObject(selectedFields)) return;
+      if (isEmpty(selectedFields)) return;
 
       const ids = new Set();
       const updates = [];

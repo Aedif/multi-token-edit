@@ -1,5 +1,5 @@
 import Color from '../color/color.js';
-import { emptyObject, getData, regexStringReplace, wildcardStringReplace } from '../utils.js';
+import { getData, regexStringReplace, wildcardStringReplace } from '../utils.js';
 
 export function selectField(control) {
   const formGroup = control.closest('.form-group');
@@ -32,7 +32,7 @@ export function selectRandomizerFields(form, fields) {
 
 export function applyRandomization(updates, objects, randomizeFields) {
   // See if any field is to be randomized
-  if (!randomizeFields || emptyObject(randomizeFields)) return;
+  if (!randomizeFields || isEmpty(randomizeFields)) return;
 
   let requiresCoordRandomization = false;
 

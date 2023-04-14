@@ -58,11 +58,6 @@ export async function recursiveTraverse(path, source, bucket, files = []) {
 }
 
 // To get rid of v10 warnings
-export function emptyObject(obj) {
-  return foundry.utils.isEmpty(obj);
-}
-
-// To get rid of v10 warnings
 export function getData(obj) {
   return obj.document ? obj.document : obj;
 }
@@ -73,13 +68,13 @@ export function flagCompare(data, flag, flagVal) {
   if (data[flag] == flagVal) return true;
 
   const falseyFlagVal =
-    flagVal == null || flagVal === false || flagVal === '' || (getType(flagVal) === 'Object' && emptyObject(flagVal));
+    flagVal == null || flagVal === false || flagVal === '' || (getType(flagVal) === 'Object' && isEmpty(flagVal));
 
   const falseyDataVal =
     data[flag] == null ||
     data[flag] === false ||
     data[flag] === '' ||
-    (getType(data[flag]) === 'Object' && emptyObject(data[flag]));
+    (getType(data[flag]) === 'Object' && isEmpty(data[flag]));
 
   if (falseyFlagVal && falseyDataVal) return true;
 
@@ -129,7 +124,7 @@ export function selectAddSubtractFields(form, fields) {
 
 export function applyAddSubtract(updates, objects, docName, addSubtractFields) {
   // See if any field need to be added or subtracted
-  if (!addSubtractFields || emptyObject(addSubtractFields)) return;
+  if (!addSubtractFields || isEmpty(addSubtractFields)) return;
 
   for (let i = 0; i < updates.length; i++) {
     const update = updates[i];

@@ -1,5 +1,5 @@
 import { CUSTOM_CONTROLS } from '../data/custom-controls.js';
-import { emptyObject, getCommonData } from '../scripts/utils.js';
+import { getCommonData } from '../scripts/utils.js';
 import { WithMassConfig } from './forms.js';
 import { showMassEdit } from './multiConfig.js';
 
@@ -202,7 +202,7 @@ export class MassEditGenericForm extends WMC {
       this.pinnedFields[name].value = formData[name];
     }
 
-    if (!emptyObject(this.editableLabels)) {
+    if (!isEmpty(this.editableLabels)) {
       for (const [name, label] of Object.entries(this.editableLabels)) {
         if (name in this.pinnedFields) {
           this.pinnedFields[name].label = label;
@@ -339,7 +339,7 @@ function _constructControls(nav, data, tabSelectors, name, pinned, customControl
       let t = getType(v);
       let control;
       if (t === 'Object') {
-        if (!emptyObject(v)) {
+        if (!isEmpty(v)) {
           nav.items.push({ dataTab: name2, label: _genLabel(k) });
           const newNav = { dataGroup: name2, items: [], tabs: [] };
           nav.tabs.push({ dataTab: name2, nav: newNav });

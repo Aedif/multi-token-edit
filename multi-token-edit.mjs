@@ -19,7 +19,6 @@ import {
 import { MassEditGenericForm } from './applications/genericForm.js';
 import {
   applyAddSubtract,
-  emptyObject,
   flagCompare,
   hashCode,
   SUPPORTED_COLLECTIONS,
@@ -423,7 +422,7 @@ function updateHistory(obj, update, options, userId) {
 }
 
 function saveHistory(obj, update, historyItem, _id, docName) {
-  if (!obj || emptyObject(update)) return;
+  if (!obj || isEmpty(update)) return;
 
   historyItem.update = flattenObject(update);
   historyItem.diff = getDiffData(obj, docName, update);

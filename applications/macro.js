@@ -1,5 +1,5 @@
 import { generateMacro, hasSpecialField } from '../scripts/macro/generator.js';
-import { emptyObject, SUPPORTED_COLLECTIONS, SUPPORTED_PLACEABLES } from '../scripts/utils.js';
+import { SUPPORTED_COLLECTIONS, SUPPORTED_PLACEABLES } from '../scripts/utils.js';
 import { GeneralDataAdapter } from './dataAdapters.js';
 
 export default class MacroForm extends FormApplication {
@@ -12,7 +12,7 @@ export default class MacroForm extends FormApplication {
     this.randomizeFields = randomizeFields;
     this.addSubtractFields = addSubtractFields;
 
-    if ((randomizeFields && !emptyObject(randomizeFields)) || (addSubtractFields && !emptyObject(addSubtractFields))) {
+    if ((randomizeFields && !isEmpty(randomizeFields)) || (addSubtractFields && !isEmpty(addSubtractFields))) {
       // keep selected fields in form format
     } else {
       GeneralDataAdapter.formToData(this.docName, this.mainObject, this.fields);
@@ -69,12 +69,12 @@ export default class MacroForm extends FormApplication {
     }
     data.targetingOptions = targetingOptions;
 
-    if (this.addSubtractFields && !emptyObject(this.addSubtractFields)) {
+    if (this.addSubtractFields && !isEmpty(this.addSubtractFields)) {
       data.hasAddSubtract = true;
       data.addSubtract = JSON.stringify(this.addSubtractFields);
     }
 
-    if (this.randomizeFields && !emptyObject(this.randomizeFields)) {
+    if (this.randomizeFields && !isEmpty(this.randomizeFields)) {
       data.hasRandom = true;
       data.random = JSON.stringify(this.randomizeFields);
     }
@@ -110,7 +110,7 @@ export default class MacroForm extends FormApplication {
           callback: (html) => {
             try {
               const val = JSON.parse(html.find('[name="json"]').val() || '{}');
-              if (emptyObject(val)) {
+              if (isEmpty(val)) {
                 control.hide();
                 store.prop('disabled', true);
                 this.setPosition({ height: 'auto' });

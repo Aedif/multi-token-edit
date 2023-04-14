@@ -1,5 +1,4 @@
 import { Brush } from '../scripts/brush.js';
-import { emptyObject } from '../scripts/utils.js';
 import { TokenDataAdapter } from './dataAdapters.js';
 
 export default class MassEditPresets extends FormApplication {
@@ -141,7 +140,7 @@ export default class MassEditPresets extends FormApplication {
 
   _onPresetUpdate(event) {
     const selectedFields = this.configApp.getSelectedFields();
-    if (!selectedFields || emptyObject(selectedFields)) {
+    if (!selectedFields || isEmpty(selectedFields)) {
       ui.notifications.warn('No fields selected, unable to update.');
       return;
     }
@@ -195,10 +194,10 @@ export default class MassEditPresets extends FormApplication {
       TokenDataAdapter.correctDetectionModeOrder(selectedFields, randomizeFields);
     }
 
-    if (!emptyObject(randomizeFields)) {
+    if (!isEmpty(randomizeFields)) {
       selectedFields['mass-edit-randomize'] = randomizeFields;
     }
-    if (!emptyObject(addSubtractFields)) {
+    if (!isEmpty(addSubtractFields)) {
       selectedFields['mass-edit-addSubtract'] = addSubtractFields;
     }
 
@@ -223,7 +222,7 @@ export default class MassEditPresets extends FormApplication {
 
   _onPresetCreate(event) {
     const selectedFields = this.configApp.getSelectedFields();
-    if (!selectedFields || emptyObject(selectedFields)) {
+    if (!selectedFields || isEmpty(selectedFields)) {
       ui.notifications.warn('No fields selected.');
       return;
     }
@@ -322,7 +321,7 @@ export default class MassEditPresets extends FormApplication {
   async importPresets() {
     let json = await this._importFromJSONDialog();
     json = JSON.parse(json);
-    if (!json || emptyObject(json)) return;
+    if (!json || isEmpty(json)) return;
 
     const presets = game.settings.get('multi-token-edit', 'presets') || {};
 
@@ -393,7 +392,7 @@ export default class MassEditPresets extends FormApplication {
 
 function exportPresets(docType) {
   const presets = (game.settings.get('multi-token-edit', 'presets') || {})[docType];
-  if (!presets || emptyObject(presets)) return;
+  if (!presets || isEmpty(presets)) return;
 
   let content = '<form><h2>Select Presets to export:</h2>';
   for (const key of Object.keys(presets)) {
@@ -440,7 +439,7 @@ function exportPresets(docType) {
               exportData[this.name] = presets[this.name];
             }
           });
-          if (!emptyObject(exportData)) {
+          if (!isEmpty(exportData)) {
             const data = {};
             data[docType] = exportData;
             const filename = `mass-edit-presets-${docType}.json`;
