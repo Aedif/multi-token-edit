@@ -202,7 +202,7 @@ export const WithMassEditForm = (cls) => {
             'multi-token-edit.form.immediate-update-title'
           )}"><input type="checkbox" data-submit="${button.value}"><i class="fas fa-cogs"></i></div>`;
       }
-      if (this.options.massSelect) {
+      if (this.options.massSelect && SUPPORTED_PLACEABLES.includes(this.documentName)) {
         htmlButtons += `<div class="me-mod-update" title="${game.i18n.localize(
           'multi-token-edit.form.global-search-title'
         )}"><input type="checkbox" data-submit="world"><i class="far fa-globe"></i></div>`;
@@ -962,8 +962,6 @@ export function performMassSearch(
   selectedFields,
   { scope = null, selected = null, control = true, pan = true } = {}
 ) {
-  console.log('Search', command, docName, selectedFields, scope);
-
   const found = [];
 
   if (scope === 'selected') {
@@ -996,7 +994,7 @@ export function performMassSearch(
   }
   if (command === 'searchAndEdit') {
     setTimeout(() => {
-      showMassEdit(found, docName, { globalDelete: scope === 'world' });
+      showMassEdit(found, docName, { globalDelete: scope === 'world' || SUPPORTED_COLLECTIONS.includes(docName) });
     }, 500);
   }
   return found;

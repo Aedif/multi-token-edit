@@ -229,8 +229,6 @@ export default class MacroForm extends FormApplication {
     if (formData.target.method !== 'search') delete formData.target.fields;
     else formData.target.fields = JSON.parse(formData.target.fields);
 
-    console.log(formData);
-
     generateMacro(this.docName, this.placeables, formData);
   }
 }

@@ -3,7 +3,7 @@
     "form": {
       "immediate-update-title": "Automatically apply updates on field changes.",
       "global-search-title": "Enable world search.",
-      "global-delete-title": "Delete all placeables."
+      "global-delete-title": "Delete ALL documents."
     },
     "macro": {
       "dependency-warning": "This macro requires {module} module to be active."

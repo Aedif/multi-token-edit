@@ -84,7 +84,7 @@ function genAllTargets(target, docName) {
   `;
     }
   } else {
-    return `const targets = Array.from(game.collection.get('${docName}'));`;
+    return `const targets = Array.from(game.collections.get('${docName}'));`;
   }
 }
 

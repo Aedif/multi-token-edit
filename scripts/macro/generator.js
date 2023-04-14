@@ -19,7 +19,6 @@ export async function generateMacro(docName, placeables, options) {
     command += genRunMacro(options);
   }
 
-  console.log(command);
   if (command) {
     // Create Macro
     const macro = await Macro.create({

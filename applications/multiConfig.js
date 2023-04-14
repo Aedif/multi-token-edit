@@ -1,5 +1,5 @@
 import { showPlaceableTypeSelectDialog } from '../scripts/dialogs.js';
-import { getData, SUPPORTED_PLACEABLES, SUPPORT_SHEET_CONFIGS } from '../scripts/utils.js';
+import { getData, SUPPORTED_PLACEABLES, SUPPORT_SHEET_CONFIGS, SUPPORTED_COLLECTIONS } from '../scripts/utils.js';
 import { pasteDataUpdate, WithMassConfig } from './forms.js';
 import { MassEditGenericForm } from './genericForm.js';
 
@@ -143,14 +143,19 @@ export function showMassSelect(basePlaceable) {
   }
 
   const docName = target.document ? target.document.documentName : target.documentName;
-  if (!SUPPORTED_PLACEABLES.includes(docName)) return;
 
-  const MassConfig = WithMassConfig(docName);
-  new MassConfig(target, selected, {
+  const options = {
     commonData: flattenObject(getData(target).toObject()),
     massSelect: true,
     documentName: docName,
-  }).render(true, {});
+  };
+
+  if (SUPPORT_SHEET_CONFIGS.includes(docName) && docName !== 'Actor') {
+    const MassConfig = WithMassConfig(docName);
+    new MassConfig(target, selected, options).render(true, {});
+  } else if (SUPPORTED_COLLECTIONS.includes(docName)) {
+    new MassEditGenericForm(selected, options).render(true);
+  }
 }
 
 // show placeable edit
