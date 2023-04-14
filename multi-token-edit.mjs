@@ -135,7 +135,7 @@ Hooks.once('init', () => {
     default: true,
   });
 
-  if (game.modules.get('tokenmagic')?.active && !isNewerVersion('10', game.version)) {
+  if (game.modules.get('tokenmagic')?.active) {
     game.settings.register('multi-token-edit', 'tmfxFieldsEnable', {
       name: game.i18n.localize('multi-token-edit.settings.tmfxFieldsEnable.name'),
       hint: game.i18n.localize('multi-token-edit.settings.tmfxFieldsEnable.hint'),

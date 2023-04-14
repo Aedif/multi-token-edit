@@ -23,8 +23,12 @@
     <div class="form-group">
         <label>Scope</label>
         <select name="target.scope" data-dtype="string">
+            {{#if selectScopeEnabled}}
             <option value="selected" selected="selected">Selected</option>
+            {{/if}}
+            {{#if selectable}}
             <option value="scene">Active Scene</option>
+            {{/if}}
             <option value="world">World</option>
         </select>
     </div>

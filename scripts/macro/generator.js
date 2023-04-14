@@ -1,3 +1,4 @@
+import { SUPPORTED_COLLECTIONS } from '../utils.js';
 import { genAction } from './action.js';
 import { genTargets } from './targets.js';
 
@@ -11,7 +12,7 @@ export async function generateMacro(docName, placeables, options) {
   let command = '';
 
   // Dependencies get checked first
-  command += genMacroDependencies(options);
+  command += genMacroDependencies(options, docName);
   command += genTargets(options, docName, placeables);
   command += genAction(options, docName);
   if (options.macro || options.toggle?.macro) {
@@ -106,7 +107,7 @@ export function hasMassEditUpdateDependency(options) {
   );
 }
 
-function genMacroDependencies(options) {
+function genMacroDependencies(options, docName) {
   let dep = '';
 
   const depWarning = (module) => {
@@ -130,6 +131,15 @@ const MassEdit = game.modules.get('multi-token-edit');
 if(!MassEdit?.active){
   ${depWarning('Mass Edit')}
   return;
+}
+
+`;
+
+  if (SUPPORTED_COLLECTIONS.includes(docName) && options.target.scope === 'select')
+    dep += `
+if (!game.modules.get('multiple-document-selection')?.active) {
+${depWarning('Multiple Document Selection')}
+return;
 }
 
 `;

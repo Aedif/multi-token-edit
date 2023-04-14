@@ -324,7 +324,6 @@ export const WithMassEditForm = (cls) => {
         (this.documentName === 'Tile' || this.documentName === 'Token') &&
         !this.options?.simplified &&
         game.modules.get('tokenmagic')?.active &&
-        !isNewerVersion('10', game.version) &&
         game.settings.get('multi-token-edit', 'tmfxFieldsEnable')
       ) {
         let content = '<datalist id="tmfxPresets"><option value="DELETE ALL">';
@@ -354,7 +353,7 @@ export const WithMassEditForm = (cls) => {
         processFormGroup(chk, 'meInsert');
       }
 
-      if (this.documentName === 'Tile' && !isNewerVersion('10', game.version)) {
+      if (this.documentName === 'Tile') {
         let scaleInput = $(`
         <div class="form-group slim">
           <label>Scale <span class="units">(Ratio)</span></label>
@@ -437,13 +436,13 @@ export const WithMassEditForm = (cls) => {
 
       // Token _getSubmitData() performs conversions related to scale, we need to undo them here
       // so that named fields on the form match up and can be selected
-      if (this.documentName === 'Token' && !isNewerVersion('10', game.version)) {
+      if (this.documentName === 'Token') {
         if (formData['texture.scaleX']) {
           formData.scale = Math.abs(formData['texture.scaleX']);
           formData.mirrorX = formData['texture.scaleX'] < 0;
           formData.mirrorY = formData['texture.scaleY'] < 0;
         }
-      } else if (this.documentName === 'Note' && !isNewerVersion('10', game.version)) {
+      } else if (this.documentName === 'Note') {
         if (formData['texture.src']) {
           formData['icon.selected'] = formData['texture.src'];
           formData['icon.custom'] = formData['texture.src'];
@@ -678,10 +677,7 @@ export const WithMassConfig = (docName = 'NONE') => {
       const buttons = super._getHeaderButtons();
       const docName = this.documentName;
 
-      if (
-        !isNewerVersion('10', game.version) &&
-        (SUPPORT_SHEET_CONFIGS.includes(docName) || SUPPORTED_COLLECTIONS.includes(docName))
-      ) {
+      if (SUPPORTED_PLACEABLES.includes(docName) || SUPPORTED_COLLECTIONS.includes(docName)) {
         buttons.unshift({
           label: '',
           class: 'mass-edit-macro',
@@ -700,7 +696,7 @@ export const WithMassConfig = (docName = 'NONE') => {
         });
       }
 
-      if (SUPPORTED_PLACEABLES.includes(docName) && !isNewerVersion('10', game.version)) {
+      if (SUPPORTED_PLACEABLES.includes(docName)) {
         buttons.unshift({
           label: '',
           class: 'mass-edit-brush',
@@ -1170,13 +1166,7 @@ export async function performMassUpdate(data, objects, docName, applyType) {
     const actorUpdates = {};
     for (let i = 0; i < objects.length; i++) {
       const actor = objects[i].actor;
-      if (actor) {
-        if (isNewerVersion('10', game.version)) {
-          actorUpdates[actor.id] = { _id: actor.id, token: updates[i] };
-        } else {
-          actorUpdates[actor.id] = { _id: actor.id, prototypeToken: updates[i] };
-        }
-      }
+      if (actor) actorUpdates[actor.id] = { _id: actor.id, prototypeToken: updates[i] };
     }
     if (!emptyObject(actorUpdates)) {
       const updates = [];
@@ -1267,15 +1257,15 @@ function getCommonDocData(docs) {
 }
 
 export const WithMassPermissions = () => {
-  let MEF = WithMassEditForm(isNewerVersion('10', game.version) ? PermissionControl : DocumentOwnershipConfig);
+  let MEF = WithMassEditForm(DocumentOwnershipConfig);
 
   class MassPermissions extends MEF {
     constructor(target, docs, options = {}) {
       // Generate common permissions
       const data = getData(docs[0]);
-      const commonData = flattenObject(isNewerVersion('10', game.version) ? data.permission : data.ownership);
+      const commonData = flattenObject(data.ownership);
 
-      const metaLevels = isNewerVersion('10', game.version) ? { DEFAULT: -1 } : CONST.DOCUMENT_META_OWNERSHIP_LEVELS;
+      const metaLevels = CONST.DOCUMENT_META_OWNERSHIP_LEVELS;
 
       // Permissions are only present if they differ from default, for simplicity simple add them before comparing
       const addMissingPerms = function (perms) {
@@ -1289,7 +1279,7 @@ export const WithMassPermissions = () => {
 
       for (let i = 1; i < docs.length; i++) {
         const data = getData(docs[i]);
-        const flatData = flattenObject(isNewerVersion('10', game.version) ? data.permission : data.ownership);
+        const flatData = flattenObject(data.ownership);
         addMissingPerms(flatData);
         const diff = flattenObject(diffObject(commonData, flatData));
         for (const k of Object.keys(diff)) {
@@ -1306,7 +1296,7 @@ export const WithMassPermissions = () => {
     async _updateObject(event, formData) {
       const selectedFields = this.getSelectedFields(formData);
 
-      const metaLevels = isNewerVersion('10', game.version) ? { DEFAULT: -1 } : CONST.DOCUMENT_META_OWNERSHIP_LEVELS;
+      const metaLevels = CONST.DOCUMENT_META_OWNERSHIP_LEVELS;
 
       if (emptyObject(selectedFields)) return;
 
@@ -1315,9 +1305,7 @@ export const WithMassPermissions = () => {
       for (const d of this.meObjects) {
         if (!ids.has(d.id)) {
           const data = getData(d);
-          const ownership = foundry.utils.deepClone(
-            isNewerVersion('10', game.version) ? data.permission : data.ownership
-          );
+          const ownership = foundry.utils.deepClone(data.ownership);
 
           for (let [user, level] of Object.entries(selectedFields)) {
             if (level === metaLevels.DEFAULT) delete ownership[user];
@@ -1325,11 +1313,7 @@ export const WithMassPermissions = () => {
           }
 
           ids.add(d.id);
-          if (isNewerVersion('10', game.version)) {
-            updates.push({ _id: d.id, permission: ownership });
-          } else {
-            updates.push({ _id: d.id, ownership: ownership });
-          }
+          updates.push({ _id: d.id, ownership: ownership });
         }
       }
 

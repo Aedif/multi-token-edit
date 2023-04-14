@@ -59,11 +59,7 @@ export async function recursiveTraverse(path, source, bucket, files = []) {
 
 // To get rid of v10 warnings
 export function emptyObject(obj) {
-  if (isNewerVersion('10', game.version)) {
-    return foundry.utils.isObjectEmpty(obj);
-  } else {
-    return foundry.utils.isEmpty(obj);
-  }
+  return foundry.utils.isEmpty(obj);
 }
 
 // To get rid of v10 warnings

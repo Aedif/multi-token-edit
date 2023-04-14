@@ -41,7 +41,6 @@ export default class MassEditPresets extends FormApplication {
     data.presets = [];
 
     data.createEnabled = Boolean(this.configApp);
-    data.v10 = !isNewerVersion('10', game.version);
 
     for (const p of presetList) {
       const fields = p.fields;
@@ -51,14 +50,7 @@ export default class MassEditPresets extends FormApplication {
 
       let title = '';
       for (const k of Object.keys(fields)) {
-        if (
-          [
-            'mass-edit-randomize',
-            'mass-edit-addSubtract',
-            'mass-edit-preset-order',
-            'mass-edit-keybind',
-          ].includes(k)
-        )
+        if (['mass-edit-randomize', 'mass-edit-addSubtract', 'mass-edit-preset-order', 'mass-edit-keybind'].includes(k))
           continue;
         if (k in randomizer) {
           title += `${k}: {{randomized}}\n`;
@@ -169,8 +161,7 @@ export default class MassEditPresets extends FormApplication {
     if (found <= 0) return;
 
     let temp = presetList[found].fields['mass-edit-preset-order'];
-    presetList[found].fields['mass-edit-preset-order'] =
-      presetList[found - 1].fields['mass-edit-preset-order'];
+    presetList[found].fields['mass-edit-preset-order'] = presetList[found - 1].fields['mass-edit-preset-order'];
     presetList[found - 1].fields['mass-edit-preset-order'] = temp;
 
     await game.settings.set('multi-token-edit', 'presets', allPresets);
@@ -187,8 +178,7 @@ export default class MassEditPresets extends FormApplication {
     if (found < 0 || found === presetList.length - 1) return;
 
     let temp = presetList[found].fields['mass-edit-preset-order'];
-    presetList[found].fields['mass-edit-preset-order'] =
-      presetList[found + 1].fields['mass-edit-preset-order'];
+    presetList[found].fields['mass-edit-preset-order'] = presetList[found + 1].fields['mass-edit-preset-order'];
     presetList[found + 1].fields['mass-edit-preset-order'] = temp;
 
     await game.settings.set('multi-token-edit', 'presets', allPresets);
@@ -218,8 +208,7 @@ export default class MassEditPresets extends FormApplication {
       docPresets = {};
     }
 
-    if (!(name in docPresets))
-      selectedFields['mass-edit-preset-order'] = Object.keys(docPresets).length;
+    if (!(name in docPresets)) selectedFields['mass-edit-preset-order'] = Object.keys(docPresets).length;
     else {
       selectedFields['mass-edit-preset-order'] = docPresets[name]['mass-edit-preset-order'];
       selectedFields['mass-edit-keybind'] = docPresets[name]['mass-edit-keybind'];
@@ -271,9 +260,7 @@ export default class MassEditPresets extends FormApplication {
       }
       presetList.push({ name, fields });
     }
-    presetList.sort(
-      (p1, p2) => p1.fields['mass-edit-preset-order'] - p2.fields['mass-edit-preset-order']
-    );
+    presetList.sort((p1, p2) => p1.fields['mass-edit-preset-order'] - p2.fields['mass-edit-preset-order']);
 
     return [allPresets, presetList];
   }
@@ -365,8 +352,7 @@ export default class MassEditPresets extends FormApplication {
               label: 'Import',
               callback: (html) => {
                 const form = html.find('form')[0];
-                if (!form.data.files.length)
-                  return ui.notifications?.error('You did not upload a data file!');
+                if (!form.data.files.length) return ui.notifications?.error('You did not upload a data file!');
                 readTextFromFile(form.data.files[0]).then((json) => {
                   resolve(json);
                 });

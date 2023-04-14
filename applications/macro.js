@@ -1,5 +1,5 @@
 import { generateMacro, hasSpecialField } from '../scripts/macro/generator.js';
-import { emptyObject, SUPPORTED_PLACEABLES } from '../scripts/utils.js';
+import { emptyObject, SUPPORTED_COLLECTIONS, SUPPORTED_PLACEABLES } from '../scripts/utils.js';
 import { GeneralDataAdapter } from './dataAdapters.js';
 
 export default class MacroForm extends FormApplication {
@@ -38,6 +38,9 @@ export default class MacroForm extends FormApplication {
     data.docName = this.docName;
     data.fields = JSON.stringify(this.fields, null, 2);
     data.selectable = SUPPORTED_PLACEABLES.includes(this.docName);
+    data.selectScopeEnabled =
+      data.selectable ||
+      (SUPPORTED_COLLECTIONS.includes(this.docName) && game.modules.get('multiple-document-selection')?.active);
 
     // Define targeting options based on the document being updated
     const targetingOptions = [
@@ -233,9 +236,5 @@ export default class MacroForm extends FormApplication {
 }
 
 function getData(obj) {
-  if (isNewerVersion('10', game.version)) {
-    return obj.data;
-  } else {
-    return obj.document ? obj.document : obj;
-  }
+  return obj.document ? obj.document : obj;
 }

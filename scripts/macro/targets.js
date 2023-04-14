@@ -73,14 +73,18 @@ $(\`.directory-list .\${'${mdsClasses[docName]}'}.selected\`).each(function (_) 
 function genAllTargets(target, docName) {
   if (target.scope === 'selected') {
     return genSelected(docName);
-  } else if (target.scope === 'scene') {
-    return `const targets = canvas.getLayerByEmbeddedName('${docName}').placeables.map(o => o.document);\n\n`;
-  } else if (target.scope === 'world') {
-    return `const targets = [];
-Array.from(game.scenes).forEach( scene => {
-    Array.from( scene.getEmbeddedCollection('${docName}') ).forEach(embed => targets.push(embed));
-});
-`;
+  } else if (SUPPORTED_PLACEABLES.includes(docName)) {
+    if (target.scope === 'scene') {
+      return `const targets = canvas.getLayerByEmbeddedName('${docName}').placeables.map(o => o.document);\n\n`;
+    } else if (target.scope === 'world') {
+      return `const targets = [];
+  Array.from(game.scenes).forEach( scene => {
+      Array.from( scene.getEmbeddedCollection('${docName}') ).forEach(embed => targets.push(embed));
+  });
+  `;
+    }
+  } else {
+    return `const targets = Array.from(game.collection.get('${docName}'));`;
   }
 }
 

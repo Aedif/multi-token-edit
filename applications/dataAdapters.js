@@ -7,12 +7,10 @@ class PlaylistSoundDataAdapter {
   }
 
   static dataToForm(note, data) {
-    if (isNewerVersion('10', game.version)) return;
     data['lvolume'] = (note.document ?? note).volume;
   }
 
   static updateToForm(update) {
-    if (isNewerVersion('10', game.version)) return;
     if ('volume' in update) {
       update['lvolume'] = AudioHelper.volumeToInput(update['volume']);
       delete update.volume;
@@ -63,8 +61,6 @@ export class TokenDataAdapter {
   }
 
   static dataToForm(token, data) {
-    if (isNewerVersion('10', game.version)) return;
-
     const doc = token.document ?? token;
     data.scale = Math.abs(doc.texture.scaleX);
     data.mirrorX = doc.texture.scaleX < 0;
@@ -72,8 +68,6 @@ export class TokenDataAdapter {
   }
 
   static formToData(token, formData) {
-    if (isNewerVersion('10', game.version)) return;
-
     const doc = token.document ?? token;
 
     // Scale/mirroring
@@ -91,8 +85,6 @@ export class TokenDataAdapter {
   }
 
   static correctDetectionModeOrder(data, randomizeFields) {
-    if (isNewerVersion('10', game.version)) return;
-
     const indexMap = {};
     let i = 0;
     for (const [k, v] of Object.entries(data)) {
@@ -115,7 +107,6 @@ export class TokenDataAdapter {
   }
 
   static detectionModeMatch(searchModes, tokenModes) {
-    if (isNewerVersion('10', game.version)) return true;
     for (const m1 of searchModes) {
       if (!('id' in m1)) continue; // Ignore mode search attempts without ids as they can't be matched up
       for (const m2 of tokenModes) {
@@ -130,8 +121,6 @@ export class TokenDataAdapter {
   }
 
   static correctDetectionModes(token, data) {
-    if (isNewerVersion('10', game.version)) return;
-
     const detectionModes = [];
     const indexMap = {};
     let i = 0;
@@ -171,7 +160,6 @@ export class TokenDataAdapter {
   }
 
   static presetModify(app, preset) {
-    if (isNewerVersion('10', game.version)) return false;
     const pModes = Object.values(foundry.utils.expandObject(preset)?.detectionModes || {});
     if (!pModes.length) return;
 
