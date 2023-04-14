@@ -207,7 +207,7 @@ export const WithMassEditForm = (cls) => {
       if (this.options.massSelect) {
         htmlButtons += `<div class="me-mod-update" title="${game.i18n.localize(
           'multi-token-edit.form.global-search-title'
-        )}"><input type="checkbox" data-submit="global"><i class="far fa-globe"></i></div>`;
+        )}"><input type="checkbox" data-submit="world"><i class="far fa-globe"></i></div>`;
       }
 
       let footer = $(html).find('.sheet-footer');
@@ -644,12 +644,9 @@ export const WithMassConfig = (docName = 'NONE') => {
       }
       // Search and Select mode
       else if (this.options.massSelect) {
-        this.performMassSearch(
-          event.submitter.value,
-          docName,
-          selectedFields,
-          this.modUpdate ? this.modUpdateType : null
-        );
+        performMassSearch(event.submitter.value, docName, selectedFields, {
+          scope: this.modUpdate ? this.modUpdateType : null,
+        });
       } else {
         // Edit mode
         performMassUpdate.call(this, selectedFields, this.meObjects, docName, event.submitter.value);
@@ -675,86 +672,6 @@ export const WithMassConfig = (docName = 'NONE') => {
       }
 
       copyToClipboard(docName, selectedFields, command, this.isPrototype);
-    }
-
-    performMassSearch(command, docName, selectedFields, modifiedCommand) {
-      // First release/de-select the currently selected placeable on the current scene
-      canvas.activeLayer.controlled.map((c) => c).forEach((c) => c.release());
-
-      let scenes = [];
-      if (modifiedCommand === 'global') scenes = Array.from(game.scenes);
-      else if (canvas.scene) scenes = [canvas.scene];
-
-      const found = [];
-      for (const scene of scenes) {
-        this.performMassSearchScene(scene, docName, selectedFields, found);
-      }
-
-      // Select found placeables/documents
-      found.forEach((f) => {
-        let obj = f.object ?? f;
-        if (obj.control) obj.control({ releaseOthers: false });
-      });
-
-      if (found.length && game.settings.get('multi-token-edit', 'panToSearch')) {
-        panToFitPlaceables(found);
-      }
-      if (command === 'searchAndEdit') {
-        setTimeout(() => {
-          showMassEdit(found, docName, { globalDelete: modifiedCommand === 'global' });
-        }, 500);
-      }
-    }
-
-    performMassSearchScene(scene, docName, selectedFields, found) {
-      const docs = Array.from(scene[SCENE_DOC_MAPPINGS[docName]]);
-      // Next select objects that match the selected fields
-      for (const c of docs) {
-        let matches = true;
-        const data = flattenObject(getData(c).toObject());
-
-        // Special processing for some placeable types
-        // Necessary when form data is not directly mappable to placeable
-        GeneralDataAdapter.dataToForm(docName, c, data);
-
-        for (const [k, v] of Object.entries(selectedFields)) {
-          // Special handling for flags
-          if (k.startsWith('flags.')) {
-            if (!flagCompare(data, k, v)) {
-              matches = false;
-              break;
-            }
-            // Special handling for empty strings and undefined
-          } else if ((v === '' || v == null) && (data[k] !== '' || data[k] != null)) {
-            // matches
-          } else if (typeof v === 'string' && v.includes('*') && wildcardStringMatch(v, data[k])) {
-            // Wildcard matched
-          } else if (data[k] != v) {
-            // Detection mode keys cannot be treated in isolation
-            // We skip them here and will check them later
-            if (docName === 'Token') {
-              if (k.startsWith('detectionModes')) {
-                continue;
-              }
-            }
-
-            matches = false;
-            break;
-          }
-        }
-        if (matches) {
-          // We skipped detectionMode matching in the previous step and do it now instead
-          if (docName === 'Token') {
-            const modes = Object.values(foundry.utils.expandObject(selectedFields)?.detectionModes || {});
-
-            if (!TokenDataAdapter.detectionModeMatch(modes, c.detectionModes)) {
-              continue;
-            }
-          }
-
-          found.push(c);
-        }
-      }
     }
 
     _getHeaderButtons() {
@@ -1041,6 +958,104 @@ export function pasteDataUpdate(docs, preset, suppressNotif = false) {
     }
     performMassUpdate.call(context, data, docs, docName, applyType);
     if (!suppressNotif) ui.notifications.info(`Pasted data onto ${docs.length} ${docName}s`);
+  }
+}
+
+export function performMassSearch(
+  command,
+  docName,
+  selectedFields,
+  { scope = null, selected = null, control = true, pan = true } = {}
+) {
+  console.log('Search', command, docName, selectedFields, scope);
+
+  const found = [];
+  if (scope === 'selected') {
+    performDocSearch(selected, docName, selectedFields, found);
+  } else {
+    let scenes = [];
+    if (scope === 'world') scenes = Array.from(game.scenes);
+    else if (canvas.scene) scenes = [canvas.scene];
+
+    for (const scene of scenes) {
+      performMassSearchScene(scene, docName, selectedFields, found);
+    }
+  }
+
+  // Select found placeables/documents
+  if (control) {
+    // First release/de-select the currently selected placeable on the current scene
+    canvas.activeLayer.controlled.map((c) => c).forEach((c) => c.release());
+
+    found.forEach((f) => {
+      let obj = f.object ?? f;
+      if (obj.control) obj.control({ releaseOthers: false });
+    });
+  }
+
+  if (pan && found.length && game.settings.get('multi-token-edit', 'panToSearch')) {
+    panToFitPlaceables(found);
+  }
+  if (command === 'searchAndEdit') {
+    setTimeout(() => {
+      showMassEdit(found, docName, { globalDelete: scope === 'world' });
+    }, 500);
+  }
+  return found;
+}
+
+function performMassSearchScene(scene, docName, selectedFields, found) {
+  const docs = Array.from(scene[SCENE_DOC_MAPPINGS[docName]]);
+  performDocSearch(docs, docName, selectedFields, found);
+}
+
+function performDocSearch(docs, docName, selectedFields, found) {
+  // Next select objects that match the selected fields
+  for (const c of docs) {
+    let matches = true;
+    const data = flattenObject(getData(c).toObject());
+
+    // Special processing for some placeable types
+    // Necessary when form data is not directly mappable to placeable
+    GeneralDataAdapter.dataToForm(docName, c, data);
+
+    for (const [k, v] of Object.entries(selectedFields)) {
+      // Special handling for flags
+      if (k.startsWith('flags.')) {
+        if (!flagCompare(data, k, v)) {
+          matches = false;
+          break;
+        }
+        // Special handling for empty strings and undefined
+      } else if ((v === '' || v == null) && (data[k] !== '' || data[k] != null)) {
+        // matches
+      } else if (typeof v === 'string' && v.includes('*') && wildcardStringMatch(v, data[k])) {
+        // Wildcard matched
+      } else if (data[k] != v) {
+        // Detection mode keys cannot be treated in isolation
+        // We skip them here and will check them later
+        if (docName === 'Token') {
+          if (k.startsWith('detectionModes')) {
+            continue;
+          }
+        }
+
+        matches = false;
+        break;
+      }
+    }
+    if (matches) {
+      // We skipped detectionMode matching in the previous step and do it now instead
+      if (docName === 'Token') {
+        const modes = Object.values(foundry.utils.expandObject(selectedFields)?.detectionModes || {});
+
+        if (!TokenDataAdapter.detectionModeMatch(modes, c.detectionModes)) {
+          continue;
+        }
+      }
+
+      found.push(c);
+    }
   }
 }
 

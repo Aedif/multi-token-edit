@@ -45,7 +45,7 @@ export default class MacroForm extends FormApplication {
     const targetingOptions = [
       {
         value: 'all',
-        title: `Macro will target ALL ${this.docName}s at run-time using the selected 'scope'.`,
+        title: `Macro will target ALL ${this.docName}s at run-time within the chosen 'Scope'.`,
         label: 'ALL',
       },
       {
@@ -181,6 +181,9 @@ export default class MacroForm extends FormApplication {
       if (event.target.value === 'ids') html.find('[name="target.scope"]').closest('.form-group').hide();
       else html.find('[name="target.scope"]').closest('.form-group').show();
 
+      if (event.target.value === 'search') html.find('[name="target.fields"]').closest('div').show();
+      else html.find('[name="target.fields"]').closest('div').hide();
+
       this.setPosition({ height: 'auto' });
     });
 
@@ -206,9 +209,8 @@ export default class MacroForm extends FormApplication {
    */
   async _updateObject(event, formData) {
     formData = expandObject(formData);
-    console.log(formData);
 
-    // Cleanup form data, so that the macro generator only receives necessary information
+    // Cleanup form data so that the macro generator only receives necessary information
     formData.fields = JSON.parse(formData.fields);
     if (formData.method !== 'toggle') delete formData.toggle;
     else formData.toggle.fields = JSON.parse(formData.toggle.fields);
@@ -217,6 +219,8 @@ export default class MacroForm extends FormApplication {
     if (formData.toggle?.macro && !formData.toggle.macro.name) delete formData.toggle.macro;
 
     if (formData.target.method !== 'tagger') delete formData.target.tagger;
+    if (formData.target.method !== 'search') delete formData.target.fields;
+    else formData.target.fields = JSON.parse(formData.target.fields);
 
     console.log(formData);
 

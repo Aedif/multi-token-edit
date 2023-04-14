@@ -9,7 +9,13 @@ import {
 } from './applications/multiConfig.js';
 import CSSEdit, { STYLES } from './applications/cssEdit.js';
 import MassEditPresets from './applications/presets.js';
-import { checkApplySpecialFields, getObjFormData, pasteDataUpdate, performMassUpdate } from './applications/forms.js';
+import {
+  checkApplySpecialFields,
+  getObjFormData,
+  pasteDataUpdate,
+  performMassSearch,
+  performMassUpdate,
+} from './applications/forms.js';
 import { MassEditGenericForm } from './applications/genericForm.js';
 import {
   applyAddSubtract,
@@ -308,6 +314,7 @@ Hooks.once('init', () => {
     showGenericForm,
     checkApplySpecialFields, // Deprecated
     performMassUpdate,
+    performMassSearch,
     showMassEdit,
   };
 });

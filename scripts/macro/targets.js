@@ -5,6 +5,7 @@ export function genTargets(options, docName, selected) {
   if (target.method === 'ids') {
     return genIDTargets(target, docName, selected);
   } else if (target.method === 'search') {
+    return genSearch(target, docName);
   } else if (target.method === 'tagger') {
     return genTaggerTargets(target, docName);
   } else if (target.method === 'all') {
@@ -14,13 +15,32 @@ export function genTargets(options, docName, selected) {
   }
 }
 
+// Util to stringify a json object
+function objToString(obj) {
+  if (!obj) return null;
+  return JSON.stringify(obj, null, 2);
+}
+
+function genSearch(target, docName) {
+  let fields = objToString(target.fields);
+  if (target.scope === 'selected') {
+    let command = genSelected(docName);
+    command += `\ntargets = await MassEdit.api.performMassSearch('search', '${docName}' , ${fields}, { scope: 'selected', selected: targets, control: false, pan: false });`;
+    return command;
+  } else if (target.scope === 'scene') {
+    return `const targets = await MassEdit.api.performMassSearch('search', '${docName}' , ${fields}, { scope: 'scene', control: false, pan: false });`;
+  } else if (target.scope === 'world') {
+    return `const targets = await MassEdit.api.performMassSearch('search', '${docName}' , ${fields}, { scope: 'world', control: false, pan: false });`;
+  }
+}
+
 // Construct all selected document retriever
 // const selected = [...];
 function genSelected(docName) {
   let command = '';
 
   if (SUPPORTED_PLACEABLES.includes(docName)) {
-    return `const targets = canvas.getLayerByEmbeddedName('${docName}').controlled.map(o => o.document);\n\n`;
+    return `let targets = canvas.getLayerByEmbeddedName('${docName}').controlled.map(o => o.document);\n\n`;
   } else if (game.modules.get('multiple-document-selection')?.active) {
     const mdsClasses = {
       Actor: 'actor',
@@ -32,20 +52,20 @@ function genSelected(docName) {
       Cards: 'cards',
     };
 
-    command += 'const selected = [];\n';
+    command += 'let targets = [];\n';
 
     if (docName === 'Playlist') {
       command += `
 $(\`.directory-list .\${'${mdsClasses[docName]}'}.selected\`).each(function (_) {
     let d = game.collections.get('Playlist').get(this.dataset.playlistId)?.sounds.get(this.dataset.soundId);
-    if (d) selected.push(d);
+    if (d) targets.push(d);
 });
 `;
     } else {
       command += `
 $(\`.directory-list .\${'${mdsClasses[docName]}'}.selected\`).each(function (_) {
     let d = game.collections.get('${docName}').get(this.dataset.documentId);
-    if (d) selected.push(d);
+    if (d) targets.push(d);
 });
   `;
     }
@@ -78,13 +98,18 @@ function genTaggerTargets(target, docName) {
 
   if (target.scope === 'selected') {
     command += genSelected(docName);
-    command += `const targets = Tagger.hasTags(selected, '${target.tagger.tags}', ${objToString(
-      opts
-    )}).filter(t => t.documentName === '${docName}');\n\n`;
-  } else {
+    command += `targets = Tagger.getByTag('${target.tagger.tags}', { matchAny: ${
+      target.tagger.match === 'any'
+    }, objects: targets }).filter(t => t.documentName === '${docName}');\n\n`;
+  } else if (target.scope === 'scene') {
     command += `const targets = Tagger.getByTag('${target.tagger.tags}', ${objToString(
       opts
     )}).filter(t => t.documentName === '${docName}');\n\n`;
+  } else if (target.scope === 'world') {
+    command += `const targets = [];`;
+    command += `Object.values(Tagger.getByTag('${target.tagger.tags}', ${objToString(
+      opts
+    )})).forEach(item => item.forEach(t => { if(t.documentName === '${docName}') targets.push(t) }));`;
   }
 
   return command;

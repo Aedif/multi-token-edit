@@ -20,11 +20,11 @@ const update = ${objToString(options.fields)};
   if (options.method === 'toggle') command += `const update2 = ${objToString(options.toggle.fields)};\n\n`;
 
   // Insert Mass Edit control objects
-  if (hasMassEditDependency(options)) {
+  if (hasMassEditUpdateDependency(options)) {
     command += `\n// Mass Edit control objects\n`;
     command += `const randomizeFields = ${objToString(options.randomize)};\n`;
     command += `const addSubtractFields = ${objToString(options.addSubtract)};\n`;
-    if (method === 'toggle') {
+    if (options.method === 'toggle') {
       command += `const randomizeFieldsToggleOff = ${objToString(options.toggle.randomize)};\n`;
       command += `const addSubtractFieldsToggleOff = ${objToString(options.toggle.addSubtract)};\n`;
     }
@@ -39,8 +39,8 @@ const update = ${objToString(options.fields)};
 // ===============
 `;
 
-  if (hasMassEditDependency(options)) {
-    // generate mass edit dep code
+  if (hasMassEditUpdateDependency(options)) {
+    command += genUpdateWithMassEditDep(options, docName);
   } else {
     command += genUpdate(options, docName);
   }
@@ -50,6 +50,16 @@ const update = ${objToString(options.fields)};
   }
 
   console.log(command);
+  if (command) {
+    // Create Macro
+    const macro = await Macro.create({
+      name: options.name,
+      type: 'script',
+      scope: 'global',
+      command: command,
+    });
+    macro.sheet.render(true);
+  }
 }
 
 function genRunMacro(options) {
@@ -65,7 +75,6 @@ const advancedMacro = game.modules.get('advanced-macros')?.active;
 
   // Run macros if applicable
   if (options.macro) {
-    const targets = method === 'toggle' ? 'toggleOnTargets' : 'targets';
     command += `
 // Apply macro
 const applyMacro = game.collections.get('Macro').find(m => m.name === '${runMacro}')
@@ -204,32 +213,19 @@ function hasMassEditDependency(options) {
     options.addSubtract ||
     options.toggle?.randomize ||
     options.toggle?.addSubtract ||
+    options.target.method === 'search' ||
     hasSpecialField(options.fields)
   );
 }
 
-export async function generateMacroOLD(
-  docName,
-  placeables,
-  { name = 'Mass Edit Macro', method = 'update', fields = {}, target = { method: 'all', scope: 'selected' } } = {}
-) {
-  // Update related code
-  if (hasMassEditDependency(options)) {
-    command += genUpdateWithMassEditDep(options, docName);
-  } else {
-    command += genUpdate(target, method, docName, runMacro || runMacroToggle);
-  }
-
-  if (command) {
-    // Create Macro
-    const macro = await Macro.create({
-      name: name,
-      type: 'script',
-      scope: 'global',
-      command: command,
-    });
-    macro.sheet.render(true);
-  }
+function hasMassEditUpdateDependency(options) {
+  return (
+    options.randomize ||
+    options.addSubtract ||
+    options.toggle?.randomize ||
+    options.toggle?.addSubtract ||
+    hasSpecialField(options.fields)
+  );
 }
 
 function genMacroDependencies(options) {
@@ -291,7 +287,7 @@ export function hasSpecialField(fields) {
 }
 
 function genToggleUtil(options) {
-  let command = `\n// Toggle; Helper function`;
+  let command = `\n\n// Toggle; Helper function`;
   if (options.toggle.method === 'field') {
     command += `
 const toggleOn = function (obj, fields) {
