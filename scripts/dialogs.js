@@ -1,16 +1,16 @@
 import { LAYER_MAPPINGS, showMassSelect } from '../applications/multiConfig.js';
-import { SUPPORTED_PLACEABLES } from './utils.js';
+import { SUPPORTED_COLLECTIONS, SUPPORTED_PLACEABLES } from './utils.js';
 
 export function showPlaceableTypeSelectDialog() {
   let content = '';
-  for (const config of SUPPORTED_PLACEABLES) {
+  for (const config of SUPPORTED_PLACEABLES.concat(SUPPORTED_COLLECTIONS)) {
     content += `<option value="${config}">${config}</option>`;
   }
-  content = `<label>Choose placeable type you wish to search:</label>
+  content = `<label>Choose a document type you wish to search:</label>
     <select style="width: 100%;" name="documentName">${content}</select>`;
 
   new Dialog({
-    title: 'Placeable SEARCH',
+    title: 'Document SEARCH',
     content: content,
     buttons: {
       select: {
@@ -18,16 +18,21 @@ export function showPlaceableTypeSelectDialog() {
         label: 'Select',
         callback: (html) => {
           const documentName = html.find("select[name='documentName']").val();
-          let placeables = [];
-          const layer = LAYER_MAPPINGS[documentName];
-          if (layer && canvas[layer].placeables.length) {
-            placeables = canvas[layer].placeables;
+
+          let docs = [];
+          if (SUPPORTED_PLACEABLES.includes(documentName)) {
+            const layer = LAYER_MAPPINGS[documentName];
+            if (layer && canvas[layer].placeables.length) {
+              docs = canvas[layer].placeables;
+            }
+          } else {
+            docs = Array.from(game.collections.get(documentName));
           }
 
-          if (placeables.length) {
-            showMassSelect(placeables[0]);
+          if (docs.length) {
+            showMassSelect(docs[0]);
           } else {
-            ui.notifications.warn(`No placeables found for the selected type. (${documentName})`);
+            ui.notifications.warn(`No documents found for the selected type. (${documentName})`);
           }
         },
       },

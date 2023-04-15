@@ -76,7 +76,7 @@ export default class MacroForm extends FormApplication {
 
     if (this.randomizeFields && !isEmpty(this.randomizeFields)) {
       data.hasRandom = true;
-      data.random = JSON.stringify(this.randomizeFields);
+      data.randomize = JSON.stringify(this.randomizeFields);
     }
 
     data.hasMEControls = data.hasAddSubtract || data.hasRandom || hasSpecialField(this.fields);
@@ -128,6 +128,7 @@ export default class MacroForm extends FormApplication {
 
   _onRemoveJson(control, name) {
     const store = control.siblings(`[name="${name}"]`);
+    console.log(store);
     control.hide();
     store.prop('disabled', true);
     this.setPosition({ height: 'auto' });
@@ -139,11 +140,12 @@ export default class MacroForm extends FormApplication {
   activateListeners(html) {
     super.activateListeners(html);
 
-    ['random', 'addSubtract', 'toggleRandom', 'toggleAddSubtract'].forEach((name) => {
-      html.find(`.${name}`).click((event) => {
+    ['randomize', 'addSubtract', 'toggle.randomize', 'toggle.addSubtract'].forEach((name) => {
+      const className = name.replace('.', '');
+      html.find(`.${className}`).click((event) => {
         this._onShowReturnJson($(event.target).parent(), name);
       });
-      html.find(`.${name}`).contextmenu((event) => {
+      html.find(`.${className}`).contextmenu((event) => {
         this._onRemoveJson($(event.target).parent(), name);
       });
     });
@@ -228,6 +230,11 @@ export default class MacroForm extends FormApplication {
     if (formData.target.method !== 'tagger') delete formData.target.tagger;
     if (formData.target.method !== 'search') delete formData.target.fields;
     else formData.target.fields = JSON.parse(formData.target.fields);
+
+    if (formData.randomize) formData.randomize = JSON.parse(formData.randomize);
+    if (formData.toggle?.randomize) formData.toggle.randomize = JSON.parse(formData.toggle.randomize);
+    if (formData.addSubtract) formData.addSubtract = JSON.parse(formData.addSubtract);
+    if (formData.toggle?.addSubtract) formData.toggle.addSubtract = JSON.parse(formData.toggle.addSubtract);
 
     generateMacro(this.docName, this.placeables, formData);
   }

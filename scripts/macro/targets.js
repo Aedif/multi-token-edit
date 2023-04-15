@@ -52,15 +52,15 @@ function genSelected(docName) {
     if (docName === 'Playlist') {
       command += `
 $(\`.directory-list .\${'${mdsClasses[docName]}'}.selected\`).each(function (_) {
-    let d = game.collections.get('Playlist').get(this.dataset.playlistId)?.sounds.get(this.dataset.soundId);
-    if (d) targets.push(d);
+  let d = game.collections.get('Playlist').get(this.dataset.playlistId)?.sounds.get(this.dataset.soundId);
+  if (d) targets.push(d);
 });
 `;
     } else {
       command += `
 $(\`.directory-list .\${'${mdsClasses[docName]}'}.selected\`).each(function (_) {
-    let d = game.collections.get('${docName}').get(this.dataset.documentId);
-    if (d) targets.push(d);
+  let d = game.collections.get('${docName}').get(this.dataset.documentId);
+  if (d) targets.push(d);
 });
   `;
     }
@@ -78,9 +78,9 @@ function genAllTargets(target, docName) {
       return `const targets = canvas.getLayerByEmbeddedName('${docName}').placeables.map(o => o.document);\n\n`;
     } else if (target.scope === 'world') {
       return `const targets = [];
-  Array.from(game.scenes).forEach( scene => {
-      Array.from( scene.getEmbeddedCollection('${docName}') ).forEach(embed => targets.push(embed));
-  });
+Array.from(game.scenes).forEach( scene => {
+  Array.from( scene.getEmbeddedCollection('${docName}') ).forEach(embed => targets.push(embed));
+});
   `;
     }
   } else {
@@ -121,17 +121,18 @@ function genIDTargets(target, docName, selected) {
   if (SUPPORTED_PLACEABLES.includes(docName)) {
     command += `
 ids.forEach( id => {
-    Array.from(game.scenes).forEach( scene => {
-        let embed = scene.getEmbeddedDocument('${docName}', id);
-        if(embed) targets.push(embed)
-    });
+  Array.from(game.scenes).forEach( scene => {
+    let embed = scene.getEmbeddedDocument('${docName}', id);
+    if(embed) targets.push(embed)
+  });
 });
 `;
   } else {
-    command += `ids.forEach(id => { 
-    const doc = ${docName}.get(id);
-    if(doc) targets.push(doc);
-  });`;
+    command += `
+ids.forEach(id => { 
+  const doc = ${docName}.get(id);
+  if(doc) targets.push(doc);
+});`;
   }
 
   return command;

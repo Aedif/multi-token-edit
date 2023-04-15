@@ -131,8 +131,8 @@ if(!MassEdit?.active){
   if (SUPPORTED_COLLECTIONS.includes(docName) && options.target.scope === 'select')
     dep += `
 if (!game.modules.get('multiple-document-selection')?.active) {
-${depWarning('Multiple Document Selection')}
-return;
+  ${depWarning('Multiple Document Selection')}
+  return;
 }
 
 `;

@@ -80,8 +80,8 @@
     <div class="toggleControl" hidden><label><b>Toggle ON</b></label></div>
     <div>
         {{#if hasRandom}}
-        <a class="random" title="Randomized Fields"><i class="fas fa-dice"></i></a>
-        <input name="randomize" type="text" value="{{random}}" hidden>
+        <a class="randomize" title="Randomized Fields"><i class="fas fa-dice"></i></a>
+        <input name="randomize" type="text" value="{{randomize}}" hidden>
         {{/if}}
 
         {{#if hasAddSubtract}}
@@ -105,11 +105,11 @@
         <label><b>Toggle OFF</b></label>
         <div>
             {{#if hasRandom}}
-            <a class="toggleRandom" title="Randomized Fields"><i class="fas fa-dice"></i></a>
-            <input name="toggle.random" type="text" value="{{random}}" hidden>
+            <a class="togglerandomize" title="Randomized Fields"><i class="fas fa-dice"></i></a>
+            <input name="toggle.randomize" type="text" value="{{randomize}}" hidden>
             {{/if}}
             {{#if hasAddSubtract}}
-            <a class="toggleAddSubtract" title="Add/Subtract Fields"><i class="fas fa-calculator-alt"></i></a>
+            <a class="toggleaddSubtract" title="Add/Subtract Fields"><i class="fas fa-calculator-alt"></i></a>
             <input name="toggle.addSubtract" type="text" value="{{addSubtract}}" hidden>
             {{/if}}
         </div>
