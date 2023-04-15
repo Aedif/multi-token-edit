@@ -1,3 +1,25 @@
+# 1.39.0
+
+Macro Generator
+
+- Targeting options now supports 3 scopes: `Selected`, `Scene`, and `World`
+  - e.g while targeting `ALL`, with scope `Scene`, the generated macro will retrieve all placeables on the active scene
+- New targeting option: `Search`
+  - Will perform field searches to determine targets for the macro
+    - e.g. targeting Tokens that match a specific name or disposition
+  - Wildcards (`*`) can be used here the same way as with Mass Search forms
+- `Application Method` option has been renamed to `Action`
+  - In addition to `Update` and `Toggle` the generator now also provides `Open Mass Edit Form` and `Delete` options
+- Macros can now be created for non-placeables
+  - Items, Cards, RollTables, Actors, JournalEntries, and Scenes
+  - These documents will have certain options restricted like `Scene` and `Selected` scope
+    - `Selected` scope can be accessed by installing `Multiple Document Selection` module
+
+Mass Edit form
+
+- Updates now work across scenes, meaning the form can be opened on one scene and still successfully applied if kept open after switching to another scene
+- Mass Search now supports non-placeable documents (Items, Cards, RollTables, Actors, JournalEntries, and Scenes)
+
 # 1.38.0
 
 - `Mass Search` forms (Shift+F) now support cross-scene searches
