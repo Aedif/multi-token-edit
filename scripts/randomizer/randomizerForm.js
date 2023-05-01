@@ -271,7 +271,10 @@ export default class RandomizerForm extends FormApplication {
       const hue = html.find('[name="hue"]');
       const space = html.find('[name="space"]');
       const method = html.find('[name="method"]');
-      const colorSlider = new ColorSlider(html.find('.slide'), this.configuration.colors, { hue, space });
+      const colorSlider = new ColorSlider(html.find('.slide'), this.configuration.colors, {
+        hue,
+        space,
+      });
 
       hue.on('input', colorSlider.update.bind(colorSlider));
       space.on('input', colorSlider.update.bind(colorSlider));

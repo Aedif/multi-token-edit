@@ -1,3 +1,14 @@
+# 1.39.1
+
+Macros
+
+- `TMFX - Editor`
+  - Can now save TMFX filters under `MAIN` and `TEMPLATE` libraries
+  - `MAIN`: Default library used by modules such as ATE
+  - `TEMPLATE`: Primarily used by TMFX itself. Auto Template Effects will source presets from here
+- `TMFX - Apply Preset`
+  - Can now apply presets from both `MAIN` and `TEMPLATE` libraries
+
 # 1.39.0
 
 Macro Generator
