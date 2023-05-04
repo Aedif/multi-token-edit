@@ -1,3 +1,7 @@
+# 1.39.2
+
+- Adjusted button layout in TMFX Editor macro
+
 # 1.39.1
 
 Macros

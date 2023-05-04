@@ -84,6 +84,7 @@ async function promptParamChoice(params) {
           savePreset();
           dialog.close();
         });
+        html.find('.dialog-button').parent().css('display', 'block');
       },
       close: () => resolve(-1),
     });
