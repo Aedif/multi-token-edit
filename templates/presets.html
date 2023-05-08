@@ -1,7 +1,7 @@
 <form class="mass-edit-preset-form">
     <ol class="item-list preset-items">
         <li class="items-header flexrow">
-            <h3 class="item-name flexrow">Presets</h3>
+            <h3 class="flexrow">Presets</h3>
             <div class="item-controls flexrow {{#unless createEnabled}}short{{/unless}}">
                 {{#if createEnabled}}
                 <a class="item-control preset-create" title="Create New Preset" data-type="objective">
@@ -13,14 +13,10 @@
         {{#each presets as |preset|}}
         <li class="item flexrow" name="{{preset.name}}">
             <div class="item-name flexrow">
-                <button title="{{preset.title}}" name="{{preset.name}}">{{preset.name}}</button>
+                <label title="{{preset.title}}" name="{{preset.name}}">{{preset.name}} </label>
             </div>
 
             <div class="item-controls flexrow {{#unless ../createEnabled}}short{{/unless}}">
-                <div class="item-control up-down">
-                    <a class="preset-sort-up" title="Sort Up"><i class="fas fa-sort-up fa-lg"></i></a>
-                    <a class="preset-sort-down" title="Sort Down"><i class="fas fa-sort-down fa-lg"></i></a>
-                </div>
                 {{#if ../createEnabled}}
                 &nbsp;
                 <div class="item-control preset-update"><a title="Update Preset"><i class="fas fa-sync"></i></a></div>

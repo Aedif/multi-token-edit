@@ -143,19 +143,21 @@ export function applyRandomization(updates, objects, randomizeFields) {
           }
         } else if (obj.type === 'text') {
           if (obj.method === 'findAndReplace' || obj.method === 'findAndReplaceRegex') {
-            const data = flattenObject(getData(objects[i]).toObject());
-            if (!data[field] && !obj.find) {
-              update[field] = obj.replace;
-            } else if (data[field]) {
-              // special handling for Tagger tags
-              if (field === 'flags.tagger.tags') {
-                data[field] = data[field].join(',');
-              }
+            if (objects) {
+              const data = flattenObject(getData(objects[i]).toObject());
+              if (!data[field] && !obj.find) {
+                update[field] = obj.replace;
+              } else if (data[field]) {
+                // special handling for Tagger tags
+                if (field === 'flags.tagger.tags') {
+                  data[field] = data[field].join(',');
+                }
 
-              if (obj.method === 'findAndReplaceRegex') {
-                update[field] = regexStringReplace(obj.find, obj.replace, data[field]);
-              } else {
-                update[field] = wildcardStringReplace(obj.find, obj.replace, data[field]);
+                if (obj.method === 'findAndReplaceRegex') {
+                  update[field] = regexStringReplace(obj.find, obj.replace, data[field]);
+                } else {
+                  update[field] = wildcardStringReplace(obj.find, obj.replace, data[field]);
+                }
               }
             }
           } else {

@@ -1,4 +1,6 @@
 import { Brush } from '../scripts/brush.js';
+import { applyRandomization } from '../scripts/randomizer/randomizerUtils.js';
+import { SUPPORTED_PLACEABLES, applyAddSubtract } from '../scripts/utils.js';
 import { TokenDataAdapter } from './dataAdapters.js';
 
 export default class MassEditPresets extends FormApplication {
@@ -76,17 +78,106 @@ export default class MassEditPresets extends FormApplication {
    */
   activateListeners(html) {
     super.activateListeners(html);
+
+    import('../scripts/jquery-ui/jquery-ui.js').then((imp) => {
+      html.find('.preset-items').sortable({
+        cursor: 'move',
+        placeholder: 'ui-state-highlight',
+        opacity: '0.55',
+        items: '.item',
+        stop: this._onPresetOrder.bind(this),
+      });
+    });
+
+    html.on('click', '.item-name label', this._onSelectPreset.bind(this));
     $(html).on('click', '.preset-create', this._onPresetCreate.bind(this));
     $(html).on('click', '.preset-delete a', this._onPresetDelete.bind(this));
     $(html).on('click', '.preset-update a', this._onPresetUpdate.bind(this));
-    $(html).on('click', '.preset-sort-up', this._onPresetOrderUp.bind(this));
-    $(html).on('click', '.preset-sort-down', this._onPresetOrderDown.bind(this));
     $(html).on('click', '.preset-keybind', this._onPresetKeybind.bind(this));
     $(html).on('click', '.preset-brush', this._onPresetBrush.bind(this));
   }
 
+  _onSelectPreset(event) {
+    const presetName = $(event.target).attr('name');
+    const presets = game.settings.get('multi-token-edit', 'presets') || {};
+    const docPresets = presets[this.docName];
+    const preset = docPresets[presetName];
+    if (preset) {
+      const cPreset = deepClone(preset);
+      delete cPreset['mass-edit-preset-order'];
+      this.callback(cPreset);
+    }
+  }
+
+  async _onPresetOrder(event) {
+    const allPresets = game.settings.get('multi-token-edit', 'presets') || {};
+    const presets = allPresets[this.docName] || {};
+
+    $(event.target)
+      .find('.item')
+      .each(function (index) {
+        const name = $(this).attr('name');
+        if (name in presets) {
+          presets[name]['mass-edit-preset-order'] = index;
+        }
+      });
+
+    await game.settings.set('multi-token-edit', 'presets', allPresets);
+
+    if (SUPPORTED_PLACEABLES.includes(this.docName)) {
+      // Check if the preset has been dragged out onto the canvas
+      const checkMouseInWindow = function (event) {
+        let app = $(event.target).closest('.window-app');
+        var offset = app.offset();
+        let appX = offset.left;
+        let appY = offset.top;
+        let appW = app.width();
+        let appH = app.height();
+
+        var mouseX = event.pageX;
+        var mouseY = event.pageY;
+
+        if (mouseX > appX && mouseX < appX + appW && mouseY > appY && mouseY < appY + appH) {
+          return true;
+        }
+        return false;
+      };
+
+      if (!checkMouseInWindow(event)) this._onPresetDragOut(event);
+    }
+  }
+
+  async _onPresetDragOut(event) {
+    const mousePos = canvas.canvasCoordinatesFromClient({ x: event.clientX, y: event.clientY });
+    const pos = canvas.grid.getSnappedPosition(mousePos.x, mousePos.y);
+
+    // const cls = getDocumentClass(this.docName);
+    const presetName = $(event.originalEvent.target).closest('li').find('.item-name label').attr('name');
+    const preset = deepClone(game.settings.get('multi-token-edit', 'presets')?.[this.docName]?.[presetName]);
+
+    const randomizer = preset['mass-edit-randomize'];
+    if (randomizer) {
+      applyRandomization([preset], null, randomizer);
+      delete preset['mass-edit-randomize'];
+    }
+    const data = { ...preset, ...pos };
+
+    if (this.docName === 'Token' && !data.name) data.name = presetName;
+    else if (this.docName === 'Tile') {
+      if (!('width' in data)) data.width = canvas.grid.w;
+      if (!('height' in data)) data.height = canvas.grid.h;
+    } else if (this.docName === 'AmbientLight') {
+      if (!('config.dim' in data) && !('config.bright' in data)) {
+        data['config.dim'] = 20;
+        data['config.bright'] = 10;
+      }
+    }
+
+    let created = await canvas.scene.createEmbeddedDocuments(this.docName, [data]);
+  }
+
   async _onPresetBrush(event) {
-    const presetName = $(event.target).closest('li').find('.item-name button').attr('name');
+    const presetName = $(event.target).closest('li').find('.item-name label').attr('name');
     const presets = game.settings.get('multi-token-edit', 'presets') || {};
     const docPresets = presets[this.docName];
     const preset = docPresets[presetName];
@@ -115,7 +206,7 @@ export default class MassEditPresets extends FormApplication {
   }
 
   async _onPresetKeybind(event) {
-    const presetName = $(event.target).closest('li').find('.item-name button').attr('name');
+    const presetName = $(event.target).closest('li').find('.item-name label').attr('name');
 
     const control = $(event.target).closest('.preset-keybind');
 
@@ -145,43 +236,9 @@ export default class MassEditPresets extends FormApplication {
       return;
     }
 
-    const name = $(event.target).closest('li').find('.item-name button').attr('name');
+    const name = $(event.target).closest('li').find('.item-name label').attr('name');
     this._createUpdatePreset(name, selectedFields);
     ui.notifications.info(`Preset {${name}} updated`);
-  }
-
-  async _onPresetOrderUp(event) {
-    const presetName = $(event.target).closest('li').find('.item-name button').attr('name');
-
-    const [allPresets, presetList] = this._getPresetsList();
-
-    const found = presetList.findIndex((p) => p.name === presetName);
-
-    if (found <= 0) return;
-
-    let temp = presetList[found].fields['mass-edit-preset-order'];
-    presetList[found].fields['mass-edit-preset-order'] = presetList[found - 1].fields['mass-edit-preset-order'];
-    presetList[found - 1].fields['mass-edit-preset-order'] = temp;
-
-    await game.settings.set('multi-token-edit', 'presets', allPresets);
-    this.render(true);
-  }
-
-  async _onPresetOrderDown(event) {
-    const presetName = $(event.target).closest('li').find('.item-name button').attr('name');
-
-    const [allPresets, presetList] = this._getPresetsList();
-
-    const found = presetList.findIndex((p) => p.name === presetName);
-
-    if (found < 0 || found === presetList.length - 1) return;
-
-    let temp = presetList[found].fields['mass-edit-preset-order'];
-    presetList[found].fields['mass-edit-preset-order'] = presetList[found + 1].fields['mass-edit-preset-order'];
-    presetList[found + 1].fields['mass-edit-preset-order'] = temp;
-
-    await game.settings.set('multi-token-edit', 'presets', allPresets);
-    this.render(true);
   }
 
   async _createUpdatePreset(name, selectedFields) {

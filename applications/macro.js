@@ -128,7 +128,6 @@ export default class MacroForm extends FormApplication {
 
   _onRemoveJson(control, name) {
     const store = control.siblings(`[name="${name}"]`);
-    console.log(store);
     control.hide();
     store.prop('disabled', true);
     this.setPosition({ height: 'auto' });
