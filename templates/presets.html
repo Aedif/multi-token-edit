@@ -1,7 +1,7 @@
 <form class="mass-edit-preset-form">
     <ol class="item-list preset-items">
         <li class="items-header flexrow">
-            <h3 class="flexrow">Presets</h3>
+            <label class="flexrow">Presets</label>
             <div class="item-controls flexrow {{#unless createEnabled}}short{{/unless}}">
                 {{#if createEnabled}}
                 <a class="item-control preset-create" title="Create New Preset" data-type="objective">
@@ -18,7 +18,6 @@
 
             <div class="item-controls flexrow {{#unless ../createEnabled}}short{{/unless}}">
                 {{#if ../createEnabled}}
-                &nbsp;
                 <div class="item-control preset-update"><a title="Update Preset"><i class="fas fa-sync"></i></a></div>
                 &nbsp;
                 <div class="item-control preset-keybind {{#if hasKeybind}}active{{/if}}"><a title="Register as a Mass Edit control"><i class="fas fa-gamepad"></i></a></div>

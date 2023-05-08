@@ -23,6 +23,7 @@ import {
   hashCode,
   SUPPORTED_COLLECTIONS,
   SUPPORTED_HISTORY_DOCS,
+  SUPPORTED_PLACEABLES,
 } from './scripts/utils.js';
 import { GeneralDataAdapter } from './applications/dataAdapters.js';
 import { applyRandomization } from './scripts/randomizer/randomizerUtils.js';
@@ -236,10 +237,8 @@ Hooks.once('init', () => {
       },
     ],
     onDown: () => {
-      const [target, selected] = getSelected();
-      const p = target ?? canvas.activeLayer.placeables[0];
-      if (!p) return;
-      const docName = p.document ? p.document.documentName : p.documentName;
+      const docName = canvas.activeLayer.constructor.documentName;
+      if (!SUPPORTED_PLACEABLES.includes(docName)) return;
 
       new MassEditPresets(
         null,

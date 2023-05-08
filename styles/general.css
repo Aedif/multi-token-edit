@@ -161,11 +161,12 @@
   border: 2px groove #eeede0;
   font-weight: bold;
   color: black;
-}
-
-.mass-edit-preset-form .items-header {
   padding-left: 4px;
   font-weight: bold;
+}
+
+.mass-edit-preset-form .items-header label {
+  font-size: larger;
 }
 
 .mass-edit-preset-form .item-controls {

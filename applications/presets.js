@@ -80,12 +80,15 @@ export default class MassEditPresets extends FormApplication {
     super.activateListeners(html);
 
     import('../scripts/jquery-ui/jquery-ui.js').then((imp) => {
+      const app = this;
       html.find('.preset-items').sortable({
         cursor: 'move',
         placeholder: 'ui-state-highlight',
-        opacity: '0.55',
+        opacity: '0.8',
         items: '.item',
-        stop: this._onPresetOrder.bind(this),
+        stop: function (event, ui) {
+          app._onPresetOrder(event, ui, this);
+        },
       });
     });
 
@@ -109,21 +112,7 @@ export default class MassEditPresets extends FormApplication {
     }
   }
 
-  async _onPresetOrder(event) {
-    const allPresets = game.settings.get('multi-token-edit', 'presets') || {};
-    const presets = allPresets[this.docName] || {};
-
-    $(event.target)
-      .find('.item')
-      .each(function (index) {
-        const name = $(this).attr('name');
-        if (name in presets) {
-          presets[name]['mass-edit-preset-order'] = index;
-        }
-      });
-
-    await game.settings.set('multi-token-edit', 'presets', allPresets);
-
+  async _onPresetOrder(event, ui, sortable) {
     if (SUPPORTED_PLACEABLES.includes(this.docName)) {
       // Check if the preset has been dragged out onto the canvas
       const checkMouseInWindow = function (event) {
@@ -143,8 +132,26 @@ export default class MassEditPresets extends FormApplication {
         return false;
       };
 
-      if (!checkMouseInWindow(event)) this._onPresetDragOut(event);
+      if (!checkMouseInWindow(event)) {
+        this._onPresetDragOut(event);
+        $(sortable).sortable('cancel');
+        return false;
+      }
     }
+
+    const allPresets = game.settings.get('multi-token-edit', 'presets') || {};
+    const presets = allPresets[this.docName] || {};
+
+    $(event.target)
+      .find('.item')
+      .each(function (index) {
+        const name = $(this).attr('name');
+        if (name in presets) {
+          presets[name]['mass-edit-preset-order'] = index;
+        }
+      });
+
+    await game.settings.set('multi-token-edit', 'presets', allPresets);
   }
 
   async _onPresetDragOut(event) {
@@ -171,6 +178,8 @@ export default class MassEditPresets extends FormApplication {
         data['config.dim'] = 20;
         data['config.bright'] = 10;
       }
+    } else if (this.docName === 'AmbientSound' && !('radius' in data)) {
+      data.radius = 20;
     }
 
     let created = await canvas.scene.createEmbeddedDocuments(this.docName, [data]);
