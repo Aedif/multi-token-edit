@@ -204,7 +204,11 @@ export default class MassEditPresets extends FormApplication {
 
   async _onPresetDragOut(event) {
     const mousePos = canvas.canvasCoordinatesFromClient({ x: event.clientX, y: event.clientY });
-    const pos = canvas.grid.getSnappedPosition(mousePos.x, mousePos.y);
+    const pos = canvas.grid.getSnappedPosition(
+      mousePos.x,
+      mousePos.y,
+      canvas.getLayerByEmbeddedName(this.docName).gridPrecision
+    );
 
     const presetName = $(event.originalEvent.target).closest('li').find('.item-name label').attr('name');
     const preset = deepClone(game.settings.get('multi-token-edit', 'presets')?.[this.docName]?.[presetName]);
@@ -232,6 +236,13 @@ export default class MassEditPresets extends FormApplication {
       }
     } else if (this.docName === 'AmbientSound' && !('radius' in data)) {
       data.radius = 20;
+    } else if (this.docName === 'Wall') {
+      data.c = [data.x, data.y, data.x + canvas.grid.w, data.y];
+    } else if (this.docName === 'Drawing') {
+      if (!data['shape.width']) data['shape.width'] = canvas.grid.w * 2;
+      if (!data['shape.height']) data['shape.height'] = canvas.grid.h * 2;
+    } else if (this.docName === 'MeasuredTemplate') {
+      if (!('distance' in data)) data.distance = 10;
     }
 
     if (game.keyboard.downKeys.has('AltLeft')) {
