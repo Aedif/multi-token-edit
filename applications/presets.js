@@ -1,4 +1,5 @@
 import { Brush } from '../scripts/brush.js';
+import { IS_PRIVATE } from '../scripts/randomizer/randomizerForm.js';
 import { applyRandomization } from '../scripts/randomizer/randomizerUtils.js';
 import { SUPPORTED_PLACEABLES, applyAddSubtract } from '../scripts/utils.js';
 import { TokenDataAdapter } from './dataAdapters.js';
@@ -51,7 +52,15 @@ export default class MassEditPresets extends FormApplication {
 
       let title = '';
       for (const k of Object.keys(fields)) {
-        if (['mass-edit-randomize', 'mass-edit-addSubtract', 'mass-edit-preset-order', 'mass-edit-keybind'].includes(k))
+        if (
+          [
+            'mass-edit-randomize',
+            'mass-edit-addSubtract',
+            'mass-edit-preset-order',
+            'mass-edit-preset-color',
+            'mass-edit-keybind',
+          ].includes(k)
+        )
           continue;
         if (k in randomizer) {
           title += `${k}: {{randomized}}\n`;
@@ -67,6 +76,7 @@ export default class MassEditPresets extends FormApplication {
         name: p.name,
         title: title,
         hasKeybind: fields['mass-edit-keybind'],
+        color: Color.fromString(fields['mass-edit-preset-color'] || '#ffffff').toRGBA(0.4),
       });
     }
 
@@ -93,11 +103,48 @@ export default class MassEditPresets extends FormApplication {
     });
 
     html.on('click', '.item-name label', this._onSelectPreset.bind(this));
+    html.on('contextmenu', '.item-name label', this._onColorPick.bind(this));
     $(html).on('click', '.preset-create', this._onPresetCreate.bind(this));
     $(html).on('click', '.preset-delete a', this._onPresetDelete.bind(this));
     $(html).on('click', '.preset-update a', this._onPresetUpdate.bind(this));
     $(html).on('click', '.preset-keybind', this._onPresetKeybind.bind(this));
     $(html).on('click', '.preset-brush', this._onPresetBrush.bind(this));
+  }
+
+  _onColorPick(event) {
+    const presetName = $(event.target).attr('name');
+    const presets = game.settings.get('multi-token-edit', 'presets') || {};
+    const docPresets = presets[this.docName];
+    const preset = docPresets[presetName];
+
+    let pColor = preset['mass-edit-preset-color'] ?? '';
+
+    new Dialog({
+      title: presetName,
+      content: `
+        <label style="margin-right:60px;">Background</label>
+        <input style="width:20%;" class="color" type="text" name="bgColor" value="${pColor}">
+        <input style="width:38%;" type="color" value="${pColor ?? '#ffffff'}">`,
+      buttons: {
+        buttonA: {
+          label: 'Save',
+          callback: (html) => {
+            let pColor = html.find('[name="bgColor"]').val();
+            if (pColor) preset['mass-edit-preset-color'] = pColor;
+            else delete preset['mass-edit-preset-color'];
+            game.settings.set('multi-token-edit', 'presets', presets);
+
+            $(event.target)
+              .closest('.item-name')
+              .css('background-color', Color.fromString(pColor || '#ffffff').toRGBA(0.4));
+          },
+        },
+      },
+      render: (html) => {
+        html.find('input[type="color"]').on('change', (event) => html.find('.color').val(event.target.value));
+      },
+    }).render(true);
+    new Dialog();
   }
 
   _onSelectPreset(event) {
@@ -108,12 +155,13 @@ export default class MassEditPresets extends FormApplication {
     if (preset) {
       const cPreset = deepClone(preset);
       delete cPreset['mass-edit-preset-order'];
+      delete cPreset['mass-edit-preset-color'];
       this.callback(cPreset);
     }
   }
 
   async _onPresetOrder(event, ui, sortable) {
-    if (SUPPORTED_PLACEABLES.includes(this.docName)) {
+    if (IS_PRIVATE && SUPPORTED_PLACEABLES.includes(this.docName)) {
       // Check if the preset has been dragged out onto the canvas
       const checkMouseInWindow = function (event) {
         let app = $(event.target).closest('.window-app');
@@ -158,9 +206,11 @@ export default class MassEditPresets extends FormApplication {
     const mousePos = canvas.canvasCoordinatesFromClient({ x: event.clientX, y: event.clientY });
     const pos = canvas.grid.getSnappedPosition(mousePos.x, mousePos.y);
 
-    // const cls = getDocumentClass(this.docName);
     const presetName = $(event.originalEvent.target).closest('li').find('.item-name label').attr('name');
     const preset = deepClone(game.settings.get('multi-token-edit', 'presets')?.[this.docName]?.[presetName]);
+
+    delete preset['mass-edit-preset-order'];
+    delete preset['mass-edit-addSubtract'];
 
     const randomizer = preset['mass-edit-randomize'];
     if (randomizer) {
@@ -169,8 +219,10 @@ export default class MassEditPresets extends FormApplication {
     }
     const data = { ...preset, ...pos };
 
-    if (this.docName === 'Token' && !data.name) data.name = presetName;
-    else if (this.docName === 'Tile') {
+    // Set default values if needed
+    if (this.docName === 'Token') {
+      if (!data.name) data.name = presetName;
+    } else if (this.docName === 'Tile') {
       if (!('width' in data)) data.width = canvas.grid.w;
       if (!('height' in data)) data.height = canvas.grid.h;
     } else if (this.docName === 'AmbientLight') {
@@ -180,6 +232,10 @@ export default class MassEditPresets extends FormApplication {
       }
     } else if (this.docName === 'AmbientSound' && !('radius' in data)) {
       data.radius = 20;
+    }
+
+    if (game.keyboard.downKeys.has('AltLeft')) {
+      data.hidden = true;
     }
 
     let created = await canvas.scene.createEmbeddedDocuments(this.docName, [data]);
@@ -277,6 +333,7 @@ export default class MassEditPresets extends FormApplication {
     else {
       selectedFields['mass-edit-preset-order'] = docPresets[name]['mass-edit-preset-order'];
       selectedFields['mass-edit-keybind'] = docPresets[name]['mass-edit-keybind'];
+      selectedFields['mass-edit-preset-color'] = docPresets[name]['mass-edit-preset-color'];
     }
 
     docPresets[name] = selectedFields;

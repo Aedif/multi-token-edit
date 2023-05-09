@@ -181,7 +181,8 @@
 
 .mass-edit-preset-form .item-name {
   color: black;
-  border-style: groove;
+  border-style: outset;
+  font-weight: 500;
 }
 
 .mass-edit-preset-form .item-name > label {
