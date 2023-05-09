@@ -1,3 +1,9 @@
+# 1.41.0
+
+- Preset Forms can now populate Active Effect `Effects` tab
+  - Presets need to be accessed using the `Shift+X` keybinding while an Active Effect configuration form is open
+  - `Token` presets will populate the `Effects` tab with ATL prefixed keys (ATE module required)
+
 # 1.40.0
 
 - Turned off field validation for Generic forms

@@ -18,8 +18,10 @@ import {
 } from './applications/forms.js';
 import { MassEditGenericForm } from './applications/genericForm.js';
 import {
+  activeEffectPresetSelect,
   applyAddSubtract,
   flagCompare,
+  flattenToDepth,
   hashCode,
   SUPPORTED_COLLECTIONS,
   SUPPORTED_HISTORY_DOCS,
@@ -237,6 +239,13 @@ Hooks.once('init', () => {
       },
     ],
     onDown: () => {
+      // Special logic for populating Active Effect
+      const aeConfig = Object.values(ui.windows).find((x) => x instanceof ActiveEffectConfig);
+      if (aeConfig) {
+        activeEffectPresetSelect(aeConfig);
+        return;
+      }
+
       const docName = canvas.activeLayer.constructor.documentName;
       if (!SUPPORTED_PLACEABLES.includes(docName)) return;
 

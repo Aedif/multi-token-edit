@@ -1,4 +1,6 @@
 import { GeneralDataAdapter } from '../applications/dataAdapters.js';
+import MassEditPresets from '../applications/presets.js';
+import { applyRandomization } from './randomizer/randomizerUtils.js';
 
 export const SUPPORTED_PLACEABLES = [
   'Token',
@@ -293,4 +295,75 @@ export function regexStringReplace(sw, replaceWith, s2) {
     return s2.replaceAll(re, replaceWith);
   } catch (e) {}
   return s2;
+}
+
+export function flattenToDepth(obj, d = 0) {
+  if (d === 0) return obj;
+
+  const flat = {};
+  for (let [k, v] of Object.entries(obj)) {
+    let t = getType(v);
+    if (t === 'Object') {
+      if (isEmpty(v)) flat[k] = v;
+      let inner = flattenToDepth(v, d - 1);
+      for (let [ik, iv] of Object.entries(inner)) {
+        flat[`${k}.${ik}`] = iv;
+      }
+    } else flat[k] = v;
+  }
+  return flat;
+}
+
+export function activeEffectPresetSelect(aeConfig) {
+  const showPreset = function (docName) {
+    new MassEditPresets(
+      null,
+      (preset) => {
+        delete preset['mass-edit-addSubtract'];
+
+        if ('mass-edit-randomize' in preset) {
+          applyRandomization([preset], null, preset['mass-edit-randomize']);
+          delete preset['mass-edit-randomize'];
+        }
+
+        const changes = aeConfig.object.changes ?? [];
+        let nChanges = [];
+
+        Object.keys(preset).forEach((k) => {
+          let value;
+          if (getType(preset[k]) === 'string') value = preset[k];
+          else value = JSON.stringify(preset[k]);
+
+          nChanges.push({
+            key: docName === 'Token' ? 'ATL.' + k : k,
+            mode: CONST.ACTIVE_EFFECT_MODES.OVERRIDE,
+            priority: 20,
+            value,
+          });
+        });
+
+        for (let i = changes.length - 1; i >= 0; i--) {
+          if (!nChanges.find((nc) => nc.key === changes[i].key)) nChanges.unshift(changes[i]);
+        }
+
+        aeConfig.object.update({ changes: nChanges });
+      },
+      docName
+    ).render(true);
+  };
+
+  new Dialog({
+    title: 'Open Presets',
+    content: ``,
+    buttons: {
+      token: {
+        label: 'Token',
+        callback: () => showPreset('Token'),
+      },
+      actor: {
+        label: 'Actor',
+        callback: () => showPreset('Actor'),
+      },
+    },
+  }).render(true);
 }
