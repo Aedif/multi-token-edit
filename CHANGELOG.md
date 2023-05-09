@@ -1,3 +1,14 @@
+# 1.40.0
+
+- Turned off field validation for Generic forms
+- Presets can now be dragged around with a mouse to change their order
+- You can change preset background color by right-clicking them
+
+PATREON
+
+- Dragging presets outside the form will spawn a placeable containing preset data
+  - If done while holding the ALT key the placeable will be set as hidden
+
 # 1.39.2
 
 - Adjusted button layout in TMFX Editor macro
