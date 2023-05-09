@@ -7,7 +7,7 @@
 
 FoundryVTT module for searching and editing multiple placeables at the same time.
 
-Support me on [Patreon](https://www.patreon.com/Aedif) to get access to the the version that supports field [randomization](#randomization)
+Support me on [Patreon](https://www.patreon.com/Aedif) to get access to the the version that supports field [Randomization](#randomization) and preset [Drag&Drop](#preset-dragdrop)
 
 _Note that all keybinding referenced bellow can be changed via 'Configure Controls'_
 
@@ -132,3 +132,11 @@ At the moment a [Patreon](https://www.patreon.com/Aedif) exclusive feature.
 Randomize any numerical, color, text, image, drop-down, or coordinate values.
 
 https://user-images.githubusercontent.com/7693704/196006020-9d308238-1888-4b98-b452-e7ce88a643ac.mp4
+
+## Preset Drag&Drop
+
+Drag out presets onto the canvas to spawn placeables modified using the preset
+
+https://user-images.githubusercontent.com/7693704/237049633-5f348971-49fa-44e5-9995-05657efe64d1.mp4
+
+
