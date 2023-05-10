@@ -1,3 +1,8 @@
+# 1.41.1
+
+- Clickable text added to `Active Effect Configuration` > `Effect` > `Attribute Key`
+  - Will open up and allow to apply presets in the same manner as `Shift-X` keybinding
+
 # 1.41.0
 
 - Preset Forms can now populate Active Effect `Effects` tab

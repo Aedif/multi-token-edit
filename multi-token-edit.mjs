@@ -446,3 +446,12 @@ function saveHistory(obj, update, historyItem, _id, docName) {
 
   HISTORY[docName] = docHistory;
 }
+
+Hooks.on('renderActiveEffectConfig', (app) => {
+  const el = $(app.form).find('.effects-header .key');
+  if (el.length) {
+    const me = $('<i title="Apply \'Mass Edit\' preset" style="font-size:smaller;color:brown;"> <a>[ME]</a></i>');
+    me.on('click', () => activeEffectPresetSelect(app));
+    el.append(me);
+  }
+});
