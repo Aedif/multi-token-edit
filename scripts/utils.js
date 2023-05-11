@@ -413,8 +413,8 @@ export function spawnPlaceable(docName, preset, { tokenName = 'Token' } = {}) {
       data = {};
   }
 
-  mergeObject(data, pos);
   mergeObject(data, preset);
+  mergeObject(data, pos);
 
   if (game.keyboard.downKeys.has('AltLeft')) {
     data.hidden = true;

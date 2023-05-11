@@ -1,7 +1,6 @@
 import { Brush } from '../scripts/brush.js';
 import { IS_PRIVATE } from '../scripts/randomizer/randomizerForm.js';
-import { applyRandomization } from '../scripts/randomizer/randomizerUtils.js';
-import { SUPPORTED_PLACEABLES, applyAddSubtract, spawnPlaceable } from '../scripts/utils.js';
+import { SUPPORTED_COLLECTIONS, SUPPORTED_PLACEABLES, spawnPlaceable } from '../scripts/utils.js';
 import { TokenDataAdapter } from './dataAdapters.js';
 
 export default class MassEditPresets extends FormApplication {
@@ -413,9 +412,8 @@ export default class MassEditPresets extends FormApplication {
   }
 
   async importPresets() {
-    let json = await this._importFromJSONDialog();
-    json = JSON.parse(json);
-    if (!json || isEmpty(json)) return;
+    let json = await this._importFromJSONDialog(this.docName);
+    if (!json) return;
 
     const presets = game.settings.get('multi-token-edit', 'presets') || {};
 
@@ -429,11 +427,39 @@ export default class MassEditPresets extends FormApplication {
     this.render();
   }
 
-  async _importFromJSONDialog() {
-    const content = await renderTemplate('templates/apps/import-data.html', {
-      entity: 'multi-token-edit',
-      name: 'presets',
-    });
+  async _importFromJSONDialog(docName) {
+    const content = `
+    <div class="form-group">
+        <label for="data">JSON File </label>
+        <input type="file" name="data">
+    </div>
+    <textarea class="preset" style="width:100%;height:300px;"></textarea>
+    <div class="form-group presetName">
+        <label>Preset Name </label>
+        <input type="text" value="NEW PRESET">
+    </div>
+    `;
+
+    const updateDisplayName = function (html, json) {
+      html.find('.preset').val(json);
+
+      let presets;
+      try {
+        presets = JSON.parse(json);
+      } catch (e) {
+        presets = {};
+      }
+
+      const supportedDocs = [...SUPPORTED_PLACEABLES, ...SUPPORTED_COLLECTIONS];
+      if (!isEmpty(presets) && supportedDocs.includes(Object.keys(presets)[0])) {
+        html.find('.presetName input').val('');
+        html.find('.presetName').hide();
+      } else {
+        html.find('.presetName input').val('NEW PRESET');
+        html.find('.presetName').show();
+      }
+    };
+
     let dialog = new Promise((resolve, reject) => {
       new Dialog(
         {
@@ -443,19 +469,40 @@ export default class MassEditPresets extends FormApplication {
             import: {
               icon: '<i class="fas fa-file-import"></i>',
               label: 'Import',
-              callback: (html) => {
-                const form = html.find('form')[0];
-                if (!form.data.files.length) return ui.notifications?.error('You did not upload a data file!');
-                readTextFromFile(form.data.files[0]).then((json) => {
-                  resolve(json);
-                });
+              callback: async (html) => {
+                let presets;
+                try {
+                  presets = JSON.parse(html.find('.preset').val());
+                } catch (e) {}
+                if (!presets || isEmpty(presets)) resolve(false);
+
+                let presetName = html.find('.presetName input').val();
+                if (presetName) {
+                  let tmp = {};
+                  tmp[docName] = {};
+                  tmp[docName][presetName] = presets;
+                  presets = tmp;
+                }
+                resolve(presets);
               },
             },
             no: {
               icon: '<i class="fas fa-times"></i>',
               label: 'Cancel',
-              callback: (html) => resolve(false),
+              callback: () => resolve(false),
             },
+          },
+          render: (html) => {
+            html.find('[name="data"]').on('change', (event) => {
+              if (event.target.files.length) {
+                readTextFromFile(event.target.files[0]).then((json) => {
+                  updateDisplayName(html, json);
+                });
+              }
+            });
+            html.find('.preset').on('input', (event) => {
+              updateDisplayName(html, event.target.value);
+            });
           },
           default: 'import',
         },

@@ -614,7 +614,7 @@ export const WithMassConfig = (docName = 'NONE') => {
       return this.massUpdateObject(event, formData);
     }
 
-    async massUpdateObject(event, formData, { copyForm = false } = {}) {
+    async massUpdateObject(event, formData) {
       if (!event.submitter?.value) return;
 
       // Gather up all named fields that have mass-edit-checkbox checked
@@ -630,7 +630,7 @@ export const WithMassConfig = (docName = 'NONE') => {
       }
 
       // Search and Select mode
-      else if (this.options.massSelect) {
+      if (this.options.massSelect) {
         performMassSearch(event.submitter.value, docName, selectedFields, {
           scope: this.modUpdate ? this.modUpdateType : null,
         });
@@ -1340,11 +1340,7 @@ export function copyToClipboard(docName, data, command, isPrototype) {
   }
 
   // Also copy the fields to the game clipboard as plain text
-  let plainText = deepClone(data);
-  delete plainText['mass-edit-randomize'];
-  delete plainText['mass-edit-addSubtract'];
-  plainText = JSON.stringify(plainText, null, 2);
-  game.clipboard.copyPlainText(plainText);
+  game.clipboard.copyPlainText(JSON.stringify(deepClone(data), null, 2));
 
   ui.notifications.info(
     game.i18n.format('multi-token-edit.clipboard.copy', {
