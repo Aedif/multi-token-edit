@@ -221,29 +221,40 @@ export default class MassEditPresets extends FormApplication {
       applyRandomization([preset], null, randomizer);
       delete preset['mass-edit-randomize'];
     }
-    const data = { ...preset, ...pos };
+
+    let data;
 
     // Set default values if needed
-    if (this.docName === 'Token') {
-      if (!data.name) data.name = presetName;
-    } else if (this.docName === 'Tile') {
-      if (!('width' in data)) data.width = canvas.grid.w;
-      if (!('height' in data)) data.height = canvas.grid.h;
-    } else if (this.docName === 'AmbientLight') {
-      if (!('config.dim' in data) && !('config.bright' in data)) {
-        data['config.dim'] = 20;
-        data['config.bright'] = 10;
-      }
-    } else if (this.docName === 'AmbientSound' && !('radius' in data)) {
-      data.radius = 20;
-    } else if (this.docName === 'Wall') {
-      data.c = [data.x, data.y, data.x + canvas.grid.w, data.y];
-    } else if (this.docName === 'Drawing') {
-      if (!data['shape.width']) data['shape.width'] = canvas.grid.w * 2;
-      if (!data['shape.height']) data['shape.height'] = canvas.grid.h * 2;
-    } else if (this.docName === 'MeasuredTemplate') {
-      if (!('distance' in data)) data.distance = 10;
+    switch (this.docName) {
+      case 'Token':
+        data = { name: presetName };
+        break;
+      case 'Tile':
+        data = { width: canvas.grid.w, height: canvas.grid.h };
+        break;
+      case 'AmbientSound':
+        data = { radius: 20 };
+        break;
+      case 'Wall':
+        data = { c: [pos.x, pos.y, pos.x + canvas.grid.w, pos.y] };
+        break;
+      case 'Drawing':
+        data = { 'shape.width': canvas.grid.w * 2, 'shape.height': canvas.grid.h * 2 };
+        break;
+      case 'MeasuredTemplate':
+        data = { distance: 10 };
+        break;
+      case 'AmbientLight':
+        if (!('config.dim' in preset) && !('config.bright' in preset)) {
+          data = { 'config.dim': 20, 'config.bright': 10 };
+          break;
+        }
+      default:
+        data = {};
     }
+
+    mergeObject(data, pos);
+    mergeObject(data, preset);
 
     if (game.keyboard.downKeys.has('AltLeft')) {
       data.hidden = true;

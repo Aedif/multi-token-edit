@@ -994,7 +994,9 @@ export function performMassSearch(
   }
   if (command === 'searchAndEdit') {
     setTimeout(() => {
-      showMassEdit(found, docName, { globalDelete: scope === 'world' || SUPPORTED_COLLECTIONS.includes(docName) });
+      showMassEdit(found, docName, {
+        globalDelete: scope === 'world' || SUPPORTED_COLLECTIONS.includes(docName),
+      });
     }, 500);
   }
   return found;
@@ -1346,5 +1348,13 @@ export function copyToClipboard(docName, data, command, isPrototype) {
       CLIPBOARD['TokenProto'] = data;
     }
   }
+
+  // Also copy the fields to the game clipboard as plain text
+  let plainText = deepClone(data);
+  delete plainText['mass-edit-randomize'];
+  delete plainText['mass-edit-addSubtract'];
+  plainText = JSON.stringify(plainText, null, 2);
+  game.clipboard.copyPlainText(plainText);
+
   ui.notifications.info(`Copied ${docName} data to clipboard`);
 }
