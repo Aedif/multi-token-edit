@@ -1,6 +1,7 @@
 import { showPlaceableTypeSelectDialog } from '../scripts/dialogs.js';
-import { getData, SUPPORT_SHEET_CONFIGS, SUPPORTED_COLLECTIONS } from '../scripts/utils.js';
-import { pasteDataUpdate, WithMassConfig } from './forms.js';
+import { IS_PRIVATE } from '../scripts/randomizer/randomizerForm.js';
+import { getData, spawnPlaceable, SUPPORT_SHEET_CONFIGS, SUPPORTED_COLLECTIONS } from '../scripts/utils.js';
+import { getClipboardData, pasteDataUpdate, WithMassConfig } from './forms.js';
 import { MassEditGenericForm } from './genericForm.js';
 
 export const LAYER_MAPPINGS = {
@@ -214,7 +215,18 @@ export function pasteData() {
   if (!selected) selected = getSelectedDocuments();
   if (!selected) selected = getControlled();
   if (!selected) selected = getHover();
-  return pasteDataUpdate(selected);
+
+  if (selected) return pasteDataUpdate(selected);
+  else if (IS_PRIVATE) {
+    let docName = canvas.activeLayer.constructor.documentName;
+    let data = getClipboardData(docName);
+    if (data) {
+      spawnPlaceable(docName, data);
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**

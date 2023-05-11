@@ -1357,3 +1357,7 @@ export function deleteFromClipboard(docName) {
   delete CLIPBOARD[docName];
   if (docName === 'Token') delete CLIPBOARD['TokenProto'];
 }
+
+export function getClipboardData(docName) {
+  return CLIPBOARD[docName];
+}

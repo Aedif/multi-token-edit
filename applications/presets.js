@@ -1,7 +1,7 @@
 import { Brush } from '../scripts/brush.js';
 import { IS_PRIVATE } from '../scripts/randomizer/randomizerForm.js';
 import { applyRandomization } from '../scripts/randomizer/randomizerUtils.js';
-import { SUPPORTED_PLACEABLES, applyAddSubtract } from '../scripts/utils.js';
+import { SUPPORTED_PLACEABLES, applyAddSubtract, spawnPlaceable } from '../scripts/utils.js';
 import { TokenDataAdapter } from './dataAdapters.js';
 
 export default class MassEditPresets extends FormApplication {
@@ -203,64 +203,13 @@ export default class MassEditPresets extends FormApplication {
   }
 
   async _onPresetDragOut(event) {
-    const mousePos = canvas.canvasCoordinatesFromClient({ x: event.clientX, y: event.clientY });
-    const pos = canvas.grid.getSnappedPosition(
-      mousePos.x,
-      mousePos.y,
-      canvas.getLayerByEmbeddedName(this.docName).gridPrecision
-    );
-
     const presetName = $(event.originalEvent.target).closest('li').find('.item-name label').attr('name');
     const preset = deepClone(game.settings.get('multi-token-edit', 'presets')?.[this.docName]?.[presetName]);
 
     delete preset['mass-edit-preset-order'];
     delete preset['mass-edit-addSubtract'];
 
-    const randomizer = preset['mass-edit-randomize'];
-    if (randomizer) {
-      applyRandomization([preset], null, randomizer);
-      delete preset['mass-edit-randomize'];
-    }
-
-    let data;
-
-    // Set default values if needed
-    switch (this.docName) {
-      case 'Token':
-        data = { name: presetName };
-        break;
-      case 'Tile':
-        data = { width: canvas.grid.w, height: canvas.grid.h };
-        break;
-      case 'AmbientSound':
-        data = { radius: 20 };
-        break;
-      case 'Wall':
-        data = { c: [pos.x, pos.y, pos.x + canvas.grid.w, pos.y] };
-        break;
-      case 'Drawing':
-        data = { 'shape.width': canvas.grid.w * 2, 'shape.height': canvas.grid.h * 2 };
-        break;
-      case 'MeasuredTemplate':
-        data = { distance: 10 };
-        break;
-      case 'AmbientLight':
-        if (!('config.dim' in preset) && !('config.bright' in preset)) {
-          data = { 'config.dim': 20, 'config.bright': 10 };
-          break;
-        }
-      default:
-        data = {};
-    }
-
-    mergeObject(data, pos);
-    mergeObject(data, preset);
-
-    if (game.keyboard.downKeys.has('AltLeft')) {
-      data.hidden = true;
-    }
-
-    let created = await canvas.scene.createEmbeddedDocuments(this.docName, [data]);
+    spawnPlaceable(this.docName, preset, { tokenName: presetName });
   }
 
   async _onPresetBrush(event) {

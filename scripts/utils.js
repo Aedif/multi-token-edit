@@ -367,3 +367,58 @@ export function activeEffectPresetSelect(aeConfig) {
     },
   }).render(true);
 }
+
+export function spawnPlaceable(docName, preset, { tokenName = 'Token' } = {}) {
+  // Determine spawn position for the new placeable
+  let pos = canvas.app.renderer.plugins.interaction.mouse.getLocalPosition(canvas.stage);
+  if (docName === 'Token' || docName === 'Tile') {
+    pos.x -= canvas.dimensions.size / 2;
+    pos.y -= canvas.dimensions.size / 2;
+  }
+  pos = canvas.grid.getSnappedPosition(pos.x, pos.y, canvas.getLayerByEmbeddedName(docName).gridPrecision);
+
+  const randomizer = preset['mass-edit-randomize'];
+  if (randomizer) {
+    applyRandomization([preset], null, randomizer);
+  }
+
+  let data;
+
+  // Set default values if needed
+  switch (docName) {
+    case 'Token':
+      data = { name: tokenName };
+      break;
+    case 'Tile':
+      data = { width: canvas.grid.w, height: canvas.grid.h };
+      break;
+    case 'AmbientSound':
+      data = { radius: 20 };
+      break;
+    case 'Wall':
+      data = { c: [pos.x, pos.y, pos.x + canvas.grid.w, pos.y] };
+      break;
+    case 'Drawing':
+      data = { 'shape.width': canvas.grid.w * 2, 'shape.height': canvas.grid.h * 2 };
+      break;
+    case 'MeasuredTemplate':
+      data = { distance: 10 };
+      break;
+    case 'AmbientLight':
+      if (!('config.dim' in preset) && !('config.bright' in preset)) {
+        data = { 'config.dim': 20, 'config.bright': 10 };
+        break;
+      }
+    default:
+      data = {};
+  }
+
+  mergeObject(data, pos);
+  mergeObject(data, preset);
+
+  if (game.keyboard.downKeys.has('AltLeft')) {
+    data.hidden = true;
+  }
+
+  canvas.scene.createEmbeddedDocuments(docName, [data]);
+}
