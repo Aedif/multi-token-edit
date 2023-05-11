@@ -35,7 +35,7 @@ export const WithMassEditForm = (cls) => {
       this.meObjects = docs;
       this.documentName = options.documentName ?? doc.document?.documentName ?? doc.documentName ?? 'NONE';
       this.commonData = options.commonData || {};
-      this.randomizerEnabled = IS_PRIVATE && (options.massCopy || options.massEdit);
+      this.randomizerEnabled = IS_PRIVATE && options.massEdit;
       this.massFormButtons = [{ title: 'Apply', value: 'permissions', icon: 'far fa-save' }];
     }
 
@@ -579,12 +579,6 @@ export const WithMassConfig = (docName = 'NONE') => {
           { title: 'Search', value: 'search', icon: 'fas fa-search' },
           { title: 'Search and Edit', value: 'searchAndEdit', icon: 'fas fa-search' },
         ];
-      } else if (this.options.massCopy) {
-        buttons = [{ title: 'Copy', value: 'copy', icon: 'fas fa-copy' }];
-        // Extra control for Tokens to update their Actors' Token prototype
-        if (this.documentName === 'Token') {
-          buttons.push({ title: 'Copy as Prototype', value: 'copyProto', icon: 'fas fa-copy' });
-        }
       } else if (this.documentName === 'Note') {
         // If we're editing notes and there are some on a different scene
         if (this.meObjects.filter((n) => (n.scene ?? n.parent).id === canvas.scene.id).length) {
@@ -635,10 +629,6 @@ export const WithMassConfig = (docName = 'NONE') => {
         TokenDataAdapter.correctDetectionModeOrder(selectedFields, this.randomizeFields);
       }
 
-      // Copy mode
-      if (this.options.massCopy || copyForm) {
-        this.performMassCopy(event.submitter.value, selectedFields, docName);
-      }
       // Search and Select mode
       else if (this.options.massSelect) {
         performMassSearch(event.submitter.value, docName, selectedFields, {
@@ -659,8 +649,18 @@ export const WithMassConfig = (docName = 'NONE') => {
       performMassUpdate.call(this, selectedFields, this.meObjects, docName, this.modUpdateType);
     }
 
-    performMassCopy(command, selectedFields, docName) {
-      if (isEmpty(selectedFields)) return;
+    /**
+     * Copy currently selected field to the clipboard
+     */
+    performMassCopy({ command = '', selectedFields = null } = {}) {
+      if (!selectedFields) {
+        selectedFields = this.getSelectedFields();
+        if (this.documentName === 'Token') {
+          TokenDataAdapter.correctDetectionModeOrder(selectedFields, this.randomizeFields);
+        }
+      }
+
+      if (isEmpty(selectedFields)) return false;
       if (!isEmpty(this.randomizeFields)) {
         selectedFields['mass-edit-randomize'] = deepClone(this.randomizeFields);
       }
@@ -668,7 +668,8 @@ export const WithMassConfig = (docName = 'NONE') => {
         selectedFields['mass-edit-addSubtract'] = deepClone(this.addSubtractFields);
       }
 
-      copyToClipboard(docName, selectedFields, command, this.isPrototype);
+      copyToClipboard(this.documentName, selectedFields, command, this.isPrototype);
+      return true;
     }
 
     _getHeaderButtons() {
@@ -704,24 +705,6 @@ export const WithMassConfig = (docName = 'NONE') => {
           },
         });
       }
-
-      buttons.unshift({
-        label: ' ',
-        class: 'mass-edit-json',
-        icon: 'fas fa-code',
-        onclick: () => {
-          let content = `<textarea style="width:100%; height: 300px;">${JSON.stringify(
-            this.getSelectedFields(),
-            null,
-            2
-          )}</textarea>`;
-          new Dialog({
-            title: `Selected Fields`,
-            content: content,
-            buttons: {},
-          }).render(true);
-        },
-      });
 
       if (['Token', 'Note', 'Actor'].includes(docName)) {
         let docs = [];
@@ -778,7 +761,6 @@ export const WithMassConfig = (docName = 'NONE') => {
             if (
               showMassActorForm(this.meObjects, {
                 massEdit: this.options.massEdit,
-                massCopy: this.options.massCopy,
               })
             ) {
               this.close();
@@ -904,7 +886,6 @@ export const WithMassConfig = (docName = 'NONE') => {
 
     get title() {
       if (this.options.massSelect) return `Mass-${this.documentName} SEARCH`;
-      if (this.options.massCopy) return `Mass-${this.documentName} COPY`;
       return `Mass-${this.documentName} EDIT [ ${this.meObjects.length} ]`;
     }
   }
@@ -919,7 +900,7 @@ export const WithMassConfig = (docName = 'NONE') => {
 // ====================
 
 export function pasteDataUpdate(docs, preset, suppressNotif = false) {
-  if (!docs || !docs.length) return;
+  if (!docs || !docs.length) return false;
 
   let docName = docs[0].document ? docs[0].document.documentName : docs[0].documentName;
   let data = preset ? deepClone(preset) : deepClone(CLIPBOARD[docName]);
@@ -952,8 +933,17 @@ export function pasteDataUpdate(docs, preset, suppressNotif = false) {
       delete data['mass-edit-addSubtract'];
     }
     performMassUpdate.call(context, data, docs, docName, applyType);
-    if (!suppressNotif) ui.notifications.info(`Pasted data onto ${docs.length} ${docName}s`);
+    if (!suppressNotif)
+      ui.notifications.info(
+        game.i18n.format('multi-token-edit.clipboard.paste', {
+          documentName: docName,
+          number: docs.length,
+        })
+      );
+
+    return true;
   }
+  return false;
 }
 
 export function performMassSearch(
@@ -1356,5 +1346,14 @@ export function copyToClipboard(docName, data, command, isPrototype) {
   plainText = JSON.stringify(plainText, null, 2);
   game.clipboard.copyPlainText(plainText);
 
-  ui.notifications.info(`Copied ${docName} data to clipboard`);
+  ui.notifications.info(
+    game.i18n.format('multi-token-edit.clipboard.copy', {
+      documentName: docName,
+    })
+  );
+}
+
+export function deleteFromClipboard(docName) {
+  delete CLIPBOARD[docName];
+  if (docName === 'Token') delete CLIPBOARD['TokenProto'];
 }

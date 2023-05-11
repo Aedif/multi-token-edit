@@ -1,5 +1,5 @@
 import { showPlaceableTypeSelectDialog } from '../scripts/dialogs.js';
-import { getData, SUPPORTED_PLACEABLES, SUPPORT_SHEET_CONFIGS, SUPPORTED_COLLECTIONS } from '../scripts/utils.js';
+import { getData, SUPPORT_SHEET_CONFIGS, SUPPORTED_COLLECTIONS } from '../scripts/utils.js';
 import { pasteDataUpdate, WithMassConfig } from './forms.js';
 import { MassEditGenericForm } from './genericForm.js';
 
@@ -188,29 +188,6 @@ export async function showMassEdit(found = null, documentName, options = {}) {
   }
 }
 
-// show placeable data copy
-export function showMassCopy() {
-  let [target, selected] = getSelected();
-
-  if (!selected || !selected.length) return;
-
-  // Display modified config window
-  const documentName = target.document ? target.document.documentName : target.documentName;
-  const options = { massCopy: true, documentName };
-  if (SUPPORT_SHEET_CONFIGS.includes(documentName)) {
-    if (documentName === 'Actor') {
-      target = target.prototypeToken ?? target.token;
-      selected = selected.map((s) => s.prototypeToken ?? s.token);
-      options.documentName = 'Token';
-    }
-
-    const MassConfig = WithMassConfig(options.documentName);
-    new MassConfig(target, selected, options).render(true, {});
-  } else {
-    new MassEditGenericForm(selected, options).render(true);
-  }
-}
-
 export function showMassActorForm(selectedTokens, options) {
   const tokens = [];
   const actors = [];
@@ -237,7 +214,7 @@ export function pasteData() {
   if (!selected) selected = getSelectedDocuments();
   if (!selected) selected = getControlled();
   if (!selected) selected = getHover();
-  pasteDataUpdate(selected);
+  return pasteDataUpdate(selected);
 }
 
 /**

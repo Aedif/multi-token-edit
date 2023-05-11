@@ -5,21 +5,17 @@
       "global-search-title": "Enable world search.",
       "global-delete-title": "Delete ALL documents."
     },
+    "clipboard": {
+      "copy": "Mass Edit: Copied {documentName} data to clipboard",
+      "paste": "Mass Edit: Pasted data into {number} {documentName}s"
+    },
     "macro": {
       "dependency-warning": "This macro requires {module} module to be active."
     },
     "keybindings": {
-      "pasteKey": {
-        "name": "Paste Placeable Data on Selected",
-        "hint": "Pastes copied placeable data on the selected placeables."
-      },
       "presetApply": {
         "name": "Open Presets",
         "hint": "Opens Preset dialog for the hovered/selected placeables to immediately apply them."
-      },
-      "copyKey": {
-        "name": "Open Placeable Data Copy",
-        "hint": "When pressed will open a Configuration window where you will be able to choose fields you wish to copy."
       },
       "selectKey": {
         "name": "Open Placeable Search and Select",
