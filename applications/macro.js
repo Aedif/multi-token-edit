@@ -24,7 +24,7 @@ export default class MacroForm extends FormApplication {
       id: 'mass-edit-macro',
       classes: ['sheet'],
       template: 'modules/multi-token-edit/templates/macro.html',
-      resizable: false,
+      resizable: true,
       minimizable: false,
       title: `Generate Macro`,
       width: 400,

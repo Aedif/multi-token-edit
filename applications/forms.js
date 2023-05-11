@@ -676,6 +676,7 @@ export const WithMassConfig = (docName = 'NONE') => {
       const buttons = super._getHeaderButtons();
       const docName = this.documentName;
 
+      // Macro Generator
       if (SUPPORTED_PLACEABLES.includes(docName) || SUPPORTED_COLLECTIONS.includes(docName)) {
         buttons.unshift({
           label: '',
@@ -695,6 +696,7 @@ export const WithMassConfig = (docName = 'NONE') => {
         });
       }
 
+      // Brush Tool
       if (SUPPORTED_PLACEABLES.includes(docName)) {
         buttons.unshift({
           label: '',
@@ -706,6 +708,7 @@ export const WithMassConfig = (docName = 'NONE') => {
         });
       }
 
+      // Edit Permissions
       if (['Token', 'Note', 'Actor'].includes(docName)) {
         let docs = [];
         const ids = new Set();
@@ -734,6 +737,7 @@ export const WithMassConfig = (docName = 'NONE') => {
           });
       }
 
+      // Open Preset form
       buttons.unshift({
         label: '',
         class: 'mass-edit-presets',
@@ -741,6 +745,36 @@ export const WithMassConfig = (docName = 'NONE') => {
         onclick: (ev) => new MassEditPresets(this, async (preset) => this._processPreset(preset), docName).render(true),
       });
 
+      // Apply JSON data onto the form
+      buttons.unshift({
+        label: '',
+        class: 'mass-edit-apply',
+        icon: 'far fa-money-check-edit',
+        onclick: (ev) => {
+          let content = `<textarea class="json" style="width:100%; height: 300px;"></textarea>`;
+          new Dialog({
+            title: `Apply JSON Data`,
+            content: content,
+            buttons: {
+              apply: {
+                label: 'Apply',
+                callback: (html) => {
+                  let json = {};
+                  try {
+                    json = JSON.parse(html.find('.json').val());
+                  } catch (e) {}
+
+                  if (!isEmpty(json)) {
+                    this._processPreset(json);
+                  }
+                },
+              },
+            },
+          }).render(true);
+        },
+      });
+
+      // History
       if (game.settings.get('multi-token-edit', 'enableHistory') && SUPPORTED_HISTORY_DOCS.includes(docName)) {
         buttons.unshift({
           label: '',
@@ -752,6 +786,7 @@ export const WithMassConfig = (docName = 'NONE') => {
         });
       }
 
+      // Toggle between Token and Actor forms
       if (this.documentName === 'Token' && this.meObjects.filter((t) => t.actor).length) {
         buttons.unshift({
           label: '',
@@ -815,8 +850,8 @@ export const WithMassConfig = (docName = 'NONE') => {
     }
 
     async _processPreset(preset) {
-      // This will be called when a preset or history item is selected
-      // The code bellow handled it being applied to the current form
+      // This will be called when a preset or history item is selected or JSON data is being directly applied
+      // The code bellow handles it being applied to the current form
 
       // =====================
       // Module specific logic
