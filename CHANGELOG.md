@@ -1,3 +1,18 @@
+# 1.42.0
+
+- Removed JSON header button from Mass Edit forms
+  - Same information can be be found by accessing the Macro Generator
+- Removed `Shift-C` and `Shift-V` keybindings
+  - `Ctrl-C` will copy data within opened Mass Edit forms, both to the module's and browser's clipboards
+  - `Ctrl-V` will paste copied data into selected placeables or text boxes
+- Added a new header button: `Apply JSON Data`
+  - Opens up a dialog to allow data to pasted in and applied to the form
+
+Patreon
+
+- Improved positioning placement of spawned placeables
+- `Ctrl-V` will spawn a default placeable using the clipboard fields if no placeable is selected
+
 # 1.41.1
 
 - Clickable text added to `Active Effect Configuration` > `Effect` > `Attribute Key`

@@ -938,19 +938,19 @@ export function pasteDataUpdate(docs, preset, suppressNotif = false) {
   if (!docs || !docs.length) return false;
 
   let docName = docs[0].document ? docs[0].document.documentName : docs[0].documentName;
-  let data = preset ? deepClone(preset) : deepClone(CLIPBOARD[docName]);
+  let data = preset ? deepClone(preset) : deepClone(getClipboardData(docName));
   let applyType;
 
   // Special handling for Tokens/Actors
   if (!preset) {
     if (docName === 'Token') {
       if (!data) {
-        data = CLIPBOARD['TokenProto'];
+        data = getClipboardData('TokenProto');
         applyType = 'applyToPrototype';
       }
 
       if (!data) {
-        data = CLIPBOARD['Actor'];
+        data = getClipboardData('Actor');
         docName = 'Actor';
         docs = docs.filter((d) => d.actor).map((d) => d.actor);
       }

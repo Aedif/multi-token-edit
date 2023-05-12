@@ -20,6 +20,7 @@ _Note that all keybinding referenced bellow can be changed via 'Configure Contro
   - Mass Edit will recognise these selection for Actors, Scenes, and Journals
 
 #### Showcases by Foundry community members
+
 - v1.9.1 covered by BaileyWiki [YouTube](https://www.youtube.com/watch?v=_X5NHwiw0Cw).
 - v1.13.0 covered in German by TomVTT [YouTube](https://www.youtube.com/watch?v=j7gUJHveU7s)
 - Configure TMFX filters with Mass Edit by BaileyWiki [YouTube](https://www.youtube.com/watch?v=KvNCcFsDVDE)
@@ -40,9 +41,10 @@ In addition to this key-binding Token and Tile HUDs will contain a new button if
 
 ## Search
 
-An alternative to selecting placeables manually is to press '**Shift+F**' to open a configuration window which will allow you to perform scene wide searches using the selected fields.
+An alternative to selecting placeables manually is to press '**Shift+F**' to open a configuration window which will allow you to perform scene and world wide searches using the selected fields.
 
 Text fields allow the use of wildcards: `*`
+
 - Goblin\*
 - \*Goblin
 - \*Go\*n\*
@@ -51,15 +53,18 @@ Text fields allow the use of wildcards: `*`
 
 ## Copy/Paste
 
-Specific data can be copied from placeables using 'Shift+C'. Data copied this way can be pasted on any selected or hovered over placeables using 'Shift+V'. Each placeable type has it's own "clipboard" from which data will be pasted.
+Field can be copied from opened Mass Edit forms using 'Ctrl+C'. Data copied this way can be pasted onto any selected or hovered over placeables using 'Ctrl+V'. Each placeable type has it's own "clipboard" from which data will be pasted.
+You can also paste this data as plaintext in and out of foundry.
 
-![simpleCopyPaste](https://user-images.githubusercontent.com/7693704/184879606-0674dc54-f05e-4866-b623-4b0c1e424698.gif)
+TODO GIF
 
 ## Presets
 
 Any configuration window opened using the module will have a 'Presets' header button. It will open up a window where you can store currently selected fields and re-use them later.
 
 ![simplePreset](https://user-images.githubusercontent.com/7693704/184880356-fb816824-9624-4a2c-a673-09d9c57765c7.gif)
+
+Preset's window can also be opened using `Shift+X` allowing to quickly apply them on any selected placeable.
 
 ## Adding/Subtracting
 
@@ -75,17 +80,13 @@ Once selected your cursor will be transformed into a brush allowing you click an
 
 https://user-images.githubusercontent.com/7693704/211565859-0cc6105d-f023-4f84-9b85-5593475e5bc0.mp4
 
+The brush can also be accessed via the [Preset](#presets) window
+
 ## Permission Editing
 
-Note and Token/Actor forms will contain a 'Permissions' header button allowing you to change access for any selected note, token, or actor.
+Note, Token and Actor forms will contain a 'Permissions' header button allowing you to quickly change access permissions.
 
 ![Permissions](https://user-images.githubusercontent.com/7693704/192584817-7ed7b710-ad44-41f3-ab82-93a962084aa4.png)
-
-## View selected fields as JSON
-
-All Mass Edit forms have a header button (**</>**) that will open up a dialog with currently selected fields displayed as JSON
-
-![image](https://user-images.githubusercontent.com/7693704/195932291-59d7e0ae-f279-4b09-9c9a-37d077ab3e35.png)
 
 ## History
 
@@ -95,25 +96,43 @@ When enabled in the module settings, updates made to placeables will be tracked 
 
 ## Macro Generator
 
-Using the selected fields the module will generate simple macros that will update/toggle data on plceables.
+Using the selected fields the module will generate simple macros that will update, toggle, delete, or open Mass Edit forms.
 
-**Target**
+### **Target**
 
-Define the target for the macro
+Define the target for the generated macro
 
-- IDs of Current Selected (IDs of placeables are stored within the macro and will only affect them)
-- All Selected (macro will target selected placeables at run-time)
-- All in active Scene (macro will target all placeable on the active scene)
-- Tagger (macro will target Tagger module's tags)
+- `ALL` - All documents within the selected [scope](#scope)
+- `IDs of Current Selected` - IDs of documents are stored within the macro and will be looked up at run-time
+- `Search` - A search will be performed within the selected [scope](#scope) using configured fields
+  - `Search Fields` - A sub-menu made available when `Search` is selected. Enter key-value pairs to be used in the search
+- `Tagger` - A search will be performed within the selected [scope](#scope) using [Tagger](https://foundryvtt.com/packages/tagger) module's 'tags'.
+  - `Tags` - A sub-menu made available when `Tagger` is selected. Define a comma separated list of tags to be used in the search.
+  - `Must Match` - A sub-menu made available when `Tagger` is selected. Select whether any one (`Any Tag`) or all (`All Tags`) tags must be contained within the document for a successful match.
 
-**Method**
+### **Scope**
 
-How the fields should be be applied
+Limit the scope of documents affected by the macro.
 
-- Update (direct update)
-- Toggle (2 alternating updates)
+- `Selected` - Only selected documents at macro run-time will be considered
+- `Active Scene` - All documents in the currently active scene
+- `World` - All documents throughout the game world
 
-Randomization and Add/Subtract operators are supported but will add a dependency and require Mass Edit to be active when they are run.
+**Action**
+
+The action you want the macro to perform on all documents that matched based on [Target](#target) and [Scope](#scope)
+
+- `Update` - Updates the documents using the data in the text box
+- `Toggle` - Alternates document updates between the data in the two text boxes
+  - `Toggle Detection` - A sub-menu made available when `Toggle` is selected. How should the macro determine whether a particular document has been toggle on or off.
+    - `Field Compare` - Check if the data within the text box matches the document
+    - `Flag` - Apply a unique flag to track whether data has been already applied to the document
+- `Open Mass Edit Form` - Opens the Mass Edit form (Shift+E)
+- `Delete` - Deletes the documents
+
+In addition to the above, if `Update` or `Toggle` are selected you'll also get an option to select the matched documents and/or run another macro. Useful if you have macros that require placeables to be under control for them to execute. For example filters in the [Token Magic FX](https://foundryvtt.com/packages/tokenmagic) compendium.
+
+[Randomization](#randomization) and [Add/Subtract](#addingsubtracting) operators are supported but will add a dependency on `Mass Edit` to be active when the macro is run.
 
 Example video:
 
@@ -138,5 +157,3 @@ https://user-images.githubusercontent.com/7693704/196006020-9d308238-1888-4b98-b
 Drag out presets onto the canvas to spawn placeables modified using the preset
 
 https://user-images.githubusercontent.com/7693704/237049633-5f348971-49fa-44e5-9995-05657efe64d1.mp4
-
-

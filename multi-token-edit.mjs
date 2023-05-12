@@ -211,9 +211,8 @@ Hooks.once('init', () => {
       new MassEditPresets(
         null,
         (preset) => {
-          const [target2, selected2] = getSelected();
-          if (!(target2 || target)) return;
-          pasteDataUpdate(target2 ? selected2 : selected, preset);
+          const [target, selected] = getSelected();
+          if (target) pasteDataUpdate(selected, preset);
         },
         docName
       ).render(true);
@@ -277,9 +276,11 @@ Hooks.once('init', () => {
     'multi-token-edit',
     'ClientKeybindings._onCopy',
     function (wrapped, ...args) {
-      // Check if a Mass Config form is open and if so copy data from there
-      const meForm = Object.values(ui.windows).find((app) => app.meObjects != null);
-      if (meForm?.performMassCopy()) return true;
+      if (window.getSelection().toString() === '') {
+        // Check if a Mass Config form is open and if so copy data from there
+        const meForm = Object.values(ui.windows).find((app) => app.meObjects != null);
+        if (meForm?.performMassCopy()) return true;
+      }
 
       const result = wrapped(...args);
       // Clear Mass Edit clipboard to allows core pasting again

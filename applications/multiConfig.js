@@ -28,19 +28,19 @@ export const SCENE_DOC_MAPPINGS = {
 
 // Retrieve currently controlled placeables
 export function getControlled() {
-  for (const layer of Object.values(LAYER_MAPPINGS)) {
-    if (canvas[layer].controlled.length) {
-      return canvas[layer].controlled;
-    }
+  if (canvas.activeLayer.controlled.length) {
+    return canvas.activeLayer.controlled;
   }
   return null;
 }
 
 // Retrieve hovered over placeable
 function getHover() {
-  for (const layer of Object.values(LAYER_MAPPINGS)) {
-    if (canvas[layer].hover) {
-      return [canvas[layer].hover];
+  let docName = canvas.activeLayer.constructor.documentName;
+  // Walls do not properly cleanup hover state
+  if (!['Wall'].includes(docName)) {
+    if (canvas.activeLayer.hover) {
+      return [canvas.activeLayer.hover];
     }
   }
   return null;
