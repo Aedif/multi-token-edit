@@ -56,7 +56,7 @@ Text fields allow the use of wildcards: `*`
 Field can be copied from opened Mass Edit forms using 'Ctrl+C'. Data copied this way can be pasted onto any selected or hovered over placeables using 'Ctrl+V'. Each placeable type has it's own "clipboard" from which data will be pasted.
 You can also paste this data as plaintext in and out of foundry.
 
-TODO GIF
+![copytPaste](https://github.com/Aedif/multi-token-edit/assets/7693704/b37fe2c1-593a-4a43-b759-7a6d7b8d9363)
 
 ## Presets
 
