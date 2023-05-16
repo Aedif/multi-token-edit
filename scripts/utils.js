@@ -315,7 +315,7 @@ export function flattenToDepth(obj, d = 0) {
 }
 
 export function activeEffectPresetSelect(aeConfig) {
-  const showPreset = function (docName) {
+  const showPresetGeneric = function (docName) {
     new MassEditPresets(
       null,
       (preset) => {
@@ -352,17 +352,44 @@ export function activeEffectPresetSelect(aeConfig) {
     ).render(true);
   };
 
+  const showPresetActiveEffect = function () {
+    new MassEditPresets(
+      aeConfig,
+      (preset) => {
+        const changes = aeConfig.object.changes ?? [];
+        let nChanges = [];
+
+        preset.changes?.forEach((change) => {
+          if (change.key) {
+            nChanges.push(mergeObject({ mode: CONST.ACTIVE_EFFECT_MODES.OVERRIDE, priority: 20 }, change));
+          }
+        });
+
+        for (let i = changes.length - 1; i >= 0; i--) {
+          if (!nChanges.find((nc) => nc.key === changes[i].key)) nChanges.unshift(changes[i]);
+        }
+
+        aeConfig.object.update({ changes: nChanges });
+      },
+      'ActiveEffect'
+    ).render(true);
+  };
+
   new Dialog({
     title: 'Open Presets',
     content: ``,
     buttons: {
+      activeEffect: {
+        label: 'ActiveEffect',
+        callback: () => showPresetActiveEffect(),
+      },
       token: {
         label: 'Token',
-        callback: () => showPreset('Token'),
+        callback: () => showPresetGeneric('Token'),
       },
       actor: {
         label: 'Actor',
-        callback: () => showPreset('Actor'),
+        callback: () => showPresetGeneric('Actor'),
       },
     },
   }).render(true);

@@ -19,18 +19,20 @@
             <div class="item-controls flexrow {{#unless ../createEnabled}}short{{/unless}}">
                 {{#if ../createEnabled}}
                 <div class="item-control preset-update"><a title="Update Preset"><i class="fas fa-sync"></i></a></div>
+                {{#if ../isPlaceable}}
                 &nbsp;
                 <div class="item-control preset-keybind {{#if hasKeybind}}active{{/if}}"><a title="Register as a Mass Edit control"><i class="fas fa-gamepad"></i></a></div>
+                {{/if}}
                 &nbsp;
                 <div class="item-control preset-delete">
                     <a title="Delete Preset"><i class="fas fa-trash"></i></a>
                 </div>
                 {{/if}}
-                {{#unless ../createEnabled}}
+                {{#if ../isPlaceable}}
                 <div class="item-control preset-brush">
                     <a title="Activate Brush"><i class="fas fa-paint-brush"></i></a>
                 </div>
-                {{/unless}}
+                {{/if}}
             </div>
         </li>
         {{/each}}

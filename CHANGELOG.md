@@ -1,3 +1,9 @@
+# 1.43.0
+
+- Active Effect preset support
+  - New options available when selecting `[ME]` next to `Attribute Key` in Active Effect configuration form
+  - Allows saving, applying, importing and exporting of `Effects` tab
+
 # 1.42.0
 
 - Removed JSON header button from Mass Edit forms

@@ -1,7 +1,7 @@
 import { Brush } from '../scripts/brush.js';
 import { importPresetFromJSONDialog } from '../scripts/dialogs.js';
 import { IS_PRIVATE } from '../scripts/randomizer/randomizerForm.js';
-import { SUPPORTED_COLLECTIONS, SUPPORTED_PLACEABLES, spawnPlaceable } from '../scripts/utils.js';
+import { SUPPORTED_PLACEABLES, spawnPlaceable } from '../scripts/utils.js';
 import { TokenDataAdapter } from './dataAdapters.js';
 
 export default class MassEditPresets extends FormApplication {
@@ -13,7 +13,7 @@ export default class MassEditPresets extends FormApplication {
       this.docName = docName;
     } else {
       this.configApp = configApp;
-      this.docName = this.configApp.documentName;
+      this.docName = docName || this.configApp.documentName;
     }
   }
 
@@ -43,6 +43,12 @@ export default class MassEditPresets extends FormApplication {
     data.presets = [];
 
     data.createEnabled = Boolean(this.configApp);
+    data.isPlaceable = SUPPORTED_PLACEABLES.includes(this.docName);
+
+    const aeModeString = function (mode) {
+      let s = Object.keys(CONST.ACTIVE_EFFECT_MODES).find((k) => CONST.ACTIVE_EFFECT_MODES[k] === mode);
+      return s ?? mode;
+    };
 
     for (const p of presetList) {
       const fields = p.fields;
@@ -67,6 +73,10 @@ export default class MassEditPresets extends FormApplication {
         } else if (k in addSubtract) {
           const val = 'value' in addSubtract[k] ? addSubtract[k].value : fields[k];
           title += `${k}: ${addSubtract[k].method === 'add' ? '+' : '-'}${val}\n`;
+        } else if (k === 'changes' && this.docName === 'ActiveEffect') {
+          fields[k].forEach((c) => {
+            title += `${c.key} | ${aeModeString(c.mode)} | ${c.value} | ${c.priority}\n`;
+          });
         } else {
           title += `${k}: ${fields[k]}\n`;
         }
@@ -266,7 +276,8 @@ export default class MassEditPresets extends FormApplication {
   }
 
   _onPresetUpdate(event) {
-    const selectedFields = this.configApp.getSelectedFields();
+    const selectedFields =
+      this.configApp instanceof ActiveEffectConfig ? this._getActiveEffectFields() : this.configApp.getSelectedFields();
     if (!selectedFields || isEmpty(selectedFields)) {
       ui.notifications.warn('No fields selected, unable to update.');
       return;
@@ -278,8 +289,8 @@ export default class MassEditPresets extends FormApplication {
   }
 
   async _createUpdatePreset(name, selectedFields) {
-    const randomizeFields = deepClone(this.configApp.randomizeFields);
-    const addSubtractFields = deepClone(this.configApp.addSubtractFields);
+    const randomizeFields = deepClone(this.configApp.randomizeFields || {});
+    const addSubtractFields = deepClone(this.configApp.addSubtractFields || {});
 
     // Detection modes may have been selected out of order
     // Fix that here
@@ -315,7 +326,8 @@ export default class MassEditPresets extends FormApplication {
   }
 
   _onPresetCreate(event) {
-    const selectedFields = this.configApp.getSelectedFields();
+    const selectedFields =
+      this.configApp instanceof ActiveEffectConfig ? this._getActiveEffectFields() : this.configApp.getSelectedFields();
     if (!selectedFields || isEmpty(selectedFields)) {
       ui.notifications.warn('No fields selected.');
       return;
@@ -339,6 +351,10 @@ export default class MassEditPresets extends FormApplication {
         html.find('input').focus();
       },
     }).render(true);
+  }
+
+  _getActiveEffectFields() {
+    return { changes: deepClone(this.configApp.object.changes ?? []) };
   }
 
   _getPresetsList() {
