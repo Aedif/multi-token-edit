@@ -8,6 +8,7 @@ import {
   flagCompare,
   getCommonData,
   getData,
+  getDocumentName,
   hasFlagRemove,
   mergeObjectPreserveDot,
   panToFitPlaceables,
@@ -568,9 +569,11 @@ export const WithMassConfig = (docName = 'NONE') => {
   class MassConfig extends MEF {
     constructor(target, docs, options) {
       if (options.massSelect) options.randomizerEnabled = false;
-      if (!options.commonData) options.commonData = getCommonDocData(docs);
+      const docName = options.documentName ?? getDocumentName(target);
+      if (!options.commonData) options.commonData = getCommonDocData(docs, docName);
 
       super(target.document ? target.document : target, docs, options);
+      this.docName = docName;
 
       // Add submit buttons
       let buttons = [];
@@ -598,7 +601,11 @@ export const WithMassConfig = (docName = 'NONE') => {
       } else {
         buttons = [{ title: 'Apply Changes', value: 'apply', icon: 'far fa-save' }];
         // Extra control for Tokens to update their Actors Token prototype
-        if (this.documentName === 'Token' && !this.options.simplified) {
+        if (
+          this.documentName === 'Token' &&
+          !this.options.simplified &&
+          !this.meObjects[0].constructor?.name?.startsWith('PrototypeToken')
+        ) {
           buttons.push({
             title: 'Apply and Update Proto',
             value: 'applyToPrototype',
@@ -619,34 +626,27 @@ export const WithMassConfig = (docName = 'NONE') => {
 
       // Gather up all named fields that have mass-edit-checkbox checked
       const selectedFields = this.getSelectedFields(formData);
-      const docName = this.meObjects[0].document
-        ? this.meObjects[0].document.documentName
-        : this.meObjects[0].documentName;
 
       // Detection modes may have been selected out of order
       // Fix that here
-      if (docName === 'Token') {
+      if (this.docName === 'Token') {
         TokenDataAdapter.correctDetectionModeOrder(selectedFields, this.randomizeFields);
       }
 
       // Search and Select mode
       if (this.options.massSelect) {
-        performMassSearch(event.submitter.value, docName, selectedFields, {
+        performMassSearch(event.submitter.value, this.docName, selectedFields, {
           scope: this.modUpdate ? this.modUpdateType : null,
         });
       } else {
         // Edit mode
-        performMassUpdate.call(this, selectedFields, this.meObjects, docName, event.submitter.value);
+        performMassUpdate.call(this, selectedFields, this.meObjects, this.docName, event.submitter.value);
       }
     }
 
     _performOnInputChangeUpdate() {
       const selectedFields = this.getSelectedFields();
-      const docName = this.meObjects[0].document
-        ? this.meObjects[0].document.documentName
-        : this.meObjects[0].documentName;
-
-      performMassUpdate.call(this, selectedFields, this.meObjects, docName, this.modUpdateType);
+      performMassUpdate.call(this, selectedFields, this.meObjects, this.docName, this.modUpdateType);
     }
 
     /**
@@ -674,10 +674,9 @@ export const WithMassConfig = (docName = 'NONE') => {
 
     _getHeaderButtons() {
       const buttons = super._getHeaderButtons();
-      const docName = this.documentName;
 
       // Macro Generator
-      if (SUPPORTED_PLACEABLES.includes(docName) || SUPPORTED_COLLECTIONS.includes(docName)) {
+      if (SUPPORTED_PLACEABLES.includes(this.docName) || SUPPORTED_COLLECTIONS.includes(this.docName)) {
         buttons.unshift({
           label: '',
           class: 'mass-edit-macro',
@@ -687,7 +686,7 @@ export const WithMassConfig = (docName = 'NONE') => {
             new MacroForm(
               this.object,
               this.meObjects,
-              docName,
+              this.docName,
               selectedFields,
               this.randomizeFields,
               this.addSubtractFields
@@ -697,7 +696,7 @@ export const WithMassConfig = (docName = 'NONE') => {
       }
 
       // Brush Tool
-      if (SUPPORTED_PLACEABLES.includes(docName)) {
+      if (SUPPORTED_PLACEABLES.includes(this.docName)) {
         buttons.unshift({
           label: '',
           class: 'mass-edit-brush',
@@ -709,14 +708,14 @@ export const WithMassConfig = (docName = 'NONE') => {
       }
 
       // Edit Permissions
-      if (['Token', 'Note', 'Actor'].includes(docName)) {
+      if (['Token', 'Note', 'Actor'].includes(this.docName)) {
         let docs = [];
         const ids = new Set();
         for (const p of this.meObjects) {
           let d;
-          if (docName === 'Actor' || docName === 'JournalEntry') d = p;
-          else if (docName === 'Token' && p.actor) d = p.actor;
-          else if (docName === 'Note' && p.entry) d = p.entry;
+          if (this.docName === 'Actor' || this.docName === 'JournalEntry') d = p;
+          else if (this.docName === 'Token' && p.actor) d = p.actor;
+          else if (this.docName === 'Note' && p.entry) d = p.entry;
 
           // Only retain unique docs
           if (d && !ids.has(d.id)) {
@@ -742,7 +741,8 @@ export const WithMassConfig = (docName = 'NONE') => {
         label: '',
         class: 'mass-edit-presets',
         icon: 'fas fa-box',
-        onclick: (ev) => new MassEditPresets(this, async (preset) => this._processPreset(preset), docName).render(true),
+        onclick: (ev) =>
+          new MassEditPresets(this, async (preset) => this._processPreset(preset), this.docName).render(true),
       });
 
       // Apply JSON data onto the form
@@ -775,13 +775,13 @@ export const WithMassConfig = (docName = 'NONE') => {
       });
 
       // History
-      if (game.settings.get('multi-token-edit', 'enableHistory') && SUPPORTED_HISTORY_DOCS.includes(docName)) {
+      if (game.settings.get('multi-token-edit', 'enableHistory') && SUPPORTED_HISTORY_DOCS.includes(this.docName)) {
         buttons.unshift({
           label: '',
           class: 'mass-edit-history',
           icon: 'fas fa-history',
           onclick: () => {
-            new MassEditHistory(docName, async (preset) => this._processPreset(preset)).render(true);
+            new MassEditHistory(this.docName, async (preset) => this._processPreset(preset)).render(true);
           },
         });
       }
@@ -1273,8 +1273,8 @@ export function getObjFormData(obj, docName) {
 }
 
 // Merge all data and determine what is common between the docs
-function getCommonDocData(docs) {
-  const docName = docs[0].document ? docs[0].document.documentName : docs[0].documentName;
+function getCommonDocData(docs, docName) {
+  if (!docName) getDocumentName(docs[0]);
   const objects = docs.map((d) => getObjFormData(d, docName));
   return getCommonData(objects);
 }

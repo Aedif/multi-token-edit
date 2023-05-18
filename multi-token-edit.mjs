@@ -21,6 +21,7 @@ import {
   activeEffectPresetSelect,
   applyAddSubtract,
   flagCompare,
+  getDocumentName,
   hashCode,
   SUPPORTED_COLLECTIONS,
   SUPPORTED_HISTORY_DOCS,
@@ -233,7 +234,7 @@ Hooks.once('init', () => {
     onDown: () => {
       let [target, selected] = getSelected(null, false);
       if (!target) return;
-      const docName = target.document ? target.document.documentName : target.documentName;
+      const docName = getDocumentName(target);
       if (![...SUPPORTED_COLLECTIONS, 'Token'].includes(docName)) return;
 
       if (docName === 'Token') {
@@ -258,7 +259,7 @@ Hooks.once('init', () => {
           onDown: () => {
             const [target, selected] = getSelected();
             if (!target) return;
-            const documentName = target.document ? target.document.documentName : target.documentName;
+            const documentName = getDocumentName(target);
             if (documentName === docName) {
               const preset = game.settings.get('multi-token-edit', 'presets')?.[docName]?.[presetName];
               if (preset) pasteDataUpdate(target ? [target] : selected, preset, true);

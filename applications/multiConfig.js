@@ -1,6 +1,12 @@
 import { showPlaceableTypeSelectDialog } from '../scripts/dialogs.js';
 import { IS_PRIVATE } from '../scripts/randomizer/randomizerForm.js';
-import { getData, spawnPlaceable, SUPPORT_SHEET_CONFIGS, SUPPORTED_COLLECTIONS } from '../scripts/utils.js';
+import {
+  getData,
+  getDocumentName,
+  spawnPlaceable,
+  SUPPORT_SHEET_CONFIGS,
+  SUPPORTED_COLLECTIONS,
+} from '../scripts/utils.js';
 import { getClipboardData, pasteDataUpdate, WithMassConfig } from './forms.js';
 import { MassEditGenericForm } from './genericForm.js';
 
@@ -93,10 +99,6 @@ function getSelectedDocuments(placeableSelect) {
   return null;
 }
 
-function documentName(doc) {
-  return doc.document ? doc.document.documentName : doc.documentName;
-}
-
 export function getSelected(base, placeable = true) {
   let selected;
   if (base) {
@@ -127,7 +129,7 @@ export function getSelected(base, placeable = true) {
 
   if (!hover && !selected) return [null, null];
 
-  if (hover && documentName(hover) !== documentName(selected[0])) {
+  if (hover && getDocumentName(hover) !== getDocumentName(selected[0])) {
     hover = selected[0];
   }
 
@@ -143,7 +145,7 @@ export function showMassSelect(basePlaceable) {
     return;
   }
 
-  const docName = target.document ? target.document.documentName : target.documentName;
+  const docName = getDocumentName(target);
 
   const options = {
     commonData: flattenObject(getData(target).toObject()),
@@ -174,12 +176,12 @@ export async function showMassEdit(found = null, documentName, options = {}) {
   }
 
   // Display modified config window
-  if (!documentName) documentName = target.document ? target.document.documentName : target.documentName;
+  if (!documentName) documentName = getDocumentName(target);
   options = { ...options, massEdit: true, documentName };
   if (SUPPORT_SHEET_CONFIGS.includes(documentName)) {
     if (documentName === 'Actor') {
-      target = target.prototypeToken ?? target.token;
-      selected = selected.map((s) => s.prototypeToken ?? s.token);
+      target = target.prototypeToken;
+      selected = selected.map((s) => s.prototypeToken);
       options.documentName = 'Token';
     }
     const MassConfig = WithMassConfig(options.documentName);

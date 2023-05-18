@@ -449,3 +449,8 @@ export function spawnPlaceable(docName, preset, { tokenName = 'Token' } = {}) {
 
   canvas.scene.createEmbeddedDocuments(docName, [data]);
 }
+
+export function getDocumentName(doc) {
+  const docName = doc.document ? doc.document.documentName : doc.documentName;
+  return docName ?? 'NONE';
+}

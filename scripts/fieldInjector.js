@@ -1,7 +1,7 @@
+import { getDocumentName } from './utils.js';
+
 export function injectVisibility(app) {
-  const docName = app.meObjects[0].document
-    ? app.meObjects[0].document.documentName
-    : app.meObjects[0].documentName;
+  const docName = getDocumentName(app.meObjects[0]);
 
   // Only the following docs necessitate hidden field
   if (!['AmbientLight', 'AmbientSound'].includes(docName)) return;

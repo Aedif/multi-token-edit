@@ -182,7 +182,7 @@ export default class RandomizerForm extends FormApplication {
   activateListeners(html) {
     super.activateListeners(html);
 
-    const docName = this.configApp.object?.documentName;
+    const docName = this.configApp.docName;
     $(html)
       .find('.folder-picker')
       .click(() => {

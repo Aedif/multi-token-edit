@@ -25,7 +25,7 @@ export default class MassEditPresets extends FormApplication {
       resizable: true,
       minimizable: false,
       title: `Presets`,
-      width: 270,
+      width: 300,
       height: 'auto',
       scrollY: ['ol.item-list'],
     });
