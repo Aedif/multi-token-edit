@@ -397,7 +397,8 @@ export function activeEffectPresetSelect(aeConfig) {
 
 export function spawnPlaceable(docName, preset, { tokenName = 'Token' } = {}) {
   // Determine spawn position for the new placeable
-  let pos = canvas.app.renderer.plugins.interaction.mouse.getLocalPosition(canvas.stage);
+  // v11 : canvas.mousePosition
+  let pos = canvas.mousePosition ?? canvas.app.renderer.plugins.interaction.mouse.getLocalPosition(canvas.stage);
   if (docName === 'Token' || docName === 'Tile') {
     pos.x -= canvas.dimensions.size / 2;
     pos.y -= canvas.dimensions.size / 2;

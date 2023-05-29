@@ -114,6 +114,12 @@ export default class RandomizerForm extends FormApplication {
       }
     }
     if (this.configuration.textForm) {
+      // Fix for generators in v10
+      if (!String.prototype.capitalize) {
+        String.prototype.capitalize = function () {
+          return this.charAt(0).toUpperCase() + this.slice(1);
+        };
+      }
       data.generators = {};
       const addGeneratorGroup = function (group, generators) {
         data.generators[group] = Object.keys(generators).map((k) => {

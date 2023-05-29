@@ -1,3 +1,7 @@
+# 1.43.2
+
+- v11 support
+
 # 1.43.1
 
 - Fix Token Prototype edit using `Multiple Document Selection` module

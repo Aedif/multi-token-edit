@@ -1,9 +1,5 @@
 /*global app*/
 
-String.prototype.capitalize = function () {
-  return this.charAt(0).toUpperCase() + this.slice(1);
-};
-
 function isVowel(c) {
   return c === 'a' || c === 'e' || c === 'i' || c === 'o' || c === 'u';
 }

@@ -1,9 +1,5 @@
 import { NAME_GENERATOR } from './nameGenerator.js';
 
-String.prototype.capitalize = function () {
-  return this.charAt(0).toUpperCase() + this.slice(1);
-};
-
 var mysticOrder = {
     patterns: [
       '<group> of the <entity>',
