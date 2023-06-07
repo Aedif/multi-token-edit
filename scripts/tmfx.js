@@ -1,4 +1,5 @@
 export async function applyDDTint(placeable, color) {
+  placeable = placeable.object ?? placeable;
   color = PIXI.utils.string2hex(color);
   if (isNaN(color)) {
     await TokenMagic.deleteFilters(placeable, 'DDTint');
@@ -24,6 +25,7 @@ export function getDDTint(placeable) {
 }
 
 export async function applyTMFXPreset(placeable, presetName, remove = false) {
+  placeable = placeable.object ?? placeable;
   if (!(placeable instanceof PlaceableObject)) return;
   if (presetName === 'DELETE ALL') {
     await TokenMagic.deleteFilters(placeable);

@@ -1,3 +1,7 @@
+# 1.43.4
+
+- Fixed TMFX fields in Mass Edit forms not applying filters
+
 # 1.43.2
 
 - v11 support
