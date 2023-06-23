@@ -618,7 +618,12 @@ export const WithMassConfig = (docName = 'NONE') => {
     }
 
     async _updateObject(event, formData) {
-      return this.massUpdateObject(event, formData);
+      await this.massUpdateObject(event, formData);
+
+      // On v11 certain placeable will freeze the canvas layer if parent _updateObject is not called
+      if (!isNewerVersion('11', game.version) && ['Token', 'AmbientLight'].includes(this.docName)) {
+        return super._updateObject(event, {});
+      }
     }
 
     async massUpdateObject(event, formData) {
@@ -635,12 +640,12 @@ export const WithMassConfig = (docName = 'NONE') => {
 
       // Search and Select mode
       if (this.options.massSelect) {
-        performMassSearch(event.submitter.value, this.docName, selectedFields, {
+        return performMassSearch(event.submitter.value, this.docName, selectedFields, {
           scope: this.modUpdate ? this.modUpdateType : null,
         });
       } else {
         // Edit mode
-        performMassUpdate.call(this, selectedFields, this.meObjects, this.docName, event.submitter.value);
+        return performMassUpdate.call(this, selectedFields, this.meObjects, this.docName, event.submitter.value);
       }
     }
 
@@ -1166,6 +1171,7 @@ export async function performMassUpdate(data, objects, docName, applyType) {
       if (!splitUpdates[scene.id]) splitUpdates[scene.id] = [];
       splitUpdates[scene.id].push(updates[i]);
     }
+
     for (const sceneId of Object.keys(splitUpdates)) {
       game.scenes.get(sceneId)?.updateEmbeddedDocuments(docName, splitUpdates[sceneId], context);
     }

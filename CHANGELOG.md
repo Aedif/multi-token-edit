@@ -1,3 +1,7 @@
+# 1.43.5
+
+- Fixed Token and AmbientLight mass updates causing their respective layers to freeze on v11
+
 # 1.43.4
 
 - Fixed TMFX fields in Mass Edit forms not applying filters
