@@ -1,3 +1,7 @@
+# 1.43.6
+
+- Fixed the closing of Token and AmbientLight Mass Edit forms without performing update resulting in their respective layers freezing on v11
+
 # 1.43.5
 
 - Fixed Token and AmbientLight mass updates causing their respective layers to freeze on v11

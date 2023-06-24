@@ -824,6 +824,10 @@ export const WithMassConfig = (docName = 'NONE') => {
     async close(options = {}) {
       Brush.deactivate();
       options.force = true;
+
+      if (!isNewerVersion('11', game.version) && ['Token', 'AmbientLight'].includes(this.docName)) {
+        this._resetPreview();
+      }
       return super.close(options);
     }
 
