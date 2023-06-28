@@ -621,8 +621,12 @@ export const WithMassConfig = (docName = 'NONE') => {
       await this.massUpdateObject(event, formData);
 
       // On v11 certain placeable will freeze the canvas layer if parent _updateObject is not called
-      if (!isNewerVersion('11', game.version) && ['Token', 'AmbientLight'].includes(this.docName)) {
-        return super._updateObject(event, {});
+      if (
+        !isNewerVersion('11', game.version) &&
+        ['Token', 'AmbientLight'].includes(this.docName) &&
+        this.preview?.object
+      ) {
+        this._resetPreview();
       }
     }
 
@@ -825,7 +829,11 @@ export const WithMassConfig = (docName = 'NONE') => {
       Brush.deactivate();
       options.force = true;
 
-      if (!isNewerVersion('11', game.version) && ['Token', 'AmbientLight'].includes(this.docName)) {
+      if (
+        !isNewerVersion('11', game.version) &&
+        ['Token', 'AmbientLight'].includes(this.docName) &&
+        this.preview?.object
+      ) {
         this._resetPreview();
       }
       return super.close(options);

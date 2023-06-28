@@ -1,3 +1,8 @@
+# 1.43.7
+
+- Fixed Mass Edit forms not closing after performing updates on AmbientLights
+- Fixed errors thrown when switching scenes with Mass Edit form still open and attempting to perform an update after
+
 # 1.43.6
 
 - Fixed the closing of Token and AmbientLight Mass Edit forms without performing update resulting in their respective layers freezing on v11
