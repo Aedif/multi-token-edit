@@ -74,9 +74,10 @@
 
 .me-global-delete {
   position: absolute;
-  left: -26px;
-  top: 50%;
+  left: 50%;
+  top: 100%;
   color: red;
+  padding-top: 10px;
 }
 
 /* .me-global-delete > a > i {

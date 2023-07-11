@@ -1,3 +1,8 @@
+# 1.43.8
+
+- Warning fixes
+- `Delete` button will now always be displayed
+
 # 1.43.7
 
 - Fixed Mass Edit forms not closing after performing updates on AmbientLights

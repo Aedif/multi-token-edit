@@ -4190,4 +4190,3 @@ Color.extend(interpolation);
 Color.extend(contrastMethods);
 
 export { Color as default };
-//# sourceMappingURL=color.js.map

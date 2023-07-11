@@ -13,6 +13,7 @@ import {
   mergeObjectPreserveDot,
   panToFitPlaceables,
   selectAddSubtractFields,
+  SUPPORT_SHEET_CONFIGS,
   SUPPORTED_COLLECTIONS,
   SUPPORTED_HISTORY_DOCS,
   SUPPORTED_PLACEABLES,
@@ -45,9 +46,8 @@ export const WithMassEditForm = (cls) => {
       await super.activateListeners(html);
       injectVisibility(this);
 
-      if (this.options.globalDelete) {
+      if (SUPPORTED_PLACEABLES.includes(this.documentName) || SUPPORTED_COLLECTIONS.includes(this.documentName))
         this._injectGlobalDeleteButton(html);
-      }
 
       this.randomizeFields = {};
       this.addSubtractFields = {};
@@ -514,7 +514,7 @@ export const WithMassEditForm = (cls) => {
       const control = $(
         `<div class="me-global-delete"><a title="${game.i18n.localize(
           'multi-token-edit.form.global-delete-title'
-        )}"><i class="fas fa-trash-alt fa-2x"></i></a></div>`
+        )}"><i class="far fa-times-octagon fa-2x"></i></a></div>`
       );
       control.click((event) => {
         new Dialog({
@@ -1036,9 +1036,7 @@ export function performMassSearch(
   }
   if (command === 'searchAndEdit') {
     setTimeout(() => {
-      showMassEdit(found, docName, {
-        globalDelete: scope === 'world' || SUPPORTED_COLLECTIONS.includes(docName),
-      });
+      showMassEdit(found, docName);
     }, 500);
   }
   return found;
