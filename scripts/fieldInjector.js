@@ -45,6 +45,12 @@ export async function injectFlagTab(app) {
   app.options.tabs = (app.options.tabs ?? []).concat(flagTabs);
   app._tabs = app._createTabHandlers();
 
+  if (!flagNav.tabs.length) return;
+  flagNav.tabs[0].nav?.items?.forEach((item) => {
+    const mod = game.modules.get(item.dataTab.replace('flags.', ''));
+    if (mod) item.label = mod.title;
+  });
+
   const html = $(app.form);
 
   await getTemplate('modules/multi-token-edit/templates/generic/form-group.html');

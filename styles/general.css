@@ -245,6 +245,15 @@ nav > a[data-tab='me-pinned'] {
   color: gold;
 }
 
+.me-delete-flag {
+  flex: 0.1 !important;
+  color: gray;
+}
+
+.me-delete-flag.active {
+  color: rgb(255, 0, 0);
+}
+
 .me-editable-label {
   border: none !important;
 }

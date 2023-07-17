@@ -760,7 +760,10 @@ export const WithMassConfig = (docName = 'NONE') => {
         class: 'mass-edit-apply',
         icon: 'far fa-money-check-edit',
         onclick: (ev) => {
-          let content = `<textarea class="json" style="width:100%; height: 300px;"></textarea>`;
+          let selFields = expandObject(this.getSelectedFields());
+          if (isEmpty(selFields)) selFields = '';
+          else selFields = JSON.stringify(selFields, null, 2);
+          let content = `<textarea class="json" style="width:100%; height: 300px;">${selFields}</textarea>`;
           new Dialog({
             title: `Apply JSON Data`,
             content: content,
@@ -774,7 +777,7 @@ export const WithMassConfig = (docName = 'NONE') => {
                   } catch (e) {}
 
                   if (!isEmpty(json)) {
-                    this._processPreset(json);
+                    this._processPreset(flattenObject(json));
                   }
                 },
               },

@@ -64,7 +64,7 @@ function _constructControls(nav, data, tabSelectors, name, pinned, customControl
       let t = getType(v);
       let control;
       if (t === 'Object') {
-        if (!isEmpty(v)) {
+        if (_hasNonNullKeys(v)) {
           nav.items.push({ dataTab: name2, label: _genLabel(k) });
           const newNav = { dataGroup: name2, items: [], tabs: [] };
           nav.tabs.push({ dataTab: name2, nav: newNav });
@@ -99,6 +99,16 @@ function _constructControls(nav, data, tabSelectors, name, pinned, customControl
       nav.groups = groups;
     }
   }
+}
+
+function _hasNonNullKeys(obj) {
+  if (isEmpty(obj)) return false;
+  for (const [k, v] of Object.entries(obj)) {
+    if (getType(v) === 'Object') {
+      if (_hasNonNullKeys(v)) return true;
+    } else if (v != null) return true;
+  }
+  return false;
 }
 
 function _genLabel(key) {
