@@ -8,7 +8,7 @@ import {
   SUPPORTED_COLLECTIONS,
 } from '../scripts/utils.js';
 import { getClipboardData, pasteDataUpdate, WithMassConfig } from './forms.js';
-import { MassEditGenericForm } from './genericForm.js';
+import { MassEditGenericForm } from './generic/genericForm.js';
 
 export const LAYER_MAPPINGS = {
   Token: 'tokens',

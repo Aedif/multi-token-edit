@@ -1,5 +1,5 @@
 import { Brush } from '../scripts/brush.js';
-import { injectVisibility } from '../scripts/fieldInjector.js';
+import { injectFlagTab, injectVisibility } from '../scripts/fieldInjector.js';
 import { IS_PRIVATE, showRandomizeDialog } from '../scripts/randomizer/randomizerForm.js';
 import { applyRandomization, selectRandomizerFields } from '../scripts/randomizer/randomizerUtils.js';
 import { applyDDTint, applyTMFXPreset, getDDTint } from '../scripts/tmfx.js';
@@ -13,7 +13,6 @@ import {
   mergeObjectPreserveDot,
   panToFitPlaceables,
   selectAddSubtractFields,
-  SUPPORT_SHEET_CONFIGS,
   SUPPORTED_COLLECTIONS,
   SUPPORTED_HISTORY_DOCS,
   SUPPORTED_PLACEABLES,
@@ -45,6 +44,7 @@ export const WithMassEditForm = (cls) => {
     async activateListeners(html) {
       await super.activateListeners(html);
       injectVisibility(this);
+      await injectFlagTab(this);
 
       if (SUPPORTED_PLACEABLES.includes(this.documentName) || SUPPORTED_COLLECTIONS.includes(this.documentName))
         this._injectGlobalDeleteButton(html);

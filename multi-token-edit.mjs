@@ -16,7 +16,7 @@ import {
   performMassSearch,
   performMassUpdate,
 } from './applications/forms.js';
-import { MassEditGenericForm } from './applications/genericForm.js';
+import { MassEditGenericForm } from './applications/generic/genericForm.js';
 import {
   activeEffectPresetSelect,
   applyAddSubtract,
