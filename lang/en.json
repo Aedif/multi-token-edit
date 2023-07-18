@@ -51,6 +51,10 @@
         "name": "Update History",
         "hint": "(REQUIRES GAME RELOAD) When enabled updates made to placeables will be stored and accessible via Mass Edit forms."
       },
+      "enableFlagsTab": {
+        "name": "Flags Tab",
+        "hint": " When enabled 'Flags' tab will be added to Mass Edit forms to allow updating and removing of document flags."
+      },
       "rangeToTextbox": {
         "name": "Allow manual input for range sliders",
         "hint": "Converts slider value labels to text boxes."

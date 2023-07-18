@@ -34,16 +34,22 @@ export function injectVisibility(app) {
 }
 
 export async function injectFlagTab(app) {
+  if (!game.settings.get('multi-token-edit', 'enableFlagsTab')) return;
   if (app.constructor.name === 'MassEditGenericForm') return;
   const doc = app.meObjects[0];
   const flags = (doc.document ?? doc).flags;
 
   if (!(flags && !isEmpty(flags))) return;
 
+  // Need to wait for other modules to perform their processing first
+  // Mainly MATT Active Tiles
+  if (getDocumentName(doc) === 'Wall') await new Promise((resolve) => setTimeout(resolve, 150));
+
   const [flagNav, flagTabs] = constructNav({ flags: flags });
   delete flagNav.items;
   app.options.tabs = (app.options.tabs ?? []).concat(flagTabs);
-  app._tabs = app._createTabHandlers();
+  if (app.tabs) app.tabs = app._createTabHandlers();
+  else app._tabs = app._createTabHandlers();
 
   if (!flagNav.tabs.length) return;
   flagNav.tabs[0].nav?.items?.forEach((item) => {
@@ -59,31 +65,38 @@ export async function injectFlagTab(app) {
 
   htmlNav = $(htmlNav);
 
-  // Remove pins and replace them with trash cans
-  htmlNav.find('.me-pinned').replaceWith(`<a class="me-delete-flag" title="DELETE"><i class="fas fa-trash"></i></a>`);
-  html.on('click', '.me-delete-flag', (event) => {
-    const delFlag = $(event.target).closest('a');
-    delFlag.toggleClass('active');
-    const toDelete = delFlag.hasClass('active');
-    const namedElements = delFlag.closest('.form-group').find('[name]');
-    namedElements.each(function () {
-      const name = this.name;
-      if (toDelete && !name.includes('-=')) {
-        let nArr = name.split('.');
-        nArr[nArr.length - 1] = '-=' + nArr[nArr.length - 1];
-        this.name = nArr.join('.');
-      } else if (!toDelete) {
-        this.name = name.replace('-=', '');
-      }
+  // Remove pins or replace them with trash cans depending on whether this is a Mass Edit or Search form
+  if (app.options.massSelect) {
+    htmlNav.find('.me-pinned').remove();
+  } else {
+    htmlNav.find('.me-pinned').replaceWith(`<a class="me-delete-flag" title="DELETE"><i class="fas fa-trash"></i></a>`);
+    html.on('click', '.me-delete-flag', (event) => {
+      const delFlag = $(event.target).closest('a');
+      delFlag.toggleClass('active');
+      const toDelete = delFlag.hasClass('active');
+      const namedElements = delFlag.closest('.form-group').find('[name]');
+      namedElements.each(function () {
+        const name = this.name;
+        if (toDelete && !name.includes('-=')) {
+          let nArr = name.split('.');
+          nArr[nArr.length - 1] = '-=' + nArr[nArr.length - 1];
+          this.name = nArr.join('.');
+        } else if (!toDelete) {
+          this.name = name.replace('-=', '');
+        }
+      });
+      namedElements.first().trigger('change');
     });
-    namedElements.first().trigger('change');
-  });
+  }
 
   // Insert Flags tab into
-  html
-    .find('.sheet-tabs')
-    .first()
-    .append('<a class="item" data-tab="flags"><i class="fa-solid fa-flag"></i> Flags</a>');
-  html.find('footer').before(htmlNav);
+  const sheetMainNav = html.find('.sheet-tabs').first();
+  if (!sheetMainNav.length) return;
+  sheetMainNav.append('<a class="item" data-tab="flags"><i class="fa-solid fa-flag"></i> Flags</a>');
+
+  if (!sheetMainNav.attr('data-group')) {
+    htmlNav.removeAttr('data-group');
+  }
+  html.find('footer').last().before(htmlNav);
   app._activateCoreListeners(html);
 }

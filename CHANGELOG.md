@@ -1,3 +1,12 @@
+# 1.44.0
+
+- `Apply JSON Data` form will now contain all currently selected fields in it
+  - Fixed an issue with nested data not being properly applied
+- New setting: `Flags Tab`
+  - When enabled flags found on the document will be included in the `Mass Edit` form under the `Flags` tab
+  - Flags can be removed by toggling the trash can icon next to them
+- `Generic Forms` will no longer display empty tabs if the object they represent contains only null fields
+
 # 1.43.8
 
 - Warning fixes

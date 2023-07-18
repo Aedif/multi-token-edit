@@ -44,7 +44,6 @@ export const WithMassEditForm = (cls) => {
     async activateListeners(html) {
       await super.activateListeners(html);
       injectVisibility(this);
-      await injectFlagTab(this);
 
       if (SUPPORTED_PLACEABLES.includes(this.documentName) || SUPPORTED_COLLECTIONS.includes(this.documentName))
         this._injectGlobalDeleteButton(html);
@@ -417,6 +416,9 @@ export const WithMassEditForm = (cls) => {
             $(this).wrap('<div class="form-group"></div>');
           });
       }
+
+      // Inject Flags tab
+      injectFlagTab(this);
     }
 
     getSelectedFields(formData) {
