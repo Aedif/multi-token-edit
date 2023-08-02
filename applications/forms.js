@@ -1030,14 +1030,16 @@ export function performMassSearch(
     // First release/de-select the currently selected placeable on the current scene
     canvas.activeLayer.controlled.map((c) => c).forEach((c) => c.release());
 
-    found.forEach((f) => {
-      let obj = f.object ?? f;
-      if (obj.control) obj.control({ releaseOthers: false });
-    });
-  }
+    setTimeout(() => {
+      found.forEach((f) => {
+        let obj = f.object ?? f;
+        if (obj.control) obj.control({ releaseOthers: false });
+      });
 
-  if (pan && found.length && game.settings.get('multi-token-edit', 'panToSearch')) {
-    panToFitPlaceables(found);
+      if (pan && found.length && game.settings.get('multi-token-edit', 'panToSearch')) {
+        panToFitPlaceables(found);
+      }
+    }, 100);
   }
   if (command === 'searchAndEdit') {
     setTimeout(() => {

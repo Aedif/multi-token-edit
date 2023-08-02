@@ -1,4 +1,8 @@
-# 1.44.0
+# 1.44.10
+
+- Fixed `Search form` not selecting placeables after the search has been completed
+
+# 1.44.9
 
 - `Apply JSON Data` form will now contain all currently selected fields in it
   - Fixed an issue with nested data not being properly applied
