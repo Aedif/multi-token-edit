@@ -98,5 +98,25 @@ export async function injectFlagTab(app) {
     htmlNav.removeAttr('data-group');
   }
   html.find('footer').last().before(htmlNav);
+
+  // For special jsonArray fields provide the ability to expand them via a dialog
+  html.find('.tva-jsonArray').on('dblclick', (event) => {
+    let content = `<textarea style="width:100%; height: 100%;">${event.target.value}</textarea>`;
+    new Dialog(
+      {
+        title: `Edit`,
+        content: content,
+        buttons: {},
+        render: (html) => {
+          html.find('textarea').on('input', (ev) => {
+            $(event.target).val(ev.target.value).trigger('input');
+          });
+          html.closest('section').find('.dialog-buttons').remove();
+        },
+      },
+      { resizable: true, height: 300 }
+    ).render(true);
+  });
+
   app._activateCoreListeners(html);
 }

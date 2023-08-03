@@ -1,3 +1,7 @@
+# 1.44.2
+
+- Fixed `array` and `jsonArray` inputs not being properly processed in `Flag` tabs
+
 # 1.44.1
 
 - Fixed `Search form` not selecting placeables after the search has been completed

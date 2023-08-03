@@ -34,8 +34,7 @@ export class MassEditGenericForm extends WMC {
     this.nav = nav;
     this.editableLabels = {};
 
-    this.pinnedFields =
-      game.settings.get('multi-token-edit', 'pinnedFields')[this.documentName] ?? {};
+    this.pinnedFields = game.settings.get('multi-token-edit', 'pinnedFields')[this.documentName] ?? {};
     this.customControls = customControls;
 
     if (options.callback) {
@@ -83,33 +82,6 @@ export class MassEditGenericForm extends WMC {
     return data;
   }
 
-  _getSubmitData() {
-    const formData = super._getSubmitData();
-    const form = $(this.form);
-    for (const [k, v] of Object.entries(formData)) {
-      if (getType(v) === 'string') {
-        const input = form.find(`[name="${k}"]`);
-        if (input.hasClass('array')) {
-          if (v.trim()) {
-            formData[k] = v
-              .trim()
-              .split(',')
-              .map((s) => s.trim());
-          } else {
-            formData[k] = [];
-          }
-        } else if (input.hasClass('jsonArray')) {
-          try {
-            formData[k] = JSON.parse(formData[k]);
-          } catch (e) {
-            formData[k] === [];
-          }
-        }
-      }
-    }
-    return formData;
-  }
-
   /**
    * @param {JQuery} html
    */
@@ -140,10 +112,7 @@ export class MassEditGenericForm extends WMC {
           col = Number(Color.fromString(event.target.value));
         } catch (e) {}
 
-        $(event.target)
-          .siblings(`[name="${event.target.dataset.editNumber}"]`)
-          .val(col)
-          .trigger('input');
+        $(event.target).siblings(`[name="${event.target.dataset.editNumber}"]`).val(col).trigger('input');
       }
     });
 
@@ -165,24 +134,6 @@ export class MassEditGenericForm extends WMC {
           defineSelectControl(name, input.val(), this.customControls, this.documentName);
         }
       }
-    });
-
-    html.find('.jsonArray').dblclick((event) => {
-      let content = `<textarea style="width:100%; height: 100%;">${event.target.value}</textarea>`;
-      new Dialog(
-        {
-          title: `Edit`,
-          content: content,
-          buttons: {},
-          render: (html) => {
-            html.find('textarea').on('input', (ev) => {
-              $(event.target).val(ev.target.value).trigger('input');
-            });
-            html.closest('section').find('.dialog-buttons').remove();
-          },
-        },
-        { resizable: true, height: 300 }
-      ).render(true);
     });
 
     if (this.options.inputChangeCallback) {
@@ -221,13 +172,7 @@ export class MassEditGenericForm extends WMC {
   }
 }
 
-function defineRangeControl(
-  name,
-  val,
-  customControls,
-  docName,
-  { min = null, max = null, step = null } = {}
-) {
+function defineRangeControl(name, val, customControls, docName, { min = null, max = null, step = null } = {}) {
   let content = `
 <div class="form-group slim">
   <label>Range</label>

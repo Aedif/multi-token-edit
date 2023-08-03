@@ -27,7 +27,7 @@
         {{else if boolean}}
         <input type="checkbox" name="{{name}}" {{checked value}} {{disabled disabled}}/>
         {{else if array}}
-        <input class="array" type="text" name="{{name}}" value="{{value}}" {{disabled disabled}}/>
+        <input class="tva-array" type="text" name="{{name}}" value="{{value}}" {{disabled disabled}}/>
         {{else if range}}
         <input type="range" name="{{name}}" value="{{value}}" min="{{min}}" max="{{max}}" step="{{step}}">
         <span class="range-value">{{value}}</span>
@@ -38,7 +38,7 @@
             {{/each}}
         </select>
         {{else if jsonArray}}
-        <textarea class="jsonArray" name="{{name}}">{{value}}</textarea>
+        <textarea class="tva-jsonArray" name="{{name}}">{{value}}</textarea>
         {{/if}}
     </div>
 </div>

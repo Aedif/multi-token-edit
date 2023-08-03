@@ -474,6 +474,26 @@ export const WithMassEditForm = (cls) => {
                   addSubtractFields[name].value = formData[name];
                 }
               }
+
+              if (getType(selectedFields[name]) === 'string') {
+                const input = $(this);
+                if (input.hasClass('tva-array')) {
+                  if (v.trim()) {
+                    selectedFields[name] = selectedFields[name]
+                      .trim()
+                      .split(',')
+                      .map((s) => s.trim());
+                  } else {
+                    selectedFields[name] = [];
+                  }
+                } else if (input.hasClass('tva-jsonArray')) {
+                  try {
+                    selectedFields[name] = JSON.parse(selectedFields[name]);
+                  } catch (e) {
+                    selectedFields[name] = [];
+                  }
+                }
+              }
             });
         }
       });
