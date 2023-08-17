@@ -100,14 +100,15 @@ Hooks.once('init', () => {
     default: {},
   });
 
-  game.settings.register('multi-token-edit', 'enableFlagsTab', {
-    name: game.i18n.localize('multi-token-edit.settings.enableFlagsTab.name'),
-    hint: game.i18n.localize('multi-token-edit.settings.enableFlagsTab.hint'),
-    scope: 'world',
-    config: true,
-    type: Boolean,
-    default: true,
-  });
+  // Disable until duplicate flag value bug is fixed
+  // game.settings.register('multi-token-edit', 'enableFlagsTab', {
+  //   name: game.i18n.localize('multi-token-edit.settings.enableFlagsTab.name'),
+  //   hint: game.i18n.localize('multi-token-edit.settings.enableFlagsTab.hint'),
+  //   scope: 'world',
+  //   config: true,
+  //   type: Boolean,
+  //   default: true,
+  // });
 
   game.settings.register('multi-token-edit', 'enableHistory', {
     name: game.i18n.localize('multi-token-edit.settings.enableHistory.name'),
@@ -270,7 +271,9 @@ Hooks.once('init', () => {
             if (!target) return;
             const documentName = getDocumentName(target);
             if (documentName === docName) {
-              const preset = game.settings.get('multi-token-edit', 'presets')?.[docName]?.[presetName];
+              const preset = game.settings.get('multi-token-edit', 'presets')?.[docName]?.[
+                presetName
+              ];
               if (preset) pasteDataUpdate(target ? [target] : selected, preset, true);
             }
           },
@@ -446,7 +449,9 @@ function saveHistory(obj, update, historyItem, _id, docName) {
 Hooks.on('renderActiveEffectConfig', (app) => {
   const el = $(app.form).find('.effects-header .key');
   if (el.length) {
-    const me = $('<i title="Apply \'Mass Edit\' preset" style="font-size:smaller;color:brown;"> <a>[ME]</a></i>');
+    const me = $(
+      '<i title="Apply \'Mass Edit\' preset" style="font-size:smaller;color:brown;"> <a>[ME]</a></i>'
+    );
     me.on('click', () => activeEffectPresetSelect(app));
     el.append(me);
   }

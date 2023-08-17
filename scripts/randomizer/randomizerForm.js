@@ -108,7 +108,14 @@ export default class RandomizerForm extends FormApplication {
         data.min = 0;
         data.max = 360;
       } else if (
-        ['dimSight', 'brightSight', 'light.dim', 'light.bright', 'config.dim', 'config.bright'].includes(this.fieldName)
+        [
+          'dimSight',
+          'brightSight',
+          'light.dim',
+          'light.bright',
+          'config.dim',
+          'config.bright',
+        ].includes(this.fieldName)
       ) {
         data.min = 0;
       }
@@ -176,7 +183,8 @@ export default class RandomizerForm extends FormApplication {
     if (this.configuration.selectForm) {
       this.configuration.options.forEach((opt) => {
         opt.selected =
-          !this.configuration.selection || this.configuration.selection.find((sel) => sel == opt.value) != null;
+          !this.configuration.selection ||
+          this.configuration.selection.find((sel) => sel == opt.value) != null;
       });
     }
     return data;
@@ -202,7 +210,11 @@ export default class RandomizerForm extends FormApplication {
               files = fp.result.files;
             }
             const images_ta = $(html).find('.images');
-            images_ta.val(images_ta.val().trim() + '\n' + files.filter((f) => isImage(f) || isVideo(f)).join('\n'));
+            images_ta.val(
+              images_ta.val().trim() +
+                '\n' +
+                files.filter((f) => isImage(f) || isVideo(f)).join('\n')
+            );
           },
         }).render(true);
       });
@@ -217,7 +229,11 @@ export default class RandomizerForm extends FormApplication {
           callback: (results) => {
             if (!Array.isArray(results)) results = [results];
             const images_ta = $(html).find('.images');
-            images_ta.val(images_ta.val().trim() + '\n' + results.filter((f) => isImage(f) || isVideo(f)).join('\n'));
+            images_ta.val(
+              images_ta.val().trim() +
+                '\n' +
+                results.filter((f) => isImage(f) || isVideo(f)).join('\n')
+            );
           },
         });
       }
@@ -227,7 +243,12 @@ export default class RandomizerForm extends FormApplication {
       .click(() => {
         const generator = $(html).find('.generator').val();
 
-        for (const group of [NAME_GENERATOR, SPECIES_GENERATORS, GROUP_GENERATORS, TAVERN_GENERATOR]) {
+        for (const group of [
+          NAME_GENERATOR,
+          SPECIES_GENERATORS,
+          GROUP_GENERATORS,
+          TAVERN_GENERATOR,
+        ]) {
           if (generator in group) {
             const names = [];
             for (let i = 0; i < 20; i++) {
@@ -351,7 +372,9 @@ export default class RandomizerForm extends FormApplication {
         this.configApp.randomizeFields[fieldName] = {
           type: 'select',
           method: 'random',
-          selection: formData[fieldName].map((v) => (this.configuration.dtype === 'Number' ? Number(v) : v)),
+          selection: formData[fieldName].map((v) =>
+            this.configuration.dtype === 'Number' ? Number(v) : v
+          ),
         };
       }
     } else if (this.configuration.numberForm || this.configuration.rangeForm) {
@@ -419,7 +442,12 @@ export default class RandomizerForm extends FormApplication {
         };
       }
     } else if (this.configuration.coordinateForm) {
-      if (formData.minX != null && formData.maxX != null && formData.minY != null && formData.maxY != null) {
+      if (
+        formData.minX != null &&
+        formData.maxX != null &&
+        formData.minY != null &&
+        formData.maxY != null
+      ) {
         const minX = Math.min(formData.minX, formData.maxX);
         const maxX = Math.max(formData.minX, formData.maxX);
         const minY = Math.min(formData.minY, formData.maxY);
@@ -555,11 +583,15 @@ function processCoordinate(inputX, inputY, configApp, label) {
 }
 
 function _showRandomTextDialog(input, configApp, label) {
-  new RandomizerForm(label, input, configApp, { textForm: true, current: input.val() }).render(true);
+  new RandomizerForm(label, input, configApp, { textForm: true, current: input.val() }).render(
+    true
+  );
 }
 
 function _showRandomImageDialog(input, configApp, label) {
-  new RandomizerForm(label, input, configApp, { imageForm: true, current: input.val() }).render(true);
+  new RandomizerForm(label, input, configApp, { imageForm: true, current: input.val() }).render(
+    true
+  );
 }
 
 function _showRandomColorDialog(input, configApp, label) {

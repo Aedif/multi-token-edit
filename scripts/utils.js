@@ -17,7 +17,14 @@ export const SUPPORT_SHEET_CONFIGS = [...SUPPORTED_PLACEABLES, 'Actor', 'Playlis
 
 export const SUPPORTED_HISTORY_DOCS = [...SUPPORTED_PLACEABLES, 'Scene', 'Actor', 'PlaylistSound'];
 
-export const SUPPORTED_COLLECTIONS = ['Item', 'Cards', 'RollTable', 'Actor', 'JournalEntry', 'Scene'];
+export const SUPPORTED_COLLECTIONS = [
+  'Item',
+  'Cards',
+  'RollTable',
+  'Actor',
+  'JournalEntry',
+  'Scene',
+];
 
 export function interpolateColor(u, c1, c2) {
   return c1.map((a, i) => Math.floor((1 - u) * a + u * c2[i]));
@@ -70,7 +77,10 @@ export function flagCompare(data, flag, flagVal) {
   if (data[flag] == flagVal) return true;
 
   const falseyFlagVal =
-    flagVal == null || flagVal === false || flagVal === '' || (getType(flagVal) === 'Object' && isEmpty(flagVal));
+    flagVal == null ||
+    flagVal === false ||
+    flagVal === '' ||
+    (getType(flagVal) === 'Object' && isEmpty(flagVal));
 
   const falseyDataVal =
     data[flag] == null ||
@@ -141,7 +151,9 @@ export function applyAddSubtract(updates, objects, docName, addSubtractFields) {
 
         // Special processing for Tagger module fields
         if (field === 'flags.tagger.tags') {
-          const currentTags = Array.isArray(val) ? val : (val ?? '').split(',').map((s) => s.trim());
+          const currentTags = Array.isArray(val)
+            ? val
+            : (val ?? '').split(',').map((s) => s.trim());
           const modTags = (update[field] ?? '').split(',').map((s) => s.trim());
           for (const tag of modTags) {
             if (ctrl.method === 'add') {
@@ -231,11 +243,16 @@ export function panToFitPlaceables(placeables) {
       const topLeft = { x: 999999999, y: 999999999 };
       const bottomRight = { x: -999999999, y: -999999999 };
 
-      for (const p of placeables) {
-        if (p.x < topLeft.x) topLeft.x = p.x;
-        if (p.y < topLeft.y) topLeft.y = p.y;
-        if (p.x + p.width > bottomRight.x) bottomRight.x = p.x + p.width;
-        if (p.y + p.height > bottomRight.y) bottomRight.y = p.y + p.height;
+      for (let p of placeables) {
+        let tlc = p;
+        if (p instanceof Wall) {
+          tlc = { x: p.center.x - p.width / 2, y: p.center.y - p.height / 2 };
+        }
+
+        if (tlc.x < topLeft.x) topLeft.x = tlc.x;
+        if (tlc.y < topLeft.y) topLeft.y = tlc.y;
+        if (tlc.x + p.width > bottomRight.x) bottomRight.x = tlc.x + p.width;
+        if (tlc.y + p.height > bottomRight.y) bottomRight.y = tlc.y + p.height;
       }
 
       // Checking if screen at current scale fits placeables along x and y axis
@@ -361,7 +378,9 @@ export function activeEffectPresetSelect(aeConfig) {
 
         preset.changes?.forEach((change) => {
           if (change.key) {
-            nChanges.push(mergeObject({ mode: CONST.ACTIVE_EFFECT_MODES.OVERRIDE, priority: 20 }, change));
+            nChanges.push(
+              mergeObject({ mode: CONST.ACTIVE_EFFECT_MODES.OVERRIDE, priority: 20 }, change)
+            );
           }
         });
 
@@ -398,12 +417,18 @@ export function activeEffectPresetSelect(aeConfig) {
 export function spawnPlaceable(docName, preset, { tokenName = 'Token' } = {}) {
   // Determine spawn position for the new placeable
   // v11 : canvas.mousePosition
-  let pos = canvas.mousePosition ?? canvas.app.renderer.plugins.interaction.mouse.getLocalPosition(canvas.stage);
+  let pos =
+    canvas.mousePosition ??
+    canvas.app.renderer.plugins.interaction.mouse.getLocalPosition(canvas.stage);
   if (docName === 'Token' || docName === 'Tile') {
     pos.x -= canvas.dimensions.size / 2;
     pos.y -= canvas.dimensions.size / 2;
   }
-  pos = canvas.grid.getSnappedPosition(pos.x, pos.y, canvas.getLayerByEmbeddedName(docName).gridPrecision);
+  pos = canvas.grid.getSnappedPosition(
+    pos.x,
+    pos.y,
+    canvas.getLayerByEmbeddedName(docName).gridPrecision
+  );
 
   const randomizer = preset['mass-edit-randomize'];
   if (randomizer) {

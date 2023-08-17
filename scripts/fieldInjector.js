@@ -34,12 +34,23 @@ export function injectVisibility(app) {
 }
 
 export async function injectFlagTab(app) {
+  // Disable for now, until duplicate value fix is found
+  return;
   if (!game.settings.get('multi-token-edit', 'enableFlagsTab')) return;
   if (app.constructor.name === 'MassEditGenericForm') return;
   const doc = app.meObjects[0];
-  const flags = (doc.document ?? doc).flags;
+  let flags = flattenObject((doc.document ?? doc).flags ?? {});
 
-  if (!(flags && !isEmpty(flags))) return;
+  const html = $(app.form);
+  for (const [k, v] of Object.entries(flags)) {
+    if (html.find(`[name="flags.${k}"]`).length) {
+      delete flags[k];
+    }
+  }
+
+  if (isEmpty(flags)) return;
+
+  flags = expandObject(flags);
 
   // Need to wait for other modules to perform their processing first
   // Mainly MATT Active Tiles
@@ -57,11 +68,12 @@ export async function injectFlagTab(app) {
     if (mod) item.label = mod.title;
   });
 
-  const html = $(app.form);
-
   await getTemplate('modules/multi-token-edit/templates/generic/form-group.html');
   await getTemplate('modules/multi-token-edit/templates/generic/navHeaderPartial.html');
-  let htmlNav = await renderTemplate('modules/multi-token-edit/templates/generic/navHeaderPartial.html', flagNav);
+  let htmlNav = await renderTemplate(
+    'modules/multi-token-edit/templates/generic/navHeaderPartial.html',
+    flagNav
+  );
 
   htmlNav = $(htmlNav);
 
@@ -69,7 +81,9 @@ export async function injectFlagTab(app) {
   if (app.options.massSelect) {
     htmlNav.find('.me-pinned').remove();
   } else {
-    htmlNav.find('.me-pinned').replaceWith(`<a class="me-delete-flag" title="DELETE"><i class="fas fa-trash"></i></a>`);
+    htmlNav
+      .find('.me-pinned')
+      .replaceWith(`<a class="me-delete-flag" title="DELETE"><i class="fas fa-trash"></i></a>`);
     html.on('click', '.me-delete-flag', (event) => {
       const delFlag = $(event.target).closest('a');
       delFlag.toggleClass('active');
@@ -92,7 +106,9 @@ export async function injectFlagTab(app) {
   // Insert Flags tab into
   const sheetMainNav = html.find('.sheet-tabs').first();
   if (!sheetMainNav.length) return;
-  sheetMainNav.append('<a class="item" data-tab="flags"><i class="fa-solid fa-flag"></i> Flags</a>');
+  sheetMainNav.append(
+    '<a class="item" data-tab="flags"><i class="fa-solid fa-flag"></i> Flags</a>'
+  );
 
   if (!sheetMainNav.attr('data-group')) {
     htmlNav.removeAttr('data-group');

@@ -1,3 +1,8 @@
+# 1.44.3
+
+- Flags tab has been removed until the duplicate value issue is resolved
+- Fixed wall searches panning to the canvas corner instead of the found walls
+
 # 1.44.2
 
 - Fixed `array` and `jsonArray` inputs not being properly processed in `Flag` tabs
