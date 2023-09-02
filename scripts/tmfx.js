@@ -8,7 +8,7 @@ export async function applyDDTint(placeable, color) {
       {
         filterType: 'ddTint',
         filterId: 'DDTint',
-        tint: _hex2string(color),
+        tint: PIXI.utils.hex2rgb(color),
       },
     ]);
   }

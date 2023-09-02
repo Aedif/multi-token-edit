@@ -1,3 +1,8 @@
+# 1.44.4
+
+- Fixed `DungeonDraft (TMFX)` field not properly applying the filter
+- `Limits` module support
+
 # 1.44.3
 
 - Flags tab has been removed until the duplicate value issue is resolved

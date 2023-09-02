@@ -469,6 +469,7 @@ export const WithMassEditForm = (cls) => {
       const selectedFields = {};
       const form = $(this.form);
       const addSubtractFields = this.addSubtractFields;
+      const app = this;
 
       form.find('.form-group').each(function (_) {
         const me_checkbox = $(this).find('.mass-edit-checkbox > input');
@@ -477,6 +478,16 @@ export const WithMassEditForm = (cls) => {
             .find('[name]')
             .each(function (_) {
               const name = $(this).attr('name');
+
+              // Module specific logic
+              if (name === 'flags.limits') {
+                const limits = flattenObject(app.object.toObject().flags['limits'] ?? {});
+                for (const [k, v] of Object.entries(limits)) {
+                  selectedFields['flags.limits.' + k] = v;
+                }
+              }
+              // == End of Module specific logic
+
               // Some modules will process their flags to remove them using -= notation
               // Need to account for this when selecting fields
               if (formData[name] === undefined && name.startsWith('flags.')) {
@@ -971,6 +982,12 @@ export const WithMassConfig = (docName = 'NONE') => {
         );
       }
 
+      // Limits
+      if ('flags.limits.light.enabled' in preset) {
+        timeoutRequired = true;
+        await this.object.update({ flags: { limits: expandObject(preset).flags.limits } });
+      }
+
       if (this.documentName === 'Token') {
         timeoutRequired = TokenDataAdapter.presetModify(this, preset);
       }
@@ -1030,7 +1047,7 @@ export const WithMassConfig = (docName = 'NONE') => {
 // ===== UTILS ========
 // ====================
 
-export function pasteDataUpdate(docs, preset, suppressNotif = true) {
+export function pasteDataUpdate(docs, preset, suppressNotif = false) {
   if (!docs || !docs.length) return false;
 
   let docName = docs[0].document ? docs[0].document.documentName : docs[0].documentName;
