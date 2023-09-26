@@ -72,6 +72,15 @@ Numerical fields can be added and subtracted instead of overriding the current v
 
 ![addSubtract](https://user-images.githubusercontent.com/7693704/191852899-a9447d21-76b3-44c5-b586-dcbe68c7a692.gif)
 
+Text fields will instead append or remove the entereed text from all selected placeables. By default appending will be done to the end of the string, but this can be changed by adding `>>` to the start of the field.
+
+Appended to the end:
+![image](https://github.com/Aedif/multi-token-edit/assets/7693704/b522f6d7-7aab-4612-a0ab-eed0fe7873b0)
+
+Appended to the start:
+![image](https://github.com/Aedif/multi-token-edit/assets/7693704/dc205317-4dff-48ae-8713-1d7b62cb2909)
+
+
 ## Brush Tool
 
 This tool can be activated by clicking the brush icon in the header of Mass Edit forms
