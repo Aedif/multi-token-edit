@@ -58,7 +58,9 @@ async function promptParamChoice(params) {
       let label = params[i].filterType ?? params[i].filterId;
       if (label in buttons) label = label + ' ' + i;
       buttons[label] = {
-        label: params[i].filterId + ' {' + params[i].filterType + '}',
+        label: `<span style="background-color: ${
+          params[i].enabled ? 'none' : 'rgba(255, 80, 80, 0.5)'
+        };">${params[i].filterId} {${params[i].filterType}}</span>`,
         callback: () => {
           resolve(i);
         },
@@ -72,13 +74,26 @@ async function promptParamChoice(params) {
         '<button class="savePreset">Save as Preset</button><p></p><h2 style="text-align: center;">Edit Filter</h2>',
       buttons,
       render: (html) => {
-        html.find('.dialog-button').attr('title', 'Right-click to remove filter.');
-        html.find('.dialog-button').contextmenu((event) => {
+        let dialogButtons = html.find('.dialog-button');
+        dialogButtons.attr(
+          'title',
+          'Right-click to remove filter.\nMiddle-click to disable filter.'
+        );
+        dialogButtons.contextmenu((event) => {
           dialog.close();
-          const index = $(event.target).index();
+          const index = dialogButtons.index($(event.target).closest('.dialog-button'));
           TokenMagic.deleteFiltersOnSelected(params[index].filterId);
           params.splice(index, 1);
           configureParam();
+        });
+        dialogButtons.on('mouseup ', async (event) => {
+          if (event.which === 2) {
+            dialog.close();
+            const index = dialogButtons.index($(event.target).closest('.dialog-button'));
+            params[index].enabled = !params[index].enabled;
+            await TokenMagic.addUpdateFiltersOnSelected(params);
+            configureParam();
+          }
         });
         html.find('.savePreset').click((event) => {
           savePreset();

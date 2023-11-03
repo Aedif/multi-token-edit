@@ -2,7 +2,8 @@ import { pasteDataUpdate } from '../applications/forms.js';
 
 export class Brush {
   static app;
-  static fields;
+  // @type {Preset}
+  static preset;
   static brushOverlay;
   static updatedPlaceables = [];
   static documentName;
@@ -19,7 +20,7 @@ export class Brush {
 
   static _performBrushDocumentUpdate(pos, placeable) {
     if (pos) this._animateCrossTranslate(pos.x, pos.y);
-    pasteDataUpdate([placeable], this.fields, true);
+    pasteDataUpdate([placeable], this.preset, true);
     this.updatedPlaceables.push(placeable);
   }
 
@@ -54,7 +55,11 @@ export class Brush {
       const pos = event.data.getLocalPosition(this.brushOverlay);
       const layer = canvas.getLayerByEmbeddedName(this.documentName);
       for (const p of layer.placeables) {
-        if (p.visible && this.hitTest(pos, p) && !this.updatedPlaceables.find((u) => u.id === p.id)) {
+        if (
+          p.visible &&
+          this.hitTest(pos, p) &&
+          !this.updatedPlaceables.find((u) => u.id === p.id)
+        ) {
           this._performBrushDocumentUpdate(pos, p);
         }
       }
@@ -72,24 +77,26 @@ export class Brush {
     }
   }
 
-  static refreshFields() {
+  static refreshPreset() {
     if (this.active && this.app) {
-      const selectedFields = this.app.getSelectedFields();
-      if (!isEmpty(selectedFields)) {
-        if (!isEmpty(this.app.randomizeFields)) {
-          selectedFields['mass-edit-randomize'] = deepClone(this.app.randomizeFields);
-        }
-        if (!isEmpty(this.app.addSubtractFields)) {
-          selectedFields['mass-edit-addSubtract'] = deepClone(this.app.addSubtractFields);
-        }
-      }
-      this.fields = selectedFields;
+      this.preset = new Preset({
+        documentName: this.documentName,
+        data: this.app.getSelectedFields(),
+        randomize: this.app.randomizeFields,
+        addSubtract: this.app.addSubtractFields,
+      });
     }
   }
 
-  static activate({ app = null, fields = null, documentName = '' } = {}) {
+  /**
+   * @param {Object} options
+   * @param {MassEditForm} options.app
+   * @param {Preset} options.preset
+   * @returns
+   */
+  static activate({ app = null, preset = null } = {}) {
     if (this.deactivate() || !canvas.ready) return false;
-    if (!app && (!fields || !documentName)) return false;
+    if (!app && !preset) return false;
 
     if (this.brushOverlay) {
       this.brushOverlay.destroy(true);
@@ -97,21 +104,22 @@ export class Brush {
 
     // Setup fields to be used for updates
     this.app = app;
-    this.fields = fields;
+    this.preset = preset;
     if (this.app) {
       this.documentName = this.app.documentName;
     } else {
-      this.documentName = documentName;
+      this.documentName = this.preset.documentName;
     }
     this.updatedPlaceables = [];
 
-    const interaction = canvas.app.renderer.plugins.interaction;
+    const interaction = canvas.app.renderer.events;
     if (!interaction.cursorStyles['brush']) {
-      interaction.cursorStyles['brush'] = "url('modules/multi-token-edit/images/brush_icon.png'), auto";
+      interaction.cursorStyles['brush'] =
+        "url('modules/multi-token-edit/images/brush_icon.png'), auto";
     }
 
     this.active = true;
-    this.refreshFields();
+    this.refreshPreset();
 
     if (game.Levels3DPreview?._active) {
       return this._activate3d();
@@ -147,14 +155,14 @@ export class Brush {
       this._onBrushMove(event);
     });
     this.brushOverlay.on('mouseup', (event) => {
-      if (event.data.originalEvent.which !== 2) {
+      if (event.nativeEvent.which !== 2) {
         this._onBrushMove(event);
       }
       this.brushOverlay.isMouseDown = false;
       this.updatedPlaceables = [];
     });
     this.brushOverlay.on('click', (event) => {
-      if (event.data.originalEvent.which == 2) {
+      if (event.nativeEvent.which == 2) {
         this.deactivate();
       }
     });
@@ -173,15 +181,16 @@ export class Brush {
       const mPos = game.Levels3DPreview.interactionManager.canvas3dMousePosition;
       const cPos = game.Levels3DPreview.interactionManager.camera.position;
 
-      const intersects = game.Levels3DPreview.interactionManager.computeSightCollisionFrom3DPositions(
-        cPos,
-        mPos,
-        'collision',
-        false,
-        false,
-        false,
-        true
-      );
+      const intersects =
+        game.Levels3DPreview.interactionManager.computeSightCollisionFrom3DPositions(
+          cPos,
+          mPos,
+          'collision',
+          false,
+          false,
+          false,
+          true
+        );
 
       if (intersects[0]) {
         const intersect = intersects[0];
@@ -192,16 +201,32 @@ export class Brush {
   }
 
   static deactivate3DListeners() {
-    game.Levels3DPreview.renderer.domElement.removeEventListener('click', this._boundOn3DBrushClick, false);
-    game.Levels3DPreview.renderer.domElement.removeEventListener('mousemove', this._boundOn3dMouseMove, false);
+    game.Levels3DPreview.renderer.domElement.removeEventListener(
+      'click',
+      this._boundOn3DBrushClick,
+      false
+    );
+    game.Levels3DPreview.renderer.domElement.removeEventListener(
+      'mousemove',
+      this._boundOn3dMouseMove,
+      false
+    );
   }
 
   static _activate3DListeners() {
     // Remove listeners if they are already set
     this.deactivate3DListeners();
 
-    game.Levels3DPreview.renderer.domElement.addEventListener('click', this._boundOn3DBrushClick, false);
-    game.Levels3DPreview.renderer.domElement.addEventListener('mousemove', this._boundOn3dMouseMove, false);
+    game.Levels3DPreview.renderer.domElement.addEventListener(
+      'click',
+      this._boundOn3DBrushClick,
+      false
+    );
+    game.Levels3DPreview.renderer.domElement.addEventListener(
+      'mousemove',
+      this._boundOn3dMouseMove,
+      false
+    );
   }
 
   static _activate3d() {
@@ -244,7 +269,7 @@ export class Brush {
       this.active = false;
       this.updatedPlaceables = [];
       this.app = null;
-      this.fields = null;
+      this.preset = null;
       return true;
     }
   }

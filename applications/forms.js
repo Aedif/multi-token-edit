@@ -26,7 +26,7 @@ import { GeneralDataAdapter, TokenDataAdapter } from './dataAdapters.js';
 import MassEditHistory from './history.js';
 import MacroForm from './macro.js';
 import { SCENE_DOC_MAPPINGS, showMassActorForm, showMassEdit } from './multiConfig.js';
-import MassEditPresets from './presets.js';
+import { MassEditPresets, Preset } from './presets.js';
 
 // ==================================
 // ========= Applications ===========
@@ -192,7 +192,7 @@ export const WithMassEditForm = (cls) => {
           onInputChange(event);
 
           // Make brush aware of add/subtract changes
-          Brush.refreshFields();
+          Brush.refreshPreset();
         }
       );
 
@@ -731,14 +731,15 @@ export const WithMassConfig = (docName = 'NONE') => {
       }
 
       if (isEmpty(selectedFields)) return false;
-      if (!isEmpty(this.randomizeFields)) {
-        selectedFields['mass-edit-randomize'] = deepClone(this.randomizeFields);
-      }
-      if (!isEmpty(this.addSubtractFields)) {
-        selectedFields['mass-edit-addSubtract'] = deepClone(this.addSubtractFields);
-      }
 
-      copyToClipboard(this.documentName, selectedFields, command, this.isPrototype);
+      const preset = new Preset({
+        documentName: this.documentName,
+        data: selectedFields,
+        randomize: this.randomizeFields,
+        addSubtract: this.addSubtractFields,
+      });
+
+      copyToClipboard(preset, command, this.isPrototype);
       return true;
     }
 
@@ -845,7 +846,11 @@ export const WithMassConfig = (docName = 'NONE') => {
                   } catch (e) {}
 
                   if (!isEmpty(json)) {
-                    this._processPreset(flattenObject(json));
+                    const preset = new Preset({
+                      documentName: this.docName,
+                      data: flattenObject(json),
+                    });
+                    this._processPreset(preset);
                   }
                 },
               },
@@ -896,11 +901,11 @@ export const WithMassConfig = (docName = 'NONE') => {
       await super.activateListeners(html);
       // We want to update fields used by brush control every time a field changes on the form
       html.on('input', 'textarea, input[type="text"], input[type="number"]', () =>
-        Brush.refreshFields()
+        Brush.refreshPreset()
       );
-      html.on('change', 'textarea, input, select', () => Brush.refreshFields());
-      html.on('paste', 'input', () => Brush.refreshFields());
-      html.on('click', 'button', () => Brush.refreshFields());
+      html.on('change', 'textarea, input, select', () => Brush.refreshPreset());
+      html.on('paste', 'input', () => Brush.refreshPreset());
+      html.on('click', 'button', () => Brush.refreshPreset());
     }
 
     async close(options = {}) {
@@ -953,43 +958,45 @@ export const WithMassConfig = (docName = 'NONE') => {
       // =====================
       let timeoutRequired = false;
 
+      const data = preset.data;
+
       // Monk's Active Tiles
-      if ('flags.monks-active-tiles.actions' in preset) {
+      if ('flags.monks-active-tiles.actions' in data) {
         timeoutRequired = true;
         await this.object.setFlag(
           'monks-active-tiles',
           'actions',
-          preset['flags.monks-active-tiles.actions']
+          data['flags.monks-active-tiles.actions']
         );
       }
 
-      if ('flags.monks-active-tiles.files' in preset) {
+      if ('flags.monks-active-tiles.files' in data) {
         timeoutRequired = true;
         await this.object.setFlag(
           'monks-active-tiles',
           'files',
-          preset['flags.monks-active-tiles.files']
+          data['flags.monks-active-tiles.files']
         );
       }
 
       // 3D Canvas
-      if ('flags.levels-3d-preview.shaders' in preset) {
+      if ('flags.levels-3d-preview.shaders' in data) {
         timeoutRequired = true;
         await this.object.setFlag(
           'levels-3d-preview',
           'shaders',
-          preset['flags.levels-3d-preview.shaders']
+          data['flags.levels-3d-preview.shaders']
         );
       }
 
       // Limits
-      if ('flags.limits.light.enabled' in preset) {
+      if ('flags.limits.light.enabled' in data) {
         timeoutRequired = true;
-        await this.object.update({ flags: { limits: expandObject(preset).flags.limits } });
+        await this.object.update({ flags: { limits: expandObject(data).flags.limits } });
       }
 
       if (this.documentName === 'Token') {
-        timeoutRequired = TokenDataAdapter.presetModify(this, preset);
+        timeoutRequired = TokenDataAdapter.modifyPresetData(this, data);
       }
 
       if (timeoutRequired) {
@@ -1013,23 +1020,23 @@ export const WithMassConfig = (docName = 'NONE') => {
         return obj1;
       };
 
-      this.randomizeFields = customMerge(this.randomizeFields, preset['mass-edit-randomize']);
-      this.addSubtractFields = customMerge(this.addSubtractFields, preset['mass-edit-addSubtract']);
+      this.randomizeFields = customMerge(this.randomizeFields, preset.randomize);
+      this.addSubtractFields = customMerge(this.addSubtractFields, preset.addSubtract);
       selectRandomizerFields(form, this.randomizeFields);
       selectAddSubtractFields(form, this.addSubtractFields);
 
-      for (const key of Object.keys(preset)) {
+      for (const key of Object.keys(preset.data)) {
         const el = form.find(`[name="${key}"]`);
         if (el.is(':checkbox')) {
-          el.prop('checked', preset[key]);
+          el.prop('checked', preset.data[key]);
         } else {
-          el.val(preset[key]);
+          el.val(preset.data[key]);
         }
         el.trigger('change');
       }
 
       // Make brush aware of randomized field changes
-      Brush.refreshFields();
+      Brush.refreshPreset();
     }
 
     get title() {
@@ -1047,44 +1054,52 @@ export const WithMassConfig = (docName = 'NONE') => {
 // ===== UTILS ========
 // ====================
 
+/**
+ *
+ * @param {Document} docs
+ * @param {Preset} preset
+ * @param {boolean} suppressNotif
+ * @returns
+ */
 export function pasteDataUpdate(docs, preset, suppressNotif = false) {
   if (!docs || !docs.length) return false;
 
   let docName = docs[0].document ? docs[0].document.documentName : docs[0].documentName;
-  let data = preset ? deepClone(preset) : deepClone(getClipboardData(docName));
+  preset = preset ?? getClipboardData(docName);
   let applyType;
 
   // Special handling for Tokens/Actors
   if (!preset) {
     if (docName === 'Token') {
-      if (!data) {
-        data = getClipboardData('TokenProto');
+      if (!preset) {
+        preset = getClipboardData('TokenProto');
         applyType = 'applyToPrototype';
       }
 
-      if (!data) {
-        data = getClipboardData('Actor');
+      if (!preset) {
+        preset = getClipboardData('Actor');
         docName = 'Actor';
         docs = docs.filter((d) => d.actor).map((d) => d.actor);
       }
     }
   }
 
-  if (data) {
+  if (preset) {
+    if (preset.documentName !== docName) {
+      throw Error(
+        `Document (${docName}) doesn't match preset to be applied (${preset.documentName}).`
+      );
+    }
+
     const context = { meObjects: docs };
-    if (data['mass-edit-randomize']) {
-      context.randomizeFields = data['mass-edit-randomize'];
-      delete data['mass-edit-randomize'];
-    }
-    if (data['mass-edit-addSubtract']) {
-      context.addSubtractFields = data['mass-edit-addSubtract'];
-      delete data['mass-edit-addSubtract'];
-    }
-    performMassUpdate.call(context, data, docs, docName, applyType);
+    if (!isEmpty(preset.randomize)) context.randomizeFields = preset.randomize;
+    if (!isEmpty(preset.addSubtract)) context.addSubtractFields = preset.addSubtract;
+
+    performMassUpdate.call(context, preset.data, docs, preset.documentName, applyType);
     if (!suppressNotif)
       ui.notifications.info(
         game.i18n.format('multi-token-edit.clipboard.paste', {
-          documentName: docName,
+          documentName: preset.documentName,
           number: docs.length,
         })
       );
@@ -1101,8 +1116,6 @@ export function performMassSearch(
   { scope = null, selected = null, control = true, pan = true } = {}
 ) {
   const found = [];
-
-  console.log(selectedFields);
 
   if (scope === 'selected') {
     performDocSearch(selected, docName, selectedFields, found);
@@ -1479,25 +1492,25 @@ export const WithMassPermissions = () => {
 
 const CLIPBOARD = {};
 
-export function copyToClipboard(docName, data, command, isPrototype) {
-  CLIPBOARD[docName] = data;
+export function copyToClipboard(preset, command, isPrototype) {
+  CLIPBOARD[preset.documentName] = preset;
 
   // Special handling for Actors/Tokens
-  if (docName === 'Token' && isPrototype) {
-    CLIPBOARD['TokenProto'] = data;
-  } else if (docName === 'Token') {
+  if (preset.documentName === 'Token' && isPrototype) {
+    CLIPBOARD['TokenProto'] = preset;
+  } else if (preset.documentName === 'Token') {
     if (command === 'copyProto') {
       delete CLIPBOARD['Token'];
-      CLIPBOARD['TokenProto'] = data;
+      CLIPBOARD['TokenProto'] = preset;
     }
   }
 
   // Also copy the fields to the game clipboard as plain text
-  game.clipboard.copyPlainText(JSON.stringify(deepClone(data), null, 2));
+  game.clipboard.copyPlainText(JSON.stringify(deepClone(preset.data), null, 2));
 
   ui.notifications.info(
     game.i18n.format('multi-token-edit.clipboard.copy', {
-      documentName: docName,
+      documentName: preset.documentName,
     })
   );
 }

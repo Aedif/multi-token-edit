@@ -1,5 +1,5 @@
 import { GeneralDataAdapter } from '../applications/dataAdapters.js';
-import MassEditPresets from '../applications/presets.js';
+import { MassEditPresets } from '../applications/presets.js';
 import { applyRandomization } from './randomizer/randomizerUtils.js';
 
 export const SUPPORTED_PLACEABLES = [
@@ -414,33 +414,36 @@ export function activeEffectPresetSelect(aeConfig) {
   }).render(true);
 }
 
-export function spawnPlaceable(docName, preset, { tokenName = 'Token' } = {}) {
+/**
+ * @param {Preset} preset
+ */
+export function spawnPlaceable(preset) {
   // Determine spawn position for the new placeable
   // v11 : canvas.mousePosition
   let pos =
     canvas.mousePosition ??
     canvas.app.renderer.plugins.interaction.mouse.getLocalPosition(canvas.stage);
-  if (docName === 'Token' || docName === 'Tile') {
+  if (preset.documentName === 'Token' || preset.documentName === 'Tile') {
     pos.x -= canvas.dimensions.size / 2;
     pos.y -= canvas.dimensions.size / 2;
   }
   pos = canvas.grid.getSnappedPosition(
     pos.x,
     pos.y,
-    canvas.getLayerByEmbeddedName(docName).gridPrecision
+    canvas.getLayerByEmbeddedName(preset.documentName).gridPrecision
   );
 
-  const randomizer = preset['mass-edit-randomize'];
-  if (randomizer) {
-    applyRandomization([preset], null, randomizer);
+  const randomizer = preset.randomize;
+  if (!isEmpty(randomizer)) {
+    applyRandomization([preset.data], null, randomizer);
   }
 
   let data;
 
   // Set default values if needed
-  switch (docName) {
+  switch (preset.documentName) {
     case 'Token':
-      data = { name: tokenName };
+      data = { name: preset.name };
       break;
     case 'Tile':
       data = { width: canvas.grid.w, height: canvas.grid.h };
@@ -458,7 +461,7 @@ export function spawnPlaceable(docName, preset, { tokenName = 'Token' } = {}) {
       data = { distance: 10 };
       break;
     case 'AmbientLight':
-      if (!('config.dim' in preset) && !('config.bright' in preset)) {
+      if (!('config.dim' in preset.data) && !('config.bright' in preset.data)) {
         data = { 'config.dim': 20, 'config.bright': 10 };
         break;
       }
@@ -466,14 +469,14 @@ export function spawnPlaceable(docName, preset, { tokenName = 'Token' } = {}) {
       data = {};
   }
 
-  mergeObject(data, preset);
+  mergeObject(data, preset.data);
   mergeObject(data, pos);
 
   if (game.keyboard.downKeys.has('AltLeft')) {
     data.hidden = true;
   }
 
-  canvas.scene.createEmbeddedDocuments(docName, [data]);
+  canvas.scene.createEmbeddedDocuments(preset.documentName, [data]);
 }
 
 export function getDocumentName(doc) {

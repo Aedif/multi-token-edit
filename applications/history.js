@@ -2,6 +2,7 @@ import { HISTORY } from '../multi-token-edit.mjs';
 import { GeneralDataAdapter } from './dataAdapters.js';
 import { copyToClipboard } from './forms.js';
 import { LAYER_MAPPINGS } from './multiConfig.js';
+import { Preset } from './presets.js';
 
 export default class MassEditHistory extends FormApplication {
   constructor(docName, callback) {
@@ -98,12 +99,13 @@ export default class MassEditHistory extends FormApplication {
       const docHistory = history[docName] ?? [];
       const historyItem = docHistory[index];
       if (historyItem) {
-        const update = deepClone(historyItem[type]);
-        if ('mass-edit-randomize' in historyItem.ctrl)
-          update['mass-edit-randomize'] = historyItem.ctrl['mass-edit-randomize'];
-        if ('mass-edit-addSubtract' in historyItem.ctrl)
-          update['mass-edit-addSubtract'] = historyItem.ctrl['mass-edit-addSubtract'];
-        copyToClipboard(docName, update);
+        const preset = new Preset({
+          documentName: docName,
+          data: deepClone(historyItem[type]),
+          randomize: historyItem.ctrl['mass-edit-randomize'],
+          addSubtract: historyItem.ctrl['mass-edit-addSubtract'],
+        });
+        copyToClipboard(preset);
       }
     };
 
@@ -127,12 +129,15 @@ export default class MassEditHistory extends FormApplication {
     if (historyItem) {
       const update = deepClone(historyItem[event.submitter.name]);
       GeneralDataAdapter.updateToForm(this.docName, update);
-      if ('mass-edit-randomize' in historyItem.ctrl)
-        update['mass-edit-randomize'] = historyItem.ctrl['mass-edit-randomize'];
-      if ('mass-edit-addSubtract' in historyItem.ctrl)
-        update['mass-edit-addSubtract'] = historyItem.ctrl['mass-edit-addSubtract'];
 
-      this.callback(update);
+      const preset = new Preset({
+        documentName: this.docName,
+        data: update,
+        randomize: historyItem.ctrl['mass-edit-randomize'],
+        addSubtract: historyItem.ctrl['mass-edit-addSubtract'],
+      });
+
+      this.callback(preset);
     }
   }
 }

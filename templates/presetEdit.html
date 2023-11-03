@@ -1,0 +1,29 @@
+<form autocomplete="off">
+    <input type="hidden" name="type" value="{{preset.documentName}}"/>
+
+
+    <div class="form-group">
+        <label>Preset Name</label>
+        <div class="form-fields">
+            <input type="text" name="name" placeholder="New Preset" value="{{preset.name}}" autofocus>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label>Thumbnail</label>
+        <div class="form-fields">
+            {{filePicker target="img" type="image"}}
+            <input class="image" type="text" name="img" placeholder="path/image.png" value="{{preset.img}}">
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label>Background Color</label>
+        <div class="form-fields">
+            {{colorPicker name="color" value=preset.color}}
+        </div>
+    </div>
+
+    <button type="submit" data-action="apply"><i class="fas fa-check"></i> Apply</button>
+    <button type="submit" data-action="remove"><i class="fas fa-trash"></i> Remove</button>
+</form>

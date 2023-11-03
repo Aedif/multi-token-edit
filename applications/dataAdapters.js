@@ -159,20 +159,22 @@ export class TokenDataAdapter {
     data.detectionModes = mergedModes;
   }
 
-  static presetModify(app, preset) {
-    const pModes = Object.values(foundry.utils.expandObject(preset)?.detectionModes || {});
+  static modifyPresetData(app, data) {
+    const pModes = Object.values(foundry.utils.expandObject(data)?.detectionModes || {});
     if (!pModes.length) return;
 
-    const modes = Object.values(foundry.utils.expandObject(app._getSubmitData())?.detectionModes || {});
+    const modes = Object.values(
+      foundry.utils.expandObject(app._getSubmitData())?.detectionModes || {}
+    );
 
-    const presetClone = deepClone(preset);
-    const randomize = preset['mass-edit-randomize'] ?? {};
-    const addSubtract = preset['mass-edit-randomize'] ?? {};
+    const dataClone = deepClone(data);
+    const randomize = data['mass-edit-randomize'] ?? {};
+    const addSubtract = data['mass-edit-addSubtract'] ?? {};
 
-    const modCustomFields = function (fields, key, i, k, preset) {
+    const modCustomFields = function (fields, key, i, k, data) {
       if (`detectionModes.${i}.${k}` in fields) {
         delete fields[`detectionModes.${i}.${k}`];
-        fields[`detectionModes.${j}.${k}`] = preset[key][`detectionModes.${i}.${k}`];
+        fields[`detectionModes.${j}.${k}`] = data[key][`detectionModes.${i}.${k}`];
       }
     };
 
@@ -184,28 +186,28 @@ export class TokenDataAdapter {
         if (pModes[i].id === modes[j].id) {
           found = true;
           Object.keys(pModes[i]).forEach((k) => {
-            delete preset[`detectionModes.${i}.${k}`];
-            preset[`detectionModes.${j}.${k}`] = presetClone[`detectionModes.${i}.${k}`];
-            modCustomFields(randomize, 'mass-edit-randomize', i, k, presetClone);
-            modCustomFields(addSubtract, 'mass-edit-addSubtract', i, k, presetClone);
+            delete data[`detectionModes.${i}.${k}`];
+            data[`detectionModes.${j}.${k}`] = dataClone[`detectionModes.${i}.${k}`];
+            modCustomFields(randomize, 'mass-edit-randomize', i, k, dataClone);
+            modCustomFields(addSubtract, 'mass-edit-addSubtract', i, k, dataClone);
           });
         }
       }
       if (!found) {
         modes.push({ id: '', range: 0, enabled: true });
         Object.keys(pModes[i]).forEach((k) => {
-          delete preset[`detectionModes.${i}.${k}`];
-          preset[`detectionModes.${modes.length - 1}.${k}`] = presetClone[`detectionModes.${i}.${k}`];
+          delete data[`detectionModes.${i}.${k}`];
+          data[`detectionModes.${modes.length - 1}.${k}`] = dataClone[`detectionModes.${i}.${k}`];
 
           if (`detectionModes.${i}.${k}` in randomize) {
             delete randomize[`detectionModes.${i}.${k}`];
             randomize[`detectionModes.${modes.length - 1}.${k}`] =
-              presetClone['mass-edit-randomize'][`detectionModes.${i}.${k}`];
+              dataClone['mass-edit-randomize'][`detectionModes.${i}.${k}`];
           }
           if (`detectionModes.${i}.${k}` in addSubtract) {
             delete addSubtract[`detectionModes.${i}.${k}`];
             addSubtract[`detectionModes.${modes.length - 1}.${k}`] =
-              presetClone['mass-edit-addSubtract'][`detectionModes.${i}.${k}`];
+              dataClone['mass-edit-addSubtract'][`detectionModes.${i}.${k}`];
           }
         });
       }
