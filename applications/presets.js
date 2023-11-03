@@ -476,11 +476,32 @@ export class MassEditPresets extends FormApplication {
       data,
     });
 
-    if (['Token', 'Tile', 'Note'].includes(documentName)) {
-      preset.img = data.texture.src;
+    let img;
+    switch (documentName) {
+      case 'Token':
+      case 'Tile':
+      case 'Note':
+        img = data.texture.src;
+        break;
+      case 'AmbientSound':
+        img = 'icons/svg/sound.svg';
+        break;
+      case 'AmbientLight':
+        img = 'icons/svg/light.svg';
+        break;
+      case 'Drawing':
+        img = 'icons/svg/acid.svg';
+        break;
+      case 'MeasuredTemplate':
+        img = 'icons/svg/circle.svg';
+        break;
     }
+    preset.img = img;
 
     this.presets.set(preset.id, preset);
+
+    // Switch to just created preset's category before rendering if not set to 'ALL'
+    if (this.docName !== 'ALL' && this.docName !== documentName) this.docName = documentName;
     this.render(true);
 
     this._editPresets([preset], { isCreate: true }, event);
@@ -670,9 +691,29 @@ class PresetConfig extends FormApplication {
 
   /** @override */
   async getData(options = {}) {
-    let preset = {};
-    if (this.presets.length === 1) preset = this.presets[0];
-    return { preset };
+    const data = {};
+
+    data.preset = {};
+    if (this.presets.length === 1) data.preset = this.presets[0];
+
+    data.tva = game.modules.get('token-variants')?.active;
+
+    return data;
+  }
+
+  activateListeners(html) {
+    super.activateListeners(html);
+
+    // TVA Support
+    const tvaButton = html.find('.token-variants-image-select-button');
+    tvaButton.on('click', (event) => {
+      game.modules.get('token-variants').api.showArtSelect('Preset', {
+        callback: (imgSrc, name) => {
+          tvaButton.siblings(`[name="${tvaButton.data('target')}"]`).val(imgSrc);
+        },
+        searchType: 'Item',
+      });
+    });
   }
 
   _removePresets() {

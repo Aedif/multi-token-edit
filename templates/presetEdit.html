@@ -14,6 +14,11 @@
         <div class="form-fields">
             {{filePicker target="img" type="image"}}
             <input class="image" type="text" name="img" placeholder="path/image.png" value="{{preset.img}}">
+            {{#if tva}} 
+            <button  class="token-variants-image-select-button" type="button" data-type="imagevideo" data-target="img">
+              <i class="fas fa-images"></i>
+            </button>
+            {{/if}}
         </div>
     </div>
 

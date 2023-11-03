@@ -245,8 +245,8 @@ Hooks.once('init', () => {
       new MassEditPresets(
         null,
         (preset) => {
-          const [target, selected] = getSelected();
-          if (target) pasteDataUpdate(selected, preset);
+          // const [target, selected] = getSelected();
+          // if (target) pasteDataUpdate(selected, preset);
         },
         docName
       ).render(true);
@@ -354,13 +354,16 @@ Hooks.on('renderSceneControls', (sceneControls, html, options) => {
   `);
 
   presetControl.on('click', () => {
+    let docName = canvas.activeLayer.constructor.documentName;
+    if (!SUPPORTED_PLACEABLES.includes(docName)) docName === 'ALL';
+
     const presetForm = Object.values(ui.windows).find((app) => app instanceof MassEditPresets);
     if (presetForm) {
       presetForm.close();
       return;
     }
 
-    new MassEditPresets(null, () => {}, 'ALL', {
+    new MassEditPresets(null, () => {}, docName, {
       left: presetControl.position().left + presetControl.width() + 40,
     }).render(true);
   });
