@@ -546,16 +546,15 @@ export class MassEditPresets extends FormApplication {
     return buttons;
   }
 
-  _onImport() {
-    this.importPresets();
-  }
   _onExport() {
-    exportPresets(this.presets);
+    exportPresets(this.presets.contents);
   }
 
-  async importPresets() {
+  async _onImport() {
     const json = await importPresetFromJSONDialog();
     if (!json) return;
+
+    console.log(json);
 
     let importCount = 0;
 
@@ -572,7 +571,7 @@ export class MassEditPresets extends FormApplication {
 
     ui.notifications.info(`Mass Edit: Imported ${importCount} presets.`);
 
-    if (importCount) this.render();
+    if (importCount) this.render(true);
   }
 
   /**
@@ -585,68 +584,13 @@ export class MassEditPresets extends FormApplication {
   }
 }
 
-function exportPresets(presets, docType) {
-  if (!presets.size) return;
-
-  let content = '<form><h2>Select Presets to export:</h2>';
-  presets.forEach((p) => {
-    content += `
-    <div class="form-group">
-      <label>${p.name}</label>
-      <div class="form-fields">
-          <input type="checkbox" data-id="${p.id}" data-dtype="Boolean">
-      </div>
-    </div>
-    `;
-  });
-  content += `</form><div class="form-group"><button type="button" class="select-all">Select all</div>`;
-
-  class WithHeader extends Dialog {
-    _getHeaderButtons() {
-      const buttons = super._getHeaderButtons();
-      buttons.unshift({
-        label: 'Export ALL',
-        class: 'mass-edit-presets-export-all',
-        icon: 'fas fa-globe',
-        onclick: (ev) => {
-          saveDataToFile(
-            JSON.stringify(presets, null, 2),
-            'text/json',
-            'mass-edit-presets-ALL.json'
-          );
-        },
-      });
-      return buttons;
-    }
-  }
-
-  new WithHeader({
-    title: `Export`,
-    content: content,
-    buttons: {
-      Ok: {
-        label: `Export`,
-        callback: (html) => {
-          const exportPresets = [];
-          html.find('input[type="checkbox"]').each(function () {
-            if (this.checked) {
-              const p = presets.get($(this).data('id'));
-              if (p) exportPresets.push(p);
-            }
-          });
-          if (exportPresets.length) {
-            const filename = `mass-edit-presets-${docType}.json`;
-            saveDataToFile(JSON.stringify(exportPresets, null, 2), 'text/json', filename);
-          }
-        },
-      },
-    },
-    render: (html) => {
-      html.find('.select-all').click(() => {
-        html.find('input[type="checkbox"]').prop('checked', true);
-      });
-    },
-  }).render(true);
+function exportPresets(presets, fileName) {
+  if (!presets.length) return;
+  saveDataToFile(
+    JSON.stringify(presets, null, 2),
+    'text/json',
+    (fileName ?? 'mass-edit-presets') + '.json'
+  );
 }
 
 class PresetConfig extends FormApplication {
@@ -686,6 +630,26 @@ class PresetConfig extends FormApplication {
   get title() {
     if (this.presets.length > 1) return `Presets [${this.presets.length}]`;
     else return `Preset: ${this.presets[0].name}`;
+  }
+
+  _getHeaderButtons() {
+    const buttons = super._getHeaderButtons();
+
+    buttons.unshift({
+      label: '',
+      class: 'mass-edit-export',
+      icon: 'fas fa-file-export',
+      onclick: (ev) => this._onExport(ev),
+    });
+    return buttons;
+  }
+
+  _onExport() {
+    let fileName;
+    if (this.presets.length === 1) {
+      fileName = 'mass-edit-preset-' + this.presets[0].name.replace(' ', '_').replace(/\W/g, '');
+    }
+    exportPresets(this.presets, fileName);
   }
 
   /* -------------------------------------------- */

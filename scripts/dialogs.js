@@ -40,38 +40,13 @@ export function showPlaceableTypeSelectDialog() {
   }).render(true);
 }
 
-export async function importPresetFromJSONDialog(docName) {
+export async function importPresetFromJSONDialog() {
   const content = `
   <div class="form-group">
       <label for="data">JSON File </label>
       <input type="file" name="data">
   </div>
-  <textarea class="preset" style="width:100%;height:300px;"></textarea>
-  <div class="form-group presetName">
-      <label>Preset Name </label>
-      <input type="text" value="NEW PRESET">
-  </div>
   `;
-
-  const updateDisplayName = function (html, json) {
-    html.find('.preset').val(json);
-
-    let presets;
-    try {
-      presets = JSON.parse(json);
-    } catch (e) {
-      presets = {};
-    }
-
-    const supportedDocs = [...SUPPORTED_PLACEABLES, ...SUPPORTED_COLLECTIONS];
-    if (!isEmpty(presets) && supportedDocs.includes(Object.keys(presets)[0])) {
-      html.find('.presetName input').val('');
-      html.find('.presetName').hide();
-    } else {
-      html.find('.presetName input').val('NEW PRESET');
-      html.find('.presetName').show();
-    }
-  };
 
   let dialog = new Promise((resolve, reject) => {
     new Dialog(
@@ -84,19 +59,12 @@ export async function importPresetFromJSONDialog(docName) {
             label: 'Import',
             callback: async (html) => {
               let presets;
-              try {
-                presets = JSON.parse(html.find('.preset').val());
-              } catch (e) {}
-              if (!presets || isEmpty(presets)) resolve(false);
-
-              let presetName = html.find('.presetName input').val();
-              if (presetName) {
-                let tmp = {};
-                tmp[docName] = {};
-                tmp[docName][presetName] = presets;
-                presets = tmp;
-              }
-              resolve(presets);
+              readTextFromFile(html.find('[name="data"]')[0].files[0]).then((json) => {
+                try {
+                  presets = JSON.parse(json);
+                } catch (e) {}
+                resolve(presets);
+              });
             },
           },
           no: {
@@ -105,19 +73,7 @@ export async function importPresetFromJSONDialog(docName) {
             callback: () => resolve(false),
           },
         },
-        render: (html) => {
-          html.find('[name="data"]').on('change', (event) => {
-            if (event.target.files.length) {
-              readTextFromFile(event.target.files[0]).then((json) => {
-                updateDisplayName(html, json);
-              });
-            }
-          });
-          html.find('.preset').on('input', (event) => {
-            updateDisplayName(html, event.target.value);
-          });
-        },
-        default: 'import',
+        default: 'no',
       },
       {
         width: 400,
