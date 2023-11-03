@@ -1,6 +1,5 @@
 import { Brush } from '../scripts/brush.js';
 import { importPresetFromJSONDialog } from '../scripts/dialogs.js';
-import { IS_PRIVATE } from '../scripts/randomizer/randomizerForm.js';
 import { SUPPORTED_PLACEABLES, spawnPlaceable } from '../scripts/utils.js';
 import { TokenDataAdapter } from './dataAdapters.js';
 
@@ -11,6 +10,7 @@ export class Preset {
     this.documentName = preset.documentName;
     this.bgColor = preset.color;
     this.order = preset.order ?? -1;
+    this.gOrder = preset.gOrder ?? -1;
     this.addSubtract = deepClone(preset.addSubtract ?? {});
     this.randomize = deepClone(preset.randomize ?? {});
     this.data = deepClone(preset.data ?? {});
@@ -36,6 +36,7 @@ export class Preset {
       documentName: this.documentName,
       color: this.color,
       order: this.order,
+      gOrder: this.gOrder,
       addSubtract: this.addSubtract,
       randomize: this.randomize,
       img: this.img,
@@ -44,12 +45,32 @@ export class Preset {
   }
 }
 
+const DOC_ICONS = {
+  Token: 'fas fa-user-alt',
+  MeasuredTemplate: 'fas fa-ruler-combined',
+  Tile: 'fa-solid fa-cubes',
+  Drawing: 'fa-solid fa-pencil-alt',
+  Wall: 'fa-solid fa-block-brick',
+  AmbientLight: 'fa-regular fa-lightbulb',
+  AmbientSound: 'fa-solid fa-music',
+  Note: 'fa-solid fa-bookmark',
+  DEFAULT: 'fa-solid fa-question',
+};
+
+const SORT_MODES = {
+  manual: { tooltip: 'Sort Manually', icon: '<i class="fa-solid fa-arrow-down-short-wide"></i>' },
+  alphabetical: {
+    tooltip: 'Sort Alphabetically',
+    icon: '<i class="fa-solid fa-arrow-down-a-z"></i>',
+  },
+};
+
 export class MassEditPresets extends FormApplication {
   static objectHover = false;
   static lastSearch;
 
-  constructor(configApp, callback, docName) {
-    super({}, {});
+  constructor(configApp, callback, docName, options = {}) {
+    super({}, options);
     this.callback = callback;
 
     this.presets = new foundry.utils.Collection(
@@ -57,7 +78,8 @@ export class MassEditPresets extends FormApplication {
     );
 
     if (!configApp) {
-      this.docName = docName;
+      const docLock = game.settings.get('multi-token-edit', 'presetDocLock');
+      this.docName = docLock || docName;
     } else {
       this.configApp = configApp;
       this.docName = docName || this.configApp.documentName;
@@ -91,6 +113,10 @@ export class MassEditPresets extends FormApplication {
 
     data.createEnabled = Boolean(this.configApp);
     data.isPlaceable = this.docName === 'ALL' || SUPPORTED_PLACEABLES.includes(this.docName);
+    data.allowDocumentSwap = data.isPlaceable && !this.configApp;
+    data.docLockActive = game.settings.get('multi-token-edit', 'presetDocLock') === this.docName;
+
+    data.sortMode = SORT_MODES[game.settings.get('multi-token-edit', 'presetSortMode')];
 
     const aeModeString = function (mode) {
       let s = Object.keys(CONST.ACTIVE_EFFECT_MODES).find(
@@ -134,6 +160,7 @@ export class MassEditPresets extends FormApplication {
         img: p.img || CONST.DEFAULT_TOKEN,
         title: title,
         color: color,
+        icon: DOC_ICONS[p.documentName] ?? DOC_ICONS.DEFAULT,
       });
     }
 
@@ -152,18 +179,20 @@ export class MassEditPresets extends FormApplication {
     super.activateListeners(html);
 
     import('../scripts/jquery-ui/jquery-ui.js').then((imp) => {
-      const app = this;
-      html.find('.preset-items').sortable({
-        cursor: 'move',
-        placeholder: 'ui-state-highlight',
-        opacity: '0.8',
-        items: '.item',
-        scroll: true,
-        scrollSpeed: 10,
-        scrollSensitivity: 40,
-        stop: function (event, ui) {
-          app._onPresetOrder(event, ui, this);
-        },
+      import('../scripts/jquery-multisortable/jquery.multisortable.js').then(() => {
+        const app = this;
+        html.find('.preset-items').multisortable({
+          cursor: 'move',
+          placeholder: 'ui-state-highlight',
+          opacity: '0.8',
+          items: '.item',
+          scroll: true,
+          scrollSpeed: 10,
+          scrollSensitivity: 40,
+          stop: function (event, ui) {
+            app._onPresetOrder(event, ui, this);
+          },
+        });
       });
     });
 
@@ -186,6 +215,8 @@ export class MassEditPresets extends FormApplication {
         MassEditPresets.objectHover = false;
       });
 
+    html.find('.toggle-sort').on('click', this._onToggleSort.bind(this));
+    html.find('.toggle-doc-lock').on('click', this._onToggleLock.bind(this));
     html.find('.document-select').on('change', this._onDocumentChange.bind(this));
     html.on('click', '.item-name label', this._onSelectPreset.bind(this));
     html.on('contextmenu', '.item-name label', this._onRightClickPreset.bind(this));
@@ -208,6 +239,29 @@ export class MassEditPresets extends FormApplication {
       .trigger('input');
   }
 
+  async _onToggleSort(event) {
+    const currentSort = game.settings.get('multi-token-edit', 'presetSortMode');
+    const newSort = currentSort === 'manual' ? 'alphabetical' : 'manual';
+    await game.settings.set('multi-token-edit', 'presetSortMode', newSort);
+
+    this.render(true);
+  }
+
+  _onToggleLock(event) {
+    const lockControl = $(event.target).closest('.toggle-doc-lock');
+
+    let currentLock = game.settings.get('multi-token-edit', 'presetDocLock');
+    let newLock = this.docName;
+
+    if (newLock !== currentLock) lockControl.addClass('active');
+    else {
+      lockControl.removeClass('active');
+      newLock = '';
+    }
+
+    game.settings.set('multi-token-edit', 'presetDocLock', newLock);
+  }
+
   _onDocumentChange(event) {
     const newDocName = $(event.target).val();
     if (newDocName != this.docName) {
@@ -217,13 +271,25 @@ export class MassEditPresets extends FormApplication {
   }
 
   _onRightClickPreset(event) {
-    const id = $(event.target).closest('.item').data('id');
-    const preset = this.presets.get(id);
-    this._editPreset(preset);
+    const selected = [];
+    const presets = this.presets;
+    $(event.target)
+      .closest('.item-list')
+      .find('.item.selected')
+      .each(function () {
+        const id = $(this).data('id');
+        const preset = presets.get(id);
+        if (preset) selected.push(preset);
+      });
+    this._editPresets(selected, {}, event);
   }
 
-  _editPreset(preset) {
-    new PresetConfig(preset, this.presets, () => this.render(true)).render(true);
+  _editPresets(presets, options = {}, event) {
+    options.callback = () => this.render(true);
+    new PresetConfig(presets, this.presets, options, {
+      left: event.originalEvent.x,
+      top: event.originalEvent.y,
+    }).render(true);
   }
 
   _onSelectPreset(event) {
@@ -234,7 +300,7 @@ export class MassEditPresets extends FormApplication {
     }
   }
 
-  async _onPresetOrder(event, ui, sortable) {
+  _onPresetOrder(event, ui, sortable) {
     // Check if the preset for a placeable has been dragged out onto the canvas
     if (this.docName === 'ALL' || SUPPORTED_PLACEABLES.includes(this.docName)) {
       const checkMouseInWindow = function (event) {
@@ -256,19 +322,27 @@ export class MassEditPresets extends FormApplication {
 
       if (!checkMouseInWindow(event)) {
         this._onPresetDragOut(event);
+        console.log(event, ui);
+        // sortable.sortable('cancel');
         $(sortable).sortable('cancel');
         return false;
       }
     }
 
-    const presets = this.presets;
-    $(event.target)
-      .find('.item')
-      .each(function (index) {
-        const id = $(this).data('id');
-        const preset = presets.get(id);
-        if (preset) preset.order = index;
-      });
+    if (game.settings.get('multi-token-edit', 'presetSortMode') === 'manual') {
+      const presets = this.presets;
+      const globalSorting = this.docName === 'ALL';
+      $(event.target)
+        .find('.item')
+        .each(function (index) {
+          const id = $(this).data('id');
+          const preset = presets.get(id);
+          if (preset) {
+            if (globalSorting) preset.gOrder = index;
+            else preset.order = index;
+          }
+        });
+    }
   }
 
   async _onPresetDragOut(event) {
@@ -382,7 +456,7 @@ export class MassEditPresets extends FormApplication {
     }).render(true);
   }
 
-  presetFromPlaceable(placeable) {
+  presetFromPlaceable(placeable, event) {
     let data = placeable.document.toCompendium();
     delete data.x;
     delete data.y;
@@ -396,14 +470,14 @@ export class MassEditPresets extends FormApplication {
       data,
     });
 
-    if (documentName === 'Token' || documentName === 'Tile') {
+    if (['Token', 'Tile', 'Note'].includes(documentName)) {
       preset.img = data.texture.src;
     }
 
     this.presets.set(preset.id, preset);
     this.render(true);
 
-    this._editPreset(preset);
+    this._editPresets([preset], { isCreate: true }, event);
   }
 
   _getActiveEffectFields() {
@@ -418,17 +492,28 @@ export class MassEditPresets extends FormApplication {
     } else {
       presetList = this.presets.filter((p) => p.documentName === this.docName);
     }
-    presetList.sort((p1, p2) => p1.order - p2.order);
+
+    if (game.settings.get('multi-token-edit', 'presetSortMode') === 'manual') {
+      const globalSorting = this.docName === 'ALL';
+      if (globalSorting) presetList.sort((p1, p2) => p1.gOrder - p2.gOrder);
+      else presetList.sort((p1, p2) => p1.order - p2.order);
+    } else {
+      presetList.sort((p1, p2) => p1.name.localeCompare(p2.name, 'en', { numeric: true }));
+    }
     return presetList;
   }
 
   async _reOrderPresets(save = true) {
     const presetList = this._getPresetsList();
 
-    let order = 0;
-    for (const preset of presetList) {
-      preset.order = order;
-      order++;
+    if (game.settings.get('multi-token-edit', 'presetSortMode') === 'manual') {
+      let order = 0;
+      const globalSorting = this.docName === 'ALL';
+      for (const preset of presetList) {
+        if (globalSorting) preset.gOrder = order;
+        else preset.order = order;
+        order++;
+      }
     }
 
     return presetList;
@@ -470,17 +555,24 @@ export class MassEditPresets extends FormApplication {
 
   async importPresets() {
     const json = await importPresetFromJSONDialog();
-    if (!json || getType(json) !== 'Array') return;
+    if (!json) return;
 
-    for (const p of json) {
-      if (!('documentName' in p)) continue;
-      if (!('data' in p) || isEmpty(p.data)) continue;
+    let importCount = 0;
 
-      const preset = new Preset(p);
-      this.presets.set(preset.id, preset);
+    if (getType(json) === 'Array') {
+      for (const p of json) {
+        if (!('documentName' in p)) continue;
+        if (!('data' in p) || isEmpty(p.data)) continue;
+
+        const preset = new Preset(p);
+        this.presets.set(preset.id, preset);
+        importCount++;
+      }
     }
 
-    this.render();
+    ui.notifications.info(`Mass Edit: Imported ${importCount} presets.`);
+
+    if (importCount) this.render();
   }
 
   /**
@@ -559,13 +651,17 @@ function exportPresets(presets, docType) {
 
 class PresetConfig extends FormApplication {
   /**
-   * @param {Preset} preset
+   * @param {Array[Preset]} presets
    */
-  constructor(preset, presets, callback) {
-    super();
-    this.preset = preset;
+  constructor(presets, presetCollection, { callback = null, isCreate = false } = {}, opts = {}) {
+    if (opts.left !== null) {
+      opts.left = opts.left - PresetConfig.defaultOptions.width / 2;
+    }
+    super({}, opts);
     this.presets = presets;
+    this.presetCollection = presetCollection;
     this.callback = callback;
+    this.isCreate = isCreate;
   }
 
   /** @inheritdoc */
@@ -581,14 +677,15 @@ class PresetConfig extends FormApplication {
 
   /** @override */
   get id() {
-    return 'preset-edit';
+    return 'mass-edit-preset-edit';
   }
 
   /* -------------------------------------------- */
 
   /** @override */
   get title() {
-    return `[${this.preset.documentName}] Preset: ${this.preset.name}`;
+    if (this.presets.length > 1) return `Presets [${this.presets.length}]`;
+    else return `Preset: ${this.presets[0].name}`;
   }
 
   /* -------------------------------------------- */
@@ -603,7 +700,39 @@ class PresetConfig extends FormApplication {
 
   /** @override */
   async getData(options = {}) {
-    return { preset: this.preset };
+    let preset = {};
+    if (this.presets.length === 1) preset = this.presets[0];
+    return { preset };
+  }
+
+  _removePresets() {
+    this.presets.forEach((p) => {
+      this.presetCollection.delete(p.id);
+    });
+    this.presets = null;
+  }
+
+  _updatePresets(formData) {
+    formData.name = formData.name.trim();
+    formData.img = formData.img.trim() || null;
+    formData.color = formData.color.trim() || null;
+
+    if (this.isCreate) {
+      this.presets.forEach((p) => {
+        p.name = formData.name || 'New Preset';
+        p.img = formData.img;
+        p.color = formData.color;
+      });
+    } else {
+      this.presets.forEach((p) => {
+        if (formData.name) p.name = formData.name;
+        if (formData.img) p.img = formData.img;
+        if (formData.color) {
+          if (formData.color === '#000000') p.color = null;
+          else p.color = formData.color;
+        }
+      });
+    }
   }
 
   /* -------------------------------------------- */
@@ -611,16 +740,10 @@ class PresetConfig extends FormApplication {
   /** @override */
   async _updateObject(event, formData) {
     const action = $(event.submitter).data('action');
-    if (action === 'remove') {
-      this.presets.delete(this.preset.id);
-      this.preset = null;
-    } else {
-      this.preset.name = formData.name?.trim() || 'New Preset';
-      this.preset.img = formData.img || null;
-      this.preset.color = formData.color;
-    }
+    if (action === 'remove') this._removePresets();
+    else this._updatePresets(formData);
 
     if (this.callback) this.callback(this.preset);
-    return this.preset;
+    return this.presets;
   }
 }

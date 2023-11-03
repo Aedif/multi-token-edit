@@ -86,12 +86,28 @@ Hooks.once('init', () => {
     default: {},
   });
 
+  // Preset Settings
   game.settings.register('multi-token-edit', 'docPresets', {
     scope: 'world',
     config: false,
     type: Array,
     default: [],
   });
+
+  game.settings.register('multi-token-edit', 'presetDocLock', {
+    scope: 'world',
+    config: false,
+    type: String,
+    default: '',
+  });
+
+  game.settings.register('multi-token-edit', 'presetSortMode', {
+    scope: 'world',
+    config: false,
+    type: String,
+    default: 'manual',
+  });
+  // end of Preset Settings
 
   game.settings.register('multi-token-edit', 'pinnedFields', {
     scope: 'world',
@@ -299,7 +315,7 @@ Hooks.once('init', () => {
       this.mouseInteractionManager.cancel(...args);
       Object.values(ui.windows)
         .find((x) => x instanceof MassEditPresets)
-        ?.presetFromPlaceable(this);
+        ?.presetFromPlaceable(this, ...args);
     } else {
       return wrapped(...args);
     }
@@ -325,6 +341,31 @@ Hooks.once('init', () => {
     performMassSearch,
     showMassEdit,
   };
+});
+
+// Preset Scene Control
+Hooks.on('renderSceneControls', (sceneControls, html, options) => {
+  if (!game.user.isGM) return;
+
+  const presetControl = $(`
+<li class="scene-control " data-control="me-presets" aria-label="Mass Edit: Presets" role="tab" data-tooltip="Mass Edit: Presets">
+  <i class="fa-solid fa-book-open-cover"></i>
+</li>
+  `);
+
+  presetControl.on('click', () => {
+    const presetForm = Object.values(ui.windows).find((app) => app instanceof MassEditPresets);
+    if (presetForm) {
+      presetForm.close();
+      return;
+    }
+
+    new MassEditPresets(null, () => {}, 'ALL', {
+      left: presetControl.position().left + presetControl.width() + 40,
+    }).render(true);
+  });
+
+  html.find('.control-tools').find('.scene-control').last().after(presetControl);
 });
 
 // Migrate Presets (02/11/2023)

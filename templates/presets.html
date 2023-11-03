@@ -2,12 +2,15 @@
 <form class="mass-edit-preset-form">
 
     <header class="preset-header flexcol">
-        {{#if isPlaceable}}
-        <select class="document-select">
-            {{#each documents as |document|}}
-            <option value="{{document}}" {{#if (eq document ../currentDocument)}}selected="selected"{{/if}}>{{document}}</option>
-            {{/each}}
-        </select>
+        {{#if allowDocumentSwap}}
+        <div class="header-select flexrow">
+            <select class="document-select">
+                {{#each documents as |document|}}
+                <option value="{{document}}" {{#if (eq document ../currentDocument)}}selected="selected"{{/if}}>{{document}}</option>
+                {{/each}}
+            </select>
+            <a class="header-control toggle-doc-lock {{#if docLockActive}}active{{/if}}" data-tooltip="Lock as default on form open."><i class="fa-solid fa-lock"></i></a>
+        </div>
         {{/if}}
         {{#if createEnabled}}
         <div class="header-actions action-buttons flexrow">
@@ -18,7 +21,7 @@
         <div class="header-search flexrow">
             <a class="header-control toggle-search-mode" data-tooltip="Search by Name only"><i class="fas fa-search"></i></a>
             <input type="search" name="search" value="{{lastSearch}}" placeholder="Search" autocomplete="off">
-            <a class="header-control toggle-sort" data-tooltip="Sort Alphabetically"><i class="fa-solid fa-arrow-down-a-z"></i></a>
+            <a class="header-control toggle-sort" data-tooltip="{{sortMode.tooltip}}">{{{sortMode.icon}}}</a>
         </div>
     </header>
 
@@ -53,6 +56,7 @@
             </div>
             {{/if}}
             </div>
+            <i class="icon {{preset.icon}}"></i>
         </li>
         {{/each}}
     </ol>

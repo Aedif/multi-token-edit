@@ -139,21 +139,27 @@
   margin: 0 0 3px;
 }
 
-.mass-edit-preset-form .preset-header .header-search {
+.mass-edit-preset-form .preset-header .header-search,
+.mass-edit-preset-form .preset-header .header-select {
   flex: 1;
   justify-content: center;
   align-items: center;
 }
 
-.mass-edit-preset-form .preset-header .header-search > * {
+.mass-edit-preset-form .preset-header .header-search > *,
+.mass-edit-preset-form .preset-header .header-select > * {
   flex: 0 0 24px;
 }
 
 .mass-edit-preset-form .preset-header .header-search input,
-.mass-edit-preset-form .document-select {
+.mass-edit-preset-form .preset-header .header-select select {
   flex: 1;
   margin: 0 3px px;
   background: rgba(255, 255, 245, 0.8);
+}
+
+.mass-edit-preset-form .preset-header .toggle-doc-lock.active {
+  color: orange;
 }
 
 .mass-edit-preset-form .action-buttons button {
@@ -169,6 +175,8 @@
   line-height: 48px;
   border-top: 1px solid dimgray;
   box-shadow: none;
+  margin-right: 3px;
+  position: relative;
 }
 
 .mass-edit-preset-form .item img {
@@ -182,6 +190,13 @@
   margin-bottom: 1px;
 }
 
+.mass-edit-preset-form .item .icon {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  color: white;
+}
+
 .mass-edit-preset-form .item .item-name {
   margin: 0 0 0 8px;
 }
@@ -190,6 +205,13 @@
   flex: 0 0 40px;
   margin-right: 5px;
   text-align: right;
+}
+
+.mass-edit-preset-form .item.selected {
+  border-style: solid;
+  border-color: orange;
+  border-width: 2px;
+  background: linear-gradient(#f005, #f005), linear-gradient(#0f05, #0f05);
 }
 
 #mass-edit-presets .overlay {
