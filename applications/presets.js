@@ -46,7 +46,7 @@ export class Preset {
 }
 
 const DOC_ICONS = {
-  Token: 'fas fa-user-alt',
+  Token: 'fas fa-user-circle',
   MeasuredTemplate: 'fas fa-ruler-combined',
   Tile: 'fa-solid fa-cubes',
   Drawing: 'fa-solid fa-pencil-alt',
@@ -54,6 +54,7 @@ const DOC_ICONS = {
   AmbientLight: 'fa-regular fa-lightbulb',
   AmbientSound: 'fa-solid fa-music',
   Note: 'fa-solid fa-bookmark',
+  Actor: 'fas fa-user-alt',
   DEFAULT: 'fa-solid fa-question',
 };
 
@@ -163,6 +164,8 @@ export class MassEditPresets extends FormApplication {
         icon: DOC_ICONS[p.documentName] ?? DOC_ICONS.DEFAULT,
       });
     }
+
+    data.displayDragDropMessage = data.allowDocumentSwap && !Boolean(data.presets.length);
 
     data.lastSearch = MassEditPresets.lastSearch;
 
@@ -355,7 +358,10 @@ export class MassEditPresets extends FormApplication {
     const id = $(event.target).closest('.item').data('id');
     const preset = this.presets.get(id);
     if (preset) {
-      let activated = Brush.activate({ preset });
+      let activated = Brush.activate({
+        preset,
+        deactivateCallback: this._onPresetBrushDeactivate.bind(this),
+      });
 
       const brushControl = $(event.target).closest('.preset-brush');
       if (brushControl.hasClass('active')) {
@@ -363,7 +369,9 @@ export class MassEditPresets extends FormApplication {
       } else {
         $(event.target).closest('form').find('.preset-brush').removeClass('active');
         if (!activated) {
-          if (Brush.activate({ preset })) {
+          if (
+            Brush.activate({ preset, deactivateCallback: this._onPresetBrushDeactivate.bind(this) })
+          ) {
             brushControl.addClass('active');
           }
         } else {
@@ -371,6 +379,10 @@ export class MassEditPresets extends FormApplication {
         }
       }
     }
+  }
+
+  _onPresetBrushDeactivate() {
+    $(this.form).find('.preset-brush').removeClass('active');
   }
 
   async close(options = {}) {
@@ -436,24 +448,18 @@ export class MassEditPresets extends FormApplication {
       return;
     }
 
-    new Dialog({
-      title: `Choose a name`,
-      content: `<table style="width:100%"><tr><td style="width:50%"><input type="text" name="input" value=""/></td></tr></table>`,
-      buttons: {
-        Ok: {
-          label: `Save`,
-          callback: (html) => {
-            const name = html.find('input').val();
-            if (name) {
-              this._createUpdatePreset(null, name, selectedFields);
-            }
-          },
-        },
-      },
-      render: (html) => {
-        html.find('input').focus();
-      },
-    }).render(true);
+    const preset = new Preset({
+      name: '',
+      documentName: this.docName,
+      data: selectedFields,
+      addSubtract: this.configApp.addSubtractFields,
+      randomize: this.configApp.randomizeFields,
+    });
+
+    this.presets.set(preset.id, preset);
+    this.render(true);
+
+    this._editPresets([preset], { isCreate: true }, event);
   }
 
   presetFromPlaceable(placeable, event) {

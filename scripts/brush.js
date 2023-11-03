@@ -1,7 +1,9 @@
 import { pasteDataUpdate } from '../applications/forms.js';
+import { Preset } from '../applications/presets.js';
 
 export class Brush {
   static app;
+  static deactivateCallback;
   // @type {Preset}
   static preset;
   static brushOverlay;
@@ -94,7 +96,7 @@ export class Brush {
    * @param {Preset} options.preset
    * @returns
    */
-  static activate({ app = null, preset = null } = {}) {
+  static activate({ app = null, preset = null, deactivateCallback = null } = {}) {
     if (this.deactivate() || !canvas.ready) return false;
     if (!app && !preset) return false;
 
@@ -105,6 +107,7 @@ export class Brush {
     // Setup fields to be used for updates
     this.app = app;
     this.preset = preset;
+    this.deactivateCallback = deactivateCallback;
     if (this.app) {
       this.documentName = this.app.documentName;
     } else {
@@ -161,6 +164,7 @@ export class Brush {
       this.brushOverlay.isMouseDown = false;
       this.updatedPlaceables = [];
     });
+
     this.brushOverlay.on('click', (event) => {
       if (event.nativeEvent.which == 2) {
         this.deactivate();
@@ -268,6 +272,8 @@ export class Brush {
       }
       this.active = false;
       this.updatedPlaceables = [];
+      this.deactivateCallback?.();
+      this.deactivateCallback = null;
       this.app = null;
       this.preset = null;
       return true;

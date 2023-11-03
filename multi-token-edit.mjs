@@ -348,8 +348,8 @@ Hooks.on('renderSceneControls', (sceneControls, html, options) => {
   if (!game.user.isGM) return;
 
   const presetControl = $(`
-<li class="scene-control " data-control="me-presets" aria-label="Mass Edit: Presets" role="tab" data-tooltip="Mass Edit: Presets">
-  <i class="fa-solid fa-book-open-cover"></i>
+<li class="scene-control mass-edit-scene-control" data-control="me-presets" aria-label="Mass Edit: Presets" role="tab" data-tooltip="Mass Edit: Presets">
+<i class="fa-solid fa-books"></i>
 </li>
   `);
 

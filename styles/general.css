@@ -239,6 +239,14 @@
   text-align: center;
 }
 
+.mass-edit-preset-form .preset-brush.active {
+  color: orange;
+}
+
+.mass-edit-scene-control {
+  color: lightblue !important;
+}
+
 input.me-add {
   background-color: greenyellow;
 }

@@ -14,7 +14,7 @@
         {{/if}}
         {{#if createEnabled}}
         <div class="header-actions action-buttons flexrow">
-            <button class="create-item"><i class="fas fa-plus"></i> Create Preset</button>
+            <button type="button" class="preset-create"><i class="fas fa-plus"></i> Create Preset</button>
             <!-- <button class="create-folder"><i class="fas fa-folder"></i> Create Folder</button> -->
         </div>
         {{/if}}
@@ -25,6 +25,11 @@
         </div>
     </header>
 
+    {{#if displayDragDropMessage}}
+    <h2 style="text-align: center; margin-top: 100%; margin-bottom: 100%; border: none;">Drag a placeable in to create a preset.</h2>
+    {{/if}}
+
+    {{#unless displayDragDropMessage}}    
     <ol class="item-list preset-items">
         <!-- <li class="items-header flexrow">
             <label class="flexrow">Presets</label>
@@ -60,4 +65,5 @@
         </li>
         {{/each}}
     </ol>
+    {{/unless}}
 </form>
