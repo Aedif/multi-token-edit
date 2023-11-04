@@ -315,7 +315,7 @@ Hooks.once('init', () => {
       this.mouseInteractionManager.cancel(...args);
       Object.values(ui.windows)
         .find((x) => x instanceof MassEditPresets)
-        ?.presetFromPlaceable(this, ...args);
+        ?.presetFromPlaceable([...canvas.activeLayer.controlled], ...args);
     } else {
       return wrapped(...args);
     }

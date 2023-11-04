@@ -331,25 +331,23 @@ export function flattenToDepth(obj, d = 0) {
   return flat;
 }
 
+// TODO
 export function activeEffectPresetSelect(aeConfig) {
   const showPresetGeneric = function (docName) {
     new MassEditPresets(
-      null,
+      aeConfig,
       (preset) => {
-        delete preset['mass-edit-addSubtract'];
-
-        if ('mass-edit-randomize' in preset) {
-          applyRandomization([preset], null, preset['mass-edit-randomize']);
-          delete preset['mass-edit-randomize'];
+        if (!isEmpty(preset.randomize)) {
+          applyRandomization([preset.data], null, preset.randomize);
         }
 
         const changes = aeConfig.object.changes ?? [];
         let nChanges = [];
 
-        Object.keys(preset).forEach((k) => {
+        Object.keys(preset.data).forEach((k) => {
           let value;
-          if (getType(preset[k]) === 'string') value = preset[k];
-          else value = JSON.stringify(preset[k]);
+          if (getType(preset.data[k]) === 'string') value = preset.data[k];
+          else value = JSON.stringify(preset.data[k]);
 
           nChanges.push({
             key: docName === 'Token' ? 'ATL.' + k : k,
@@ -376,7 +374,7 @@ export function activeEffectPresetSelect(aeConfig) {
         const changes = aeConfig.object.changes ?? [];
         let nChanges = [];
 
-        preset.changes?.forEach((change) => {
+        preset.data.changes?.forEach((change) => {
           if (change.key) {
             nChanges.push(
               mergeObject({ mode: CONST.ACTIVE_EFFECT_MODES.OVERRIDE, priority: 20 }, change)
