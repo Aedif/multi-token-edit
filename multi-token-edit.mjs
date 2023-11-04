@@ -7,12 +7,11 @@ import {
   showGenericForm,
 } from './applications/multiConfig.js';
 import CSSEdit, { STYLES } from './applications/cssEdit.js';
-import { MassEditPresets } from './applications/presets.js';
+import { MassEditPresets, PresetAPI, PresetCollection } from './applications/presets.js';
 import {
   checkApplySpecialFields,
   deleteFromClipboard,
   getObjFormData,
-  pasteDataUpdate,
   performMassSearch,
   performMassUpdate,
 } from './applications/forms.js';
@@ -94,6 +93,13 @@ Hooks.once('init', () => {
     default: [],
   });
 
+  game.settings.register('multi-token-edit', 'presetsMigrated', {
+    scope: 'world',
+    config: false,
+    type: Boolean,
+    default: false,
+  });
+
   game.settings.register('multi-token-edit', 'presetDocLock', {
     scope: 'world',
     config: false,
@@ -107,6 +113,18 @@ Hooks.once('init', () => {
     type: String,
     default: 'manual',
   });
+
+  game.settings.register('multi-token-edit', 'presetSceneControl', {
+    name: 'Scene Controls: Preset Button',
+    scope: 'world',
+    config: true,
+    type: Boolean,
+    default: true,
+    onChange: () => {
+      ui.controls.render();
+    },
+  });
+
   // end of Preset Settings
 
   game.settings.register('multi-token-edit', 'pinnedFields', {
@@ -232,6 +250,12 @@ Hooks.once('init', () => {
       },
     ],
     onDown: () => {
+      const app = Object.values(ui.windows).find((w) => w instanceof MassEditPresets);
+      if (app) {
+        app.close(true);
+        return;
+      }
+
       // Special logic for populating Active Effect
       const aeConfig = Object.values(ui.windows).find((x) => x instanceof ActiveEffectConfig);
       if (aeConfig) {
@@ -313,9 +337,13 @@ Hooks.once('init', () => {
   const dragDropHandler = function (wrapped, ...args) {
     if (MassEditPresets.objectHover) {
       this.mouseInteractionManager.cancel(...args);
-      Object.values(ui.windows)
-        .find((x) => x instanceof MassEditPresets)
-        ?.presetFromPlaceable([...canvas.activeLayer.controlled], ...args);
+      const app = Object.values(ui.windows).find((x) => x instanceof MassEditPresets);
+      if (app) {
+        const placeables = canvas.activeLayer.controlled.length
+          ? [...canvas.activeLayer.controlled]
+          : this;
+        app.presetFromPlaceable(placeables, ...args);
+      }
     } else {
       return wrapped(...args);
     }
@@ -330,6 +358,9 @@ Hooks.once('init', () => {
     );
   });
 
+  // Initialization needed here as it can be accessed via API
+  PresetCollection.initialize();
+
   game.modules.get('multi-token-edit').api = {
     applyRandomization, // Deprecated
     applyAddSubtract, // Deprecated
@@ -340,12 +371,14 @@ Hooks.once('init', () => {
     performMassUpdate,
     performMassSearch,
     showMassEdit,
+    presets: PresetAPI,
   };
 });
 
 // Preset Scene Control
 Hooks.on('renderSceneControls', (sceneControls, html, options) => {
   if (!game.user.isGM) return;
+  if (!game.settings.get('multi-token-edit', 'presetSceneControl')) return;
 
   const presetControl = $(`
 <li class="scene-control mass-edit-scene-control" data-control="me-presets" aria-label="Mass Edit: Presets" role="tab" data-tooltip="Mass Edit: Presets">
@@ -373,38 +406,40 @@ Hooks.on('renderSceneControls', (sceneControls, html, options) => {
 
 // Migrate Presets (02/11/2023)
 Hooks.on('ready', () => {
+  if (game.settings.get('multi-token-edit', 'presetsMigrated')) return;
+
   const presets = game.settings.get('multi-token-edit', 'presets');
-  if (getType(presets) !== 'Object' || isEmpty(presets)) return;
+  if (getType(presets) === 'Object' && !isEmpty(presets)) {
+    let newPresets = [];
+    for (const documentName of Object.keys(presets)) {
+      for (const name of Object.keys(presets[documentName])) {
+        let oldPreset = presets[documentName][name];
+        let newPreset = { id: randomID() };
 
-  let newPresets = [];
-  for (const documentName of Object.keys(presets)) {
-    for (const name of Object.keys(presets[documentName])) {
-      let oldPreset = presets[documentName][name];
-      let newPreset = { id: randomID() };
+        newPreset.name = name;
+        newPreset.documentName = documentName;
+        newPreset.color =
+          oldPreset['mass-edit-preset-color'] !== '#ffffff'
+            ? oldPreset['mass-edit-preset-color']
+            : null;
+        newPreset.order = oldPreset['mass-edit-preset-order'] ?? -1;
+        newPreset.addSubtract = oldPreset['mass-edit-addSubtract'] ?? {};
+        newPreset.randomize = oldPreset['mass-edit-randomize'] ?? {};
 
-      newPreset.name = name;
-      newPreset.documentName = documentName;
-      newPreset.color =
-        oldPreset['mass-edit-preset-color'] !== '#ffffff'
-          ? oldPreset['mass-edit-preset-color']
-          : null;
-      newPreset.order = oldPreset['mass-edit-preset-order'] ?? -1;
-      newPreset.addSubtract = oldPreset['mass-edit-addSubtract'] ?? {};
-      newPreset.randomize = oldPreset['mass-edit-randomize'] ?? {};
+        delete oldPreset['mass-edit-preset-color'];
+        delete oldPreset['mass-edit-preset-order'];
+        delete oldPreset['mass-edit-addSubtract'];
+        delete oldPreset['mass-edit-randomize'];
+        delete oldPreset['mass-edit-keybind'];
+        newPreset.data = deepClone(oldPreset);
 
-      delete oldPreset['mass-edit-preset-color'];
-      delete oldPreset['mass-edit-preset-order'];
-      delete oldPreset['mass-edit-addSubtract'];
-      delete oldPreset['mass-edit-randomize'];
-      delete oldPreset['mass-edit-keybind'];
-      newPreset.data = deepClone(oldPreset);
-
-      newPresets.push(newPreset);
+        newPresets.push(newPreset);
+      }
+      game.settings.set('multi-token-edit', 'docPresets', newPresets);
     }
   }
 
-  game.settings.set('multi-token-edit', 'docPresets', newPresets);
-  game.settings.set('multi-token-edit', 'presets', {});
+  game.settings.set('multi-token-edit', 'presetsMigrated', true);
 });
 
 // Attach Mass Config buttons to Token and Tile HUDs

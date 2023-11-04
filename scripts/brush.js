@@ -151,6 +151,7 @@ export class Brush {
     this.brushOverlay.zIndex = Infinity;
 
     this.brushOverlay.on('mousedown', (event) => {
+      event.preventDefault();
       event.stopPropagation();
       this.brushOverlay.isMouseDown = true;
     });
@@ -158,6 +159,8 @@ export class Brush {
       this._onBrushMove(event);
     });
     this.brushOverlay.on('mouseup', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
       if (event.nativeEvent.which !== 2) {
         this._onBrushMove(event);
       }
@@ -166,6 +169,8 @@ export class Brush {
     });
 
     this.brushOverlay.on('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
       if (event.nativeEvent.which == 2) {
         this.deactivate();
       }

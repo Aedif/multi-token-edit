@@ -3,12 +3,12 @@ import { IS_PRIVATE } from '../scripts/randomizer/randomizerForm.js';
 import {
   getData,
   getDocumentName,
-  spawnPlaceable,
   SUPPORT_SHEET_CONFIGS,
   SUPPORTED_COLLECTIONS,
 } from '../scripts/utils.js';
 import { getClipboardData, pasteDataUpdate, WithMassConfig } from './forms.js';
 import { MassEditGenericForm } from './generic/genericForm.js';
+import { PresetAPI } from './presets.js';
 
 export const LAYER_MAPPINGS = {
   Token: 'tokens',
@@ -226,7 +226,7 @@ export function pasteData() {
     let docName = canvas.activeLayer.constructor.documentName;
     const preset = getClipboardData(docName);
     if (preset) {
-      spawnPlaceable(preset);
+      PresetAPI.spawnPreset({ preset });
       return true;
     }
   }

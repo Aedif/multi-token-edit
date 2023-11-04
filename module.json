@@ -35,5 +35,13 @@
       "private": false,
       "flags": {}
     }
-  ]
+  ],
+  "relationships": {
+    "requires": [
+      {
+        "id": "lib-wrapper",
+        "type": "module"
+      }
+    ]
+  }
 }

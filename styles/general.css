@@ -208,9 +208,7 @@
 }
 
 .mass-edit-preset-form .item.selected {
-  border-style: solid;
   border-color: orange;
-  border-width: 2px;
   background: linear-gradient(#f005, #f005), linear-gradient(#0f05, #0f05);
 }
 

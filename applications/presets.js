@@ -1,9 +1,9 @@
 import { Brush } from '../scripts/brush.js';
 import { importPresetFromJSONDialog } from '../scripts/dialogs.js';
-import { SUPPORTED_PLACEABLES, spawnPlaceable } from '../scripts/utils.js';
+import { SUPPORTED_PLACEABLES } from '../scripts/utils.js';
 import { TokenDataAdapter } from './dataAdapters.js';
 
-class PresetCollection {
+export class PresetCollection {
   static presets;
 
   static syncTimer;
@@ -59,12 +59,193 @@ class PresetCollection {
   /**
    * @returns  {Array[Preset]}
    */
-  static getAll() {
-    return this.presets.contents;
+  static getAll(placeablesOnly = false) {
+    if (placeablesOnly)
+      return this.presets.contents.filter((p) => SUPPORTED_PLACEABLES.includes(p.documentName));
+    else return this.presets.contents;
   }
 
   static getByDoc(documentName) {
     return this.presets.filter((p) => p.documentName === documentName);
+  }
+}
+
+export class PresetAPI {
+  /**
+   * Retrieve saved preset
+   * @param {object} [options={}]
+   * @param {String} [options.id]   Preset ID
+   * @param {String} [options.name] Preset name
+   * @param {String} [options.type] Preset type ("Token", "Tile", etc)
+   * @returns {Preset}
+   */
+  static getPreset({ id = null, name = null, type = null } = {}) {
+    if (id) return PresetCollection.get(id);
+    else if (!name) throw Error('ID or Name required to retrieve a Preset.');
+
+    let presets = PresetCollection.getAll();
+    if (type) presets = presets.filter((p) => p.documentName === type);
+
+    return presets.find((p) => p.name === name)?.clone();
+  }
+
+  /**
+   * Create Presets from passed in placeables
+   * @param {PlaceableObject|Array[PlaceableObject]} placeables Placeable/s to create the presets from.
+   * @param {object} [options={}] Optional Preset information
+   * @param {String} [options.name] Preset name
+   * @param {String} [options.color] Preset background color (e.g. "#ff0000")
+   * @param {String} [options.img] Preset thumbnail image
+   * @returns {Preset|Array[Preset]}
+   */
+  static createPreset(placeables, options = {}) {
+    if (!placeables) return;
+    if (!(placeables instanceof Array)) placeables = [placeables];
+
+    const presets = [];
+
+    for (const placeable of placeables) {
+      let data = placeable.document.toCompendium();
+      delete data.x;
+      delete data.y;
+
+      // Preset data before merging with user provided
+      const defPreset = { name: '', documentName: placeable.document.documentName, data };
+      if (defPreset.documentName === 'Wall') delete data.c;
+
+      switch (defPreset.documentName) {
+        case 'Token':
+          defPreset.name = data.name;
+        case 'Tile':
+        case 'Note':
+          defPreset.img = data.texture.src;
+          break;
+        case 'AmbientSound':
+          defPreset.img = 'icons/svg/sound.svg';
+          break;
+        case 'AmbientLight':
+          defPreset.img = 'icons/svg/light.svg';
+          break;
+        case 'Drawing':
+          defPreset.img = 'icons/svg/acid.svg';
+          break;
+        case 'MeasuredTemplate':
+          defPreset.img = 'icons/svg/circle.svg';
+          break;
+      }
+
+      mergeObject(defPreset, options, { inplace: true });
+
+      const preset = new Preset(defPreset);
+
+      PresetCollection.set(preset);
+      presets.push(preset);
+    }
+    return presets;
+  }
+
+  /**
+   * Spawn a preset on the scene (id, name or preset itself are required).
+   * @param {object} [options={}]
+   * @param {Preset} [options.preset]             Preset
+   * @param {String} [options.id]                 Preset ID
+   * @param {String} [options.name]               Preset name
+   * @param {String} [options.type]               Preset type ("Token", "Tile", etc)
+   * @param {Number} [options.x]                  Spawn canvas x coordinate (required if spawnOnMouse is false)
+   * @param {Number} [options.y]                  Spawn canvas y coordinate (required if spawnOnMouse is false)
+   * @param {Boolean} [options.spawnOnMouse]      If 'true' current mouse position will be used as the spawn position
+   * @param {Boolean} [options.snapToGrid]        If 'true' snaps spawn position to the grid.
+   * @param {Boolean} [options.hidden]            If 'true' preset will be spawned hidden.
+   *
+   */
+  static spawnPreset({
+    id = null,
+    preset = null,
+    name = null,
+    type = null,
+    x = null,
+    y = null,
+    spawnOnMouse = true,
+    snapToGrid = true,
+    hidden = false,
+  } = {}) {
+    if (!canvas.ready) throw Error("Canvas need to be 'ready' for a preset to be spawned.");
+    if (!(id || preset || name)) throw Error('ID, Name, or Preset is needed to spawn it.');
+    if (!spawnOnMouse && (x == null || y == null))
+      throw Error(
+        'X and Y coordinates have to be provided or spawnOnMouse set to true for a preset to be spawned.'
+      );
+
+    preset = preset ?? PresetAPI.getPreset({ id, name, type });
+    if (!preset)
+      throw Error(
+        `No preset could be found matching: { id: "${id}", name: "${name}", type: "${type}"}`
+      );
+
+    if (spawnOnMouse && x == null) {
+      x = canvas.mousePosition.x;
+      y = canvas.mousePosition.y;
+
+      if (preset.documentName === 'Token' || preset.documentName === 'Tile') {
+        x -= canvas.dimensions.size / 2;
+        y -= canvas.dimensions.size / 2;
+      }
+    }
+
+    let pos = { x, y };
+
+    if (snapToGrid) {
+      pos = canvas.grid.getSnappedPosition(
+        pos.x,
+        pos.y,
+        canvas.getLayerByEmbeddedName(preset.documentName).gridPrecision
+      );
+    }
+
+    const randomizer = preset.randomize;
+    if (!isEmpty(randomizer)) {
+      applyRandomization([preset.data], null, randomizer);
+    }
+
+    let data;
+
+    // Set default values if needed
+    switch (preset.documentName) {
+      case 'Token':
+        data = { name: preset.name };
+        break;
+      case 'Tile':
+        data = { width: canvas.grid.w, height: canvas.grid.h };
+        break;
+      case 'AmbientSound':
+        data = { radius: 20 };
+        break;
+      case 'Wall':
+        data = { c: [pos.x, pos.y, pos.x + canvas.grid.w, pos.y] };
+        break;
+      case 'Drawing':
+        data = { 'shape.width': canvas.grid.w * 2, 'shape.height': canvas.grid.h * 2 };
+        break;
+      case 'MeasuredTemplate':
+        data = { distance: 10 };
+        break;
+      case 'AmbientLight':
+        if (!('config.dim' in preset.data) && !('config.bright' in preset.data)) {
+          data = { 'config.dim': 20, 'config.bright': 10 };
+          break;
+        }
+      default:
+        data = {};
+    }
+
+    mergeObject(data, preset.data);
+    mergeObject(data, pos);
+
+    if (hidden || game.keyboard.downKeys.has('AltLeft')) {
+      data.hidden = true;
+    }
+
+    canvas.scene.createEmbeddedDocuments(preset.documentName, [data]);
   }
 }
 
@@ -108,6 +289,10 @@ export class Preset {
       data: this.data,
     };
   }
+
+  clone() {
+    return new Preset(this.toJSON());
+  }
 }
 
 const DOC_ICONS = {
@@ -138,8 +323,6 @@ export class MassEditPresets extends FormApplication {
   constructor(configApp, callback, docName, options = {}) {
     super({}, options);
     this.callback = callback;
-
-    PresetCollection.initialize();
 
     if (!configApp) {
       const docLock = game.settings.get('multi-token-edit', 'presetDocLock');
@@ -286,8 +469,10 @@ export class MassEditPresets extends FormApplication {
     html.find('.toggle-sort').on('click', this._onToggleSort.bind(this));
     html.find('.toggle-doc-lock').on('click', this._onToggleLock.bind(this));
     html.find('.document-select').on('change', this._onDocumentChange.bind(this));
-    html.on('click', '.item-name label, .item .thumbnail', this._onSelectPreset.bind(this));
-    html.on('contextmenu', '.item-name label', this._onRightClickPreset.bind(this));
+    html
+      .find('.item .item-name label, .item .thumbnail')
+      .on('click', this._onSelectPreset.bind(this))
+      .on('contextmenu', this._onRightClickPreset.bind(this));
     html.on('click', '.preset-create', this._onPresetCreate.bind(this));
     html.on('click', '.preset-update a', this._onPresetUpdate.bind(this));
     html.on('click', '.preset-brush', this._onPresetBrush.bind(this));
@@ -413,7 +598,7 @@ export class MassEditPresets extends FormApplication {
   async _onPresetDragOut(event) {
     const id = $(event.originalEvent.target).closest('.item').data('id');
     const preset = PresetCollection.get(id);
-    if (preset) spawnPlaceable(preset);
+    if (preset) PresetAPI.spawnPreset({ preset });
   }
 
   async _onPresetBrush(event) {
@@ -514,48 +699,7 @@ export class MassEditPresets extends FormApplication {
   }
 
   presetFromPlaceable(placeables, event) {
-    const presets = [];
-
-    for (const placeable of placeables) {
-      let data = placeable.document.toCompendium();
-      delete data.x;
-      delete data.y;
-
-      const documentName = placeable.document.documentName;
-      if (documentName === 'Wall') delete data.c;
-
-      const preset = new Preset({
-        name: '',
-        documentName,
-        data,
-      });
-
-      let img;
-      switch (documentName) {
-        case 'Token':
-          preset.name = data.name;
-        case 'Tile':
-        case 'Note':
-          img = data.texture.src;
-          break;
-        case 'AmbientSound':
-          img = 'icons/svg/sound.svg';
-          break;
-        case 'AmbientLight':
-          img = 'icons/svg/light.svg';
-          break;
-        case 'Drawing':
-          img = 'icons/svg/acid.svg';
-          break;
-        case 'MeasuredTemplate':
-          img = 'icons/svg/circle.svg';
-          break;
-      }
-      preset.img = img;
-
-      PresetCollection.set(preset);
-      presets.push(preset);
-    }
+    const presets = PresetAPI.createPreset(placeables);
 
     // Switch to just created preset's category before rendering if not set to 'ALL'
     const documentName = placeables[0].document.documentName;
@@ -574,7 +718,7 @@ export class MassEditPresets extends FormApplication {
     // Order presets
     let presetList;
     if (this.docName === 'ALL') {
-      presetList = PresetCollection.getAll();
+      presetList = PresetCollection.getAll(true);
     } else {
       presetList = PresetCollection.getByDoc(this.docName);
     }

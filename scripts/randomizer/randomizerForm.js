@@ -6,7 +6,7 @@ import { isImage, isVideo, recursiveTraverse } from '../utils.js';
 import { deselectField, nearestStep, selectField } from './randomizerUtils.js';
 import { ColorSlider } from './slider.js';
 
-export const IS_PRIVATE = true;
+export const IS_PRIVATE = false;
 
 export default class RandomizerForm extends FormApplication {
   constructor(title, control, configApp, options) {
