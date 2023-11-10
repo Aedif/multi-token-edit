@@ -1,72 +1,421 @@
 import { Brush } from '../scripts/brush.js';
 import { importPresetFromJSONDialog } from '../scripts/dialogs.js';
+import { SortingHelpersFixed } from '../scripts/fixedSort.js';
 import { SUPPORTED_PLACEABLES } from '../scripts/utils.js';
 import { TokenDataAdapter } from './dataAdapters.js';
 
-export class PresetCollection {
-  static presets;
+// Create folder
+// const folder = new Folder.implementation(foundry.utils.mergeObject({
+//   name: Folder.defaultName(),
+//   sorting: "a"
+// }, {name: "Test Folder", type: "Cards"}), { pack: "world.mass-edit-presets" });
+// Folder.create(folder, {pack: "world.mass-edit-presets"  })
 
-  static syncTimer;
+const META_INDEX_FIELDS = ['id', 'img', 'documentName', 'lSort', 'color'];
+const META_INDEX_ID = 'MassEditMetaData';
+export const MAIN_PACK = 'world.mass-edit-presets';
 
-  static initialize() {
-    if (!this.presets) {
-      this.presets = new foundry.utils.Collection(
-        game.settings.get('multi-token-edit', 'docPresets').map((p) => [p.id, new Preset(p)])
-      );
+const DOCUMENT_FIELDS = ['id', 'name', 'sort', 'folder'];
+
+const FLAG_DATA = {
+  documentName: null,
+  data: null,
+  addSubtract: null,
+  randomize: null,
+};
+
+const PRESET_FIELDS = [
+  'id',
+  'name',
+  'data',
+  'sort',
+  'lSort',
+  'folder',
+  'uuid',
+  'documentName',
+  'color',
+  'addSubtract',
+  'randomize',
+  'img',
+];
+
+class PresetMixed {
+  document;
+
+  constructor(data) {
+    this.id = data.id ?? data._id ?? randomID();
+    this.name = data.name ?? 'Mass Edit Preset';
+    this.documentName = data.documentName;
+    this.bgColor = data.color;
+    this.sort = data.sort ?? 0;
+    this.lSort = data.lSort ?? 0;
+    this.addSubtract = deepClone(data.addSubtract ?? {});
+    this.randomize = deepClone(data.randomize ?? {});
+    this.data = data.data ? deepClone(data.data) : null;
+    this.img = data.img;
+    this.folder = data.folder;
+    this.uuid = data.uuid;
+  }
+
+  set color(color) {
+    try {
+      this.bgColor = new PIXI.Color(color).toHex();
+    } catch (e) {
+      this.bgColor = null;
     }
   }
 
-  static sync() {
-    clearTimeout(this.syncTimer);
-    this.syncTimer = setTimeout(() => this._saveRefresh(), 3000);
+  get color() {
+    return this.bgColor;
   }
 
-  static _saveRefresh() {
-    console.debug('Mass Edit: Saving Presets');
-    game.settings.set(
-      'multi-token-edit',
-      'docPresets',
-      this.presets.contents.map((p) => p.toJSON())
-    );
+  get icon() {
+    return DOC_ICONS[this.documentName] ?? DOC_ICONS.DEFAULT;
   }
 
-  /**
-   * @param {Preset|Array[Preset]} preset
-   */
-  static set(preset) {
-    if (preset instanceof Array) presets.forEach((p) => this.presets.set(p.id, p));
-    else this.presets.set(preset.id, preset);
-    this.sync();
+  get thumbnail() {
+    return this.img || CONST.DEFAULT_TOKEN;
   }
 
-  /**
-   * @param {Preset|Array[Preset]} preset
-   */
-  static delete(preset) {
-    if (preset instanceof Array) presets.forEach((p) => this.presets.delete(p.id));
-    else this.presets.delete(preset.id);
-    this.sync();
+  async load() {
+    if (!this.document && this.uuid) {
+      this.document = await fromUuid(this.uuid);
+      if (this.document) {
+        const preset = this.document.getFlag('multi-token-edit', 'preset') ?? {};
+        this.documentName = preset.documentName;
+        this.img = preset.img;
+        this.data = preset.data;
+        this.randomize = preset.randomize;
+        this.addSubtract = preset.addSubtract;
+      }
+    }
+    return this;
   }
 
-  /**
-   * @param {String} id
-   * @returns  {Preset|null}
-   */
-  static get(id) {
-    return this.presets.get(id);
+  async update(data) {
+    console.log('IN UPDATE', data);
+    if (this.document) {
+      const flagUpdate = {};
+      Object.keys(data).forEach((k) => {
+        if (PRESET_FIELDS.includes(k) && data[k] !== this[k]) {
+          flagUpdate[k] = data[k];
+          this[k] = data[k];
+        }
+      });
+
+      console.log('PARSED UPDATE', flagUpdate);
+      if (!isEmpty(flagUpdate)) {
+        const update = { flags: { 'multi-token-edit': { preset: flagUpdate } } };
+        DOCUMENT_FIELDS.forEach((field) => {
+          if (field in flagUpdate && this.document[field] !== flagUpdate[field]) {
+            update[field] = flagUpdate[field];
+          }
+        });
+
+        console.log('FINAL UPDATE', update);
+        await this.document.update(update);
+      }
+      await this._updateIndex(flagUpdate);
+    } else {
+      console.warn('Updating preset without document', this.id, this.uuid, this.name);
+    }
   }
+
+  async _updateIndex(data) {
+    console.log('IN UPDATE INDEX', data);
+    const update = {};
+
+    META_INDEX_FIELDS.forEach((field) => {
+      if (field in data) update[field] = data[field];
+    });
+
+    console.log('PARSED UPDATE', update);
+    if (!isEmpty(update)) {
+      const pack = game.packs.get(this.document.pack);
+      const metaDoc = await pack.getDocument(META_INDEX_ID);
+      if (metaDoc) {
+        let tmp = {};
+        tmp[this.id] = update;
+        console.log('UPDATING META DOX', tmp);
+        await metaDoc.setFlag('multi-token-edit', 'index', tmp);
+      } else {
+        console.warn(`META INDEX missing in ${this.document.pack}`);
+        return;
+      }
+    }
+  }
+
+  toJSON() {
+    let json = {};
+    PRESET_FIELDS.forEach((field) => {
+      json[field] = this[field];
+    });
+    return json;
+  }
+
+  clone() {
+    return new PresetMixed(this.toJSON());
+  }
+}
+
+export class PresetMixedCollection {
+  static presets;
 
   /**
    * @returns  {Array[Preset]}
    */
-  static getAll(placeablesOnly = false) {
-    if (placeablesOnly)
-      return this.presets.contents.filter((p) => SUPPORTED_PLACEABLES.includes(p.documentName));
-    else return this.presets.contents;
+  static async getAll() {
+    const pack = game.packs.get(MAIN_PACK);
+    return await this.packToTree(pack);
   }
 
-  static getByDoc(documentName) {
-    return this.presets.filter((p) => p.documentName === documentName);
+  static async packToTree(pack) {
+    if (!pack) return null;
+
+    // Setup folders ready for parent/children processing
+    const folders = {};
+    const topLevelFolders = {};
+    const folderContents = pack.folders.contents;
+    for (const f of folderContents) {
+      folders[f._id] = {
+        id: f._id,
+        uuid: f.uuid,
+        name: f.name,
+        sorting: f.sorting,
+        color: f.color,
+        sort: f.sort,
+        children: [],
+        presets: [],
+        draggable: f.pack === MAIN_PACK,
+        expanded: f.expanded,
+      };
+      topLevelFolders[f._id] = folders[f._id];
+    }
+    // If folders have parent folders add them as children and remove them as a top level folder
+    for (const f of folderContents) {
+      if (f.folder) {
+        folders[f.folder.id].children.push(folders[f._id]);
+        delete topLevelFolders[f._id];
+      }
+    }
+
+    // Process presets
+    const allPresets = [];
+    const topLevelPresets = [];
+    let metaIndex = (await pack.getDocument(META_INDEX_ID))?.getFlag('multi-token-edit', 'index');
+
+    const index = pack.index.contents;
+    for (const idx of index) {
+      if (idx._id === META_INDEX_ID) continue;
+      const mIndex = metaIndex[idx._id];
+      const preset = new PresetMixed({ ...idx, ...mIndex, pack: pack.collection });
+      if (preset.folder) folders[preset.folder]?.presets.push(preset);
+      else topLevelPresets.push(preset);
+
+      allPresets.push(preset);
+    }
+
+    // Sort folders
+    const sorting =
+      game.settings.get('multi-token-edit', 'presetSortMode') === 'manual' ? 'm' : 'a';
+    const sortedFolders = this._sortFolders(Object.values(topLevelFolders), sorting);
+    const sortedPresets = this._sortPresets(topLevelPresets, sorting);
+
+    return { folders: sortedFolders, presets: sortedPresets, allPresets, allFolders: folders };
+  }
+
+  static _sortFolders(folders, sorting = 'a') {
+    for (const folder of folders) {
+      folder.children = this._sortFolders(folder.children, folder.sorting);
+      folder.presets = this._sortPresets(folder.presets, folder.sorting);
+    }
+
+    if (sorting === 'a')
+      return folders.sort((f1, f2) => f1.name.localeCompare(f2.name, 'en', { numeric: true }));
+    else return folders.sort((f1, f2) => f1.sort - f2.sort);
+  }
+
+  static _sortPresets(presets, sorting = 'a') {
+    if (sorting === 'a')
+      return presets.sort((p1, p2) => p1.name.localeCompare(p2.name, 'en', { numeric: true }));
+    else return presets.sort((p1, p2) => p1.sort - p2.sort);
+  }
+
+  static async packToPresets(pack) {
+    if (!pack) return [];
+
+    const presets = [];
+
+    let metaIndex = (await pack.getDocument(META_INDEX_ID))?.getFlag('multi-token-edit', 'index');
+
+    const index = pack.index.contents;
+    for (const idx of index) {
+      if (idx._id === META_INDEX_ID) continue;
+      const mIndex = metaIndex[idx._id];
+      const preset = new PresetMixed({ ...idx, ...mIndex, pack: pack.collection });
+      presets.push(preset);
+    }
+
+    return presets;
+  }
+
+  static async update(preset) {
+    const compendium = await this._initCompendium();
+    const doc = await compendium.getDocument(preset.id);
+    const updateDoc = {
+      name: preset.name,
+      flags: { 'multi-token-edit': { preset: preset.toJSON() } },
+    };
+    await doc.update(updateDoc);
+
+    const metaDoc = await this._initMetaDocument();
+    const update = {};
+    update[preset.id] = {
+      id: preset.id,
+      img: preset.img,
+      documentName: preset.documentName,
+      lSort: preset.lSort,
+      color: preset.color,
+    };
+
+    await metaDoc.setFlag('multi-token-edit', 'index', update);
+  }
+
+  /**
+   * Update multiple presets at the same time
+   * @param {*} updates
+   */
+  static async updatePresets(updates) {
+    // TODO update meta and preset itself
+    await JournalEntry.updateDocuments(updates, { pack: MAIN_PACK });
+  }
+
+  /**
+   * @param {Preset|Array[Preset]} preset
+   */
+  static async set(preset) {
+    if (preset instanceof Array) {
+      for (const p of preset) {
+        await PresetMixedCollection.set(p);
+      }
+      return;
+    }
+
+    const compendium = await this._initCompendium();
+    if (compendium.index.get(preset.id)) {
+      this.update(preset);
+      return;
+    }
+
+    const documents = await JournalEntry.createDocuments(
+      [
+        {
+          _id: preset.id,
+          name: preset.name,
+          flags: { 'multi-token-edit': { preset: preset.toJSON() } },
+        },
+      ],
+      {
+        pack: MAIN_PACK,
+        keepId: true,
+      }
+    );
+
+    preset.uuid = documents[0].uuid;
+
+    const metaDoc = await this._initMetaDocument();
+    const update = {};
+    update[preset.id] = {
+      id: preset.id,
+      img: preset.img,
+      documentName: preset.documentName,
+      lSort: preset.lSort,
+      color: preset.color,
+    };
+
+    metaDoc.setFlag('multi-token-edit', 'index', update);
+  }
+
+  static async get(uuid, { full = true } = {}) {
+    let { collection, documentId, documentType, embedded, doc } = foundry.utils.parseUuid(uuid);
+    const index = collection.index.get(documentId);
+
+    if (index) {
+      const metaIndex = (await collection.getDocument(META_INDEX_ID))?.getFlag(
+        'multi-token-edit',
+        'index'
+      );
+      const mIndex = metaIndex[index._id];
+
+      const preset = new PresetMixed({ ...index, ...mIndex, pack: collection.collection });
+      if (full) await preset.load();
+      return preset;
+    }
+    return null;
+  }
+
+  /**
+   * @param {Preset|Array[Preset]} preset
+   */
+  static async delete(presets) {
+    if (!presets) return;
+    if (!(presets instanceof Array)) presets = [presets];
+
+    const compendium = await this._initCompendium();
+
+    const metaDoc = await this._initMetaDocument();
+    const metaUpdate = {};
+
+    for (const preset of presets) {
+      if (compendium.index.get(preset.id)) {
+        const document = await compendium.getDocument(preset.id);
+        document.delete();
+      }
+      metaUpdate['-=' + preset.id] = null;
+    }
+
+    metaDoc.setFlag('multi-token-edit', 'index', metaUpdate);
+  }
+
+  static async _initCompendium() {
+    let compendium = game.packs.get(MAIN_PACK);
+    if (!compendium) {
+      compendium = await CompendiumCollection.createCompendium({
+        label: 'Mass Edit: Presets',
+        type: 'JournalEntry',
+        ownership: {
+          PLAYER: 'NONE',
+          ASSISTANT: 'NONE',
+        },
+        flags: { 'multi-token-edit': { presets: true } },
+        packageType: 'world',
+      });
+
+      await this._initMetaDocument();
+    }
+
+    return compendium;
+  }
+
+  static async _initMetaDocument() {
+    const compendium = game.packs.get(MAIN_PACK);
+    const metaDoc = await compendium.getDocument(META_INDEX_ID);
+    if (metaDoc) return metaDoc;
+
+    const documents = await JournalEntry.createDocuments(
+      [
+        {
+          _id: META_INDEX_ID,
+          name: '!!! METADATA: DO NOT DELETE !!!',
+          flags: { 'multi-token-edit': { index: {} } },
+        },
+      ],
+      {
+        pack: MAIN_PACK,
+        keepId: true,
+      }
+    );
+    return documents[0];
   }
 }
 
@@ -79,14 +428,17 @@ export class PresetAPI {
    * @param {String} [options.type] Preset type ("Token", "Tile", etc)
    * @returns {Preset}
    */
-  static getPreset({ id = null, name = null, type = null } = {}) {
-    if (id) return PresetCollection.get(id);
+  static async getPreset({ id = null, name = null, type = null } = {}) {
+    if (id) return await PresetMixedCollection.get(id);
     else if (!name) throw Error('ID or Name required to retrieve a Preset.');
 
-    let presets = PresetCollection.getAll();
+    let presets = await PresetMixedCollection.getAll();
     if (type) presets = presets.filter((p) => p.documentName === type);
 
-    return presets.find((p) => p.name === name)?.clone();
+    return presets
+      .find((p) => p.name === name)
+      ?.clone()
+      .load();
   }
 
   /**
@@ -98,7 +450,7 @@ export class PresetAPI {
    * @param {String} [options.img] Preset thumbnail image
    * @returns {Preset|Array[Preset]}
    */
-  static createPreset(placeables, options = {}) {
+  static async createPreset(placeables, options = {}) {
     if (!placeables) return;
     if (!(placeables instanceof Array)) placeables = [placeables];
 
@@ -136,11 +488,11 @@ export class PresetAPI {
 
       mergeObject(defPreset, options, { inplace: true });
 
-      const preset = new Preset(defPreset);
-
-      PresetCollection.set(preset);
+      const preset = new PresetMixed(defPreset);
+      await PresetMixedCollection.set(preset);
       presets.push(preset);
     }
+
     return presets;
   }
 
@@ -259,8 +611,41 @@ export class Preset {
     this.gOrder = preset.gOrder ?? -1;
     this.addSubtract = deepClone(preset.addSubtract ?? {});
     this.randomize = deepClone(preset.randomize ?? {});
-    this.data = deepClone(preset.data ?? {});
+    this.data = preset.data ? deepClone(preset.data) : null;
     this.img = preset.img;
+    this.pack = preset.pack;
+    this.folder = preset.folder;
+  }
+
+  async _loadPreset() {
+    const doc = game.packs.get(this.pack)?.getDocument(this.id);
+    if (doc) {
+      let preset = doc.getFlag('multi-token-edit', 'preset');
+      if (preset) {
+        this.data = preset.data;
+        this.randomize = preset.randomize;
+        this.addSubtract = preset.addSubtract;
+      }
+    }
+  }
+
+  async getData() {
+    if (!this.data && this.pack) {
+      await this._loadPreset();
+      return this.data;
+    }
+    return null;
+  }
+
+  delete() {
+    if (this.pack) {
+      const collection = game.packs.get(this.pack);
+      if (collection) {
+        collection.getDocument(preset.id).then((d) => {
+          d?.delete();
+        });
+      }
+    }
   }
 
   set color(color) {
@@ -287,6 +672,7 @@ export class Preset {
       randomize: this.randomize,
       img: this.img,
       data: this.data,
+      folder: this.folder,
     };
   }
 
@@ -296,6 +682,7 @@ export class Preset {
 }
 
 const DOC_ICONS = {
+  ALL: 'fas fa-globe',
   Token: 'fas fa-user-circle',
   MeasuredTemplate: 'fas fa-ruler-combined',
   Tile: 'fa-solid fa-cubes',
@@ -324,6 +711,10 @@ export class MassEditPresets extends FormApplication {
     super({}, options);
     this.callback = callback;
 
+    // Drag/Drop tracking
+    this.dragType = null;
+    this.dragData = null;
+
     if (!configApp) {
       const docLock = game.settings.get('multi-token-edit', 'presetDocLock');
       this.docName = docLock || docName;
@@ -336,7 +727,7 @@ export class MassEditPresets extends FormApplication {
   static get defaultOptions() {
     return mergeObject(super.defaultOptions, {
       id: 'mass-edit-presets',
-      classes: ['sheet', 'mass-edit-preset-form'],
+      classes: ['sheet'],
       template: 'modules/multi-token-edit/templates/presets.html',
       resizable: true,
       minimizable: false,
@@ -354,9 +745,13 @@ export class MassEditPresets extends FormApplication {
   async getData(options) {
     const data = super.getData(options);
 
-    const presetList = await this._reOrderPresets();
+    // Cache partials
+    await getTemplate('modules/multi-token-edit/templates/generic/preset.html');
+    await getTemplate('modules/multi-token-edit/templates/generic/presetFolder.html');
 
-    data.presets = [];
+    this.tree = await PresetMixedCollection.getAll();
+    data.presets = this.tree.presets;
+    data.folders = this.tree.folders;
 
     data.createEnabled = Boolean(this.configApp);
     data.isPlaceable = this.docName === 'ALL' || SUPPORTED_PLACEABLES.includes(this.docName);
@@ -365,58 +760,73 @@ export class MassEditPresets extends FormApplication {
 
     data.sortMode = SORT_MODES[game.settings.get('multi-token-edit', 'presetSortMode')];
 
-    const aeModeString = function (mode) {
-      let s = Object.keys(CONST.ACTIVE_EFFECT_MODES).find(
-        (k) => CONST.ACTIVE_EFFECT_MODES[k] === mode
-      );
-      return s ?? mode;
-    };
+    // const aeModeString = function (mode) {
+    //   let s = Object.keys(CONST.ACTIVE_EFFECT_MODES).find(
+    //     (k) => CONST.ACTIVE_EFFECT_MODES[k] === mode
+    //   );
+    //   return s ?? mode;
+    // };
 
-    for (const p of presetList) {
-      const fields = p.data;
+    // Process presets
 
-      let title = '';
-      for (const k of Object.keys(fields)) {
-        if (k in p.randomize) {
-          title += `${k}: {{randomized}}\n`;
-        } else if (k in p.addSubtract) {
-          const val = 'value' in p.addSubtract[k] ? p.addSubtract[k].value : fields[k];
-          title += `${k}: ${p.addSubtract[k].method === 'add' ? '+' : '-'}${val}\n`;
-        } else if (k === 'changes' && this.docName === 'ActiveEffect') {
-          fields[k].forEach((c) => {
-            title += `${c.key} | ${aeModeString(c.mode)} | ${c.value} | ${c.priority}\n`;
-          });
-        } else {
-          title += `${k}: ${fields[k]}\n`;
-        }
-      }
+    // for (const p of presetList) {
+    //   const fields = p.data;
 
-      // Convert color to CSS rgba with opacity <1
-      let color;
-      try {
-        if (p.color) color = new PIXI.Color(p.color);
-      } catch (e) {}
-      if (color) {
-        color = color.toUint8RgbArray();
-        color = `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0.3)`;
-      }
+    //   let title = p.documentName;
 
-      data.presets.push({
-        id: p.id,
-        name: p.name,
-        img: p.img || CONST.DEFAULT_TOKEN,
-        title: title,
-        color: color,
-        icon: DOC_ICONS[p.documentName] ?? DOC_ICONS.DEFAULT,
-      });
-    }
+    //   if (p.documentName === 'ActiveEffect') {
+    //     title = '';
+    //     for (const k of Object.keys(fields)) {
+    //       if (k in p.randomize) {
+    //         title += `${k}: {{randomized}}\n`;
+    //       } else if (k in p.addSubtract) {
+    //         const val = 'value' in p.addSubtract[k] ? p.addSubtract[k].value : fields[k];
+    //         title += `${k}: ${p.addSubtract[k].method === 'add' ? '+' : '-'}${val}\n`;
+    //       } else if (k === 'changes' && this.docName === 'ActiveEffect') {
+    //         fields[k].forEach((c) => {
+    //           title += `${c.key} | ${aeModeString(c.mode)} | ${c.value} | ${c.priority}\n`;
+    //         });
+    //       } else {
+    //         title += `${k}: ${fields[k]}\n`;
+    //       }
+    //     }
+    //   }
 
-    data.displayDragDropMessage = data.allowDocumentSwap && !Boolean(data.presets.length);
+    //   // Convert color to CSS rgba with opacity <1
+    //   let color;
+    //   try {
+    //     if (p.color) color = new PIXI.Color(p.color);
+    //   } catch (e) {}
+    //   if (color) {
+    //     color = color.toUint8RgbArray();
+    //     color = `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0.3)`;
+    //   }
+
+    //   data.presets.push({
+    //     uuid: p.uuid,
+    //     name: p.name,
+    //     img: p.img || CONST.DEFAULT_TOKEN,
+    //     title: title,
+    //     color: color,
+    //     icon: DOC_ICONS[p.documentName] ?? DOC_ICONS.DEFAULT,
+    //   });
+    // }
+
+    data.displayDragDropMessage = data.allowDocumentSwap && !Boolean(this.tree.allPresets.length);
 
     data.lastSearch = MassEditPresets.lastSearch;
 
+    data.docs = ['ALL', ...SUPPORTED_PLACEABLES].reduce((obj, key) => {
+      return {
+        ...obj,
+        [key]: DOC_ICONS[key],
+      };
+    }, {});
+
     data.documents = ['ALL', ...SUPPORTED_PLACEABLES];
     data.currentDocument = this.docName;
+
+    data.callback = Boolean(this.callback);
 
     return data;
   }
@@ -426,24 +836,6 @@ export class MassEditPresets extends FormApplication {
    */
   activateListeners(html) {
     super.activateListeners(html);
-
-    import('../scripts/jquery-ui/jquery-ui.js').then((imp) => {
-      import('../scripts/jquery-multisortable/jquery.multisortable.js').then(() => {
-        const app = this;
-        html.find('.preset-items').multisortable({
-          cursor: 'move',
-          placeholder: 'ui-state-highlight',
-          opacity: '0.8',
-          items: '.item',
-          scroll: true,
-          scrollSpeed: 10,
-          scrollSensitivity: 40,
-          stop: function (event, ui) {
-            app._onPresetOrder(event, ui, this);
-          },
-        });
-      });
-    });
 
     const hoverOverlay = html.closest('.window-content').find('.overlay');
     html
@@ -466,16 +858,264 @@ export class MassEditPresets extends FormApplication {
         MassEditPresets.objectHover = false;
       });
 
+    // =====================
+    // Preset multi-select & drag Listeners
+    const itemList = html.find('.item-list');
+
+    // Multi-select
+    html.on('click', '.item', (e) => {
+      const item = $(e.target).closest('.item');
+      const items = itemList.find('.item');
+      const lastSelected = items.filter('.last-selected');
+
+      if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+        lastSelected.removeClass('last-selected');
+        items.removeClass('selected');
+        item.addClass('selected').addClass('last-selected');
+      } else if (e.ctrlKey || e.metaKey) {
+        item.toggleClass('selected');
+        if (item.hasClass('selected')) {
+          lastSelected.removeClass('last-selected');
+          item.addClass('last-selected');
+        } else item.removeClass('last-index');
+      } else if (e.shiftKey) {
+        if (lastSelected.length) {
+          let itemIndex = items.index(item);
+          let lastSelectedIndex = items.index(lastSelected);
+
+          if (itemIndex === lastSelectedIndex) {
+            item.toggleClass('selected');
+            if (item.hasClass('selected')) item.addClass('last-selected');
+            else lastSelected.removeClass('last-selected');
+          } else {
+            let itemArr = items.toArray();
+            if (itemIndex > lastSelectedIndex) {
+              for (let i = lastSelectedIndex; i <= itemIndex; i++)
+                $(itemArr[i]).addClass('selected');
+            } else {
+              for (let i = lastSelectedIndex; i >= itemIndex; i--)
+                $(itemArr[i]).addClass('selected');
+            }
+          }
+        } else {
+          lastSelected.removeClass('last-selected');
+          item.toggleClass('selected');
+          if (item.hasClass('selected')) item.addClass('last-selected');
+        }
+      }
+    });
+    html.on('dragstart', '.item', (event) => {
+      this.dragType = 'item';
+
+      const item = $(event.target).closest('.item');
+
+      // Drag has been started on an item that hasn't been selected
+      // Assume that this is the only item to be dragged and select it
+      if (!item.hasClass('selected')) {
+        itemList.find('.item.selected').removeClass('selected').removeClass('last-selected');
+        item.addClass('selected').addClass('last-selected');
+      }
+
+      const uuids = [];
+      itemList.find('.item.selected').each(function () {
+        uuids.push($(this).data('uuid'));
+      });
+      this.dragData = uuids;
+    });
+    html.on('dragleave', '.item', (event) => {
+      $(event.target).closest('.item').removeClass('drag-bot').removeClass('drag-top');
+    });
+
+    html.on('dragover', '.item', (event) => {
+      if (this.dragType !== 'item') return;
+
+      const targetItem = $(event.target).closest('.item');
+
+      // Check that we're not above a selected item  (i.e. item being dragged)
+      if (targetItem.hasClass('selected')) return;
+
+      // Determine if mouse is hovered over top, middle, or bottom
+      var domRect = event.currentTarget.getBoundingClientRect();
+      let prc = event.offsetY / domRect.height;
+
+      if (prc < 0.2) {
+        targetItem.removeClass('drag-bot').addClass('drag-top');
+      } else if (prc > 0.8) {
+        targetItem.removeClass('drag-top').addClass('drag-bot');
+      }
+    });
+
+    html.on('drop', '.item', (event) => {
+      if (this.dragType !== 'item') return;
+
+      const targetItem = $(event.target).closest('.item');
+
+      const top = targetItem.hasClass('drag-top');
+      targetItem.removeClass('drag-bot').removeClass('drag-top');
+
+      const uuids = this.dragData;
+      if (uuids) {
+        if (!targetItem.hasClass('selected')) {
+          (top ? uuids : uuids.reverse()).forEach((uuid) => {
+            const item = itemList.find(`.item[data-uuid="${uuid}"]`);
+            if (item) {
+              if (top) item.insertBefore(targetItem);
+              else item.insertAfter(targetItem);
+            }
+          });
+        }
+
+        this._onItemSort(uuids, targetItem.data('uuid'), {
+          before: top,
+          folder: targetItem.closest('.folder').data('id'),
+        });
+      }
+
+      this.dragType = null;
+      this.dragData = null;
+    });
+
+    html.on('dragend', '.item', (event) => {
+      if (!checkMouseInWindow(event)) {
+        this._onPresetDragOut(event);
+      }
+    });
+
+    // ================
+    // Folder Listeners
+    html.on('click', '.folder > header', (event) => {
+      const folder = $(event.target).closest('.folder');
+      const uuid = folder.data('uuid');
+      const icon = folder.find('header h3 i').first();
+
+      if (!game.folders._expanded[uuid]) {
+        game.folders._expanded[uuid] = true;
+        folder.removeClass('collapsed');
+        icon.removeClass('fa-folder-closed').addClass('fa-folder-open');
+      } else {
+        game.folders._expanded[uuid] = false;
+        folder.addClass('collapsed');
+        icon.removeClass('fa-folder-open').addClass('fa-folder-closed');
+      }
+    });
+
+    html.on('dragstart', '.folder', (event) => {
+      if (this.dragType == 'item') return;
+      this.dragType = 'folder';
+
+      const folder = $(event.target).closest('.folder');
+      const ids = [folder.data('id')];
+
+      $(event.target)
+        .find('.folder')
+        .each(function () {
+          ids.push($(this).data('id'));
+        });
+
+      this.dragData = ids;
+    });
+
+    html.on('dragleave', '.folder header', (event) => {
+      $(event.target).closest('.folder').removeClass('drag-mid').removeClass('drag-top');
+    });
+
+    html.on('dragover', '.folder header', (event) => {
+      const targetFolder = $(event.target).closest('.folder');
+
+      if (this.dragType === 'folder') {
+        // Check that we're not above folders being dragged
+        if (this.dragData.includes(targetFolder.data('id'))) return;
+
+        // Determine if mouse is hovered over top, middle, or bottom
+        var domRect = event.currentTarget.getBoundingClientRect();
+        let prc = event.offsetY / domRect.height;
+
+        if (prc < 0.2) {
+          targetFolder.removeClass('drag-mid').addClass('drag-top');
+        } else {
+          targetFolder.removeClass('drag-top').addClass('drag-mid');
+        }
+      } else if (this.dragType === 'item') {
+        targetFolder.addClass('drag-mid');
+      }
+    });
+
+    html.on('drop', '.folder header', (event) => {
+      const targetFolder = $(event.target).closest('.folder');
+
+      if (this.dragType === 'folder') {
+        const top = targetFolder.hasClass('drag-top');
+        targetFolder.removeClass('drag-mid').removeClass('drag-top');
+
+        const ids = this.dragData;
+        if (ids) {
+          if (ids.includes(targetFolder.data('id'))) return;
+
+          const id = ids[0];
+          const folder = html.find(`.folder[data-id="${id}"]`);
+          if (folder) {
+            if (top) folder.insertBefore(targetFolder);
+            else targetFolder.find('.folder-items').first().append(folder);
+
+            if (top) {
+              this._onFolderSort(id, targetFolder.data('id'), {
+                inside: false,
+                folder: targetFolder.parent().closest('.folder').data('id') ?? null,
+              });
+            } else {
+              this._onFolderSort(id, null, { inside: true, folder: targetFolder.data('id') });
+            }
+          }
+        }
+      } else if (this.dragType === 'item') {
+        targetFolder.removeClass('drag-mid');
+        const uuids = this.dragData;
+        const presetItems = targetFolder.children('.preset-items');
+        uuids?.forEach((uuid) => {
+          const item = itemList.find(`.item[data-uuid="${uuid}"]`);
+          if (item.length) presetItems.append(item);
+        });
+        this._onItemSort(uuids, null, {
+          folder: targetFolder.data('id'),
+        });
+      }
+
+      this.dragType = null;
+      this.dragData = null;
+    });
+
+    html.on('drop', '.top-level-preset-items', (event) => {
+      if (this.dragType === 'folder') {
+        const target = html.find('.top-level-folder-items');
+        const folder = html.find(`.folder[data-id="${this.dragData[0]}"]`);
+        target.append(folder);
+        this._onFolderSort(this.dragData[0], null);
+      } else if (this.dragType === 'item') {
+        const target = html.find('.top-level-preset-items');
+        const uuids = this.dragData;
+        uuids?.forEach((uuid) => {
+          const item = itemList.find(`.item[data-uuid="${uuid}"]`);
+          if (item.length) target.append(item);
+        });
+        this._onItemSort(uuids, null);
+      }
+
+      this.dragType = null;
+      this.dragData = null;
+    });
+    // End of Folder Listeners
+    // ================
+
     html.find('.toggle-sort').on('click', this._onToggleSort.bind(this));
     html.find('.toggle-doc-lock').on('click', this._onToggleLock.bind(this));
-    html.find('.document-select').on('change', this._onDocumentChange.bind(this));
+    html.find('.document-select').on('click', this._onDocumentChange.bind(this));
     html
       .find('.item .item-name label, .item .thumbnail')
-      .on('click', this._onSelectPreset.bind(this))
       .on('contextmenu', this._onRightClickPreset.bind(this));
     html.on('click', '.preset-create', this._onPresetCreate.bind(this));
     html.on('click', '.preset-update a', this._onPresetUpdate.bind(this));
     html.on('click', '.preset-brush', this._onPresetBrush.bind(this));
+    html.on('click', '.preset-callback', this._onApplyPreset.bind(this));
 
     const list = html.find('.item');
     const headerSearch = html.find('.header-search input');
@@ -490,6 +1130,75 @@ export class MassEditPresets extends FormApplication {
         });
       })
       .trigger('input');
+  }
+
+  async _onFolderSort(sourceId, targetId, { inside = true, folder = null } = {}) {
+    let source = this.tree.allFolders[sourceId];
+    let target = this.tree.allFolders[targetId];
+
+    let folders;
+    if (folder) folders = this.tree.allFolders[folder].children;
+    else folders = this.tree.folders;
+
+    const siblings = [];
+    for (const folder of folders) {
+      if (folder.id !== sourceId) siblings.push(folder);
+    }
+
+    const result = SortingHelpersFixed.performIntegerSort(source, {
+      target,
+      siblings,
+      sortBefore: true,
+    });
+
+    if (result.length) {
+      const updates = [];
+      result.forEach((ctrl) => {
+        const update = ctrl.update;
+        update._id = ctrl.target.id;
+        update.folder = folder;
+        updates.push(update);
+      });
+      await Folder.updateDocuments(updates, { pack: MAIN_PACK });
+    }
+    this.render(true);
+  }
+
+  // TODO, only works for 1 sourceUuid
+  async _onItemSort(sourceUuids, targetUuid, { before = true, folder = null } = {}) {
+    let sourceUuid = sourceUuids[0];
+    let source = this.tree.allPresets.find((p) => p.uuid === sourceUuid);
+    let target = this.tree.allPresets.find((p) => p.uuid === targetUuid);
+
+    if (source) {
+      // Determine siblings based on folder
+      let presets;
+      if (folder) presets = this.tree.allFolders[folder].presets;
+      else presets = this.tree.presets;
+
+      const siblings = [];
+      for (const preset of presets) {
+        if (preset.uuid !== sourceUuid) siblings.push(preset);
+      }
+
+      const result = SortingHelpersFixed.performIntegerSort(source, {
+        target,
+        siblings,
+        sortBefore: before,
+      });
+
+      if (result.length) {
+        const updates = [];
+        result.forEach((ctrl) => {
+          const update = ctrl.update;
+          update._id = ctrl.target.id;
+          update.folder = folder;
+          updates.push(update);
+        });
+        await PresetMixedCollection.updatePresets(updates);
+      }
+    }
+    this.render(true);
   }
 
   async _onToggleSort(event) {
@@ -516,23 +1225,34 @@ export class MassEditPresets extends FormApplication {
   }
 
   _onDocumentChange(event) {
-    const newDocName = $(event.target).val();
+    const newDocName = $(event.target).closest('.document-select').data('name');
     if (newDocName != this.docName) {
       this.docName = newDocName;
+
+      if (this.docName !== 'ALL') {
+        canvas.getLayerByEmbeddedName(this.docName)?.activate();
+      }
+
       this.render(true);
     }
   }
 
-  _onRightClickPreset(event) {
-    const selected = [];
+  async _onRightClickPreset(event) {
+    const indexes = [];
     $(event.target)
       .closest('.item-list')
       .find('.item.selected')
       .each(function () {
-        const id = $(this).data('id');
-        const preset = PresetCollection.get(id);
-        if (preset) selected.push(preset);
+        const uuid = $(this).data('uuid');
+        indexes.push(uuid);
       });
+
+    const selected = [];
+    for (const uuid of indexes) {
+      const preset = await PresetMixedCollection.get(uuid);
+      if (preset) selected.push(preset);
+    }
+
     this._editPresets(selected, {}, event);
   }
 
@@ -544,66 +1264,34 @@ export class MassEditPresets extends FormApplication {
     }).render(true);
   }
 
-  _onSelectPreset(event) {
-    const id = $(event.target).closest('.item').data('id');
-
-    const preset = PresetCollection.get(id);
-    if (preset) {
-      this.callback(preset);
-    }
-  }
-
-  _onPresetOrder(event, ui, sortable) {
-    // Check if the preset for a placeable has been dragged out onto the canvas
-    if (this.docName === 'ALL' || SUPPORTED_PLACEABLES.includes(this.docName)) {
-      const checkMouseInWindow = function (event) {
-        let app = $(event.target).closest('.window-app');
-        var offset = app.offset();
-        let appX = offset.left;
-        let appY = offset.top;
-        let appW = app.width();
-        let appH = app.height();
-
-        var mouseX = event.pageX;
-        var mouseY = event.pageY;
-
-        if (mouseX > appX && mouseX < appX + appW && mouseY > appY && mouseY < appY + appH) {
-          return true;
-        }
-        return false;
-      };
-
-      if (!checkMouseInWindow(event)) {
-        this._onPresetDragOut(event);
-        $(sortable).sortable('cancel');
-        return false;
-      }
-    }
-
-    if (game.settings.get('multi-token-edit', 'presetSortMode') === 'manual') {
-      const globalSorting = this.docName === 'ALL';
-      $(event.target)
-        .find('.item')
-        .each(function (index) {
-          const id = $(this).data('id');
-          const preset = PresetCollection.get(id);
-          if (preset) {
-            if (globalSorting) preset.gOrder = index;
-            else preset.order = index;
-          }
-        });
+  async _onApplyPreset(event) {
+    if (this.callback) {
+      const uuid = $(event.target).closest('.item').data('uuid');
+      this.callback(await PresetMixedCollection.get(uuid));
     }
   }
 
   async _onPresetDragOut(event) {
-    const id = $(event.originalEvent.target).closest('.item').data('id');
-    const preset = PresetCollection.get(id);
-    if (preset) PresetAPI.spawnPreset({ preset });
+    const uuid = $(event.originalEvent.target).closest('.item').data('uuid');
+    const preset = await PresetMixedCollection.get(uuid);
+
+    // For some reason canvas.mousePosition does not get updated during drag and drop
+    // Acquire the cursor position transformed to Canvas coordinates
+    const [x, y] = [event.clientX, event.clientY];
+    const t = canvas.stage.worldTransform;
+    let mouseX = (x - t.tx) / canvas.stage.scale.x;
+    let mouseY = (y - t.ty) / canvas.stage.scale.y;
+
+    // TODO check if this is necessary for non-Tiles/Tokens
+    mouseX -= canvas.dimensions.size / 2;
+    mouseY -= canvas.dimensions.size / 2;
+
+    if (preset) PresetAPI.spawnPreset({ preset, x: mouseX, y: mouseY, mousePosition: false });
   }
 
   async _onPresetBrush(event) {
-    const id = $(event.target).closest('.item').data('id');
-    const preset = PresetCollection.get(id);
+    const id = $(event.target).closest('.item').data('uuid');
+    const preset = await PresetMixedCollection.get(uuid);
     if (preset) {
       let activated = Brush.activate({
         preset,
@@ -635,15 +1323,14 @@ export class MassEditPresets extends FormApplication {
   async close(options = {}) {
     if (!Boolean(this.configApp)) Brush.deactivate();
     MassEditPresets.objectHover = false;
-    PresetCollection.sync();
     return super.close(options);
   }
 
-  _onPresetUpdate(event) {
-    const id = $(event.target).closest('.item').data('id');
-    if (!id) return;
+  async _onPresetUpdate(event) {
+    const uuid = $(event.target).closest('.item').data('uuid');
+    if (!uuid) return;
 
-    const preset = PresetCollection.get(id);
+    const preset = await PresetMixedCollection.get(uuid);
     if (!preset) return;
 
     const selectedFields =
@@ -667,14 +1354,13 @@ export class MassEditPresets extends FormApplication {
     preset.data = selectedFields;
     preset.randomize = randomize;
     preset.addSubtract = addSubtract;
-    PresetCollection.sync();
 
     ui.notifications.info(`Preset "${preset.name}" updated`);
 
     this.render(true);
   }
 
-  _onPresetCreate(event) {
+  async _onPresetCreate(event) {
     const selectedFields =
       this.configApp instanceof ActiveEffectConfig
         ? this._getActiveEffectFields()
@@ -684,7 +1370,7 @@ export class MassEditPresets extends FormApplication {
       return;
     }
 
-    const preset = new Preset({
+    const preset = new PresetMixed({
       name: '',
       documentName: this.docName,
       data: selectedFields,
@@ -692,14 +1378,14 @@ export class MassEditPresets extends FormApplication {
       randomize: this.configApp.randomizeFields,
     });
 
-    PresetCollection.set(preset);
+    await PresetMixedCollection.set(preset);
     this.render(true);
 
     this._editPresets([preset], { isCreate: true }, event);
   }
 
-  presetFromPlaceable(placeables, event) {
-    const presets = PresetAPI.createPreset(placeables);
+  async presetFromPlaceable(placeables, event) {
+    const presets = await PresetAPI.createPreset(placeables);
 
     // Switch to just created preset's category before rendering if not set to 'ALL'
     const documentName = placeables[0].document.documentName;
@@ -712,41 +1398,6 @@ export class MassEditPresets extends FormApplication {
 
   _getActiveEffectFields() {
     return { changes: deepClone(this.configApp.object.changes ?? []) };
-  }
-
-  _getPresetsList() {
-    // Order presets
-    let presetList;
-    if (this.docName === 'ALL') {
-      presetList = PresetCollection.getAll(true);
-    } else {
-      presetList = PresetCollection.getByDoc(this.docName);
-    }
-
-    if (game.settings.get('multi-token-edit', 'presetSortMode') === 'manual') {
-      const globalSorting = this.docName === 'ALL';
-      if (globalSorting) presetList.sort((p1, p2) => p1.gOrder - p2.gOrder);
-      else presetList.sort((p1, p2) => p1.order - p2.order);
-    } else {
-      presetList.sort((p1, p2) => p1.name.localeCompare(p2.name, 'en', { numeric: true }));
-    }
-    return presetList;
-  }
-
-  async _reOrderPresets(save = true) {
-    const presetList = this._getPresetsList();
-
-    if (game.settings.get('multi-token-edit', 'presetSortMode') === 'manual') {
-      let order = 0;
-      const globalSorting = this.docName === 'ALL';
-      for (const preset of presetList) {
-        if (globalSorting) preset.gOrder = order;
-        else preset.order = order;
-        order++;
-      }
-    }
-
-    return presetList;
   }
 
   _getHeaderButtons() {
@@ -768,8 +1419,8 @@ export class MassEditPresets extends FormApplication {
     return buttons;
   }
 
-  _onExport() {
-    exportPresets(PresetCollection.getAll());
+  async _onExport() {
+    exportPresets(await PresetMixedCollection.getAll());
   }
 
   async _onImport() {
@@ -783,7 +1434,7 @@ export class MassEditPresets extends FormApplication {
         if (!('documentName' in p)) continue;
         if (!('data' in p) || isEmpty(p.data)) continue;
 
-        PresetCollection.set(new Preset(p));
+        PresetMixedCollection.set(new PresetMixed(p));
         importCount++;
       }
     }
@@ -798,13 +1449,19 @@ export class MassEditPresets extends FormApplication {
    * @param {Object} formData
    */
   async _updateObject(event, formData) {
-    const preset = PresetCollection.get(event.submitter.data.id);
-    if (preset) this.callback(preset);
+    if (this.callback) {
+      this.callback(await PresetMixedCollection.get(event.submitter.data.id));
+    }
   }
 }
 
-function exportPresets(presets, fileName) {
+async function exportPresets(presets, fileName) {
   if (!presets.length) return;
+
+  for (const presets of presets) {
+    await presets.load();
+  }
+
   saveDataToFile(
     JSON.stringify(presets, null, 2),
     'text/json',
@@ -907,33 +1564,34 @@ class PresetConfig extends FormApplication {
     });
   }
 
-  _removePresets() {
-    this.presets.forEach((p) => {
-      PresetCollection.delete(p);
-    });
+  async _removePresets() {
+    await PresetMixedCollection.delete(this.presets);
     this.presets = null;
   }
 
-  _updatePresets(formData) {
+  async _updatePresets(formData) {
     formData.name = formData.name.trim();
     formData.img = formData.img.trim() || null;
     formData.color = formData.color.trim() || null;
 
     if (this.isCreate) {
-      this.presets.forEach((p) => {
-        p.name = formData.name || p.name || 'New Preset';
-        if (formData.img) p.img = formData.img;
-        p.color = formData.color;
-      });
+      for (const preset of this.presets) {
+        await preset.update({
+          name: formData.name || preset.name || 'New Preset',
+          img: formData.img ?? preset.img,
+          color: formData.color ?? preset.color,
+        });
+      }
     } else {
-      this.presets.forEach((p) => {
-        if (formData.name) p.name = formData.name;
-        if (formData.img) p.img = formData.img;
-        if (formData.color) {
-          if (formData.color === '#000000') p.color = null;
-          else p.color = formData.color;
-        }
-      });
+      const update = {
+        name: formData.name,
+        img: formData.img,
+        color: formData.color === '#000000' ? null : formData.color,
+      };
+
+      for (const preset of this.presets) {
+        await preset.update(update);
+      }
     }
   }
 
@@ -942,12 +1600,27 @@ class PresetConfig extends FormApplication {
   /** @override */
   async _updateObject(event, formData) {
     const action = $(event.submitter).data('action');
-    if (action === 'remove') this._removePresets();
-    else this._updatePresets(formData);
-
-    PresetCollection.sync();
+    if (action === 'remove') await this._removePresets();
+    else await this._updatePresets(formData);
 
     if (this.callback) this.callback(this.preset);
     return this.presets;
   }
+}
+
+function checkMouseInWindow(event) {
+  let app = $(event.target).closest('.window-app');
+  var offset = app.offset();
+  let appX = offset.left;
+  let appY = offset.top;
+  let appW = app.width();
+  let appH = app.height();
+
+  var mouseX = event.pageX;
+  var mouseY = event.pageY;
+
+  if (mouseX > appX && mouseX < appX + appW && mouseY > appY && mouseY < appY + appH) {
+    return true;
+  }
+  return false;
 }

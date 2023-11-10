@@ -4,12 +4,12 @@ import { applyRandomization } from './randomizer/randomizerUtils.js';
 
 export const SUPPORTED_PLACEABLES = [
   'Token',
+  'MeasuredTemplate',
   'Tile',
   'Drawing',
   'Wall',
   'AmbientLight',
   'AmbientSound',
-  'MeasuredTemplate',
   'Note',
 ];
 

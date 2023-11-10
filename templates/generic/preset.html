@@ -1,0 +1,25 @@
+<li class="item item-s flexrow" data-uuid="{{preset.uuid}}" name="{{preset.name}}" {{#if preset.color}}style="background-color: {{preset.color}};"{{/if}} draggable="true">
+    
+    <img class="thumbnail" src="{{preset.thumbnail}}">
+
+    <div class="item-name flexrow">
+        <label title="{{preset.title}}" name="{{preset.name}}">{{preset.name}} </label>
+    </div>
+
+    <div class="item-controls flexrow {{#unless refreshEnabled}}short{{/unless}}">
+    {{#if createEnabled}}
+        <div class="item-control preset-update"><a title="Update Preset"><i class="fas fa-sync"></i></a></div>
+        &nbsp;
+    {{/if}}
+    {{#if isPlaceable}}
+    <div class="item-control preset-brush">
+        <a title="Activate Brush"><i class="fas fa-paint-brush"></i></a>
+    </div>
+    {{/if}}
+    {{#if callback}}
+    &nbsp;
+    <div class="item-control preset-callback"><a title="Apply"><i class="fa-solid fa-arrow-right-to-arc"></i></a></div>
+     {{/if}}
+    </div>
+    <i class="icon {{preset.icon}}"></i>
+</li>

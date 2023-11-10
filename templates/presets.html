@@ -3,14 +3,14 @@
 
     <header class="preset-header flexcol">
         {{#if allowDocumentSwap}}
+
         <div class="header-select flexrow">
-            <select class="document-select">
-                {{#each documents as |document|}}
-                <option value="{{document}}" {{#if (eq document ../currentDocument)}}selected="selected"{{/if}}>{{document}}</option>
-                {{/each}}
-            </select>
-            <a class="header-control toggle-doc-lock {{#if docLockActive}}active{{/if}}" data-tooltip="Lock as default on form open."><i class="fa-solid fa-lock"></i></a>
+            {{#each docs}}
+            <a class="document-select {{#if (eq @key ../currentDocument)}}active{{/if}}" title="{{@key}}" data-name="{{@key}}"><i class="{{this}} fa-lg"></i></a>
+            {{/each}}
+            <a class="header-control toggle-doc-lock {{#if docLockActive}}active{{/if}}" data-tooltip="Lock '{{currentDocument}}' as default on form open."><i class="fa-solid fa-lock"></i></a>
         </div>
+
         {{/if}}
         {{#if createEnabled}}
         <div class="header-actions action-buttons flexrow">
@@ -29,41 +29,21 @@
     <h2 style="text-align: center; margin-top: 100%; margin-bottom: 100%; border: none;">Drag a placeable in to create a preset.</h2>
     {{/if}}
 
-    {{#unless displayDragDropMessage}}    
-    <ol class="item-list preset-items">
-        <!-- <li class="items-header flexrow">
-            <label class="flexrow">Presets</label>
-            <div class="item-controls flexrow {{#unless createEnabled}}short{{/unless}}">
-                {{#if createEnabled}}
-                <a class="item-control preset-create" title="Create New Preset" data-type="objective">
-                    <i class="fas fa-plus"></i>
-                </a>
-                {{/if}}
-            </div>
-        </li> -->
-        {{#each presets as |preset|}}
-        <li class="item flexrow" data-id="{{preset.id}}" name="{{preset.name}}" {{#if preset.color}}style="background-color: {{preset.color}};"{{/if}}>
+    {{#unless displayDragDropMessage}}
 
-            <img class="thumbnail" src="{{preset.img}}">
+    <div class="item-list preset-items folder-items" >
 
-            <div class="item-name flexrow">
-                <label title="{{preset.title}}" name="{{preset.name}}">{{preset.name}} </label>
-            </div>
+        <ol class="folder-items top-level-folder-items">
+            {{#each folders as |folder|}}
+            {{>modules/multi-token-edit/templates/generic/presetFolder.html folder=folder refreshEnabled=../refreshEnabled createEnabled=../createEnabled isPlaceable=../isPlaceable callback=../callback}}
+            {{/each}}
+        </ol>
 
-            <div class="item-controls flexrow {{#unless ../refreshEnabled}}short{{/unless}}">
-            {{#if ../createEnabled}}
-                <div class="item-control preset-update"><a title="Update Preset"><i class="fas fa-sync"></i></a></div>
-                &nbsp;
-            {{/if}}
-            {{#if ../isPlaceable}}
-            <div class="item-control preset-brush">
-                <a title="Activate Brush"><i class="fas fa-paint-brush"></i></a>
-            </div>
-            {{/if}}
-            </div>
-            <i class="icon {{preset.icon}}"></i>
-        </li>
-        {{/each}}
-    </ol>
+        <ol class="preset-items top-level-preset-items">
+            {{#each presets as |preset|}}
+            {{>modules/multi-token-edit/templates/generic/preset.html preset=preset refreshEnabled=../refreshEnabled createEnabled=../createEnabled isPlaceable=../isPlaceable callback=../callback}}
+            {{/each}}
+        </ol>
+    </div>
     {{/unless}}
 </form>

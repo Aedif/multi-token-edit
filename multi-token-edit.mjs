@@ -7,7 +7,12 @@ import {
   showGenericForm,
 } from './applications/multiConfig.js';
 import CSSEdit, { STYLES } from './applications/cssEdit.js';
-import { MassEditPresets, PresetAPI, PresetCollection } from './applications/presets.js';
+import {
+  MAIN_PACK,
+  MassEditPresets,
+  PresetAPI,
+  PresetMixedCollection,
+} from './applications/presets.js';
 import {
   checkApplySpecialFields,
   deleteFromClipboard,
@@ -266,14 +271,7 @@ Hooks.once('init', () => {
       const docName = canvas.activeLayer.constructor.documentName;
       if (!SUPPORTED_PLACEABLES.includes(docName)) return;
 
-      new MassEditPresets(
-        null,
-        (preset) => {
-          // const [target, selected] = getSelected();
-          // if (target) pasteDataUpdate(selected, preset);
-        },
-        docName
-      ).render(true);
+      new MassEditPresets(null, null, docName).render(true);
     },
     restricted: true,
     precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
@@ -358,9 +356,6 @@ Hooks.once('init', () => {
     );
   });
 
-  // Initialization needed here as it can be accessed via API
-  PresetCollection.initialize();
-
   game.modules.get('multi-token-edit').api = {
     applyRandomization, // Deprecated
     applyAddSubtract, // Deprecated
@@ -372,6 +367,7 @@ Hooks.once('init', () => {
     performMassSearch,
     showMassEdit,
     presets: PresetAPI,
+    presetsMixed: PresetMixedCollection,
   };
 });
 
@@ -396,7 +392,7 @@ Hooks.on('renderSceneControls', (sceneControls, html, options) => {
       return;
     }
 
-    new MassEditPresets(null, () => {}, docName, {
+    new MassEditPresets(null, null, docName, {
       left: presetControl.position().left + presetControl.width() + 40,
     }).render(true);
   });
@@ -405,7 +401,7 @@ Hooks.on('renderSceneControls', (sceneControls, html, options) => {
 });
 
 // Migrate Presets (02/11/2023)
-Hooks.on('ready', () => {
+Hooks.on('ready', async () => {
   if (game.settings.get('multi-token-edit', 'presetsMigrated')) return;
 
   const presets = game.settings.get('multi-token-edit', 'presets');
@@ -440,6 +436,14 @@ Hooks.on('ready', () => {
   }
 
   game.settings.set('multi-token-edit', 'presetsMigrated', true);
+});
+
+Hooks.on('updateCompendium', (collection) => {
+  if (game.user.isGM && collection.collection === MAIN_PACK) {
+    const app = Object.values(ui.windows)
+      .find((w) => w instanceof MassEditPresets)
+      ?.render(true);
+  }
 });
 
 // Attach Mass Config buttons to Token and Tile HUDs

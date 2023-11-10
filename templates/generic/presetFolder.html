@@ -1,0 +1,13 @@
+<li class="folder {{#unless folder.expanded}}collapsed{{/unless}}" data-id="{{folder.id}}" data-uuid="{{folder.uuid}}" style="border-color: {{folder.color}};" {{#if draggable}}draggable="true"{{/if}}>
+    <header class="handle flexrow" style="background-color: {{folder.color}};"><h3><i class="fas fa-folder-{{#if folder.expanded}}open{{else}}closed{{/if}} fa-fw"></i>{{folder.name}}</h3></header>
+    <ol class="folder-items">
+        {{#each children as |child|}}
+        {{>modules/multi-token-edit/templates/generic/presetFolder.html folder=child refreshEnabled=refreshEnabled createEnabled=createEnabled isPlaceable=isPlaceable callback=callback}}
+        {{/each}}
+    </ol>
+    <ol class="preset-items">
+        {{#each presets as |preset|}}
+        {{>modules/multi-token-edit/templates/generic/preset.html preset=preset refreshEnabled=refreshEnabled createEnabled=createEnabled isPlaceable=isPlaceable callback=callback}}
+        {{/each}}
+    </ol>
+</li>
