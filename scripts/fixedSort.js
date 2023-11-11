@@ -95,6 +95,85 @@ export class SortingHelpersFixed {
     }
   }
 
+  static performIntegerSortMulti(
+    sources,
+    { target = null, siblings = [], sortKey = 'sort', sortBefore } = {}
+  ) {
+    let source = sources[0];
+    // Automatically determine the sorting direction
+    if (sortBefore === undefined) {
+      sortBefore = (source[sortKey] || 0) > (target?.[sortKey] || 0);
+    }
+
+    // Ensure the siblings are sorted
+    siblings = Array.from(siblings);
+    siblings.sort((a, b) => a[sortKey] - b[sortKey]);
+
+    // Determine the index target for the sort
+    let defaultIdx = sortBefore ? siblings.length : 0;
+    let idx = target ? siblings.findIndex((sib) => sib === target) : defaultIdx;
+
+    // Determine the indices to sort between
+    let min, max;
+    if (sortBefore) [min, max] = this._sortBefore(siblings, idx, sortKey);
+    else [min, max] = this._sortAfter(siblings, idx, sortKey);
+
+    // Easiest case - no siblings
+    if (siblings.length === 0) {
+      return sources.map((s, i) => {
+        return {
+          target: s,
+          update: { [sortKey]: CONST.SORT_INTEGER_DENSITY * (i + 1) },
+        };
+      });
+    }
+
+    // No minimum - sort to beginning
+    else if (Number.isFinite(max) && min === null) {
+      return sources.map((s, i) => {
+        return {
+          target: s,
+          update: { [sortKey]: max - CONST.SORT_INTEGER_DENSITY * (sources.length - i + 1) },
+        };
+      });
+    }
+
+    // No maximum - sort to end
+    else if (Number.isFinite(min) && max === null) {
+      return sources.map((s, i) => {
+        return {
+          target: s,
+          update: { [sortKey]: min + CONST.SORT_INTEGER_DENSITY * (i + 1) },
+        };
+      });
+    }
+
+    // Sort between two
+    else if (Number.isFinite(min) && Number.isFinite(max) && Math.abs(max - min) > sources.length) {
+      let increment = Math.floor((1 / (sources.length + 1)) * Math.abs(max - min));
+      if (increment === 0) increment = 1;
+      min = Math.min(max, min);
+
+      return sources.map((s, i) => {
+        return {
+          target: s,
+          update: { [sortKey]: min + increment * (i + 1) },
+        };
+      });
+    }
+
+    // Reindex all
+    else {
+      siblings.splice(idx + (sortBefore ? 0 : 1), 0, ...sources);
+      return siblings.map((sib, i) => {
+        return {
+          target: sib,
+          update: { [sortKey]: (i + 1) * CONST.SORT_INTEGER_DENSITY },
+        };
+      });
+    }
+  }
+
   /* -------------------------------------------- */
 
   /**

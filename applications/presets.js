@@ -1029,7 +1029,11 @@ export class MassEditPresets extends FormApplication {
     const folder = await fromUuid($(event.target).closest('.folder').data('uuid'));
 
     new Promise((resolve) => {
-      new PresetFolderConfig(folder, { resolve }).render(true);
+      const options = { resolve };
+      options.left = event.originalEvent.x - PresetFolderConfig.defaultOptions.width / 2;
+      options.top = event.originalEvent.y;
+
+      new PresetFolderConfig(folder, options).render(true);
     }).then(() => this.render(true));
   }
 
@@ -1106,40 +1110,39 @@ export class MassEditPresets extends FormApplication {
     this.render(true);
   }
 
-  // TODO, only works for 1 sourceUuid
   async _onItemSort(sourceUuids, targetUuid, { before = true, folder = null } = {}) {
-    let sourceUuid = sourceUuids[0];
-    let source = this.tree.allPresets.find((p) => p.uuid === sourceUuid);
+    const sourceUuidsSet = new Set(sourceUuids);
+    const sources = this.tree.allPresets.filter((p) => sourceUuidsSet.has(p.uuid));
+
     let target = this.tree.allPresets.find((p) => p.uuid === targetUuid);
 
-    if (source) {
-      // Determine siblings based on folder
-      let presets;
-      if (folder) presets = this.tree.allFolders[folder].presets;
-      else presets = this.tree.presets;
+    // Determine siblings based on folder
+    let presets;
+    if (folder) presets = this.tree.allFolders[folder].presets;
+    else presets = this.tree.presets;
 
-      const siblings = [];
-      for (const preset of presets) {
-        if (preset.uuid !== sourceUuid) siblings.push(preset);
-      }
-
-      const result = SortingHelpersFixed.performIntegerSort(source, {
-        target,
-        siblings,
-        sortBefore: before,
-      });
-
-      if (result.length) {
-        const updates = [];
-        result.forEach((ctrl) => {
-          const update = ctrl.update;
-          update._id = ctrl.target.id;
-          update.folder = folder;
-          updates.push(update);
-        });
-        await PresetCollection.updatePresets(updates);
-      }
+    const siblings = [];
+    for (const preset of presets) {
+      if (!sourceUuidsSet.has(preset.uuid)) siblings.push(preset);
     }
+
+    const result = SortingHelpersFixed.performIntegerSortMulti(sources, {
+      target,
+      siblings,
+      sortBefore: before,
+    });
+
+    if (result.length) {
+      const updates = [];
+      result.forEach((ctrl) => {
+        const update = ctrl.update;
+        update._id = ctrl.target.id;
+        update.folder = folder;
+        updates.push(update);
+      });
+      await PresetCollection.updatePresets(updates);
+    }
+
     this.render(true);
   }
 
@@ -1510,6 +1513,9 @@ class PresetConfig extends FormApplication {
 
   activateListeners(html) {
     super.activateListeners(html);
+
+    // Auto-select so that the pre-defined names can be conveniently erased
+    html.find('[name="name"]').select();
 
     // TVA Support
     const tvaButton = html.find('.token-variants-image-select-button');
