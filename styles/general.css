@@ -178,7 +178,8 @@
   background: rgba(255, 255, 240, 0.8);
 }
 
-.mass-edit-preset-form .document-select.active {
+.mass-edit-preset-form .document-select.active,
+.folder-edit .document-select.active {
   color: orange;
 }
 

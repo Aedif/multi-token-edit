@@ -7,12 +7,7 @@ import {
   showGenericForm,
 } from './applications/multiConfig.js';
 import CSSEdit, { STYLES } from './applications/cssEdit.js';
-import {
-  MAIN_PACK,
-  MassEditPresets,
-  PresetAPI,
-  PresetMixedCollection,
-} from './applications/presets.js';
+import { MAIN_PACK, MassEditPresets, PresetAPI, PresetCollection } from './applications/presets.js';
 import {
   checkApplySpecialFields,
   deleteFromClipboard,
@@ -367,7 +362,7 @@ Hooks.once('init', () => {
     performMassSearch,
     showMassEdit,
     presets: PresetAPI,
-    presetsMixed: PresetMixedCollection,
+    presetCollection: PresetCollection,
   };
 });
 

@@ -5,7 +5,7 @@
     <div class="form-group">
         <label>Preset Name</label>
         <div class="form-fields">
-            <input type="text" name="name" placeholder="New Preset" value="{{preset.name}}" autofocus>
+            <input type="text" name="name" placeholder="Preset Name" value="{{preset.name}}" minlength="{{minlength}}" {{#if minlength}}required{{/if}} autofocus>
         </div>
     </div>
 

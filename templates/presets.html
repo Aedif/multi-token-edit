@@ -35,13 +35,17 @@
 
         <ol class="folder-items top-level-folder-items">
             {{#each folders as |folder|}}
-            {{>modules/multi-token-edit/templates/generic/presetFolder.html folder=folder refreshEnabled=../refreshEnabled createEnabled=../createEnabled isPlaceable=../isPlaceable callback=../callback}}
+                {{#if folder.visible}}
+                    {{>modules/multi-token-edit/templates/generic/presetFolder.html folder=folder refreshEnabled=../refreshEnabled createEnabled=../createEnabled isPlaceable=../isPlaceable callback=../callback}}
+                {{/if}}
             {{/each}}
         </ol>
 
         <ol class="preset-items top-level-preset-items">
             {{#each presets as |preset|}}
-            {{>modules/multi-token-edit/templates/generic/preset.html preset=preset refreshEnabled=../refreshEnabled createEnabled=../createEnabled isPlaceable=../isPlaceable callback=../callback}}
+            {{#if preset._visible}}
+                {{>modules/multi-token-edit/templates/generic/preset.html preset=preset refreshEnabled=../refreshEnabled createEnabled=../createEnabled isPlaceable=../isPlaceable callback=../callback}}
+            {{/if}}
             {{/each}}
         </ol>
     </div>

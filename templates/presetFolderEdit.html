@@ -1,0 +1,38 @@
+<form autocomplete="off">
+    <input type="hidden" name="type" value="{{folder.type}}"/>
+    <input type="hidden" name="folder" value="{{folder.folder}}"/>
+
+    <div class="form-group">
+        <label>{{localize "FOLDER.Name"}}</label>
+        <div class="form-fields">
+            <input type="text" name="name" placeholder="{{newName}}" value="{{name}}" autofocus>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label>{{localize "FOLDER.Color"}}</label>
+        <div class="form-fields">
+            {{colorPicker name="color" value=folder.color}}
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label>{{localize "FOLDER.SortMode"}}</label>
+        <div class="form-fields">
+            {{radioBoxes "sorting" sortingModes checked=folder.sorting localize=true}}
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label>Visible in:</label>
+        <div class="form-fields">
+            <div class="flexrow">
+                {{#each docs as |doc|}}
+                <a class="document-select {{#if doc.active}}active{{/if}}" title="{{doc.name}}" data-name="{{doc.name}}"><i class="{{doc.icon}} fa-lg"></i></a>
+                {{/each}}
+            </div>
+        </div>
+    </div>
+
+    <button type="submit"><i class="fas fa-check"></i> {{submitText}}</button>
+</form>

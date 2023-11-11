@@ -39,14 +39,14 @@ const PRESET_FIELDS = [
   'img',
 ];
 
-class PresetMixed {
+export class Preset {
   document;
 
   constructor(data) {
     this.id = data.id ?? data._id ?? randomID();
     this.name = data.name ?? 'Mass Edit Preset';
     this.documentName = data.documentName;
-    this.bgColor = data.color;
+    this._color = data.color;
     this.sort = data.sort ?? 0;
     this.lSort = data.lSort ?? 0;
     this.addSubtract = deepClone(data.addSubtract ?? {});
@@ -55,18 +55,19 @@ class PresetMixed {
     this.img = data.img;
     this.folder = data.folder;
     this.uuid = data.uuid;
+    this._visible = true;
   }
 
   set color(color) {
     try {
-      this.bgColor = new PIXI.Color(color).toHex();
+      this._color = new PIXI.Color(color).toHex();
     } catch (e) {
-      this.bgColor = null;
+      this._color = null;
     }
   }
 
   get color() {
-    return this.bgColor;
+    return this._color;
   }
 
   get icon() {
@@ -154,22 +155,19 @@ class PresetMixed {
   }
 
   clone() {
-    return new PresetMixed(this.toJSON());
+    return new Preset(this.toJSON());
   }
 }
 
-export class PresetMixedCollection {
+export class PresetCollection {
   static presets;
 
-  /**
-   * @returns  {Array[Preset]}
-   */
-  static async getAll() {
+  static async getTree(type) {
     const pack = game.packs.get(MAIN_PACK);
-    return await this.packToTree(pack);
+    return await this.packToTree(pack, type);
   }
 
-  static async packToTree(pack) {
+  static async packToTree(pack, type) {
     if (!pack) return null;
 
     // Setup folders ready for parent/children processing
@@ -188,6 +186,8 @@ export class PresetMixedCollection {
         presets: [],
         draggable: f.pack === MAIN_PACK,
         expanded: f.expanded,
+        folder: f.folder?.id,
+        visible: type ? (f.flags['multi-token-edit']?.types || ['ALL']).includes(type) : true,
       };
       topLevelFolders[f._id] = folders[f._id];
     }
@@ -208,9 +208,15 @@ export class PresetMixedCollection {
     for (const idx of index) {
       if (idx._id === META_INDEX_ID) continue;
       const mIndex = metaIndex[idx._id];
-      const preset = new PresetMixed({ ...idx, ...mIndex, pack: pack.collection });
+      const preset = new Preset({ ...idx, ...mIndex, pack: pack.collection });
       if (preset.folder) folders[preset.folder]?.presets.push(preset);
       else topLevelPresets.push(preset);
+
+      if (type) {
+        if (type === 'ALL') {
+          if (!SUPPORTED_PLACEABLES.includes(preset.documentName)) preset._visible = false;
+        } else if (preset.documentName !== type) preset._visible = false;
+      }
 
       allPresets.push(preset);
     }
@@ -252,7 +258,7 @@ export class PresetMixedCollection {
     for (const idx of index) {
       if (idx._id === META_INDEX_ID) continue;
       const mIndex = metaIndex[idx._id];
-      const preset = new PresetMixed({ ...idx, ...mIndex, pack: pack.collection });
+      const preset = new Preset({ ...idx, ...mIndex, pack: pack.collection });
       presets.push(preset);
     }
 
@@ -296,7 +302,7 @@ export class PresetMixedCollection {
   static async set(preset) {
     if (preset instanceof Array) {
       for (const p of preset) {
-        await PresetMixedCollection.set(p);
+        await PresetCollection.set(p);
       }
       return;
     }
@@ -347,7 +353,7 @@ export class PresetMixedCollection {
       );
       const mIndex = metaIndex[index._id];
 
-      const preset = new PresetMixed({ ...index, ...mIndex, pack: collection.collection });
+      const preset = new Preset({ ...index, ...mIndex, pack: collection.collection });
       if (full) await preset.load();
       return preset;
     }
@@ -428,14 +434,14 @@ export class PresetAPI {
    * @param {String} [options.type] Preset type ("Token", "Tile", etc)
    * @returns {Preset}
    */
-  static async getPreset({ id = null, name = null, type = null } = {}) {
-    if (id) return await PresetMixedCollection.get(id);
-    else if (!name) throw Error('ID or Name required to retrieve a Preset.');
+  static async getPreset({ uuid = null, name = null, type = null } = {}) {
+    if (uuid) return await PresetCollection.get(uuid);
+    else if (!name) throw Error('UUID or Name required to retrieve a Preset.');
 
-    let presets = await PresetMixedCollection.getAll();
-    if (type) presets = presets.filter((p) => p.documentName === type);
+    let { allPresets } = await PresetCollection.getTree();
+    if (type) allPresets = allPresets.filter((p) => p.documentName === type);
 
-    return presets
+    return allPresets
       .find((p) => p.name === name)
       ?.clone()
       .load();
@@ -462,7 +468,7 @@ export class PresetAPI {
       delete data.y;
 
       // Preset data before merging with user provided
-      const defPreset = { name: '', documentName: placeable.document.documentName, data };
+      const defPreset = { name: 'New Preset', documentName: placeable.document.documentName, data };
       if (defPreset.documentName === 'Wall') delete data.c;
 
       switch (defPreset.documentName) {
@@ -488,8 +494,8 @@ export class PresetAPI {
 
       mergeObject(defPreset, options, { inplace: true });
 
-      const preset = new PresetMixed(defPreset);
-      await PresetMixedCollection.set(preset);
+      const preset = new Preset(defPreset);
+      await PresetCollection.set(preset);
       presets.push(preset);
     }
 
@@ -511,7 +517,7 @@ export class PresetAPI {
    *
    */
   static spawnPreset({
-    id = null,
+    uuid = null,
     preset = null,
     name = null,
     type = null,
@@ -522,16 +528,16 @@ export class PresetAPI {
     hidden = false,
   } = {}) {
     if (!canvas.ready) throw Error("Canvas need to be 'ready' for a preset to be spawned.");
-    if (!(id || preset || name)) throw Error('ID, Name, or Preset is needed to spawn it.');
+    if (!(uuid || preset || name)) throw Error('ID, Name, or Preset is needed to spawn it.');
     if (!spawnOnMouse && (x == null || y == null))
       throw Error(
         'X and Y coordinates have to be provided or spawnOnMouse set to true for a preset to be spawned.'
       );
 
-    preset = preset ?? PresetAPI.getPreset({ id, name, type });
+    preset = preset ?? PresetAPI.getPreset({ uuid, name, type });
     if (!preset)
       throw Error(
-        `No preset could be found matching: { id: "${id}", name: "${name}", type: "${type}"}`
+        `No preset could be found matching: { uuid: "${uuid}", name: "${name}", type: "${type}"}`
       );
 
     if (spawnOnMouse && x == null) {
@@ -598,86 +604,6 @@ export class PresetAPI {
     }
 
     canvas.scene.createEmbeddedDocuments(preset.documentName, [data]);
-  }
-}
-
-export class Preset {
-  constructor(preset) {
-    this.id = preset.id ?? randomID();
-    this.name = preset.name ?? 'Mass Edit Preset';
-    this.documentName = preset.documentName;
-    this.bgColor = preset.color;
-    this.order = preset.order ?? -1;
-    this.gOrder = preset.gOrder ?? -1;
-    this.addSubtract = deepClone(preset.addSubtract ?? {});
-    this.randomize = deepClone(preset.randomize ?? {});
-    this.data = preset.data ? deepClone(preset.data) : null;
-    this.img = preset.img;
-    this.pack = preset.pack;
-    this.folder = preset.folder;
-  }
-
-  async _loadPreset() {
-    const doc = game.packs.get(this.pack)?.getDocument(this.id);
-    if (doc) {
-      let preset = doc.getFlag('multi-token-edit', 'preset');
-      if (preset) {
-        this.data = preset.data;
-        this.randomize = preset.randomize;
-        this.addSubtract = preset.addSubtract;
-      }
-    }
-  }
-
-  async getData() {
-    if (!this.data && this.pack) {
-      await this._loadPreset();
-      return this.data;
-    }
-    return null;
-  }
-
-  delete() {
-    if (this.pack) {
-      const collection = game.packs.get(this.pack);
-      if (collection) {
-        collection.getDocument(preset.id).then((d) => {
-          d?.delete();
-        });
-      }
-    }
-  }
-
-  set color(color) {
-    try {
-      this.bgColor = new PIXI.Color(color).toHex();
-    } catch (e) {
-      this.bgColor = null;
-    }
-  }
-
-  get color() {
-    return this.bgColor;
-  }
-
-  toJSON() {
-    return {
-      id: this.id,
-      name: this.name,
-      documentName: this.documentName,
-      color: this.color,
-      order: this.order,
-      gOrder: this.gOrder,
-      addSubtract: this.addSubtract,
-      randomize: this.randomize,
-      img: this.img,
-      data: this.data,
-      folder: this.folder,
-    };
-  }
-
-  clone() {
-    return new Preset(this.toJSON());
   }
 }
 
@@ -749,7 +675,7 @@ export class MassEditPresets extends FormApplication {
     await getTemplate('modules/multi-token-edit/templates/generic/preset.html');
     await getTemplate('modules/multi-token-edit/templates/generic/presetFolder.html');
 
-    this.tree = await PresetMixedCollection.getAll();
+    this.tree = await PresetCollection.getTree(this.docName);
     data.presets = this.tree.presets;
     data.folders = this.tree.folders;
 
@@ -1112,24 +1038,67 @@ export class MassEditPresets extends FormApplication {
     html
       .find('.item .item-name label, .item .thumbnail')
       .on('contextmenu', this._onRightClickPreset.bind(this));
+    html.find('.folder header').on('contextmenu', this._onFolderRightClick.bind(this));
     html.on('click', '.preset-create', this._onPresetCreate.bind(this));
     html.on('click', '.preset-update a', this._onPresetUpdate.bind(this));
     html.on('click', '.preset-brush', this._onPresetBrush.bind(this));
     html.on('click', '.preset-callback', this._onApplyPreset.bind(this));
 
-    const list = html.find('.item');
     const headerSearch = html.find('.header-search input');
-    headerSearch
-      .on('input', (event) => {
-        MassEditPresets.lastSearch = event.target.value;
-        const filter = event.target.value.trim().toLowerCase();
-        list.each(function () {
-          const item = $(this);
-          if (item.attr('name').toLowerCase().includes(filter)) item.show();
-          else item.hide();
-        });
-      })
-      .trigger('input');
+    const items = html.find('.item');
+    const folders = html.find('.folder');
+    headerSearch.on('input', (event) => this._onSearchInput(event, items, folders));
+    if (MassEditPresets.lastSearch) headerSearch.trigger('input');
+  }
+
+  async _onFolderRightClick(event) {
+    const folder = await fromUuid($(event.target).closest('.folder').data('uuid'));
+
+    new Promise((resolve) => {
+      new PresetFolderConfig(folder, { resolve }).render(true);
+    }).then(() => this.render(true));
+  }
+
+  _onSearchInput(event, items, folder) {
+    MassEditPresets.lastSearch = event.target.value;
+
+    if (!MassEditPresets.lastSearch) {
+      this.render(true);
+      return;
+    }
+
+    const matchedFolderIds = new Set();
+    const filter = event.target.value.trim().toLowerCase();
+
+    // First hide/show items
+    const app = this;
+    items.each(function () {
+      const item = $(this);
+      if (item.attr('name').toLowerCase().includes(filter)) {
+        item.show();
+        let folderId = item.closest('.folder').data('id');
+        while (folderId) {
+          matchedFolderIds.add(folderId);
+          const folder = app.tree.allFolders[folderId];
+          console.log(folder);
+          if (folder.folder) folderId = folder.folder;
+          else folderId = null;
+        }
+      } else {
+        item.hide();
+      }
+    });
+
+    // Next hide/show folders depending on whether they contained matched items
+    folder.each(function () {
+      const folder = $(this);
+      if (matchedFolderIds.has(folder.data('id'))) {
+        folder.removeClass('collapsed');
+        folder.show();
+      } else {
+        folder.hide();
+      }
+    });
   }
 
   async _onFolderSort(sourceId, targetId, { inside = true, folder = null } = {}) {
@@ -1195,7 +1164,7 @@ export class MassEditPresets extends FormApplication {
           update.folder = folder;
           updates.push(update);
         });
-        await PresetMixedCollection.updatePresets(updates);
+        await PresetCollection.updatePresets(updates);
       }
     }
     this.render(true);
@@ -1238,6 +1207,18 @@ export class MassEditPresets extends FormApplication {
   }
 
   async _onRightClickPreset(event) {
+    const item = $(event.target).closest('.item');
+
+    // If right-clicked item is not selected, de-select the others and select it
+    if (!item.hasClass('selected')) {
+      item
+        .closest('.item-list')
+        .find('.item.selected')
+        .removeClass('selected')
+        .removeClass('last-selected');
+      item.addClass('selected').addClass('last-selected');
+    }
+
     const indexes = [];
     $(event.target)
       .closest('.item-list')
@@ -1249,11 +1230,11 @@ export class MassEditPresets extends FormApplication {
 
     const selected = [];
     for (const uuid of indexes) {
-      const preset = await PresetMixedCollection.get(uuid);
+      const preset = await PresetCollection.get(uuid);
       if (preset) selected.push(preset);
     }
 
-    this._editPresets(selected, {}, event);
+    if (selected.length) this._editPresets(selected, {}, event);
   }
 
   _editPresets(presets, options = {}, event) {
@@ -1267,13 +1248,14 @@ export class MassEditPresets extends FormApplication {
   async _onApplyPreset(event) {
     if (this.callback) {
       const uuid = $(event.target).closest('.item').data('uuid');
-      this.callback(await PresetMixedCollection.get(uuid));
+      this.callback(await PresetCollection.get(uuid));
     }
   }
 
   async _onPresetDragOut(event) {
     const uuid = $(event.originalEvent.target).closest('.item').data('uuid');
-    const preset = await PresetMixedCollection.get(uuid);
+    const preset = await PresetCollection.get(uuid);
+    if (!preset) return;
 
     // For some reason canvas.mousePosition does not get updated during drag and drop
     // Acquire the cursor position transformed to Canvas coordinates
@@ -1282,16 +1264,17 @@ export class MassEditPresets extends FormApplication {
     let mouseX = (x - t.tx) / canvas.stage.scale.x;
     let mouseY = (y - t.ty) / canvas.stage.scale.y;
 
-    // TODO check if this is necessary for non-Tiles/Tokens
-    mouseX -= canvas.dimensions.size / 2;
-    mouseY -= canvas.dimensions.size / 2;
+    if (preset.documentName === 'Token' || preset.documentName === 'Tile') {
+      mouseX -= canvas.dimensions.size / 2;
+      mouseY -= canvas.dimensions.size / 2;
+    }
 
-    if (preset) PresetAPI.spawnPreset({ preset, x: mouseX, y: mouseY, mousePosition: false });
+    PresetAPI.spawnPreset({ preset, x: mouseX, y: mouseY, mousePosition: false });
   }
 
   async _onPresetBrush(event) {
     const id = $(event.target).closest('.item').data('uuid');
-    const preset = await PresetMixedCollection.get(uuid);
+    const preset = await PresetCollection.get(uuid);
     if (preset) {
       let activated = Brush.activate({
         preset,
@@ -1330,7 +1313,7 @@ export class MassEditPresets extends FormApplication {
     const uuid = $(event.target).closest('.item').data('uuid');
     if (!uuid) return;
 
-    const preset = await PresetMixedCollection.get(uuid);
+    const preset = await PresetCollection.get(uuid);
     if (!preset) return;
 
     const selectedFields =
@@ -1370,15 +1353,15 @@ export class MassEditPresets extends FormApplication {
       return;
     }
 
-    const preset = new PresetMixed({
-      name: '',
+    const preset = new Preset({
+      name: 'New Preset',
       documentName: this.docName,
       data: selectedFields,
       addSubtract: this.configApp.addSubtractFields,
       randomize: this.configApp.randomizeFields,
     });
 
-    await PresetMixedCollection.set(preset);
+    await PresetCollection.set(preset);
     this.render(true);
 
     this._editPresets([preset], { isCreate: true }, event);
@@ -1420,7 +1403,7 @@ export class MassEditPresets extends FormApplication {
   }
 
   async _onExport() {
-    exportPresets(await PresetMixedCollection.getAll());
+    exportPresets((await PresetCollection.getTree()).allPresets);
   }
 
   async _onImport() {
@@ -1434,7 +1417,7 @@ export class MassEditPresets extends FormApplication {
         if (!('documentName' in p)) continue;
         if (!('data' in p) || isEmpty(p.data)) continue;
 
-        PresetMixedCollection.set(new PresetMixed(p));
+        PresetCollection.set(new Preset(p));
         importCount++;
       }
     }
@@ -1450,7 +1433,7 @@ export class MassEditPresets extends FormApplication {
    */
   async _updateObject(event, formData) {
     if (this.callback) {
-      this.callback(await PresetMixedCollection.get(event.submitter.data.id));
+      this.callback(await PresetCollection.get(event.submitter.data.id));
     }
   }
 }
@@ -1544,6 +1527,8 @@ class PresetConfig extends FormApplication {
     data.preset = {};
     if (this.presets.length === 1) data.preset = this.presets[0];
 
+    data.minlength = this.presets.length > 1 ? 0 : 1;
+
     data.tva = game.modules.get('token-variants')?.active;
 
     return data;
@@ -1565,7 +1550,7 @@ class PresetConfig extends FormApplication {
   }
 
   async _removePresets() {
-    await PresetMixedCollection.delete(this.presets);
+    await PresetCollection.delete(this.presets);
     this.presets = null;
   }
 
@@ -1605,6 +1590,100 @@ class PresetConfig extends FormApplication {
 
     if (this.callback) this.callback(this.preset);
     return this.presets;
+  }
+}
+
+class PresetFolderConfig extends FolderConfig {
+  /** @inheritdoc */
+  static get defaultOptions() {
+    return foundry.utils.mergeObject(super.defaultOptions, {
+      classes: ['sheet', 'folder-edit'],
+      template: 'modules/multi-token-edit/templates/presetFolderEdit.html',
+      width: 360,
+    });
+  }
+
+  /* -------------------------------------------- */
+
+  /** @override */
+  get id() {
+    return this.object.id ? super.id : 'folder-create';
+  }
+
+  /* -------------------------------------------- */
+
+  /** @override */
+  get title() {
+    if (this.object.id) return `${game.i18n.localize('FOLDER.Update')}: ${this.object.name}`;
+    return game.i18n.localize('FOLDER.Create');
+  }
+
+  activateListeners(html) {
+    super.activateListeners(html);
+    html.find('.document-select').on('click', this._onDocumentChange.bind(this));
+  }
+
+  _onDocumentChange(event) {
+    $(event.target).closest('.document-select').toggleClass('active');
+  }
+
+  /* -------------------------------------------- */
+
+  /** @inheritdoc */
+  async close(options = {}) {
+    if (!this.options.submitOnClose) this.options.resolve?.(null);
+    return super.close(options);
+  }
+
+  /* -------------------------------------------- */
+
+  /** @override */
+  async getData(options = {}) {
+    const folder = this.document.toObject();
+    const label = game.i18n.localize(Folder.implementation.metadata.label);
+
+    let folderDocs = folder.flags['multi-token-edit']?.types ?? ['ALL'];
+    let docs = [];
+    ['ALL', ...SUPPORTED_PLACEABLES].forEach((type) => {
+      docs.push({ name: type, icon: DOC_ICONS[type], active: folderDocs.includes(type) });
+    });
+
+    return {
+      folder: folder,
+      name: folder._id ? folder.name : '',
+      newName: game.i18n.format('DOCUMENT.New', { type: label }),
+      safeColor: folder.color ?? '#000000',
+      sortingModes: { a: 'FOLDER.SortAlphabetical', m: 'FOLDER.SortManual' },
+      submitText: game.i18n.localize(folder._id ? 'FOLDER.Update' : 'FOLDER.Create'),
+      docs,
+    };
+  }
+
+  /* -------------------------------------------- */
+
+  /** @override */
+  async _updateObject(event, formData) {
+    console.log(this.form);
+
+    let visibleTypes = [];
+    $(this.form)
+      .find('.document-select.active')
+      .each(function () {
+        visibleTypes.push($(this).data('name'));
+      });
+    if (!visibleTypes.length) visibleTypes.push('ALL');
+
+    formData['flags.multi-token-edit.types'] = visibleTypes;
+
+    let doc = this.object;
+    if (!formData.name?.trim()) formData.name = Folder.implementation.defaultName();
+    if (this.object.id) await this.object.update(formData);
+    else {
+      this.object.updateSource(formData);
+      doc = await Folder.create(this.object, { pack: this.object.pack });
+    }
+    this.options.resolve?.(doc);
+    return doc;
   }
 }
 
