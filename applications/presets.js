@@ -11,7 +11,7 @@ import { TokenDataAdapter } from './dataAdapters.js';
 // }, {name: "Test Folder", type: "Cards"}), { pack: "world.mass-edit-presets" });
 // Folder.create(folder, {pack: "world.mass-edit-presets"  })
 
-const META_INDEX_FIELDS = ['id', 'img', 'documentName', 'lSort', 'color'];
+const META_INDEX_FIELDS = ['id', 'img', 'documentName'];
 const META_INDEX_ID = 'MassEditMetaData';
 export const MAIN_PACK = 'world.mass-edit-presets';
 
@@ -29,11 +29,9 @@ const PRESET_FIELDS = [
   'name',
   'data',
   'sort',
-  'lSort',
   'folder',
   'uuid',
   'documentName',
-  'color',
   'addSubtract',
   'randomize',
   'img',
@@ -46,9 +44,7 @@ export class Preset {
     this.id = data.id ?? data._id ?? randomID();
     this.name = data.name ?? 'Mass Edit Preset';
     this.documentName = data.documentName;
-    this._color = data.color;
     this.sort = data.sort ?? 0;
-    this.lSort = data.lSort ?? 0;
     this.addSubtract = deepClone(data.addSubtract ?? {});
     this.randomize = deepClone(data.randomize ?? {});
     this.data = data.data ? deepClone(data.data) : null;
@@ -56,18 +52,6 @@ export class Preset {
     this.folder = data.folder;
     this.uuid = data.uuid;
     this._visible = true;
-  }
-
-  set color(color) {
-    try {
-      this._color = new PIXI.Color(color).toHex();
-    } catch (e) {
-      this._color = null;
-    }
-  }
-
-  get color() {
-    return this._color;
   }
 
   get icon() {
@@ -94,7 +78,6 @@ export class Preset {
   }
 
   async update(data) {
-    console.log('IN UPDATE', data);
     if (this.document) {
       const flagUpdate = {};
       Object.keys(data).forEach((k) => {
@@ -104,7 +87,6 @@ export class Preset {
         }
       });
 
-      console.log('PARSED UPDATE', flagUpdate);
       if (!isEmpty(flagUpdate)) {
         const update = { flags: { 'multi-token-edit': { preset: flagUpdate } } };
         DOCUMENT_FIELDS.forEach((field) => {
@@ -113,7 +95,6 @@ export class Preset {
           }
         });
 
-        console.log('FINAL UPDATE', update);
         await this.document.update(update);
       }
       await this._updateIndex(flagUpdate);
@@ -123,21 +104,18 @@ export class Preset {
   }
 
   async _updateIndex(data) {
-    console.log('IN UPDATE INDEX', data);
     const update = {};
 
     META_INDEX_FIELDS.forEach((field) => {
       if (field in data) update[field] = data[field];
     });
 
-    console.log('PARSED UPDATE', update);
     if (!isEmpty(update)) {
       const pack = game.packs.get(this.document.pack);
       const metaDoc = await pack.getDocument(META_INDEX_ID);
       if (metaDoc) {
         let tmp = {};
         tmp[this.id] = update;
-        console.log('UPDATING META DOX', tmp);
         await metaDoc.setFlag('multi-token-edit', 'index', tmp);
       } else {
         console.warn(`META INDEX missing in ${this.document.pack}`);
@@ -280,8 +258,6 @@ export class PresetCollection {
       id: preset.id,
       img: preset.img,
       documentName: preset.documentName,
-      lSort: preset.lSort,
-      color: preset.color,
     };
 
     await metaDoc.setFlag('multi-token-edit', 'index', update);
@@ -328,6 +304,7 @@ export class PresetCollection {
     );
 
     preset.uuid = documents[0].uuid;
+    preset.document = documents[0];
 
     const metaDoc = await this._initMetaDocument();
     const update = {};
@@ -335,8 +312,6 @@ export class PresetCollection {
       id: preset.id,
       img: preset.img,
       documentName: preset.documentName,
-      lSort: preset.lSort,
-      color: preset.color,
     };
 
     metaDoc.setFlag('multi-token-edit', 'index', update);
@@ -452,7 +427,6 @@ export class PresetAPI {
    * @param {PlaceableObject|Array[PlaceableObject]} placeables Placeable/s to create the presets from.
    * @param {object} [options={}] Optional Preset information
    * @param {String} [options.name] Preset name
-   * @param {String} [options.color] Preset background color (e.g. "#ff0000")
    * @param {String} [options.img] Preset thumbnail image
    * @returns {Preset|Array[Preset]}
    */
@@ -1080,7 +1054,6 @@ export class MassEditPresets extends FormApplication {
         while (folderId) {
           matchedFolderIds.add(folderId);
           const folder = app.tree.allFolders[folderId];
-          console.log(folder);
           if (folder.folder) folderId = folder.folder;
           else folderId = null;
         }
@@ -1239,10 +1212,11 @@ export class MassEditPresets extends FormApplication {
 
   _editPresets(presets, options = {}, event) {
     options.callback = () => this.render(true);
-    new PresetConfig(presets, options, {
-      left: event.originalEvent.x,
-      top: event.originalEvent.y,
-    }).render(true);
+    if (!('left' in options)) {
+      options.left = event.originalEvent.x - PresetConfig.defaultOptions.width / 2;
+      options.top = event.originalEvent.y;
+    }
+    new PresetConfig(presets, options).render(true);
   }
 
   async _onApplyPreset(event) {
@@ -1374,9 +1348,12 @@ export class MassEditPresets extends FormApplication {
     const documentName = placeables[0].document.documentName;
     if (this.docName !== 'ALL' && this.docName !== documentName) this.docName = documentName;
 
-    this.render(true);
+    const options = { isCreate: true };
+    options.left = this.position.left + this.position.width + 20;
+    options.top = this.position.top;
 
-    this._editPresets(presets, { isCreate: true }, event);
+    this._editPresets(presets, options, event);
+    this.render(true);
   }
 
   _getActiveEffectFields() {
@@ -1456,14 +1433,11 @@ class PresetConfig extends FormApplication {
   /**
    * @param {Array[Preset]} presets
    */
-  constructor(presets, { callback = null, isCreate = false } = {}, opts = {}) {
-    if (opts.left !== null) {
-      opts.left = opts.left - PresetConfig.defaultOptions.width / 2;
-    }
-    super({}, opts);
+  constructor(presets, options) {
+    super({}, options);
     this.presets = presets;
-    this.callback = callback;
-    this.isCreate = isCreate;
+    this.callback = options.callback;
+    this.isCreate = options.isCreate;
   }
 
   /** @inheritdoc */
@@ -1557,25 +1531,20 @@ class PresetConfig extends FormApplication {
   async _updatePresets(formData) {
     formData.name = formData.name.trim();
     formData.img = formData.img.trim() || null;
-    formData.color = formData.color.trim() || null;
 
     if (this.isCreate) {
       for (const preset of this.presets) {
         await preset.update({
           name: formData.name || preset.name || 'New Preset',
           img: formData.img ?? preset.img,
-          color: formData.color ?? preset.color,
         });
       }
     } else {
-      const update = {
-        name: formData.name,
-        img: formData.img,
-        color: formData.color === '#000000' ? null : formData.color,
-      };
-
       for (const preset of this.presets) {
-        await preset.update(update);
+        await preset.update({
+          name: formData.name || preset.name,
+          img: formData.img || preset.img,
+        });
       }
     }
   }
@@ -1588,7 +1557,7 @@ class PresetConfig extends FormApplication {
     if (action === 'remove') await this._removePresets();
     else await this._updatePresets(formData);
 
-    if (this.callback) this.callback(this.preset);
+    if (this.callback) this.callback(this.presets);
     return this.presets;
   }
 }
@@ -1663,8 +1632,6 @@ class PresetFolderConfig extends FolderConfig {
 
   /** @override */
   async _updateObject(event, formData) {
-    console.log(this.form);
-
     let visibleTypes = [];
     $(this.form)
       .find('.document-select.active')

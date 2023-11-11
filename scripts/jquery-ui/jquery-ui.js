@@ -170,7 +170,11 @@
 
         // Redefine the child widget using the same prototype that was
         // originally used, but inherit from the new version of the base
-        $.widget(childPrototype.namespace + '.' + childPrototype.widgetName, constructor, child._proto);
+        $.widget(
+          childPrototype.namespace + '.' + childPrototype.widgetName,
+          constructor,
+          child._proto
+        );
       });
 
       // Remove the list of existing child constructors from the old constructor
@@ -253,7 +257,10 @@
             methodValue = instance[options].apply(instance, args);
 
             if (methodValue !== instance && methodValue !== undefined) {
-              returnValue = methodValue && methodValue.jquery ? returnValue.pushStack(methodValue.get()) : methodValue;
+              returnValue =
+                methodValue && methodValue.jquery
+                  ? returnValue.pushStack(methodValue.get())
+                  : methodValue;
               return false;
             }
           });
@@ -441,7 +448,11 @@
 
       for (classKey in value) {
         currentElements = this.classesElementLookup[classKey];
-        if (value[classKey] === this.options.classes[classKey] || !currentElements || !currentElements.length) {
+        if (
+          value[classKey] === this.options.classes[classKey] ||
+          !currentElements ||
+          !currentElements.length
+        ) {
           continue;
         }
 
@@ -603,10 +614,16 @@
           // Allow widgets to customize the disabled handling
           // - disabled as an array instead of boolean
           // - disabled class as method for disabling individual parts
-          if (!suppressDisabledCheck && (instance.options.disabled === true || $(this).hasClass('ui-state-disabled'))) {
+          if (
+            !suppressDisabledCheck &&
+            (instance.options.disabled === true || $(this).hasClass('ui-state-disabled'))
+          ) {
             return;
           }
-          return (typeof handler === 'string' ? instance[handler] : handler).apply(instance, arguments);
+          return (typeof handler === 'string' ? instance[handler] : handler).apply(
+            instance,
+            arguments
+          );
         }
 
         // Copy the guid so direct unbinding works
@@ -627,7 +644,8 @@
     },
 
     _off: function (element, eventName) {
-      eventName = (eventName || '').split(' ').join(this.eventNamespace + ' ') + this.eventNamespace;
+      eventName =
+        (eventName || '').split(' ').join(this.eventNamespace + ' ') + this.eventNamespace;
       element.off(eventName);
 
       // Clear the stack to avoid memory leaks (#10056)
@@ -638,7 +656,10 @@
 
     _delay: function (handler, delay) {
       function handlerProxy() {
-        return (typeof handler === 'string' ? instance[handler] : handler).apply(instance, arguments);
+        return (typeof handler === 'string' ? instance[handler] : handler).apply(
+          instance,
+          arguments
+        );
       }
       var instance = this;
       return setTimeout(handlerProxy, delay || 0);
@@ -674,7 +695,9 @@
 
       data = data || {};
       event = $.Event(event);
-      event.type = (type === this.widgetEventPrefix ? type : this.widgetEventPrefix + type).toLowerCase();
+      event.type = (
+        type === this.widgetEventPrefix ? type : this.widgetEventPrefix + type
+      ).toLowerCase();
 
       // The original event may come from any element
       // so we need to reset the target on the new event
@@ -692,7 +715,8 @@
 
       this.element.trigger(event, data);
       return !(
-        (typeof callback === 'function' && callback.apply(this.element[0], [event].concat(data)) === false) ||
+        (typeof callback === 'function' &&
+          callback.apply(this.element[0], [event].concat(data)) === false) ||
         event.isDefaultPrevented()
       );
     },
@@ -827,11 +851,15 @@
           if (excludeStaticParent && parent.css('position') === 'static') {
             return false;
           }
-          return overflowRegex.test(parent.css('overflow') + parent.css('overflow-y') + parent.css('overflow-x'));
+          return overflowRegex.test(
+            parent.css('overflow') + parent.css('overflow-y') + parent.css('overflow-x')
+          );
         })
         .eq(0);
 
-    return position === 'fixed' || !scrollParent.length ? $(this[0].ownerDocument || document) : scrollParent;
+    return position === 'fixed' || !scrollParent.length
+      ? $(this[0].ownerDocument || document)
+      : scrollParent;
   });
 
   // This file is deprecated
@@ -1312,7 +1340,9 @@
         this.storedCursor = body.css('cursor');
         body.css('cursor', o.cursor);
 
-        this.storedStylesheet = $('<style>*{ cursor: ' + o.cursor + ' !important; }</style>').appendTo(body);
+        this.storedStylesheet = $(
+          '<style>*{ cursor: ' + o.cursor + ' !important; }</style>'
+        ).appendTo(body);
       }
 
       // We need to make sure to grab the zIndex before setting the
@@ -1391,27 +1421,43 @@
         scrolled = false;
 
       if (this.scrollParent[0] !== this.document[0] && this.scrollParent[0].tagName !== 'HTML') {
-        if (this.overflowOffset.top + this.scrollParent[0].offsetHeight - event.pageY < o.scrollSensitivity) {
-          this.scrollParent[0].scrollTop = scrolled = this.scrollParent[0].scrollTop + o.scrollSpeed;
+        if (
+          this.overflowOffset.top + this.scrollParent[0].offsetHeight - event.pageY <
+          o.scrollSensitivity
+        ) {
+          this.scrollParent[0].scrollTop = scrolled =
+            this.scrollParent[0].scrollTop + o.scrollSpeed;
         } else if (event.pageY - this.overflowOffset.top < o.scrollSensitivity) {
-          this.scrollParent[0].scrollTop = scrolled = this.scrollParent[0].scrollTop - o.scrollSpeed;
+          this.scrollParent[0].scrollTop = scrolled =
+            this.scrollParent[0].scrollTop - o.scrollSpeed;
         }
 
-        if (this.overflowOffset.left + this.scrollParent[0].offsetWidth - event.pageX < o.scrollSensitivity) {
-          this.scrollParent[0].scrollLeft = scrolled = this.scrollParent[0].scrollLeft + o.scrollSpeed;
+        if (
+          this.overflowOffset.left + this.scrollParent[0].offsetWidth - event.pageX <
+          o.scrollSensitivity
+        ) {
+          this.scrollParent[0].scrollLeft = scrolled =
+            this.scrollParent[0].scrollLeft + o.scrollSpeed;
         } else if (event.pageX - this.overflowOffset.left < o.scrollSensitivity) {
-          this.scrollParent[0].scrollLeft = scrolled = this.scrollParent[0].scrollLeft - o.scrollSpeed;
+          this.scrollParent[0].scrollLeft = scrolled =
+            this.scrollParent[0].scrollLeft - o.scrollSpeed;
         }
       } else {
         if (event.pageY - this.document.scrollTop() < o.scrollSensitivity) {
           scrolled = this.document.scrollTop(this.document.scrollTop() - o.scrollSpeed);
-        } else if (this.window.height() - (event.pageY - this.document.scrollTop()) < o.scrollSensitivity) {
+        } else if (
+          this.window.height() - (event.pageY - this.document.scrollTop()) <
+          o.scrollSensitivity
+        ) {
           scrolled = this.document.scrollTop(this.document.scrollTop() + o.scrollSpeed);
         }
 
         if (event.pageX - this.document.scrollLeft() < o.scrollSensitivity) {
           scrolled = this.document.scrollLeft(this.document.scrollLeft() - o.scrollSpeed);
-        } else if (this.window.width() - (event.pageX - this.document.scrollLeft()) < o.scrollSensitivity) {
+        } else if (
+          this.window.width() - (event.pageX - this.document.scrollLeft()) <
+          o.scrollSensitivity
+        ) {
           scrolled = this.document.scrollLeft(this.document.scrollLeft() + o.scrollSpeed);
         }
       }
@@ -1608,7 +1654,9 @@
       o = o || {};
 
       $(items).each(function () {
-        var res = ($(o.item || this).attr(o.attribute || 'id') || '').match(o.expression || /(.+)[\-=_](.+)/);
+        var res = ($(o.item || this).attr(o.attribute || 'id') || '').match(
+          o.expression || /(.+)[\-=_](.+)/
+        );
         if (res) {
           str.push((o.key || res[1] + '[]') + '=' + (o.key && o.expression ? res[1] : res[2]));
         }
@@ -1653,7 +1701,8 @@
         this.options.tolerance === 'pointer' ||
         this.options.forcePointerForContainers ||
         (this.options.tolerance !== 'pointer' &&
-          this.helperProportions[this.floating ? 'width' : 'height'] > item[this.floating ? 'width' : 'height'])
+          this.helperProportions[this.floating ? 'width' : 'height'] >
+            item[this.floating ? 'width' : 'height'])
       ) {
         return isOverElement;
       } else {
@@ -1707,12 +1756,14 @@
 
       if (this.floating && horizontalDirection) {
         return (
-          (horizontalDirection === 'right' && isOverRightHalf) || (horizontalDirection === 'left' && !isOverRightHalf)
+          (horizontalDirection === 'right' && isOverRightHalf) ||
+          (horizontalDirection === 'left' && !isOverRightHalf)
         );
       } else {
         return (
           verticalDirection &&
-          ((verticalDirection === 'down' && isOverBottomHalf) || (verticalDirection === 'up' && !isOverBottomHalf))
+          ((verticalDirection === 'down' && isOverBottomHalf) ||
+            (verticalDirection === 'up' && !isOverBottomHalf))
         );
       }
     },
@@ -1736,7 +1787,9 @@
 
     _connectWith: function () {
       var options = this.options;
-      return options.connectWith.constructor === String ? [options.connectWith] : options.connectWith;
+      return options.connectWith.constructor === String
+        ? [options.connectWith]
+        : options.connectWith;
     },
 
     _getItemsAsjQuery: function (connected) {
@@ -1757,7 +1810,9 @@
               queries.push([
                 typeof inst.options.items === 'function'
                   ? inst.options.items.call(inst.element)
-                  : $(inst.options.items, inst.element).not('.ui-sortable-helper').not('.ui-sortable-placeholder'),
+                  : $(inst.options.items, inst.element)
+                      .not('.ui-sortable-helper')
+                      .not('.ui-sortable-placeholder'),
                 inst,
               ]);
             }
@@ -1771,7 +1826,9 @@
               options: this.options,
               item: this.currentItem,
             })
-          : $(this.options.items, this.element).not('.ui-sortable-helper').not('.ui-sortable-placeholder'),
+          : $(this.options.items, this.element)
+              .not('.ui-sortable-helper')
+              .not('.ui-sortable-placeholder'),
         this,
       ]);
 
@@ -1869,7 +1926,11 @@
         item = this.items[i];
 
         //We ignore calculating positions of all connected containers when we're not over them
-        if (this.currentContainer && item.instance !== this.currentContainer && item.item[0] !== this.currentItem[0]) {
+        if (
+          this.currentContainer &&
+          item.instance !== this.currentContainer &&
+          item.item[0] !== this.currentItem[0]
+        ) {
           continue;
         }
 
@@ -1888,7 +1949,9 @@
 
     refreshPositions: function (fast) {
       // Determine whether items are being displayed horizontally
-      this.floating = this.items.length ? this.options.axis === 'x' || this._isFloating(this.items[0].item) : false;
+      this.floating = this.items.length
+        ? this.options.axis === 'x' || this._isFloating(this.items[0].item)
+        : false;
 
       // This has to be redone because due to the item being moved out/into the offsetParent,
       // the offsetParent's position will change
@@ -1929,7 +1992,11 @@
             var element = $('<' + nodeName + '>', that.document[0]);
 
             that
-              ._addClass(element, 'ui-sortable-placeholder', className || that.currentItem[0].className)
+              ._addClass(
+                element,
+                'ui-sortable-placeholder',
+                className || that.currentItem[0].className
+              )
               ._removeClass(element, 'ui-sortable-helper');
 
             if (nodeName === 'tbody') {
@@ -1965,7 +2032,10 @@
             // be the correct height on their own if the row heights are dynamic, so we'll
             // always assign the height of the dragged item given forcePlaceholderSize
             // is true.
-            if (!p.height() || (o.forcePlaceholderSize && (nodeName === 'tbody' || nodeName === 'tr'))) {
+            if (
+              !p.height() ||
+              (o.forcePlaceholderSize && (nodeName === 'tbody' || nodeName === 'tr'))
+            ) {
               p.height(
                 that.currentItem.innerHeight() -
                   parseInt(that.currentItem.css('paddingTop') || 0, 10) -
@@ -2026,7 +2096,10 @@
 
         if (this._intersectsWith(this.containers[i].containerCache)) {
           // If we've already found a container and it's more "inner" than this, then continue
-          if (innermostContainer && $.contains(this.containers[i].element[0], innermostContainer.element[0])) {
+          if (
+            innermostContainer &&
+            $.contains(this.containers[i].element[0], innermostContainer.element[0])
+          ) {
             continue;
           }
 
@@ -2201,7 +2274,9 @@
       // information with an ugly IE fix
       if (
         this.offsetParent[0] === this.document[0].body ||
-        (this.offsetParent[0].tagName && this.offsetParent[0].tagName.toLowerCase() === 'html' && $.ui.ie)
+        (this.offsetParent[0].tagName &&
+          this.offsetParent[0].tagName.toLowerCase() === 'html' &&
+          $.ui.ie)
       ) {
         po = { top: 0, left: 0 };
       }
@@ -2217,7 +2292,8 @@
         var p = this.currentItem.position();
         return {
           top: p.top - (parseInt(this.helper.css('top'), 10) || 0) + this.scrollParent.scrollTop(),
-          left: p.left - (parseInt(this.helper.css('left'), 10) || 0) + this.scrollParent.scrollLeft(),
+          left:
+            p.left - (parseInt(this.helper.css('left'), 10) || 0) + this.scrollParent.scrollLeft(),
         };
       } else {
         return { top: 0, left: 0 };
@@ -2298,7 +2374,10 @@
       var mod = d === 'absolute' ? 1 : -1,
         scroll =
           this.cssPosition === 'absolute' &&
-          !(this.scrollParent[0] !== this.document[0] && $.contains(this.scrollParent[0], this.offsetParent[0]))
+          !(
+            this.scrollParent[0] !== this.document[0] &&
+            $.contains(this.scrollParent[0], this.offsetParent[0])
+          )
             ? this.offsetParent
             : this.scrollParent,
         scrollIsRootNode = /(html|body)/i.test(scroll[0].tagName);
@@ -2311,7 +2390,11 @@
           this.offset.relative.top * mod +
           // The offsetParent's offset without borders (offset + border)
           this.offset.parent.top * mod -
-          (this.cssPosition === 'fixed' ? -this.scrollParent.scrollTop() : scrollIsRootNode ? 0 : scroll.scrollTop()) *
+          (this.cssPosition === 'fixed'
+            ? -this.scrollParent.scrollTop()
+            : scrollIsRootNode
+            ? 0
+            : scroll.scrollTop()) *
             mod,
         left:
           // The absolute mouse position
@@ -2337,7 +2420,10 @@
         pageY = event.pageY,
         scroll =
           this.cssPosition === 'absolute' &&
-          !(this.scrollParent[0] !== this.document[0] && $.contains(this.scrollParent[0], this.offsetParent[0]))
+          !(
+            this.scrollParent[0] !== this.document[0] &&
+            $.contains(this.scrollParent[0], this.offsetParent[0])
+          )
             ? this.offsetParent
             : this.scrollParent,
         scrollIsRootNode = /(html|body)/i.test(scroll[0].tagName);
@@ -2348,7 +2434,9 @@
       // we have to refresh the relative offset during the scroll so there are no jumps
       if (
         this.cssPosition === 'relative' &&
-        !(this.scrollParent[0] !== this.document[0] && this.scrollParent[0] !== this.offsetParent[0])
+        !(
+          this.scrollParent[0] !== this.document[0] && this.scrollParent[0] !== this.offsetParent[0]
+        )
       ) {
         this.offset.relative = this._getRelativeOffset();
       }
@@ -2377,16 +2465,19 @@
         }
 
         if (o.grid) {
-          top = this.originalPageY + Math.round((pageY - this.originalPageY) / o.grid[1]) * o.grid[1];
+          top =
+            this.originalPageY + Math.round((pageY - this.originalPageY) / o.grid[1]) * o.grid[1];
           pageY = this.containment
-            ? top - this.offset.click.top >= this.containment[1] && top - this.offset.click.top <= this.containment[3]
+            ? top - this.offset.click.top >= this.containment[1] &&
+              top - this.offset.click.top <= this.containment[3]
               ? top
               : top - this.offset.click.top >= this.containment[1]
               ? top - o.grid[1]
               : top + o.grid[1]
             : top;
 
-          left = this.originalPageX + Math.round((pageX - this.originalPageX) / o.grid[0]) * o.grid[0];
+          left =
+            this.originalPageX + Math.round((pageX - this.originalPageX) / o.grid[0]) * o.grid[0];
           pageX = this.containment
             ? left - this.offset.click.left >= this.containment[0] &&
               left - this.offset.click.left <= this.containment[2]
@@ -2408,7 +2499,11 @@
           this.offset.relative.top -
           // The offsetParent's offset without borders (offset + border)
           this.offset.parent.top +
-          (this.cssPosition === 'fixed' ? -this.scrollParent.scrollTop() : scrollIsRootNode ? 0 : scroll.scrollTop()),
+          (this.cssPosition === 'fixed'
+            ? -this.scrollParent.scrollTop()
+            : scrollIsRootNode
+            ? 0
+            : scroll.scrollTop()),
         left:
           // The absolute mouse position
           pageX -
@@ -2418,7 +2513,11 @@
           this.offset.relative.left -
           // The offsetParent's offset without borders (offset + border)
           this.offset.parent.left +
-          (this.cssPosition === 'fixed' ? -this.scrollParent.scrollLeft() : scrollIsRootNode ? 0 : scroll.scrollLeft()),
+          (this.cssPosition === 'fixed'
+            ? -this.scrollParent.scrollLeft()
+            : scrollIsRootNode
+            ? 0
+            : scroll.scrollLeft()),
       };
     },
 
@@ -2860,10 +2959,12 @@
 
       if (this.orientation === 'horizontal') {
         pixelTotal = this.elementSize.width;
-        pixelMouse = position.x - this.elementOffset.left - (this._clickOffset ? this._clickOffset.left : 0);
+        pixelMouse =
+          position.x - this.elementOffset.left - (this._clickOffset ? this._clickOffset.left : 0);
       } else {
         pixelTotal = this.elementSize.height;
-        pixelMouse = position.y - this.elementOffset.top - (this._clickOffset ? this._clickOffset.top : 0);
+        pixelMouse =
+          position.y - this.elementOffset.top - (this._clickOffset ? this._clickOffset.top : 0);
       }
 
       percentMouse = pixelMouse / pixelTotal;
@@ -3018,7 +3119,9 @@
       switch (key) {
         case 'orientation':
           this._detectOrientation();
-          this._removeClass('ui-slider-horizontal ui-slider-vertical')._addClass('ui-slider-' + this.orientation);
+          this._removeClass('ui-slider-horizontal ui-slider-vertical')._addClass(
+            'ui-slider-' + this.orientation
+          );
           this._refreshValue();
           if (this.options.range) {
             this._refreshRange(value);
@@ -3178,7 +3281,8 @@
 
       if (this._hasMultipleValues()) {
         this.handles.each(function (i) {
-          valPercent = ((that.values(i) - that._valueMin()) / (that._valueMax() - that._valueMin())) * 100;
+          valPercent =
+            ((that.values(i) - that._valueMin()) / (that._valueMax() - that._valueMin())) * 100;
           _set[that.orientation === 'horizontal' ? 'left' : 'bottom'] = valPercent + '%';
           $(this).stop(1, 1)[animate ? 'animate' : 'css'](_set, o.animate);
           if (that.options.range === true) {
@@ -3313,10 +3417,14 @@
             newVal = this._valueMax();
             break;
           case $.ui.keyCode.PAGE_UP:
-            newVal = this._trimAlignValue(curVal + (this._valueMax() - this._valueMin()) / this.numPages);
+            newVal = this._trimAlignValue(
+              curVal + (this._valueMax() - this._valueMin()) / this.numPages
+            );
             break;
           case $.ui.keyCode.PAGE_DOWN:
-            newVal = this._trimAlignValue(curVal - (this._valueMax() - this._valueMin()) / this.numPages);
+            newVal = this._trimAlignValue(
+              curVal - (this._valueMax() - this._valueMin()) / this.numPages
+            );
             break;
           case $.ui.keyCode.UP:
           case $.ui.keyCode.RIGHT:
