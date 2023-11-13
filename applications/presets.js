@@ -923,6 +923,15 @@ export class MassEditPresets extends FormApplication {
       const uuids = this.dragData;
       if (uuids) {
         if (!targetItem.hasClass('selected')) {
+          // Move HTML Elements
+          (top ? uuids : uuids.reverse()).forEach((uuid) => {
+            const item = itemList.find(`.item[data-uuid="${uuid}"]`);
+            if (item) {
+              if (top) item.insertBefore(targetItem);
+              else item.insertAfter(targetItem);
+            }
+          });
+
           this._onItemSort(uuids, targetItem.data('uuid'), {
             before: top,
             folderUuid: targetItem.closest('.folder').data('uuid'),
@@ -1014,6 +1023,10 @@ export class MassEditPresets extends FormApplication {
           const uuid = uuids[0];
           const folder = html.find(`.folder[data-uuid="${uuid}"]`);
           if (folder) {
+            // Move HTML Elements
+            if (top) folder.insertBefore(targetFolder);
+            else targetFolder.find('.folder-items').first().append(folder);
+
             if (top) {
               this._onFolderSort(uuid, targetFolder.data('uuid'), {
                 inside: false,
@@ -1030,6 +1043,14 @@ export class MassEditPresets extends FormApplication {
       } else if (this.dragType === 'item' && this.draggedElements.hasClass('editable')) {
         targetFolder.removeClass('drag-mid');
         const uuids = this.dragData;
+
+        // Move HTML Elements
+        const presetItems = targetFolder.children('.preset-items');
+        uuids?.forEach((uuid) => {
+          const item = itemList.find(`.item[data-uuid="${uuid}"]`);
+          if (item.length) presetItems.append(item);
+        });
+
         this._onItemSort(uuids, null, {
           folderUuid: targetFolder.data('uuid'),
         });
@@ -1042,9 +1063,21 @@ export class MassEditPresets extends FormApplication {
 
     html.on('drop', '.top-level-preset-items', (event) => {
       if (this.dragType === 'folder') {
+        // Move HTML Elements
+        const target = html.find('.top-level-folder-items');
+        const folder = html.find(`.folder[data-uuid="${this.dragData[0]}"]`);
+        target.append(folder);
+
         this._onFolderSort(this.dragData[0], null);
       } else if (this.dragType === 'item' && this.draggedElements.hasClass('editable')) {
         const uuids = this.dragData;
+
+        // Move HTML Elements
+        uuids?.forEach((uuid) => {
+          const item = itemList.find(`.item[data-uuid="${uuid}"]`);
+          if (item.length) target.append(item);
+        });
+
         this._onItemSort(uuids, null);
       }
 
@@ -1161,10 +1194,11 @@ export class MassEditPresets extends FormApplication {
         update._id = ctrl.target.id;
         update.folder = this.tree.allFolders.get(folderUuid)?.id ?? null;
         updates.push(update);
+
+        ctrl.target.sort = update.sort;
       });
       await Folder.updateDocuments(updates, { pack: MAIN_PACK });
     }
-    this.render(true);
   }
 
   async _onItemSort(sourceUuids, targetUuid, { before = true, folderUuid = null } = {}) {
@@ -1196,11 +1230,13 @@ export class MassEditPresets extends FormApplication {
         update._id = ctrl.target.id;
         update.folder = this.tree.allFolders.get(folderUuid)?.id ?? null;
         updates.push(update);
+
+        ctrl.target.sort = update.sort;
       });
       await PresetCollection.updatePresets(updates);
     }
 
-    this.render(true);
+    // this.render(true);
   }
 
   async _onToggleSort(event) {
@@ -1356,6 +1392,11 @@ export class MassEditPresets extends FormApplication {
     MassEditPresets.objectHover = false;
     return super.close(options);
   }
+
+  // async render(force = false, options = {}) {
+  //   console.log('RENDER');
+  //   return super.render(force, options);
+  // }
 
   async _onPresetUpdate(event) {
     const uuid = $(event.target).closest('.item').data('uuid');

@@ -440,13 +440,14 @@ Hooks.on('ready', async () => {
   game.settings.set('multi-token-edit', 'presetsMigrated', true);
 });
 
-Hooks.on('updateCompendium', (collection) => {
-  if (game.user.isGM && collection.collection === MAIN_PACK) {
-    const app = Object.values(ui.windows)
-      .find((w) => w instanceof MassEditPresets)
-      ?.render(true);
-  }
-});
+// TODO remove, just for testing
+// Hooks.on('updateCompendium', (collection) => {
+//   if (game.user.isGM && collection.collection === MAIN_PACK) {
+//     const app = Object.values(ui.windows)
+//       .find((w) => w instanceof MassEditPresets)
+//       ?.render(true);
+//   }
+// });
 
 // Attach Mass Config buttons to Token and Tile HUDs
 
