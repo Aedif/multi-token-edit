@@ -142,15 +142,16 @@ export class PresetCollection {
 
   static async getTree(type) {
     const pack = game.packs.get(MAIN_PACK);
-    const tree = await this.packToTree(pack, type);
+    const mainTree = await this.packToTree(pack, type);
 
     const staticFolders = [];
     let sort = 0;
     for (const p of game.packs) {
       if (p.collection !== MAIN_PACK && p.metadata.flags['multi-token-edit']?.presets) {
         const tree = await this.packToTree(p, type);
+        if (!tree.hasVisible) continue;
 
-        staticFolders.push({
+        const topFolder = {
           id: p.collection,
           uuid: p.collection,
           name: p.title,
@@ -163,26 +164,36 @@ export class PresetCollection {
           }),
           presets: tree.presets,
           draggable: false,
-          expanded: false,
+          expanded: game.folders._expanded[p.collection],
           folder: null,
           visible: true,
-        });
+        };
+
+        staticFolders.push(topFolder);
+
+        // Collate all folders with the main tree
+        mainTree.allFolders.set(topFolder.uuid, topFolder);
+        for (const [uuid, folder] of tree.allFolders) {
+          mainTree.allFolders.set(uuid, folder);
+        }
       }
     }
-    tree.staticFolders = staticFolders;
+    mainTree.staticFolders = staticFolders;
 
-    return tree;
+    console.log(mainTree);
+
+    return mainTree;
   }
 
   static async packToTree(pack, type) {
     if (!pack) return null;
 
     // Setup folders ready for parent/children processing
-    const folders = {};
-    const topLevelFolders = {};
+    const folders = new Map();
+    const topLevelFolders = new Map();
     const folderContents = pack.folders.contents;
     for (const f of folderContents) {
-      folders[f._id] = {
+      folders.set(f.uuid, {
         id: f._id,
         uuid: f.uuid,
         name: f.name,
@@ -192,23 +203,26 @@ export class PresetCollection {
         children: [],
         presets: [],
         draggable: f.pack === MAIN_PACK,
-        expanded: f.expanded,
-        folder: f.folder?.id,
+        expanded: game.folders._expanded[f.uuid],
+        folder: f.folder?.uuid,
         visible: type ? (f.flags['multi-token-edit']?.types || ['ALL']).includes(type) : true,
-      };
-      topLevelFolders[f._id] = folders[f._id];
+      });
+      topLevelFolders.set(f.uuid, folders.get(f.uuid));
     }
+
     // If folders have parent folders add them as children and remove them as a top level folder
     for (const f of folderContents) {
       if (f.folder) {
-        folders[f.folder.id].children.push(folders[f._id]);
-        delete topLevelFolders[f._id];
+        const parent = folders.get(f.folder.uuid);
+        parent.children.push(folders.get(f.uuid));
+        topLevelFolders.delete(f.uuid);
       }
     }
 
     // Process presets
     const allPresets = [];
     const topLevelPresets = [];
+    let hasVisible = false; // tracks whether there exists at least one visible preset within this tree
     let metaIndex = (await pack.getDocument(META_INDEX_ID))?.getFlag('multi-token-edit', 'index');
 
     const index = pack.index.contents;
@@ -216,8 +230,14 @@ export class PresetCollection {
       if (idx._id === META_INDEX_ID) continue;
       const mIndex = metaIndex[idx._id];
       const preset = new Preset({ ...idx, ...mIndex, pack: pack.collection });
-      if (preset.folder) folders[preset.folder]?.presets.push(preset);
-      else topLevelPresets.push(preset);
+      if (preset.folder) {
+        for (const [uuid, folder] of folders) {
+          if (folder.id === preset.folder) {
+            folder.presets.push(preset);
+            break;
+          }
+        }
+      } else topLevelPresets.push(preset);
 
       if (type) {
         if (type === 'ALL') {
@@ -226,15 +246,22 @@ export class PresetCollection {
       }
 
       allPresets.push(preset);
+      hasVisible |= preset._visible;
     }
 
     // Sort folders
     const sorting =
       game.settings.get('multi-token-edit', 'presetSortMode') === 'manual' ? 'm' : 'a';
-    const sortedFolders = this._sortFolders(Object.values(topLevelFolders), sorting);
+    const sortedFolders = this._sortFolders(Array.from(topLevelFolders.values()), sorting);
     const sortedPresets = this._sortPresets(topLevelPresets, sorting);
 
-    return { folders: sortedFolders, presets: sortedPresets, allPresets, allFolders: folders };
+    return {
+      folders: sortedFolders,
+      presets: sortedPresets,
+      allPresets,
+      allFolders: folders,
+      hasVisible,
+    };
   }
 
   static _sortFolders(folders, sorting = 'a') {
@@ -683,7 +710,7 @@ export class MassEditPresets extends FormApplication {
     this.tree = await PresetCollection.getTree(this.docName);
     data.presets = this.tree.presets;
     data.folders = this.tree.folders;
-    data.staticFolders = this.tree.staticFolders;
+    data.staticFolders = this.tree.staticFolders.length ? this.tree.staticFolders : null;
 
     data.createEnabled = Boolean(this.configApp);
     data.isPlaceable = this.docName === 'ALL' || SUPPORTED_PLACEABLES.includes(this.docName);
@@ -894,7 +921,7 @@ export class MassEditPresets extends FormApplication {
         if (!targetItem.hasClass('selected')) {
           this._onItemSort(uuids, targetItem.data('uuid'), {
             before: top,
-            folder: targetItem.closest('.folder').data('id'),
+            folderUuid: targetItem.closest('.folder').data('uuid'),
           });
         }
       }
@@ -933,15 +960,15 @@ export class MassEditPresets extends FormApplication {
       this.dragType = 'folder';
 
       const folder = $(event.target).closest('.folder');
-      const ids = [folder.data('id')];
+      const uuids = [folder.data('uuid')];
 
       $(event.target)
         .find('.folder')
         .each(function () {
-          ids.push($(this).data('id'));
+          uuids.push($(this).data('uuid'));
         });
 
-      this.dragData = ids;
+      this.dragData = uuids;
     });
 
     html.on('dragleave', '.folder.editable header', (event) => {
@@ -953,7 +980,7 @@ export class MassEditPresets extends FormApplication {
 
       if (this.dragType === 'folder') {
         // Check that we're not above folders being dragged
-        if (this.dragData.includes(targetFolder.data('id'))) return;
+        if (this.dragData.includes(targetFolder.data('uuid'))) return;
 
         // Determine if mouse is hovered over top, middle, or bottom
         var domRect = event.currentTarget.getBoundingClientRect();
@@ -976,20 +1003,23 @@ export class MassEditPresets extends FormApplication {
         const top = targetFolder.hasClass('drag-top');
         targetFolder.removeClass('drag-mid').removeClass('drag-top');
 
-        const ids = this.dragData;
-        if (ids) {
-          if (ids.includes(targetFolder.data('id'))) return;
+        const uuids = this.dragData;
+        if (uuids) {
+          if (uuids.includes(targetFolder.data('uuid'))) return;
 
-          const id = ids[0];
-          const folder = html.find(`.folder[data-id="${id}"]`);
+          const uuid = uuids[0];
+          const folder = html.find(`.folder[data-uuid="${uuid}"]`);
           if (folder) {
             if (top) {
-              this._onFolderSort(id, targetFolder.data('id'), {
+              this._onFolderSort(uuid, targetFolder.data('uuid'), {
                 inside: false,
-                folder: targetFolder.parent().closest('.folder').data('id') ?? null,
+                folderUuid: targetFolder.parent().closest('.folder').data('uuid') ?? null,
               });
             } else {
-              this._onFolderSort(id, null, { inside: true, folder: targetFolder.data('id') });
+              this._onFolderSort(uuid, null, {
+                inside: true,
+                folderUuid: targetFolder.data('uuid'),
+              });
             }
           }
         }
@@ -997,7 +1027,7 @@ export class MassEditPresets extends FormApplication {
         targetFolder.removeClass('drag-mid');
         const uuids = this.dragData;
         this._onItemSort(uuids, null, {
-          folder: targetFolder.data('id'),
+          folderUuid: targetFolder.data('uuid'),
         });
       }
 
@@ -1061,7 +1091,7 @@ export class MassEditPresets extends FormApplication {
       return;
     }
 
-    const matchedFolderIds = new Set();
+    const matchedFolderUuids = new Set();
     const filter = event.target.value.trim().toLowerCase();
 
     // First hide/show items
@@ -1070,12 +1100,13 @@ export class MassEditPresets extends FormApplication {
       const item = $(this);
       if (item.attr('name').toLowerCase().includes(filter)) {
         item.show();
-        let folderId = item.closest('.folder').data('id');
-        while (folderId) {
-          matchedFolderIds.add(folderId);
-          const folder = app.tree.allFolders[folderId];
-          if (folder.folder) folderId = folder.folder;
-          else folderId = null;
+        let folderUuid = item.closest('.folder').data('uuid');
+        while (folderUuid) {
+          matchedFolderUuids.add(folderUuid);
+          console.log(folderUuid);
+          const folder = app.tree.allFolders.get(folderUuid);
+          if (folder.folder) folderUuid = folder.folder;
+          else folderUuid = null;
         }
       } else {
         item.hide();
@@ -1085,7 +1116,7 @@ export class MassEditPresets extends FormApplication {
     // Next hide/show folders depending on whether they contained matched items
     folder.each(function () {
       const folder = $(this);
-      if (matchedFolderIds.has(folder.data('id'))) {
+      if (matchedFolderUuids.has(folder.data('uuid'))) {
         folder.removeClass('collapsed');
         folder.show();
       } else {
@@ -1094,17 +1125,18 @@ export class MassEditPresets extends FormApplication {
     });
   }
 
-  async _onFolderSort(sourceId, targetId, { inside = true, folder = null } = {}) {
-    let source = this.tree.allFolders[sourceId];
-    let target = this.tree.allFolders[targetId];
+  async _onFolderSort(sourceUuid, targetUuid, { inside = true, folderUuid = null } = {}) {
+    console.log('_onFolderSort', sourceUuid, targetUuid, { folderUuid });
+    let source = this.tree.allFolders.get(sourceUuid);
+    let target = this.tree.allFolders.get(targetUuid);
 
     let folders;
-    if (folder) folders = this.tree.allFolders[folder].children;
+    if (folderUuid) folders = this.tree.allFolders.get(folderUuid).children;
     else folders = this.tree.folders;
 
     const siblings = [];
     for (const folder of folders) {
-      if (folder.id !== sourceId) siblings.push(folder);
+      if (folder.uuid !== sourceUuid) siblings.push(folder);
     }
 
     const result = SortingHelpersFixed.performIntegerSort(source, {
@@ -1118,7 +1150,7 @@ export class MassEditPresets extends FormApplication {
       result.forEach((ctrl) => {
         const update = ctrl.update;
         update._id = ctrl.target.id;
-        update.folder = folder;
+        update.folder = this.tree.allFolders.get(folderUuid)?.id ?? null;
         updates.push(update);
       });
       await Folder.updateDocuments(updates, { pack: MAIN_PACK });
@@ -1126,7 +1158,7 @@ export class MassEditPresets extends FormApplication {
     this.render(true);
   }
 
-  async _onItemSort(sourceUuids, targetUuid, { before = true, folder = null } = {}) {
+  async _onItemSort(sourceUuids, targetUuid, { before = true, folderUuid = null } = {}) {
     const sourceUuidsSet = new Set(sourceUuids);
     const sources = this.tree.allPresets.filter((p) => sourceUuidsSet.has(p.uuid));
 
@@ -1134,7 +1166,7 @@ export class MassEditPresets extends FormApplication {
 
     // Determine siblings based on folder
     let presets;
-    if (folder) presets = this.tree.allFolders[folder].presets;
+    if (folderUuid) presets = this.tree.allFolders.get(folderUuid).presets;
     else presets = this.tree.presets;
 
     const siblings = [];
@@ -1153,7 +1185,7 @@ export class MassEditPresets extends FormApplication {
       result.forEach((ctrl) => {
         const update = ctrl.update;
         update._id = ctrl.target.id;
-        update.folder = folder;
+        update.folder = this.tree.allFolders.get(folderUuid)?.id ?? null;
         updates.push(update);
       });
       await PresetCollection.updatePresets(updates);

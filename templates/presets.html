@@ -49,7 +49,8 @@
             {{/each}}
         </ol>
 
-        <label class="static-label">STATIC FOLDERS</label>
+        {{#if staticFolders}}
+        <label class="static-label">OTHER COMPENDIUMS</label>
         <ol class="folder-items static">
             {{#each staticFolders as |folder|}}
                 {{#if folder.visible}}
@@ -57,6 +58,7 @@
                 {{/if}}
             {{/each}}
         </ol>
+        {{/if}}
     </div>
     {{/unless}}
 </form>

@@ -4,7 +4,9 @@ export function constructNav(allData, documentName, customControls) {
     items: [],
     tabs: [],
   };
-  const tabSelectors = [{ navSelector: '.tabs[data-group="main"]', contentSelector: 'form', initial: 'me-pinned' }];
+  const tabSelectors = [
+    { navSelector: '.tabs[data-group="main"]', contentSelector: 'form', initial: 'me-pinned' },
+  ];
 
   // Limit the form to just the keys marked as editable
   let editableKeys;
@@ -22,7 +24,9 @@ export function constructNav(allData, documentName, customControls) {
     }
   }
 
-  const pinned = documentName ? game.settings.get('multi-token-edit', 'pinnedFields')[documentName] || {} : {};
+  const pinned = documentName
+    ? game.settings.get('multi-token-edit', 'pinnedFields')[documentName] || {}
+    : {};
 
   _constructControls(nav, object, tabSelectors, '', pinned, customControls);
 
