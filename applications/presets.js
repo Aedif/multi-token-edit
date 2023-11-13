@@ -142,7 +142,36 @@ export class PresetCollection {
 
   static async getTree(type) {
     const pack = game.packs.get(MAIN_PACK);
-    return await this.packToTree(pack, type);
+    const tree = await this.packToTree(pack, type);
+
+    const staticFolders = [];
+    let sort = 0;
+    for (const p of game.packs) {
+      if (p.collection !== MAIN_PACK && p.metadata.flags['multi-token-edit']?.presets) {
+        const tree = await this.packToTree(p, type);
+
+        staticFolders.push({
+          id: p.collection,
+          uuid: p.collection,
+          name: p.title,
+          sorting: sort,
+          color: '#000000',
+          sort: sort++,
+          children: tree.folders.map((f) => {
+            f.folder = p.collection;
+            return f;
+          }),
+          presets: tree.presets,
+          draggable: false,
+          expanded: false,
+          folder: null,
+          visible: true,
+        });
+      }
+    }
+    tree.staticFolders = staticFolders;
+
+    return tree;
   }
 
   static async packToTree(pack, type) {
@@ -365,6 +394,7 @@ export class PresetCollection {
         label: 'Mass Edit: Presets',
         type: 'JournalEntry',
         ownership: {
+          GAMEMASTER: 'OWNER',
           PLAYER: 'NONE',
           ASSISTANT: 'NONE',
         },
@@ -614,6 +644,7 @@ export class MassEditPresets extends FormApplication {
     // Drag/Drop tracking
     this.dragType = null;
     this.dragData = null;
+    this.draggedElements = null;
 
     if (!configApp) {
       const docLock = game.settings.get('multi-token-edit', 'presetDocLock');
@@ -652,6 +683,7 @@ export class MassEditPresets extends FormApplication {
     this.tree = await PresetCollection.getTree(this.docName);
     data.presets = this.tree.presets;
     data.folders = this.tree.folders;
+    data.staticFolders = this.tree.staticFolders;
 
     data.createEnabled = Boolean(this.configApp);
     data.isPlaceable = this.docName === 'ALL' || SUPPORTED_PLACEABLES.includes(this.docName);
@@ -763,6 +795,7 @@ export class MassEditPresets extends FormApplication {
     const itemList = html.find('.item-list');
 
     // Multi-select
+    // TODO: do not let editable and non-editable items to be selected together
     html.on('click', '.item', (e) => {
       const item = $(e.target).closest('.item');
       const items = itemList.find('.item');
@@ -821,13 +854,15 @@ export class MassEditPresets extends FormApplication {
         uuids.push($(this).data('uuid'));
       });
       this.dragData = uuids;
+      this.draggedElements = itemList.find('.item.selected');
     });
-    html.on('dragleave', '.item', (event) => {
+    html.on('dragleave', '.item.editable', (event) => {
       $(event.target).closest('.item').removeClass('drag-bot').removeClass('drag-top');
     });
 
-    html.on('dragover', '.item', (event) => {
+    html.on('dragover', '.item.editable', (event) => {
       if (this.dragType !== 'item') return;
+      if (!this.draggedElements.hasClass('editable')) return;
 
       const targetItem = $(event.target).closest('.item');
 
@@ -845,8 +880,9 @@ export class MassEditPresets extends FormApplication {
       }
     });
 
-    html.on('drop', '.item', (event) => {
+    html.on('drop', '.item.editable', (event) => {
       if (this.dragType !== 'item') return;
+      if (!this.draggedElements.hasClass('editable')) return;
 
       const targetItem = $(event.target).closest('.item');
 
@@ -856,23 +892,16 @@ export class MassEditPresets extends FormApplication {
       const uuids = this.dragData;
       if (uuids) {
         if (!targetItem.hasClass('selected')) {
-          (top ? uuids : uuids.reverse()).forEach((uuid) => {
-            const item = itemList.find(`.item[data-uuid="${uuid}"]`);
-            if (item) {
-              if (top) item.insertBefore(targetItem);
-              else item.insertAfter(targetItem);
-            }
+          this._onItemSort(uuids, targetItem.data('uuid'), {
+            before: top,
+            folder: targetItem.closest('.folder').data('id'),
           });
         }
-
-        this._onItemSort(uuids, targetItem.data('uuid'), {
-          before: top,
-          folder: targetItem.closest('.folder').data('id'),
-        });
       }
 
       this.dragType = null;
       this.dragData = null;
+      this.draggedElements = null;
     });
 
     html.on('dragend', '.item', (event) => {
@@ -899,7 +928,7 @@ export class MassEditPresets extends FormApplication {
       }
     });
 
-    html.on('dragstart', '.folder', (event) => {
+    html.on('dragstart', '.folder.editable', (event) => {
       if (this.dragType == 'item') return;
       this.dragType = 'folder';
 
@@ -915,11 +944,11 @@ export class MassEditPresets extends FormApplication {
       this.dragData = ids;
     });
 
-    html.on('dragleave', '.folder header', (event) => {
+    html.on('dragleave', '.folder.editable header', (event) => {
       $(event.target).closest('.folder').removeClass('drag-mid').removeClass('drag-top');
     });
 
-    html.on('dragover', '.folder header', (event) => {
+    html.on('dragover', '.folder.editable header', (event) => {
       const targetFolder = $(event.target).closest('.folder');
 
       if (this.dragType === 'folder') {
@@ -935,12 +964,12 @@ export class MassEditPresets extends FormApplication {
         } else {
           targetFolder.removeClass('drag-top').addClass('drag-mid');
         }
-      } else if (this.dragType === 'item') {
+      } else if (this.dragType === 'item' && this.draggedElements.hasClass('editable')) {
         targetFolder.addClass('drag-mid');
       }
     });
 
-    html.on('drop', '.folder header', (event) => {
+    html.on('drop', '.folder.editable header', (event) => {
       const targetFolder = $(event.target).closest('.folder');
 
       if (this.dragType === 'folder') {
@@ -954,9 +983,6 @@ export class MassEditPresets extends FormApplication {
           const id = ids[0];
           const folder = html.find(`.folder[data-id="${id}"]`);
           if (folder) {
-            if (top) folder.insertBefore(targetFolder);
-            else targetFolder.find('.folder-items').first().append(folder);
-
             if (top) {
               this._onFolderSort(id, targetFolder.data('id'), {
                 inside: false,
@@ -967,14 +993,9 @@ export class MassEditPresets extends FormApplication {
             }
           }
         }
-      } else if (this.dragType === 'item') {
+      } else if (this.dragType === 'item' && this.draggedElements.hasClass('editable')) {
         targetFolder.removeClass('drag-mid');
         const uuids = this.dragData;
-        const presetItems = targetFolder.children('.preset-items');
-        uuids?.forEach((uuid) => {
-          const item = itemList.find(`.item[data-uuid="${uuid}"]`);
-          if (item.length) presetItems.append(item);
-        });
         this._onItemSort(uuids, null, {
           folder: targetFolder.data('id'),
         });
@@ -982,26 +1003,20 @@ export class MassEditPresets extends FormApplication {
 
       this.dragType = null;
       this.dragData = null;
+      this.draggedElements = null;
     });
 
     html.on('drop', '.top-level-preset-items', (event) => {
       if (this.dragType === 'folder') {
-        const target = html.find('.top-level-folder-items');
-        const folder = html.find(`.folder[data-id="${this.dragData[0]}"]`);
-        target.append(folder);
         this._onFolderSort(this.dragData[0], null);
-      } else if (this.dragType === 'item') {
-        const target = html.find('.top-level-preset-items');
+      } else if (this.dragType === 'item' && this.draggedElements.hasClass('editable')) {
         const uuids = this.dragData;
-        uuids?.forEach((uuid) => {
-          const item = itemList.find(`.item[data-uuid="${uuid}"]`);
-          if (item.length) target.append(item);
-        });
         this._onItemSort(uuids, null);
       }
 
       this.dragType = null;
       this.dragData = null;
+      this.draggedElements = null;
     });
     // End of Folder Listeners
     // ================
@@ -1010,9 +1025,9 @@ export class MassEditPresets extends FormApplication {
     html.find('.toggle-doc-lock').on('click', this._onToggleLock.bind(this));
     html.find('.document-select').on('click', this._onDocumentChange.bind(this));
     html
-      .find('.item .item-name label, .item .thumbnail')
+      .find('.item.editable .item-name label, .item.editable .thumbnail')
       .on('contextmenu', this._onRightClickPreset.bind(this));
-    html.find('.folder header').on('contextmenu', this._onFolderRightClick.bind(this));
+    html.find('.folder.editable header').on('contextmenu', this._onFolderRightClick.bind(this));
     html.on('click', '.preset-create', this._onPresetCreate.bind(this));
     html.on('click', '.preset-update a', this._onPresetUpdate.bind(this));
     html.on('click', '.preset-brush', this._onPresetBrush.bind(this));
@@ -1037,6 +1052,7 @@ export class MassEditPresets extends FormApplication {
     }).then(() => this.render(true));
   }
 
+  // TODO: Needs to work with static folders
   _onSearchInput(event, items, folder) {
     MassEditPresets.lastSearch = event.target.value;
 
