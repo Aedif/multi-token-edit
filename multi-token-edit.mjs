@@ -107,6 +107,13 @@ Hooks.once('init', () => {
     default: '',
   });
 
+  game.settings.register('multi-token-edit', 'presetLayerSwitch', {
+    scope: 'world',
+    config: false,
+    type: Boolean,
+    default: true,
+  });
+
   game.settings.register('multi-token-edit', 'presetSortMode', {
     scope: 'world',
     config: false,

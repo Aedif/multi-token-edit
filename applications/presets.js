@@ -77,6 +77,11 @@ export class Preset {
     return this;
   }
 
+  async openJournal() {
+    if (!this.document) await this.load();
+    if (this.document) this.document.sheet.render(true);
+  }
+
   async update(data) {
     if (this.document) {
       const flagUpdate = {};
@@ -179,8 +184,6 @@ export class PresetCollection {
       }
     }
     mainTree.staticFolders = staticFolders;
-
-    console.log(mainTree);
 
     return mainTree;
   }
@@ -716,6 +719,7 @@ export class MassEditPresets extends FormApplication {
     data.isPlaceable = this.docName === 'ALL' || SUPPORTED_PLACEABLES.includes(this.docName);
     data.allowDocumentSwap = data.isPlaceable && !this.configApp;
     data.docLockActive = game.settings.get('multi-token-edit', 'presetDocLock') === this.docName;
+    data.layerSwitchActive = game.settings.get('multi-token-edit', 'presetLayerSwitch');
 
     data.sortMode = SORT_MODES[game.settings.get('multi-token-edit', 'presetSortMode')];
 
@@ -1053,7 +1057,9 @@ export class MassEditPresets extends FormApplication {
 
     html.find('.toggle-sort').on('click', this._onToggleSort.bind(this));
     html.find('.toggle-doc-lock').on('click', this._onToggleLock.bind(this));
+    html.find('.toggle-layer-switch').on('click', this._onToggleLayerSwitch.bind(this));
     html.find('.document-select').on('click', this._onDocumentChange.bind(this));
+    html.find('.item').on('dblclick ', this._onDoubleClickPreset.bind(this));
     html
       .find('.item.editable .item-name label, .item.editable .thumbnail')
       .on('contextmenu', this._onRightClickPreset.bind(this));
@@ -1068,6 +1074,11 @@ export class MassEditPresets extends FormApplication {
     const folders = html.find('.folder');
     headerSearch.on('input', (event) => this._onSearchInput(event, items, folders));
     if (MassEditPresets.lastSearch) headerSearch.trigger('input');
+  }
+
+  async _onDoubleClickPreset(event) {
+    const preset = await PresetCollection.get($(event.target).closest('.item').data('uuid'));
+    if (preset) preset.openJournal();
   }
 
   async _onFolderRightClick(event) {
@@ -1103,7 +1114,6 @@ export class MassEditPresets extends FormApplication {
         let folderUuid = item.closest('.folder').data('uuid');
         while (folderUuid) {
           matchedFolderUuids.add(folderUuid);
-          console.log(folderUuid);
           const folder = app.tree.allFolders.get(folderUuid);
           if (folder.folder) folderUuid = folder.folder;
           else folderUuid = null;
@@ -1126,7 +1136,6 @@ export class MassEditPresets extends FormApplication {
   }
 
   async _onFolderSort(sourceUuid, targetUuid, { inside = true, folderUuid = null } = {}) {
-    console.log('_onFolderSort', sourceUuid, targetUuid, { folderUuid });
     let source = this.tree.allFolders.get(sourceUuid);
     let target = this.tree.allFolders.get(targetUuid);
 
@@ -1217,13 +1226,24 @@ export class MassEditPresets extends FormApplication {
     game.settings.set('multi-token-edit', 'presetDocLock', newLock);
   }
 
+  _onToggleLayerSwitch(event) {
+    const switchControl = $(event.target).closest('.toggle-layer-switch');
+
+    const value = !game.settings.get('multi-token-edit', 'presetLayerSwitch');
+    if (value) switchControl.addClass('active');
+    else switchControl.removeClass('active');
+
+    game.settings.set('multi-token-edit', 'presetLayerSwitch', value);
+  }
+
   _onDocumentChange(event) {
     const newDocName = $(event.target).closest('.document-select').data('name');
     if (newDocName != this.docName) {
       this.docName = newDocName;
 
       if (this.docName !== 'ALL') {
-        canvas.getLayerByEmbeddedName(this.docName)?.activate();
+        if (game.settings.get('multi-token-edit', 'presetLayerSwitch'))
+          canvas.getLayerByEmbeddedName(this.docName)?.activate();
       }
 
       this.render(true);
@@ -1281,6 +1301,9 @@ export class MassEditPresets extends FormApplication {
     const uuid = $(event.originalEvent.target).closest('.item').data('uuid');
     const preset = await PresetCollection.get(uuid);
     if (!preset) return;
+
+    if (game.settings.get('multi-token-edit', 'presetLayerSwitch'))
+      canvas.getLayerByEmbeddedName(preset.documentName)?.activate();
 
     // For some reason canvas.mousePosition does not get updated during drag and drop
     // Acquire the cursor position transformed to Canvas coordinates

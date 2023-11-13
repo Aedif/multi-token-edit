@@ -1,11 +1,11 @@
 {
   "id": "multi-token-edit",
-  "title": "Mass Edit",
-  "description": "Search and edit multiple placeables at the same time.",
-  "version": "1.44.4",
-  "download": "https://github.com/Aedif/multi-token-edit/releases/download/1.44.4/multi-token-edit.zip",
+  "title": "Mass Edit (PATREON)",
+  "description": "Search and edit multiple placeables at the same time. Patreon version comes with the randomization feature.",
+  "version": "1.45.0.1",
+  "download": "https://github.com/Aedif/multi-token-edit/releases/download/1.1.0/multi-token-edit.zip",
   "url": "https://github.com/Aedif/multi-token-edit",
-  "manifest": "https://github.com/Aedif/multi-token-edit/releases/latest/download/module.json",
+  "manifest": "https://github.com/Aedif/multi-token-edit/releases/download/1.1.0/module.json",
   "author": "Aedif",
   "authors": [
     {

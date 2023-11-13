@@ -159,13 +159,7 @@
   background: rgba(255, 255, 245, 0.8);
 }
 
-.mass-edit-preset-form .preset-header .toggle-doc-lock {
-  /* border: 1px solid rgba(255, 255, 240, 0.8); */
-  flex: 0 0 30px;
-  margin-left: 10px;
-}
-
-.mass-edit-preset-form .preset-header .toggle-doc-lock.active {
+.mass-edit-preset-form .preset-header .active {
   color: darkorange;
 }
 

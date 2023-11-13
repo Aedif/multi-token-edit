@@ -8,7 +8,10 @@
             {{#each docs}}
             <a class="document-select {{#if (eq @key ../currentDocument)}}active{{/if}}" title="{{@key}}" data-name="{{@key}}"><i class="{{this}} fa-lg"></i></a>
             {{/each}}
-            <a class="header-control toggle-doc-lock {{#if docLockActive}}active{{/if}}" data-tooltip="Lock '{{currentDocument}}' as default on form open."><i class="fa-solid fa-lock"></i></a>
+            <div style="flex: 0 0 50px; margin-left: 10px; border-left: 2px solid gray;">
+                <a class="header-control toggle-doc-lock {{#if docLockActive}}active{{/if}}" data-tooltip="Lock '{{currentDocument}}' as default on form open."><i class="fa-solid fa-lock"></i></a>
+                <a class="header-control toggle-layer-switch {{#if layerSwitchActive}}active{{/if}}" data-tooltip="Switch active layer on category change and preset drag-out."><i class="fa-solid fa-arrows-cross"></i></a>
+            </div>
         </div>
 
         {{/if}}
