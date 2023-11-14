@@ -1104,7 +1104,6 @@ export class MassEditPresets extends FormApplication {
     html.find('.document-select').on('click', this._onDocumentChange.bind(this));
     html.find('.item').on('dblclick ', this._onDoubleClickPreset.bind(this));
     html.find('.item').on('contextmenu', this._onRightClickPreset.bind(this));
-    html.find('.folder.editable header').on('contextmenu', this._onFolderRightClick.bind(this));
     html.find('.create-folder').on('click', this._onCreateFolder.bind(this));
     html.on('click', '.preset-create', this._onPresetCreate.bind(this));
     html.on('click', '.preset-update a', this._onPresetUpdate.bind(this));
@@ -1122,9 +1121,11 @@ export class MassEditPresets extends FormApplication {
   }
 
   _contextMenu(html) {
-    console.log('CREATING CONTEXT');
     ContextMenu.create(this, html, '.item', this._getItemContextOptions(), {
       hookName: 'MassEditPresetContext',
+    });
+    ContextMenu.create(this, html, '.folder header', this._getFolderContextOptions(), {
+      hookName: 'MassEditFolderContext',
     });
   }
 
@@ -1146,7 +1147,30 @@ export class MassEditPresets extends FormApplication {
         name: 'Import',
         icon: '<i class="fas fa-file-import fa-fw"></i>',
         condition: (item) => !item.hasClass('editable'),
-        callback: (li) => console.log(li),
+        callback: (item) => console.log(item),
+      },
+    ];
+  }
+
+  _getFolderContextOptions() {
+    return [
+      {
+        name: 'Edit',
+        icon: '<i class="fas fa-edit"></i>',
+        condition: (header) => header.closest('.folder').hasClass('editable'),
+        callback: (header) => this._onFolderEdit(header),
+      },
+      {
+        name: 'Delete',
+        icon: '<i class="fas fa-trash fa-fw"></i>',
+        condition: (header) => header.closest('.folder').hasClass('editable'),
+        callback: (header) => this._onFolderDelete(header),
+      },
+      {
+        name: 'Import',
+        icon: '<i class="fas fa-file-import fa-fw"></i>',
+        condition: (header) => !header.closest('.folder').hasClass('editable'),
+        callback: (header) => console.log(header),
       },
     ];
   }
@@ -1227,16 +1251,23 @@ export class MassEditPresets extends FormApplication {
     if (preset) preset.openJournal();
   }
 
-  async _onFolderRightClick(event) {
-    const folder = await fromUuid($(event.target).closest('.folder').data('uuid'));
+  async _onFolderEdit(header) {
+    const folder = await fromUuid($(header).closest('.folder').data('uuid'));
 
     new Promise((resolve) => {
-      const options = { resolve };
-      options.left = event.originalEvent.x - PresetFolderConfig.defaultOptions.width / 2;
-      options.top = event.originalEvent.y;
+      const options = { resolve, ...header.offset() };
+      options.top += header.height();
 
       new PresetFolderConfig(folder, options).render(true);
     }).then(() => this.render(true));
+  }
+
+  async _onFolderDelete(header) {
+    const folder = await fromUuid($(header).closest('.folder').data('uuid'));
+    if (folder) {
+      await folder.delete();
+      this.render(true);
+    }
   }
 
   // TODO: Needs to work with static folders
