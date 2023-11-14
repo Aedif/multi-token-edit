@@ -134,6 +134,9 @@ export class Preset {
     PRESET_FIELDS.forEach((field) => {
       json[field] = this[field];
     });
+    if (this.document?.pages.size) {
+      json.pages = this.document.toJSON().pages;
+    }
     return json;
   }
 
@@ -145,44 +148,48 @@ export class Preset {
 export class PresetCollection {
   static presets;
 
-  static async getTree(type) {
+  static async getTree(type, mainOnly = false) {
     const pack = game.packs.get(MAIN_PACK);
     const mainTree = await this.packToTree(pack, type);
 
     const staticFolders = [];
-    let sort = 0;
-    for (const p of game.packs) {
-      if (p.collection !== MAIN_PACK && p.metadata.flags['multi-token-edit']?.presets) {
-        const tree = await this.packToTree(p, type);
-        if (!tree.hasVisible) continue;
 
-        const topFolder = {
-          id: p.collection,
-          uuid: p.collection,
-          name: p.title,
-          sorting: sort,
-          color: '#000000',
-          sort: sort++,
-          children: tree.folders.map((f) => {
-            f.folder = p.collection;
-            return f;
-          }),
-          presets: tree.presets,
-          draggable: false,
-          expanded: game.folders._expanded[p.collection],
-          folder: null,
-          visible: true,
-        };
+    if (!mainOnly) {
+      let sort = 0;
+      for (const p of game.packs) {
+        if (p.collection !== MAIN_PACK && p.metadata.flags['multi-token-edit']?.presets) {
+          const tree = await this.packToTree(p, type);
+          if (!tree.hasVisible) continue;
 
-        staticFolders.push(topFolder);
+          const topFolder = {
+            id: p.collection,
+            uuid: p.collection,
+            name: p.title,
+            sorting: sort,
+            color: '#000000',
+            sort: sort++,
+            children: tree.folders.map((f) => {
+              f.folder = p.collection;
+              return f;
+            }),
+            presets: tree.presets,
+            draggable: false,
+            expanded: game.folders._expanded[p.collection],
+            folder: null,
+            visible: true,
+          };
 
-        // Collate all folders with the main tree
-        mainTree.allFolders.set(topFolder.uuid, topFolder);
-        for (const [uuid, folder] of tree.allFolders) {
-          mainTree.allFolders.set(uuid, folder);
+          staticFolders.push(topFolder);
+
+          // Collate all folders with the main tree
+          mainTree.allFolders.set(topFolder.uuid, topFolder);
+          for (const [uuid, folder] of tree.allFolders) {
+            mainTree.allFolders.set(uuid, folder);
+          }
         }
       }
     }
+
     mainTree.staticFolders = staticFolders;
 
     return mainTree;
@@ -309,6 +316,7 @@ export class PresetCollection {
       name: preset.name,
       flags: { 'multi-token-edit': { preset: preset.toJSON() } },
     };
+    if (preset.pages) updateDoc.pages = preset.pages;
     await doc.update(updateDoc);
 
     const metaDoc = await this._initMetaDocument();
@@ -353,6 +361,7 @@ export class PresetCollection {
         {
           _id: preset.id,
           name: preset.name,
+          pages: preset.pages ?? [],
           flags: { 'multi-token-edit': { preset: preset.toJSON() } },
         },
       ],
@@ -409,7 +418,7 @@ export class PresetCollection {
     for (const preset of presets) {
       if (compendium.index.get(preset.id)) {
         const document = await compendium.getDocument(preset.id);
-        document.delete();
+        await document.delete();
       }
       metaUpdate['-=' + preset.id] = null;
     }
@@ -1073,6 +1082,7 @@ export class MassEditPresets extends FormApplication {
         const uuids = this.dragData;
 
         // Move HTML Elements
+        const target = html.find('.top-level-preset-items');
         uuids?.forEach((uuid) => {
           const item = itemList.find(`.item[data-uuid="${uuid}"]`);
           if (item.length) target.append(item);
@@ -1093,10 +1103,9 @@ export class MassEditPresets extends FormApplication {
     html.find('.toggle-layer-switch').on('click', this._onToggleLayerSwitch.bind(this));
     html.find('.document-select').on('click', this._onDocumentChange.bind(this));
     html.find('.item').on('dblclick ', this._onDoubleClickPreset.bind(this));
-    html
-      .find('.item.editable .item-name label, .item.editable .thumbnail')
-      .on('contextmenu', this._onRightClickPreset.bind(this));
+    html.find('.item').on('contextmenu', this._onRightClickPreset.bind(this));
     html.find('.folder.editable header').on('contextmenu', this._onFolderRightClick.bind(this));
+    html.find('.create-folder').on('click', this._onCreateFolder.bind(this));
     html.on('click', '.preset-create', this._onPresetCreate.bind(this));
     html.on('click', '.preset-update a', this._onPresetUpdate.bind(this));
     html.on('click', '.preset-brush', this._onPresetBrush.bind(this));
@@ -1107,6 +1116,110 @@ export class MassEditPresets extends FormApplication {
     const folders = html.find('.folder');
     headerSearch.on('input', (event) => this._onSearchInput(event, items, folders));
     if (MassEditPresets.lastSearch) headerSearch.trigger('input');
+
+    // Activate context menu
+    this._contextMenu(html.find('.item-list'));
+  }
+
+  _contextMenu(html) {
+    console.log('CREATING CONTEXT');
+    ContextMenu.create(this, html, '.item', this._getItemContextOptions(), {
+      hookName: 'MassEditPresetContext',
+    });
+  }
+
+  _getItemContextOptions() {
+    return [
+      {
+        name: 'Edit',
+        icon: '<i class="fas fa-edit"></i>',
+        condition: (item) => item.hasClass('editable'),
+        callback: (item) => this._onEditSelectedPresets(item),
+      },
+      {
+        name: 'Delete',
+        icon: '<i class="fas fa-trash fa-fw"></i>',
+        condition: (item) => item.hasClass('editable'),
+        callback: (item) => this._onDeleteSelectedPresets(item),
+      },
+      {
+        name: 'Import',
+        icon: '<i class="fas fa-file-import fa-fw"></i>',
+        condition: (item) => !item.hasClass('editable'),
+        callback: (li) => console.log(li),
+      },
+    ];
+  }
+
+  async _onEditSelectedPresets(item) {
+    const uuids = [];
+    $(item)
+      .closest('.item-list')
+      .find('.item.editable.selected')
+      .each(function () {
+        const uuid = $(this).data('uuid');
+        uuids.push(uuid);
+      });
+
+    const selected = [];
+    for (const uuid of uuids) {
+      const preset = await PresetCollection.get(uuid);
+      if (preset) selected.push(preset);
+    }
+
+    if (selected.length) {
+      // Position edit window just bellow the item
+      const options = item.offset();
+      options.top += item.height();
+
+      this._editPresets(selected, options);
+    }
+  }
+
+  async _onDeleteSelectedPresets(item) {
+    const uuids = [];
+    const items = $(item).closest('.item-list').find('.item.editable.selected');
+    items.each(function () {
+      uuids.push($(this).data('uuid'));
+    });
+
+    const selected = [];
+    for (const uuid of uuids) {
+      const preset = await PresetCollection.get(uuid);
+      if (preset) selected.push(preset);
+    }
+
+    if (selected.length) {
+      await PresetCollection.delete(selected);
+      items.remove();
+    }
+  }
+
+  async _onCreateFolder(event) {
+    const types = [];
+    if (this.docName === 'ALL') {
+      types.push('ALL');
+    } else if (SUPPORTED_PLACEABLES.includes(this.docName)) {
+      types.push('ALL', this.docName);
+    } else {
+      types.push(this.docName);
+    }
+
+    const folder = new Folder.implementation(
+      {
+        name: Folder.defaultName(),
+        type: 'JournalEntry',
+        sorting: 'a',
+        flags: { 'multi-token-edit': { types } },
+      },
+      { pack: MAIN_PACK }
+    );
+
+    await new Promise((resolve) => {
+      new PresetFolderConfig(folder, { resolve }).render(true);
+    });
+
+    this.render(true);
   }
 
   async _onDoubleClickPreset(event) {
@@ -1298,23 +1411,6 @@ export class MassEditPresets extends FormApplication {
         .removeClass('last-selected');
       item.addClass('selected').addClass('last-selected');
     }
-
-    const indexes = [];
-    $(event.target)
-      .closest('.item-list')
-      .find('.item.selected')
-      .each(function () {
-        const uuid = $(this).data('uuid');
-        indexes.push(uuid);
-      });
-
-    const selected = [];
-    for (const uuid of indexes) {
-      const preset = await PresetCollection.get(uuid);
-      if (preset) selected.push(preset);
-    }
-
-    if (selected.length) this._editPresets(selected, {}, event);
   }
 
   _editPresets(presets, options = {}, event) {
@@ -1495,7 +1591,8 @@ export class MassEditPresets extends FormApplication {
   }
 
   async _onExport() {
-    exportPresets((await PresetCollection.getTree()).allPresets);
+    const tree = await PresetCollection.getTree(null, true);
+    exportPresets(tree.allPresets);
   }
 
   async _onImport() {
@@ -1509,7 +1606,10 @@ export class MassEditPresets extends FormApplication {
         if (!('documentName' in p)) continue;
         if (!('data' in p) || isEmpty(p.data)) continue;
 
-        PresetCollection.set(new Preset(p));
+        const preset = new Preset(p);
+        preset.pages = p.pages;
+
+        PresetCollection.set(preset);
         importCount++;
       }
     }
@@ -1533,8 +1633,8 @@ export class MassEditPresets extends FormApplication {
 async function exportPresets(presets, fileName) {
   if (!presets.length) return;
 
-  for (const presets of presets) {
-    await presets.load();
+  for (const preset of presets) {
+    await preset.load();
   }
 
   saveDataToFile(
@@ -1641,11 +1741,6 @@ class PresetConfig extends FormApplication {
     });
   }
 
-  async _removePresets() {
-    await PresetCollection.delete(this.presets);
-    this.presets = null;
-  }
-
   async _updatePresets(formData) {
     formData.name = formData.name.trim();
     formData.img = formData.img.trim() || null;
@@ -1671,9 +1766,7 @@ class PresetConfig extends FormApplication {
 
   /** @override */
   async _updateObject(event, formData) {
-    const action = $(event.submitter).data('action');
-    if (action === 'remove') await this._removePresets();
-    else await this._updatePresets(formData);
+    await this._updatePresets(formData);
 
     if (this.callback) this.callback(this.presets);
     return this.presets;

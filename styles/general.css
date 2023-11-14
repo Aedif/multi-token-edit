@@ -148,6 +148,17 @@
   align-items: center;
 }
 
+.mass-edit-preset-form .preset-header .header-control .fa-plus {
+  position: absolute;
+  top: 4px;
+  right: 1px;
+  font-size: 0.5rem;
+  background: black;
+  color: var(--color-text-light-highlight);
+  padding: 1px;
+  border-radius: 4px;
+}
+
 .mass-edit-preset-form .preset-header .header-search > *,
 .mass-edit-preset-form .preset-header .header-select > * {
   flex: 0 0 24px;
