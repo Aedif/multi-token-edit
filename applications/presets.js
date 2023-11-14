@@ -149,7 +149,7 @@ export class PresetCollection {
   static presets;
 
   static async getTree(type, mainOnly = false) {
-    const pack = game.packs.get(MAIN_PACK);
+    const pack = await this._initCompendium();
     const mainTree = await this.packToTree(pack, type);
 
     const staticFolders = [];
@@ -165,7 +165,7 @@ export class PresetCollection {
             id: p.collection,
             uuid: p.collection,
             name: p.title,
-            sorting: sort,
+            sorting: 'm',
             color: '#000000',
             sort: sort++,
             children: tree.folders.map((f) => {
@@ -352,7 +352,7 @@ export class PresetCollection {
 
     const compendium = await this._initCompendium();
     if (compendium.index.get(preset.id)) {
-      this.update(preset);
+      await this.update(preset);
       return;
     }
 
@@ -362,6 +362,7 @@ export class PresetCollection {
           _id: preset.id,
           name: preset.name,
           pages: preset.pages ?? [],
+          folder: preset.folder,
           flags: { 'multi-token-edit': { preset: preset.toJSON() } },
         },
       ],
@@ -382,7 +383,7 @@ export class PresetCollection {
       documentName: preset.documentName,
     };
 
-    metaDoc.setFlag('multi-token-edit', 'index', update);
+    await metaDoc.setFlag('multi-token-edit', 'index', update);
   }
 
   static async get(uuid, { full = true } = {}) {
@@ -719,7 +720,9 @@ export class MassEditPresets extends FormApplication {
     await getTemplate('modules/multi-token-edit/templates/generic/preset.html');
     await getTemplate('modules/multi-token-edit/templates/generic/presetFolder.html');
 
-    this.tree = await PresetCollection.getTree(this.docName);
+    const displayExtCompendiums = game.settings.get('multi-token-edit', 'presetExtComp');
+
+    this.tree = await PresetCollection.getTree(this.docName, !displayExtCompendiums);
     data.presets = this.tree.presets;
     data.folders = this.tree.folders;
     data.staticFolders = this.tree.staticFolders.length ? this.tree.staticFolders : null;
@@ -729,6 +732,7 @@ export class MassEditPresets extends FormApplication {
     data.allowDocumentSwap = data.isPlaceable && !this.configApp;
     data.docLockActive = game.settings.get('multi-token-edit', 'presetDocLock') === this.docName;
     data.layerSwitchActive = game.settings.get('multi-token-edit', 'presetLayerSwitch');
+    data.extCompActive = displayExtCompendiums;
 
     data.sortMode = SORT_MODES[game.settings.get('multi-token-edit', 'presetSortMode')];
 
@@ -784,7 +788,8 @@ export class MassEditPresets extends FormApplication {
     //   });
     // }
 
-    data.displayDragDropMessage = data.allowDocumentSwap && !Boolean(this.tree.allPresets.length);
+    data.displayDragDropMessage =
+      data.allowDocumentSwap && !(this.tree.presets.length || this.tree.folders.length);
 
     data.lastSearch = MassEditPresets.lastSearch;
 
@@ -1100,6 +1105,7 @@ export class MassEditPresets extends FormApplication {
 
     html.find('.toggle-sort').on('click', this._onToggleSort.bind(this));
     html.find('.toggle-doc-lock').on('click', this._onToggleLock.bind(this));
+    html.find('.toggle-ext-comp').on('click', this._onToggleExtComp.bind(this));
     html.find('.toggle-layer-switch').on('click', this._onToggleLayerSwitch.bind(this));
     html.find('.document-select').on('click', this._onDocumentChange.bind(this));
     html.find('.item').on('dblclick ', this._onDoubleClickPreset.bind(this));
@@ -1121,9 +1127,10 @@ export class MassEditPresets extends FormApplication {
   }
 
   _contextMenu(html) {
-    ContextMenu.create(this, html, '.item', this._getItemContextOptions(), {
-      hookName: 'MassEditPresetContext',
-    });
+    if (html.find('.item').length)
+      ContextMenu.create(this, html, '.item', this._getItemContextOptions(), {
+        hookName: 'MassEditPresetContext',
+      });
     ContextMenu.create(this, html, '.folder header', this._getFolderContextOptions(), {
       hookName: 'MassEditFolderContext',
     });
@@ -1144,10 +1151,15 @@ export class MassEditPresets extends FormApplication {
         callback: (item) => this._onDeleteSelectedPresets(item),
       },
       {
-        name: 'Import',
-        icon: '<i class="fas fa-file-import fa-fw"></i>',
+        name: 'Copy',
+        icon: '<i class="fa-solid fa-copy"></i>',
         condition: (item) => !item.hasClass('editable'),
-        callback: (item) => console.log(item),
+        callback: (item) => this._onCopySelectedPresets(),
+      },
+      {
+        name: 'Export',
+        icon: '<i class="fas fa-file-export fa-fw"></i>',
+        callback: (item) => this._onExportSelectedPresets(),
       },
     ];
   }
@@ -1164,33 +1176,85 @@ export class MassEditPresets extends FormApplication {
         name: 'Delete',
         icon: '<i class="fas fa-trash fa-fw"></i>',
         condition: (header) => header.closest('.folder').hasClass('editable'),
-        callback: (header) => this._onFolderDelete(header),
+        callback: (header) => this._onFolderDelete(header.closest('.folder').data('uuid')),
       },
       {
-        name: 'Import',
-        icon: '<i class="fas fa-file-import fa-fw"></i>',
+        name: 'Copy',
+        icon: '<i class="fa-solid fa-copy"></i>',
         condition: (header) => !header.closest('.folder').hasClass('editable'),
-        callback: (header) => console.log(header),
+        callback: (header) => this._onCopyFolder(header.closest('.folder').data('uuid')),
       },
     ];
   }
 
-  async _onEditSelectedPresets(item) {
+  async _onCopyFolder(uuid, parentId = null, render = true) {
+    const folder = this.tree.allFolders.get(uuid);
+    console.log(folder);
+    const folderDoc = await fromUuid(uuid);
+
+    if (folder) {
+      let types;
+      if (folderDoc) types = folderDoc.flags['multi-token-edit']?.types ?? ['ALL'];
+      else types = ['ALL'];
+
+      const data = {
+        name: folder.name,
+        color: folder.color,
+        sorting: folder.sorting,
+        folder: parentId,
+        flags: { 'multi-token-edit': { types } },
+        type: 'JournalEntry',
+      };
+
+      const nFolder = await Folder.create(data, { pack: MAIN_PACK });
+
+      for (const preset of folder.presets) {
+        const p = preset.clone();
+        p.folder = nFolder.id;
+        await PresetCollection.set(p);
+      }
+
+      for (const child of folder.children) {
+        await this._onCopyFolder(child.uuid, nFolder.id, false);
+      }
+
+      if (render) this.render(true);
+    }
+  }
+
+  async _onCopySelectedPresets() {
+    const [selected, _] = await this._getSelectedPresets();
+    for (const preset of selected) {
+      await PresetCollection.set(preset);
+    }
+    if (selected.length) this.render(true);
+  }
+
+  async _getSelectedPresets({ editableOnly = false } = {}) {
     const uuids = [];
-    $(item)
-      .closest('.item-list')
-      .find('.item.editable.selected')
-      .each(function () {
-        const uuid = $(this).data('uuid');
-        uuids.push(uuid);
-      });
+    const items = $(this.form)
+      .find('.item-list')
+      .find('.item.selected' + (editableOnly ? '.editable' : ''));
+    items.each(function () {
+      const uuid = $(this).data('uuid');
+      uuids.push(uuid);
+    });
 
     const selected = [];
     for (const uuid of uuids) {
       const preset = await PresetCollection.get(uuid);
       if (preset) selected.push(preset);
     }
+    return [selected, items];
+  }
 
+  async _onExportSelectedPresets() {
+    const [selected, _] = await this._getSelectedPresets();
+    exportPresets(selected);
+  }
+
+  async _onEditSelectedPresets(item) {
+    const [selected, _] = await this._getSelectedPresets({ editableOnly: true });
     if (selected.length) {
       // Position edit window just bellow the item
       const options = item.offset();
@@ -1201,18 +1265,7 @@ export class MassEditPresets extends FormApplication {
   }
 
   async _onDeleteSelectedPresets(item) {
-    const uuids = [];
-    const items = $(item).closest('.item-list').find('.item.editable.selected');
-    items.each(function () {
-      uuids.push($(this).data('uuid'));
-    });
-
-    const selected = [];
-    for (const uuid of uuids) {
-      const preset = await PresetCollection.get(uuid);
-      if (preset) selected.push(preset);
-    }
-
+    const [selected, items] = await this._getSelectedPresets({ editableOnly: true });
     if (selected.length) {
       await PresetCollection.delete(selected);
       items.remove();
@@ -1262,11 +1315,18 @@ export class MassEditPresets extends FormApplication {
     }).then(() => this.render(true));
   }
 
-  async _onFolderDelete(header) {
-    const folder = await fromUuid($(header).closest('.folder').data('uuid'));
+  async _onFolderDelete(uuid, render = true) {
+    const folder = this.tree.allFolders.get(uuid);
     if (folder) {
-      await folder.delete();
-      this.render(true);
+      await PresetCollection.delete(folder.presets);
+      for (const c of folder.children) {
+        await this._onFolderDelete(c.uuid, false);
+      }
+
+      const folderDoc = await fromUuid(uuid);
+      await folderDoc.delete();
+
+      if (render) this.render(true);
     }
   }
 
@@ -1414,6 +1474,17 @@ export class MassEditPresets extends FormApplication {
     else switchControl.removeClass('active');
 
     game.settings.set('multi-token-edit', 'presetLayerSwitch', value);
+  }
+
+  async _onToggleExtComp(event) {
+    const switchControl = $(event.target).closest('.toggle-ext-comp');
+
+    const value = !game.settings.get('multi-token-edit', 'presetExtComp');
+    if (value) switchControl.addClass('active');
+    else switchControl.removeClass('active');
+
+    await game.settings.set('multi-token-edit', 'presetExtComp', value);
+    this.render(true);
   }
 
   _onDocumentChange(event) {

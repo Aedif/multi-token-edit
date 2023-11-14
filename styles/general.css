@@ -195,6 +195,9 @@
   background: black;
   color: white;
   margin-top: 20px;
+  border-bottom: 1px solid brown;
+  border-top: 1px solid brown;
+  padding: 2px;
 }
 
 .mass-edit-preset-form .item-list .item {

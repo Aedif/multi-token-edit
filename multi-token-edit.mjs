@@ -114,6 +114,13 @@ Hooks.once('init', () => {
     default: true,
   });
 
+  game.settings.register('multi-token-edit', 'presetExtComp', {
+    scope: 'world',
+    config: false,
+    type: Boolean,
+    default: true,
+  });
+
   game.settings.register('multi-token-edit', 'presetSortMode', {
     scope: 'world',
     config: false,
