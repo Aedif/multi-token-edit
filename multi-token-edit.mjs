@@ -87,6 +87,18 @@ Hooks.once('init', () => {
 
   // ===============
   // Preset Settings
+
+  game.settings.register('multi-token-edit', 'workingPack', {
+    scope: 'world',
+    config: false,
+    type: String,
+    default: 'world.mass-edit-presets-main',
+    onChange: (val) => {
+      PresetCollection.workingPack = val;
+    },
+  });
+  PresetCollection.workingPack = game.settings.get('multi-token-edit', 'workingPack');
+
   game.settings.register('multi-token-edit', 'docPresets', {
     scope: 'world',
     config: false,
@@ -464,15 +476,6 @@ Hooks.on('ready', async () => {
     game.settings.set('multi-token-edit', 'presetsCompMigrated', true);
   }
 });
-
-// TODO remove, just for testing
-// Hooks.on('updateCompendium', (collection) => {
-//   if (game.user.isGM && collection.collection === MAIN_PACK) {
-//     const app = Object.values(ui.windows)
-//       .find((w) => w instanceof MassEditPresets)
-//       ?.render(true);
-//   }
-// });
 
 // Attach Mass Config buttons to Token and Tile HUDs
 

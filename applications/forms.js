@@ -1095,7 +1095,13 @@ export function pasteDataUpdate(docs, preset, suppressNotif = false) {
     if (!isEmpty(preset.randomize)) context.randomizeFields = preset.randomize;
     if (!isEmpty(preset.addSubtract)) context.addSubtractFields = preset.addSubtract;
 
-    performMassUpdate.call(context, preset.data, docs, preset.documentName, applyType);
+    performMassUpdate.call(
+      context,
+      flattenObject(preset.data),
+      docs,
+      preset.documentName,
+      applyType
+    );
     if (!suppressNotif)
       ui.notifications.info(
         game.i18n.format('multi-token-edit.clipboard.paste', {

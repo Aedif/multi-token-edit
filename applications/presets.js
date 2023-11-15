@@ -5,25 +5,18 @@ import { applyRandomization } from '../scripts/randomizer/randomizerUtils.js';
 import { SUPPORTED_PLACEABLES } from '../scripts/utils.js';
 import { TokenDataAdapter } from './dataAdapters.js';
 
-// Create folder
-// const folder = new Folder.implementation(foundry.utils.mergeObject({
-//   name: Folder.defaultName(),
-//   sorting: "a"
-// }, {name: "Test Folder", type: "Cards"}), { pack: "world.mass-edit-presets" });
-// Folder.create(folder, {pack: "world.mass-edit-presets"  })
-
 const META_INDEX_FIELDS = ['id', 'img', 'documentName'];
 const META_INDEX_ID = 'MassEditMetaData';
-export const MAIN_PACK = 'world.mass-edit-presets-main';
+const DEFAULT_PACK = 'world.mass-edit-presets-main';
 
 const DOCUMENT_FIELDS = ['id', 'name', 'sort', 'folder'];
 
-const FLAG_DATA = {
-  documentName: null,
-  data: null,
-  addSubtract: null,
-  randomize: null,
-};
+// const FLAG_DATA = {
+//   documentName: null,
+//   data: null,
+//   addSubtract: null,
+//   randomize: null,
+// };
 
 const PRESET_FIELDS = [
   'id',
@@ -77,8 +70,14 @@ export class Preset {
         this.documentName = preset.documentName;
         this.img = preset.img;
         this.data = preset.data;
-        this.randomize = Object.fromEntries(preset.randomize ?? []);
-        this.addSubtract = Object.fromEntries(preset.addSubtract ?? []);
+        this.randomize =
+          getType(preset.randomize) === 'Object'
+            ? preset.randomize
+            : Object.fromEntries(preset.randomize ?? []);
+        this.addSubtract =
+          getType(preset.addSubtract) === 'Object'
+            ? preset.addSubtract
+            : Object.fromEntries(preset.addSubtract ?? []);
       }
     }
     return this;
@@ -159,8 +158,10 @@ export class Preset {
 export class PresetCollection {
   static presets;
 
+  static workingPack;
+
   static async getTree(type, mainOnly = false) {
-    const pack = await this._initCompendium(MAIN_PACK);
+    const pack = await this._initCompendium(this.workingPack);
     const mainTree = await this.packToTree(pack, type);
 
     const staticFolders = [];
@@ -168,7 +169,7 @@ export class PresetCollection {
     if (!mainOnly) {
       let sort = 0;
       for (const p of game.packs) {
-        if (p.collection !== MAIN_PACK && p.index.get(META_INDEX_ID)) {
+        if (p.collection !== this.workingPack && p.index.get(META_INDEX_ID)) {
           const tree = await this.packToTree(p, type);
           if (!tree.hasVisible) continue;
 
@@ -223,7 +224,7 @@ export class PresetCollection {
         sort: f.sort,
         children: [],
         presets: [],
-        draggable: f.pack === MAIN_PACK,
+        draggable: f.pack === this.workingPack,
         expanded: game.folders._expanded[f.uuid],
         folder: f.folder?.uuid,
         visible: type ? (f.flags['multi-token-edit']?.types || ['ALL']).includes(type) : true,
@@ -330,7 +331,7 @@ export class PresetCollection {
   }
 
   static async update(preset) {
-    const compendium = await this._initCompendium();
+    const compendium = await this._initCompendium(this.workingPack);
     const doc = await compendium.getDocument(preset.id);
     const updateDoc = {
       name: preset.name,
@@ -339,7 +340,7 @@ export class PresetCollection {
     if (preset.pages) updateDoc.pages = preset.pages;
     await doc.update(updateDoc);
 
-    const metaDoc = await this._initMetaDocument(MAIN_PACK);
+    const metaDoc = await this._initMetaDocument(this.workingPack);
     const update = {};
     update[preset.id] = {
       id: preset.id,
@@ -356,13 +357,15 @@ export class PresetCollection {
    */
   static async updatePresets(updates) {
     // TODO update meta and preset itself
-    await JournalEntry.updateDocuments(updates, { pack: MAIN_PACK });
+    await JournalEntry.updateDocuments(updates, { pack: this.workingPack });
   }
 
   /**
    * @param {Preset|Array[Preset]} preset
    */
-  static async set(preset, pack = MAIN_PACK) {
+  static async set(preset, pack) {
+    if (!pack) pack = this.workingPack;
+
     if (preset instanceof Array) {
       for (const p of preset) {
         await PresetCollection.set(p, pack);
@@ -440,12 +443,9 @@ export class PresetCollection {
     for (const preset of presets) {
       let { collection } = foundry.utils.parseUuid(preset.uuid);
       collection = collection.collection;
-      console.log(collection);
       if (!sorted[collection]) sorted[collection] = [preset];
       else sorted[collection].push(preset);
     }
-
-    console.log(sorted);
 
     for (const pack of Object.keys(sorted)) {
       const compendium = await game.packs.get(pack);
@@ -466,11 +466,11 @@ export class PresetCollection {
     }
   }
 
-  static async _initCompendium(pack = MAIN_PACK) {
+  static async _initCompendium(pack) {
     let compendium = game.packs.get(pack);
-    if (!compendium) {
+    if (!compendium && pack === DEFAULT_PACK) {
       compendium = await CompendiumCollection.createCompendium({
-        label: 'Mass Edit: Presets' + (pack === MAIN_PACK ? ' (MAIN)' : ''),
+        label: 'Mass Edit: Presets (MAIN)',
         type: 'JournalEntry',
         ownership: {
           GAMEMASTER: 'NONE',
@@ -480,7 +480,7 @@ export class PresetCollection {
         packageType: 'world',
       });
 
-      await this._initMetaDocument(pack);
+      await this._initMetaDocument(DEFAULT_PACK);
     }
 
     return compendium;
@@ -644,6 +644,12 @@ export class PresetAPI {
 
     let data;
 
+    let presetData = flattenObject(preset.data);
+    const randomizer = preset.randomize;
+    if (!isEmpty(randomizer)) {
+      applyRandomization([presetData], null, randomizer);
+    }
+
     // Set default values if needed
     switch (preset.documentName) {
       case 'Token':
@@ -665,7 +671,7 @@ export class PresetAPI {
         data = { distance: 10 };
         break;
       case 'AmbientLight':
-        if (!('config.dim' in preset.data) && !('config.bright' in preset.data)) {
+        if (!('config.dim' in presetData) && !('config.bright' in presetData)) {
           data = { 'config.dim': 20, 'config.bright': 10 };
           break;
         }
@@ -673,14 +679,8 @@ export class PresetAPI {
         data = {};
     }
 
-    mergeObject(data, preset.data);
+    mergeObject(data, presetData);
     mergeObject(data, pos);
-
-    const randomizer = preset.randomize;
-    if (!isEmpty(randomizer)) {
-      data = flattenObject(data);
-      applyRandomization([data], null, randomizer);
-    }
 
     if (hidden || game.keyboard.downKeys.has('AltLeft')) {
       data.hidden = true;
@@ -1241,11 +1241,13 @@ export class MassEditPresets extends FormApplication {
   }
 
   async _onExportFolder(uuid) {
-    let pack = await new Promise((resolve) => getCompendiumDialog(resolve));
+    let pack = await new Promise((resolve) => getCompendiumDialog(resolve, { exportTo: true }));
     if (pack) this._onCopyFolder(uuid, null, pack);
   }
 
-  async _onCopyFolder(uuid, parentId = null, pack = MAIN_PACK, render = true) {
+  async _onCopyFolder(uuid, parentId = null, pack, render = true) {
+    if (!pack) pack = PresetCollection.workingPack;
+
     const folder = this.tree.allFolders.get(uuid);
     const folderDoc = await fromUuid(uuid);
 
@@ -1280,11 +1282,11 @@ export class MassEditPresets extends FormApplication {
   }
 
   async _onExportSelectedPresetsToComp() {
-    let pack = await new Promise((resolve) => getCompendiumDialog(resolve));
+    let pack = await new Promise((resolve) => getCompendiumDialog(resolve, { exportTo: true }));
     if (pack) this._onCopySelectedPresets(pack);
   }
 
-  async _onCopySelectedPresets(pack = MAIN_PACK) {
+  async _onCopySelectedPresets(pack) {
     const [selected, _] = await this._getSelectedPresets();
     for (const preset of selected) {
       await PresetCollection.set(preset, pack);
@@ -1356,7 +1358,7 @@ export class MassEditPresets extends FormApplication {
         sorting: 'a',
         flags: { 'multi-token-edit': { types } },
       },
-      { pack: MAIN_PACK }
+      { pack: PresetCollection.workingPack }
     );
 
     await new Promise((resolve) => {
@@ -1463,7 +1465,7 @@ export class MassEditPresets extends FormApplication {
 
         ctrl.target.sort = update.sort;
       });
-      await Folder.updateDocuments(updates, { pack: MAIN_PACK });
+      await Folder.updateDocuments(updates, { pack: PresetCollection.workingPack });
     }
   }
 
@@ -1740,6 +1742,12 @@ export class MassEditPresets extends FormApplication {
 
     buttons.unshift({
       label: '',
+      class: 'mass-edit-change-compendium',
+      icon: 'fa-solid fa-gear',
+      onclick: (ev) => this._onWorkingPackChange(),
+    });
+    buttons.unshift({
+      label: '',
       class: 'mass-edit-export',
       icon: 'fas fa-file-export',
       onclick: (ev) => this._onExport(ev),
@@ -1752,6 +1760,16 @@ export class MassEditPresets extends FormApplication {
     });
 
     return buttons;
+  }
+
+  async _onWorkingPackChange() {
+    let pack = await new Promise((resolve) =>
+      getCompendiumDialog(resolve, { preselectPack: PresetCollection.workingPack })
+    );
+    if (pack && pack !== PresetCollection.workingPack) {
+      await game.settings.set('multi-token-edit', 'workingPack', pack);
+      this.render(true);
+    }
   }
 
   async _onExport() {
@@ -2046,16 +2064,35 @@ function checkMouseInWindow(event) {
   return false;
 }
 
-function getCompendiumDialog(resolve) {
+function getCompendiumDialog(resolve, { exportTo = false, preselectPack = '' } = {}) {
+  let config;
+  if (exportTo) {
+    config = {
+      title: 'Select Export Target',
+      message:
+        'This operation will make the destination into a Mass Edit preset compendium. Make sure it does not contain Journals that are not presets to avoid unexpected problems.',
+      buttonLabel: 'Export',
+    };
+  } else {
+    config = {
+      title: 'Select New Working Compendium',
+      message:
+        'Change the compendium the module will store and edit presets within. Make sure it does not contains Journals that are not presets to avoid unexpected problems.',
+      buttonLabel: 'Change',
+    };
+  }
+
   let options = '';
   for (const p of game.packs) {
     if (!p.locked && p.documentName === 'JournalEntry') {
-      options += `<option value="${p.collection}">${p.title}</option>`;
+      options += `<option value="${p.collection}" ${
+        preselectPack === p.collection ? 'selected="selected"' : ''
+      }>${p.title}</option>`;
     }
   }
 
   let content = `
-  <p style="color: orangered;">This operation will make the destination into a Mass Edit preset compendium. Make sure it does not contain Journals that are not presets to avoid unexpected problems.</p>
+  <p style="color: orangered;">${config.message}</p>
   <div class="form-group">
     <label>Compendium</label>
     <div class="form-fields">
@@ -2064,17 +2101,12 @@ function getCompendiumDialog(resolve) {
   </div>`;
 
   new Dialog({
-    title: 'Select Export Target',
+    title: config.title,
     content: content,
     buttons: {
       export: {
-        label: 'Export',
-        callback: (html) => {
-          console.log(html);
-          console.log($(html).find('select'));
-          console.log($(html).find('select').val());
-          resolve($(html).find('select').val());
-        },
+        label: config.buttonLabel,
+        callback: (html) => resolve($(html).find('select').val()),
       },
       cancel: {
         label: 'Cancel',
