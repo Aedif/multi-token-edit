@@ -149,7 +149,7 @@ export class PresetCollection {
   static presets;
 
   static async getTree(type, mainOnly = false) {
-    const pack = await this._initCompendium();
+    const pack = await this._initCompendium(MAIN_PACK);
     const mainTree = await this.packToTree(pack, type);
 
     const staticFolders = [];
@@ -157,7 +157,7 @@ export class PresetCollection {
     if (!mainOnly) {
       let sort = 0;
       for (const p of game.packs) {
-        if (p.collection !== MAIN_PACK && p.metadata.flags['multi-token-edit']?.presets) {
+        if (p.collection !== MAIN_PACK && p.index.get(META_INDEX_ID)) {
           const tree = await this.packToTree(p, type);
           if (!tree.hasVisible) continue;
 
@@ -240,6 +240,15 @@ export class PresetCollection {
       if (idx._id === META_INDEX_ID) continue;
       const mIndex = metaIndex[idx._id];
       const preset = new Preset({ ...idx, ...mIndex, pack: pack.collection });
+
+      // If no document name is available (missing metadata) attempt to load the preset to retrieve it
+      // If still no name is found, skip it
+      if (!preset.documentName) {
+        console.log(`Missing MetaData. Attempting document load: ${preset.id} | ${preset.name}`);
+        await preset.load();
+        if (!preset.documentName) continue;
+      }
+
       if (preset.folder) {
         for (const [uuid, folder] of folders) {
           if (folder.id === preset.folder) {
@@ -319,7 +328,7 @@ export class PresetCollection {
     if (preset.pages) updateDoc.pages = preset.pages;
     await doc.update(updateDoc);
 
-    const metaDoc = await this._initMetaDocument();
+    const metaDoc = await this._initMetaDocument(MAIN_PACK);
     const update = {};
     update[preset.id] = {
       id: preset.id,
@@ -342,15 +351,15 @@ export class PresetCollection {
   /**
    * @param {Preset|Array[Preset]} preset
    */
-  static async set(preset) {
+  static async set(preset, pack = MAIN_PACK) {
     if (preset instanceof Array) {
       for (const p of preset) {
-        await PresetCollection.set(p);
+        await PresetCollection.set(p, pack);
       }
       return;
     }
 
-    const compendium = await this._initCompendium();
+    const compendium = await this._initCompendium(pack);
     if (compendium.index.get(preset.id)) {
       await this.update(preset);
       return;
@@ -367,7 +376,7 @@ export class PresetCollection {
         },
       ],
       {
-        pack: MAIN_PACK,
+        pack: pack,
         keepId: true,
       }
     );
@@ -375,7 +384,7 @@ export class PresetCollection {
     preset.uuid = documents[0].uuid;
     preset.document = documents[0];
 
-    const metaDoc = await this._initMetaDocument();
+    const metaDoc = await this._initMetaDocument(pack);
     const update = {};
     update[preset.id] = {
       id: preset.id,
@@ -411,24 +420,39 @@ export class PresetCollection {
     if (!presets) return;
     if (!(presets instanceof Array)) presets = [presets];
 
-    const compendium = await this._initCompendium();
-
-    const metaDoc = await this._initMetaDocument();
-    const metaUpdate = {};
-
+    // Sort by compendium
+    const sorted = {};
     for (const preset of presets) {
-      if (compendium.index.get(preset.id)) {
-        const document = await compendium.getDocument(preset.id);
-        await document.delete();
-      }
-      metaUpdate['-=' + preset.id] = null;
+      let { collection } = foundry.utils.parseUuid(preset.uuid);
+      collection = collection.collection;
+      console.log(collection);
+      if (!sorted[collection]) sorted[collection] = [preset];
+      else sorted[collection].push(preset);
     }
 
-    metaDoc.setFlag('multi-token-edit', 'index', metaUpdate);
+    console.log(sorted);
+
+    for (const pack of Object.keys(sorted)) {
+      const compendium = await game.packs.get(pack);
+      if (!compendium) continue;
+
+      const metaDoc = await this._initMetaDocument(pack);
+      const metaUpdate = {};
+
+      for (const preset of sorted[pack]) {
+        if (compendium.index.get(preset.id)) {
+          const document = await compendium.getDocument(preset.id);
+          await document.delete();
+        }
+        metaUpdate['-=' + preset.id] = null;
+      }
+
+      metaDoc.setFlag('multi-token-edit', 'index', metaUpdate);
+    }
   }
 
-  static async _initCompendium() {
-    let compendium = game.packs.get(MAIN_PACK);
+  static async _initCompendium(pack = MAIN_PACK) {
+    let compendium = game.packs.get(pack);
     if (!compendium) {
       compendium = await CompendiumCollection.createCompendium({
         label: 'Mass Edit: Presets',
@@ -438,18 +462,17 @@ export class PresetCollection {
           PLAYER: 'NONE',
           ASSISTANT: 'NONE',
         },
-        flags: { 'multi-token-edit': { presets: true } },
         packageType: 'world',
       });
 
-      await this._initMetaDocument();
+      await this._initMetaDocument(pack);
     }
 
     return compendium;
   }
 
-  static async _initMetaDocument() {
-    const compendium = game.packs.get(MAIN_PACK);
+  static async _initMetaDocument(pack) {
+    const compendium = game.packs.get(pack);
     const metaDoc = await compendium.getDocument(META_INDEX_ID);
     if (metaDoc) return metaDoc;
 
@@ -462,7 +485,7 @@ export class PresetCollection {
         },
       ],
       {
-        pack: MAIN_PACK,
+        pack: pack,
         keepId: true,
       }
     );
@@ -704,7 +727,7 @@ export class MassEditPresets extends FormApplication {
       minimizable: false,
       title: `Presets`,
       width: 350,
-      height: 'auto',
+      height: 900,
       scrollY: ['ol.item-list'],
     });
   }
@@ -1108,7 +1131,6 @@ export class MassEditPresets extends FormApplication {
     html.find('.toggle-ext-comp').on('click', this._onToggleExtComp.bind(this));
     html.find('.toggle-layer-switch').on('click', this._onToggleLayerSwitch.bind(this));
     html.find('.document-select').on('click', this._onDocumentChange.bind(this));
-    html.find('.item').on('dblclick ', this._onDoubleClickPreset.bind(this));
     html.find('.item').on('contextmenu', this._onRightClickPreset.bind(this));
     html.find('.create-folder').on('click', this._onCreateFolder.bind(this));
     html.on('click', '.preset-create', this._onPresetCreate.bind(this));
@@ -1145,10 +1167,9 @@ export class MassEditPresets extends FormApplication {
         callback: (item) => this._onEditSelectedPresets(item),
       },
       {
-        name: 'Delete',
-        icon: '<i class="fas fa-trash fa-fw"></i>',
-        condition: (item) => item.hasClass('editable'),
-        callback: (item) => this._onDeleteSelectedPresets(item),
+        name: 'Open Journal',
+        icon: '<i class="fas fa-book-open"></i>',
+        callback: (item) => this._onOpenJournal(item),
       },
       {
         name: 'Copy',
@@ -1157,9 +1178,20 @@ export class MassEditPresets extends FormApplication {
         callback: (item) => this._onCopySelectedPresets(),
       },
       {
-        name: 'Export',
+        name: 'Export as JSON',
         icon: '<i class="fas fa-file-export fa-fw"></i>',
         callback: (item) => this._onExportSelectedPresets(),
+      },
+      {
+        name: 'Export to Compendium',
+        icon: '<i class="fas fa-file-export fa-fw"></i>',
+        callback: (item) => this._onExportSelectedPresetsToComp(),
+      },
+      {
+        name: 'Delete',
+        icon: '<i class="fas fa-trash fa-fw"></i>',
+        condition: (item) => item.hasClass('editable'),
+        callback: (item) => this._onDeleteSelectedPresets(item),
       },
     ];
   }
@@ -1173,10 +1205,9 @@ export class MassEditPresets extends FormApplication {
         callback: (header) => this._onFolderEdit(header),
       },
       {
-        name: 'Delete',
-        icon: '<i class="fas fa-trash fa-fw"></i>',
-        condition: (header) => header.closest('.folder').hasClass('editable'),
-        callback: (header) => this._onFolderDelete(header.closest('.folder').data('uuid')),
+        name: 'Export to Compendium',
+        icon: '<i class="fas fa-file-export fa-fw"></i>',
+        callback: (header) => this._onExportFolder(header.closest('.folder').data('uuid')),
       },
       {
         name: 'Copy',
@@ -1184,12 +1215,22 @@ export class MassEditPresets extends FormApplication {
         condition: (header) => !header.closest('.folder').hasClass('editable'),
         callback: (header) => this._onCopyFolder(header.closest('.folder').data('uuid')),
       },
+      {
+        name: 'Delete',
+        icon: '<i class="fas fa-trash fa-fw"></i>',
+        condition: (header) => header.closest('.folder').hasClass('editable'),
+        callback: (header) => this._onFolderDelete(header.closest('.folder').data('uuid')),
+      },
     ];
   }
 
-  async _onCopyFolder(uuid, parentId = null, render = true) {
+  async _onExportFolder(uuid) {
+    let pack = await new Promise((resolve) => getCompendiumDialog(resolve));
+    if (pack) this._onCopyFolder(uuid, null, pack);
+  }
+
+  async _onCopyFolder(uuid, parentId = null, pack = MAIN_PACK, render = true) {
     const folder = this.tree.allFolders.get(uuid);
-    console.log(folder);
     const folderDoc = await fromUuid(uuid);
 
     if (folder) {
@@ -1206,26 +1247,31 @@ export class MassEditPresets extends FormApplication {
         type: 'JournalEntry',
       };
 
-      const nFolder = await Folder.create(data, { pack: MAIN_PACK });
+      const nFolder = await Folder.create(data, { pack });
 
       for (const preset of folder.presets) {
         const p = preset.clone();
         p.folder = nFolder.id;
-        await PresetCollection.set(p);
+        await PresetCollection.set(p, pack);
       }
 
       for (const child of folder.children) {
-        await this._onCopyFolder(child.uuid, nFolder.id, false);
+        await this._onCopyFolder(child.uuid, nFolder.id, pack, false);
       }
 
       if (render) this.render(true);
     }
   }
 
-  async _onCopySelectedPresets() {
+  async _onExportSelectedPresetsToComp() {
+    let pack = await new Promise((resolve) => getCompendiumDialog(resolve));
+    if (pack) this._onCopySelectedPresets(pack);
+  }
+
+  async _onCopySelectedPresets(pack = MAIN_PACK) {
     const [selected, _] = await this._getSelectedPresets();
     for (const preset of selected) {
-      await PresetCollection.set(preset);
+      await PresetCollection.set(preset, pack);
     }
     if (selected.length) this.render(true);
   }
@@ -1272,6 +1318,11 @@ export class MassEditPresets extends FormApplication {
     }
   }
 
+  async _onOpenJournal(item) {
+    const [selected, _] = await this._getSelectedPresets({ editableOnly: false });
+    selected.forEach((p) => p.openJournal());
+  }
+
   async _onCreateFolder(event) {
     const types = [];
     if (this.docName === 'ALL') {
@@ -1297,11 +1348,6 @@ export class MassEditPresets extends FormApplication {
     });
 
     this.render(true);
-  }
-
-  async _onDoubleClickPreset(event) {
-    const preset = await PresetCollection.get($(event.target).closest('.item').data('uuid'));
-    if (preset) preset.openJournal();
   }
 
   async _onFolderEdit(header) {
@@ -1555,7 +1601,7 @@ export class MassEditPresets extends FormApplication {
   }
 
   async _onPresetBrush(event) {
-    const id = $(event.target).closest('.item').data('uuid');
+    const uuid = $(event.target).closest('.item').data('uuid');
     const preset = await PresetCollection.get(uuid);
     if (preset) {
       let activated = Brush.activate({
@@ -1982,4 +2028,44 @@ function checkMouseInWindow(event) {
     return true;
   }
   return false;
+}
+
+function getCompendiumDialog(resolve) {
+  let options = '';
+  for (const p of game.packs) {
+    if (!p.locked && p.documentName === 'JournalEntry') {
+      options += `<option value="${p.collection}">${p.title}</option>`;
+    }
+  }
+
+  let content = `
+  <p style="color: orangered;">This operation will make the destination into a Mass Edit preset compendium. Make sure it does not contain Journals that are not presets to avoid unexpected problems.</p>
+  <div class="form-group">
+    <label>Compendium</label>
+    <div class="form-fields">
+      <select style="width: 100%; margin-bottom: 10px;">${options}</select>
+    </div>
+  </div>`;
+
+  new Dialog({
+    title: 'Select Export Target',
+    content: content,
+    buttons: {
+      export: {
+        label: 'Export',
+        callback: (html) => {
+          console.log(html);
+          console.log($(html).find('select'));
+          console.log($(html).find('select').val());
+          resolve($(html).find('select').val());
+        },
+      },
+      cancel: {
+        label: 'Cancel',
+        callback: () => resolve(null),
+      },
+    },
+    close: () => resolve(null),
+    default: 'cancel',
+  }).render(true);
 }

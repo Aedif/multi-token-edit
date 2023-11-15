@@ -130,8 +130,8 @@
   padding: 0;
   overflow-y: auto;
   scrollbar-width: thin;
-  height: 700px;
-  max-height: 700px;
+  min-height: 500px;
+  /* max-height: 700px; */
 }
 
 .mass-edit-preset-form .preset-header {

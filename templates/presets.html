@@ -10,7 +10,7 @@
             {{/each}}
             <div style="flex: 0 0 60px; margin-left: 10px; border-left: 2px solid gray;">
                 <a class="header-control toggle-doc-lock {{#if docLockActive}}active{{/if}}" data-tooltip="Lock current category as default on form open."><i class="fa-solid fa-lock"></i></a>
-                <a class="header-control toggle-layer-switch {{#if layerSwitchActive}}active{{/if}}" data-tooltip="Switch active layer on category change and preset drag-out."><i class="fa-solid fa-arrows-cross"></i></a>
+                <a class="header-control toggle-layer-switch {{#if layerSwitchActive}}active{{/if}}" data-tooltip="Auto layer switching."><i class="fa-solid fa-arrows-cross"></i></a>
                 <a class="header-control toggle-ext-comp {{#if extCompActive}}active{{/if}}" data-tooltip="Display external preset compendiums."><i class="fa-solid fa-books"></i></a>
             </div>
         </div>
@@ -19,7 +19,6 @@
         {{#if createEnabled}}
         <div class="header-actions action-buttons flexrow">
             <button type="button" class="preset-create"><i class="fas fa-plus"></i> Create Preset</button>
-            <!-- <button class="create-folder"><i class="fas fa-folder"></i> Create Folder</button> -->
         </div>
         {{/if}}
         <div class="header-search flexrow">
