@@ -13,7 +13,7 @@ import { TokenDataAdapter } from './dataAdapters.js';
 
 const META_INDEX_FIELDS = ['id', 'img', 'documentName'];
 const META_INDEX_ID = 'MassEditMetaData';
-export const MAIN_PACK = 'world.mass-edit-presets';
+export const MAIN_PACK = 'world.mass-edit-presets-main';
 
 const DOCUMENT_FIELDS = ['id', 'name', 'sort', 'folder'];
 
@@ -455,10 +455,10 @@ export class PresetCollection {
     let compendium = game.packs.get(pack);
     if (!compendium) {
       compendium = await CompendiumCollection.createCompendium({
-        label: 'Mass Edit: Presets',
+        label: 'Mass Edit: Presets' + (pack === MAIN_PACK ? ' (MAIN)' : ''),
         type: 'JournalEntry',
         ownership: {
-          GAMEMASTER: 'OWNER',
+          GAMEMASTER: 'NONE',
           PLAYER: 'NONE',
           ASSISTANT: 'NONE',
         },

@@ -7,7 +7,7 @@ import {
   showGenericForm,
 } from './applications/multiConfig.js';
 import CSSEdit, { STYLES } from './applications/cssEdit.js';
-import { MAIN_PACK, MassEditPresets, PresetAPI, PresetCollection } from './applications/presets.js';
+import { MassEditPresets, Preset, PresetAPI, PresetCollection } from './applications/presets.js';
 import {
   checkApplySpecialFields,
   deleteFromClipboard,
@@ -85,6 +85,7 @@ Hooks.once('init', () => {
     default: {},
   });
 
+  // ===============
   // Preset Settings
   game.settings.register('multi-token-edit', 'docPresets', {
     scope: 'world',
@@ -93,7 +94,16 @@ Hooks.once('init', () => {
     default: [],
   });
 
+  // Temp setting needed for migration
   game.settings.register('multi-token-edit', 'presetsMigrated', {
+    scope: 'world',
+    config: false,
+    type: Boolean,
+    default: false,
+  });
+
+  // Temp setting needed for migration
+  game.settings.register('multi-token-edit', 'presetsCompMigrated', {
     scope: 'world',
     config: false,
     type: Boolean,
@@ -140,6 +150,7 @@ Hooks.once('init', () => {
   });
 
   // end of Preset Settings
+  // ======================
 
   game.settings.register('multi-token-edit', 'pinnedFields', {
     scope: 'world',
@@ -411,40 +422,47 @@ Hooks.on('renderSceneControls', (sceneControls, html, options) => {
 
 // Migrate Presets (02/11/2023)
 Hooks.on('ready', async () => {
-  if (game.settings.get('multi-token-edit', 'presetsMigrated')) return;
+  if (!game.settings.get('multi-token-edit', 'presetsMigrated')) {
+    const presets = game.settings.get('multi-token-edit', 'presets');
+    if (getType(presets) === 'Object' && !isEmpty(presets)) {
+      let newPresets = [];
+      for (const documentName of Object.keys(presets)) {
+        for (const name of Object.keys(presets[documentName])) {
+          let oldPreset = presets[documentName][name];
+          let newPreset = { id: randomID() };
 
-  const presets = game.settings.get('multi-token-edit', 'presets');
-  if (getType(presets) === 'Object' && !isEmpty(presets)) {
-    let newPresets = [];
-    for (const documentName of Object.keys(presets)) {
-      for (const name of Object.keys(presets[documentName])) {
-        let oldPreset = presets[documentName][name];
-        let newPreset = { id: randomID() };
+          newPreset.name = name;
+          newPreset.documentName = documentName;
+          newPreset.color =
+            oldPreset['mass-edit-preset-color'] !== '#ffffff'
+              ? oldPreset['mass-edit-preset-color']
+              : null;
+          newPreset.order = oldPreset['mass-edit-preset-order'] ?? -1;
+          newPreset.addSubtract = oldPreset['mass-edit-addSubtract'] ?? {};
+          newPreset.randomize = oldPreset['mass-edit-randomize'] ?? {};
 
-        newPreset.name = name;
-        newPreset.documentName = documentName;
-        newPreset.color =
-          oldPreset['mass-edit-preset-color'] !== '#ffffff'
-            ? oldPreset['mass-edit-preset-color']
-            : null;
-        newPreset.order = oldPreset['mass-edit-preset-order'] ?? -1;
-        newPreset.addSubtract = oldPreset['mass-edit-addSubtract'] ?? {};
-        newPreset.randomize = oldPreset['mass-edit-randomize'] ?? {};
+          delete oldPreset['mass-edit-preset-color'];
+          delete oldPreset['mass-edit-preset-order'];
+          delete oldPreset['mass-edit-addSubtract'];
+          delete oldPreset['mass-edit-randomize'];
+          delete oldPreset['mass-edit-keybind'];
+          newPreset.data = deepClone(oldPreset);
 
-        delete oldPreset['mass-edit-preset-color'];
-        delete oldPreset['mass-edit-preset-order'];
-        delete oldPreset['mass-edit-addSubtract'];
-        delete oldPreset['mass-edit-randomize'];
-        delete oldPreset['mass-edit-keybind'];
-        newPreset.data = deepClone(oldPreset);
-
-        newPresets.push(newPreset);
+          newPresets.push(newPreset);
+        }
+        game.settings.set('multi-token-edit', 'docPresets', newPresets);
       }
-      game.settings.set('multi-token-edit', 'docPresets', newPresets);
     }
+
+    game.settings.set('multi-token-edit', 'presetsMigrated', true);
   }
 
-  game.settings.set('multi-token-edit', 'presetsMigrated', true);
+  if (!game.settings.get('multi-token-edit', 'presetsCompMigrated')) {
+    const docPresets = game.settings.get('multi-token-edit', 'docPresets');
+    const presets = docPresets.map((p) => new Preset(p));
+    if (presets.length) PresetCollection.set(presets);
+    game.settings.set('multi-token-edit', 'presetsCompMigrated', true);
+  }
 });
 
 // TODO remove, just for testing
