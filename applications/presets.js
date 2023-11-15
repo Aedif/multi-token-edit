@@ -1,6 +1,7 @@
 import { Brush } from '../scripts/brush.js';
 import { importPresetFromJSONDialog } from '../scripts/dialogs.js';
 import { SortingHelpersFixed } from '../scripts/fixedSort.js';
+import { applyRandomization } from '../scripts/randomizer/randomizerUtils.js';
 import { SUPPORTED_PLACEABLES } from '../scripts/utils.js';
 import { TokenDataAdapter } from './dataAdapters.js';
 
@@ -45,8 +46,14 @@ export class Preset {
     this.name = data.name ?? 'Mass Edit Preset';
     this.documentName = data.documentName;
     this.sort = data.sort ?? 0;
-    this.addSubtract = deepClone(data.addSubtract ?? {});
-    this.randomize = deepClone(data.randomize ?? {});
+    this.addSubtract =
+      data.addSubtract instanceof Array
+        ? Object.fromEntries(data.addSubtract)
+        : deepClone(data.addSubtract ?? {});
+    this.randomize =
+      data.randomize instanceof Array
+        ? Object.fromEntries(data.randomize)
+        : deepClone(data.randomize ?? {});
     this.data = data.data ? deepClone(data.data) : null;
     this.img = data.img;
     this.folder = data.folder;
@@ -70,8 +77,8 @@ export class Preset {
         this.documentName = preset.documentName;
         this.img = preset.img;
         this.data = preset.data;
-        this.randomize = preset.randomize;
-        this.addSubtract = preset.addSubtract;
+        this.randomize = Object.fromEntries(preset.randomize ?? []);
+        this.addSubtract = Object.fromEntries(preset.addSubtract ?? []);
       }
     }
     return this;
@@ -134,6 +141,10 @@ export class Preset {
     PRESET_FIELDS.forEach((field) => {
       json[field] = this[field];
     });
+
+    json.randomize = Object.entries(json.randomize ?? {});
+    json.addSubtract = Object.entries(json.addSubtract ?? []);
+
     if (this.document?.pages.size) {
       json.pages = this.document.toJSON().pages;
     }
@@ -365,12 +376,16 @@ export class PresetCollection {
       return;
     }
 
+    let pages = [];
+    if (preset.pages) pages = preset.pages;
+    else if (preset.document?.pages.size) pages = preset.document.toJSON().pages;
+
     const documents = await JournalEntry.createDocuments(
       [
         {
           _id: preset.id,
           name: preset.name,
-          pages: preset.pages ?? [],
+          pages: pages,
           folder: preset.folder,
           flags: { 'multi-token-edit': { preset: preset.toJSON() } },
         },
@@ -627,11 +642,6 @@ export class PresetAPI {
       );
     }
 
-    const randomizer = preset.randomize;
-    if (!isEmpty(randomizer)) {
-      applyRandomization([preset.data], null, randomizer);
-    }
-
     let data;
 
     // Set default values if needed
@@ -665,6 +675,12 @@ export class PresetAPI {
 
     mergeObject(data, preset.data);
     mergeObject(data, pos);
+
+    const randomizer = preset.randomize;
+    if (!isEmpty(randomizer)) {
+      data = flattenObject(data);
+      applyRandomization([data], null, randomizer);
+    }
 
     if (hidden || game.keyboard.downKeys.has('AltLeft')) {
       data.hidden = true;
@@ -1757,7 +1773,7 @@ export class MassEditPresets extends FormApplication {
         const preset = new Preset(p);
         preset.pages = p.pages;
 
-        PresetCollection.set(preset);
+        await PresetCollection.set(preset);
         importCount++;
       }
     }
