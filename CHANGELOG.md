@@ -1,3 +1,23 @@
+# 1.45.1
+
+Presets
+
+- UI has been completely reworked
+  - Search
+  - Manual and alphanumeric sorting
+  - Manage presets within folders
+  - Convenient category and layer switching
+  - Create presets by dragging placeables onto the preset window
+  - Drag presets out onto the canvas to create placeables
+  - Each preset is now a Journal that exists within a hidden compendium and is only loaded when needed
+  - Export presets to JSON files or unlocked Journal compendiums
+    - Mass Edit preset compendiums are collated and displayed within the preset window
+  - Multi-select and multi-editing
+
+Misc.
+
+- Fixed Brush tool triggering drag-select or placement of new placeables upon click
+
 # 1.44.4
 
 - Fixed `DungeonDraft (TMFX)` field not properly applying the filter

@@ -62,6 +62,12 @@ export class Preset {
     return this.img || CONST.DEFAULT_TOKEN;
   }
 
+  get pages() {
+    if (this.document?.pages.size) return this.document.toJSON().pages;
+    else if (this._pages) return this._pages;
+    return null;
+  }
+
   async load() {
     if (!this.document && this.uuid) {
       this.document = await fromUuid(this.uuid);
@@ -143,15 +149,16 @@ export class Preset {
 
     json.randomize = Object.entries(json.randomize ?? {});
     json.addSubtract = Object.entries(json.addSubtract ?? []);
+    const pages = this.pages;
+    if (pages) json.pages = pages;
 
-    if (this.document?.pages.size) {
-      json.pages = this.document.toJSON().pages;
-    }
     return json;
   }
 
   clone() {
-    return new Preset(this.toJSON());
+    const clone = new Preset(this.toJSON());
+    clone.document = this.document;
+    return clone;
   }
 }
 
@@ -337,7 +344,8 @@ export class PresetCollection {
       name: preset.name,
       flags: { 'multi-token-edit': { preset: preset.toJSON() } },
     };
-    if (preset.pages) updateDoc.pages = preset.pages;
+    const pages = preset.pages;
+    if (pages) updateDoc.pages = pages;
     await doc.update(updateDoc);
 
     const metaDoc = await this._initMetaDocument(this.workingPack);
@@ -379,16 +387,12 @@ export class PresetCollection {
       return;
     }
 
-    let pages = [];
-    if (preset.pages) pages = preset.pages;
-    else if (preset.document?.pages.size) pages = preset.document.toJSON().pages;
-
     const documents = await JournalEntry.createDocuments(
       [
         {
           _id: preset.id,
           name: preset.name,
-          pages: pages,
+          pages: preset.pages ?? [],
           folder: preset.folder,
           flags: { 'multi-token-edit': { preset: preset.toJSON() } },
         },
@@ -524,10 +528,7 @@ export class PresetAPI {
     let { allPresets } = await PresetCollection.getTree();
     if (type) allPresets = allPresets.filter((p) => p.documentName === type);
 
-    return allPresets
-      .find((p) => p.name === name)
-      ?.clone()
-      .load();
+    return (await allPresets.find((p) => p.name === name)?.load()).clone();
   }
 
   /**
@@ -1268,7 +1269,7 @@ export class MassEditPresets extends FormApplication {
       const nFolder = await Folder.create(data, { pack });
 
       for (const preset of folder.presets) {
-        const p = preset.clone();
+        const p = await preset.load();
         p.folder = nFolder.id;
         await PresetCollection.set(p, pack);
       }
@@ -1289,6 +1290,7 @@ export class MassEditPresets extends FormApplication {
   async _onCopySelectedPresets(pack) {
     const [selected, _] = await this._getSelectedPresets();
     for (const preset of selected) {
+      preset.folder = null;
       await PresetCollection.set(preset, pack);
     }
     if (selected.length) this.render(true);
@@ -1789,7 +1791,7 @@ export class MassEditPresets extends FormApplication {
         if (!('data' in p) || isEmpty(p.data)) continue;
 
         const preset = new Preset(p);
-        preset.pages = p.pages;
+        preset._pages = p.pages;
 
         await PresetCollection.set(preset);
         importCount++;
@@ -1818,6 +1820,13 @@ async function exportPresets(presets, fileName) {
   for (const preset of presets) {
     await preset.load();
   }
+
+  presets = presets.map((p) => {
+    const preset = p.clone();
+    preset.folder = null;
+    preset.uuid = null;
+    return preset;
+  });
 
   saveDataToFile(
     JSON.stringify(presets, null, 2),

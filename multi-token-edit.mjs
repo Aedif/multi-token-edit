@@ -398,8 +398,8 @@ Hooks.once('init', () => {
     performMassUpdate,
     performMassSearch,
     showMassEdit,
-    presets: PresetAPI,
-    presetCollection: PresetCollection,
+    // presets: PresetAPI,
+    // presetCollection: PresetCollection,
   };
 });
 
