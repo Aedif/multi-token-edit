@@ -151,16 +151,12 @@ export class Brush {
     this.brushOverlay.zIndex = Infinity;
 
     this.brushOverlay.on('mousedown', (event) => {
-      event.preventDefault();
-      event.stopPropagation();
       this.brushOverlay.isMouseDown = true;
     });
-    this.brushOverlay.on('pointermove', (event) => {
+    this.brushOverlay.on('mousemove', (event) => {
       this._onBrushMove(event);
     });
     this.brushOverlay.on('mouseup', (event) => {
-      event.preventDefault();
-      event.stopPropagation();
       if (event.nativeEvent.which !== 2) {
         this._onBrushMove(event);
       }
@@ -169,14 +165,17 @@ export class Brush {
     });
 
     this.brushOverlay.on('click', (event) => {
-      event.preventDefault();
-      event.stopPropagation();
       if (event.nativeEvent.which == 2) {
         this.deactivate();
       }
     });
 
     canvas.stage.addChild(this.brushOverlay);
+
+    // Disable canvas events to prevent selects and object placements on click
+    canvas.mouseInteractionManager.permissions.clickLeft = false;
+    // canvas.mouseInteractionManager.permissions.longPress = false;
+
     return true;
   }
 
@@ -269,6 +268,8 @@ export class Brush {
 
   static deactivate() {
     if (this.active) {
+      canvas.mouseInteractionManager.permissions.clickLeft = true;
+      //canvas.mouseInteractionManager.permissions.longPress = true;
       if (this.brushOverlay) this.brushOverlay.parent?.removeChild(this.brushOverlay);
       if (this.brush3d && game.Levels3DPreview?._active) {
         game.Levels3DPreview.scene.remove(this.brush3d);

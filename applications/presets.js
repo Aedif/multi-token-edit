@@ -1355,7 +1355,7 @@ export class MassEditPresets extends FormApplication {
       {
         name: Folder.defaultName(),
         type: 'JournalEntry',
-        sorting: 'a',
+        sorting: 'm',
         flags: { 'multi-token-edit': { types } },
       },
       { pack: PresetCollection.workingPack }
