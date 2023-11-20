@@ -388,18 +388,23 @@ Hooks.once('init', () => {
     );
   });
 
-  game.modules.get('multi-token-edit').api = {
-    applyRandomization, // Deprecated
-    applyAddSubtract, // Deprecated
+  globalThis.MassEdit = {
     GeneralDataAdapter,
     MassEditGenericForm,
     showGenericForm,
-    checkApplySpecialFields, // Deprecated
     performMassUpdate,
     performMassSearch,
     showMassEdit,
-    // presets: PresetAPI,
-    // presetCollection: PresetCollection,
+    getPreset: PresetAPI.getPreset,
+    createPreset: PresetAPI.createPreset,
+    spawnPreset: PresetAPI.spawnPreset,
+  };
+
+  game.modules.get('multi-token-edit').api = {
+    ...globalThis.MassEdit,
+    applyRandomization, // Deprecated
+    applyAddSubtract, // Deprecated
+    checkApplySpecialFields, // Deprecated
   };
 });
 

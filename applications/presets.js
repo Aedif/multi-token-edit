@@ -529,10 +529,14 @@ export class PresetAPI {
     if (uuid) return await PresetCollection.get(uuid);
     else if (!name) throw Error('UUID or Name required to retrieve a Preset.');
 
+    name = name.toLowerCase();
+
     let { allPresets } = await PresetCollection.getTree();
     if (type) allPresets = allPresets.filter((p) => p.documentName === type);
-
-    return (await allPresets.find((p) => p.name === name)?.load()).clone();
+    return allPresets
+      .find((p) => p.name.toLowerCase() === name)
+      ?.clone()
+      .load();
   }
 
   /**
@@ -601,9 +605,10 @@ export class PresetAPI {
    * @param {Boolean} [options.spawnOnMouse]      If 'true' current mouse position will be used as the spawn position
    * @param {Boolean} [options.snapToGrid]        If 'true' snaps spawn position to the grid.
    * @param {Boolean} [options.hidden]            If 'true' preset will be spawned hidden.
-   *
+   * @param {Boolean} [options.layerSwitch]       If 'true' the layer of the spawned preset will be activated.
+   * @returns {Array[Document]}
    */
-  static spawnPreset({
+  static async spawnPreset({
     uuid = null,
     preset = null,
     name = null,
@@ -613,6 +618,7 @@ export class PresetAPI {
     spawnOnMouse = true,
     snapToGrid = true,
     hidden = false,
+    layerSwitch = false,
   } = {}) {
     if (!canvas.ready) throw Error("Canvas need to be 'ready' for a preset to be spawned.");
     if (!(uuid || preset || name)) throw Error('ID, Name, or Preset is needed to spawn it.');
@@ -621,7 +627,7 @@ export class PresetAPI {
         'X and Y coordinates have to be provided or spawnOnMouse set to true for a preset to be spawned.'
       );
 
-    preset = preset ?? PresetAPI.getPreset({ uuid, name, type });
+    preset = preset ?? (await PresetAPI.getPreset({ uuid, name, type }));
     if (!preset)
       throw Error(
         `No preset could be found matching: { uuid: "${uuid}", name: "${name}", type: "${type}"}`
@@ -691,7 +697,9 @@ export class PresetAPI {
       data.hidden = true;
     }
 
-    canvas.scene.createEmbeddedDocuments(preset.documentName, [data]);
+    if (layerSwitch) canvas.getLayerByEmbeddedName(preset.documentName)?.activate();
+
+    return await canvas.scene.createEmbeddedDocuments(preset.documentName, [data]);
   }
 }
 

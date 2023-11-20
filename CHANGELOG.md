@@ -1,3 +1,54 @@
+# 1.46.1
+
+- Mass Edit API can now be accessed via `MassEdit` as well as `game.modules.get("multi-token-edit").api`
+- Added 3 new functions to the API: `createPreset(...)`, `spawnPreset(...)`, `getPreset(...)`
+  - Some very simple examples:
+  - `MassEdit.createPreset(_token)`
+    - Creates a Preset using the currently controlled token
+  - `MassEdit.spawnPreset({ name: "Blue Light" })`
+    - Spawns a preset named "Blue Light" on the current mouse position
+  - `MassEdit.getPreset({ name: "Spike Trap" })`
+    - Retrieves a preset by the name "Spike Trap"
+
+```js
+/**
+  * Retrieve saved preset via uuid or name
+  * @param {object} [options={}]
+  * @param {String} [options.uuid]   Preset UUID
+  * @param {String} [options.name]   Preset name
+  * @param {String} [options.type]   Preset type ("Token", "Tile", etc)
+  * @returns {Preset}
+  */
+static async getPreset({ uuid = null, name = null, type = null } = {})
+
+/**
+ * Create Presets from provided placeables
+ * @param {PlaceableObject|Array[PlaceableObject]} placeables Placeable/s to create the presets from.
+ * @param {object} [options={}]                               Optional Preset information
+ * @param {String} [options.name]                             Preset name
+ * @param {String} [options.img]                              Preset thumbnail image
+ * @returns {Preset|Array[Preset]}
+ */
+static async createPreset(placeables, options = {})
+
+/**
+ * Spawn a preset on the scene (id, name or preset are required).
+ * @param {object} [options={}]
+ * @param {Preset} [options.preset]             Preset
+ * @param {String} [options.id]                 Preset ID
+ * @param {String} [options.name]               Preset name
+ * @param {String} [options.type]               Preset type ("Token", "Tile", etc)
+ * @param {Number} [options.x]                  Spawn canvas x coordinate (required if spawnOnMouse is false)
+ * @param {Number} [options.y]                  Spawn canvas y coordinate (required if spawnOnMouse is false)
+ * @param {Boolean} [options.spawnOnMouse]      If 'true' current mouse position will be used as the spawn position
+ * @param {Boolean} [options.snapToGrid]        If 'true' snaps spawn position to the grid.
+ * @param {Boolean} [options.hidden]            If 'true' preset will be spawned hidden.
+ * @param {Boolean} [options.layerSwitch]       If 'true' the layer of the spawned preset will be activated.
+ * @returns {Array[Document]}
+ */
+static async spawnPreset({ uuid = null, preset = null, name = null, type = null, x = null, y = null, spawnOnMouse = true, snapToGrid = true, hidden = false, layerSwitch = false } = {})
+```
+
 # 1.46.0
 
 Presets
