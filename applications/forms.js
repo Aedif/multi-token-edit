@@ -42,6 +42,19 @@ export const WithMassEditForm = (cls) => {
       this.commonData = options.commonData || {};
       this.randomizerEnabled = IS_PRIVATE && options.massEdit;
       this.massFormButtons = [{ title: 'Apply', value: 'permissions', icon: 'far fa-save' }];
+
+      this.randomizeFields = {};
+      this.addSubtractFields = {};
+    }
+
+    async getData(options) {
+      // During Preset editing we will be editing AmbientLight document directly, which causes the preview to be set to null
+      // and Foundry complaining about being unable to read data from it. So we set the preview manually here
+      if (this.documentName === 'AmbientLight' && !this.preview) {
+        this.preview = this.meObjects[0].clone();
+      }
+      const data = super.getData(options);
+      return data;
     }
 
     // Add styles and controls to the sheet
@@ -54,9 +67,6 @@ export const WithMassEditForm = (cls) => {
         SUPPORTED_COLLECTIONS.includes(this.documentName)
       )
         this._injectGlobalDeleteButton(html);
-
-      this.randomizeFields = {};
-      this.addSubtractFields = {};
 
       // Set style
       const [styleName, css] = getInUseStyle();
@@ -208,7 +218,7 @@ export const WithMassEditForm = (cls) => {
         htmlButtons += `<button type="submit" value="${button.value}"><i class="${button.icon}"></i> ${button.title}</button>`;
 
         // Auto update control
-        if (this.options.massEdit && !this.options.simplified)
+        if (this.options.massEdit && !this.options.simplified && !this.options.presetEdit)
           htmlButtons += `<div class="me-mod-update" title="${game.i18n.localize(
             'multi-token-edit.form.immediate-update-title'
           )}"><input type="checkbox" data-submit="${
@@ -631,7 +641,7 @@ export const WithMassConfig = (docName = 'NONE') => {
           { title: 'Search', value: 'search', icon: 'fas fa-search' },
           { title: 'Search and Edit', value: 'searchAndEdit', icon: 'fas fa-search' },
         ];
-      } else if (this.documentName === 'Note') {
+      } else if (this.documentName === 'Note' && !this.options.presetEdit) {
         // If we're editing notes and there are some on a different scene
         if (this.meObjects.filter((n) => (n.scene ?? n.parent).id === canvas.scene.id).length) {
           buttons.push({
@@ -653,7 +663,8 @@ export const WithMassConfig = (docName = 'NONE') => {
         if (
           this.documentName === 'Token' &&
           !this.options.simplified &&
-          !this.meObjects[0].constructor?.name?.startsWith('PrototypeToken')
+          !this.meObjects[0].constructor?.name?.startsWith('PrototypeToken') &&
+          !this.options.presetEdit
         ) {
           buttons.push({
             title: 'Apply and Update Proto',
@@ -689,6 +700,16 @@ export const WithMassConfig = (docName = 'NONE') => {
       // Fix that here
       if (this.docName === 'Token') {
         TokenDataAdapter.correctDetectionModeOrder(selectedFields, this.randomizeFields);
+      }
+
+      // Preset editing
+      if (this.options.presetEdit) {
+        this.options.callback?.({
+          data: selectedFields,
+          addSubtract: this.addSubtractFields,
+          randomize: this.randomizeFields,
+        });
+        return;
       }
 
       // Search and Select mode
@@ -745,6 +766,7 @@ export const WithMassConfig = (docName = 'NONE') => {
 
     _getHeaderButtons() {
       const buttons = super._getHeaderButtons();
+      if (this.options.presetEdit) return buttons;
 
       // Macro Generator
       if (
@@ -1219,7 +1241,7 @@ function performDocSearch(docs, docName, selectedFields, found) {
 }
 
 export async function performMassUpdate(data, objects, docName, applyType) {
-  objects = objects.map((o) => o.document ?? o);
+  // Used by GenericForms, we want just the data, and no updates
   if (this.options?.simplified) {
     if (this.options.callback) this.options.callback(data);
     return;
@@ -1230,6 +1252,9 @@ export async function performMassUpdate(data, objects, docName, applyType) {
     }
     return;
   }
+
+  // Make sure we're working with documents and not placeables
+  objects = objects.map((o) => o.document ?? o);
 
   // Update docs
   const updates = [];

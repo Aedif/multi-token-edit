@@ -13,7 +13,8 @@ export function deselectField(control, configApp) {
   let allRandomizedRemoved = true;
   if (configApp) {
     formGroup.find('[name]').each(function () {
-      if (allRandomizedRemoved) allRandomizedRemoved = !Boolean(configApp.randomizeFields[this.name]);
+      if (allRandomizedRemoved)
+        allRandomizedRemoved = !Boolean(configApp.randomizeFields[this.name]);
     });
   }
 
@@ -45,7 +46,8 @@ export function applyRandomization(updates, objects, randomizeFields) {
         if (obj.type === 'select') {
           update[field] = obj.selection[Math.floor(Math.random() * obj.selection.length)];
         } else if (obj.type === 'number') {
-          if (obj.step === 'any') obj.step = 1; // default to integer 1 just to avoid very large decimals
+          if (obj.step === 'any')
+            obj.step = 1; // default to integer 1 just to avoid very large decimals
           else obj.step = Number(obj.step);
 
           if (obj.method === 'interpolate') {
@@ -55,7 +57,8 @@ export function applyRandomization(updates, objects, randomizeFields) {
             const stepsInRange = (obj.max - obj.min) / obj.step;
             update[field] = (stepsInRange - (i % (stepsInRange + 1))) * obj.step + obj.min;
           } else {
-            const stepsInRange = (obj.max - obj.min + (Number.isInteger(obj.step) ? 1 : 0)) / obj.step;
+            const stepsInRange =
+              (obj.max - obj.min + (Number.isInteger(obj.step) ? 1 : 0)) / obj.step;
             update[field] = Math.floor(Math.random() * stepsInRange) * obj.step + obj.min;
           }
         } else if (obj.type === 'boolean') {
@@ -132,7 +135,14 @@ export function applyRandomization(updates, objects, randomizeFields) {
           let hexColor = rgb3.toString({ format: 'hex' });
           if (hexColor.length < 7) {
             // 3 char hex, duplicate chars
-            hexColor = '#' + hexColor[1] + hexColor[1] + hexColor[2] + hexColor[2] + hexColor[3] + hexColor[3];
+            hexColor =
+              '#' +
+              hexColor[1] +
+              hexColor[1] +
+              hexColor[2] +
+              hexColor[2] +
+              hexColor[3] +
+              hexColor[3];
           }
           update[field] = hexColor;
         } else if (obj.type === 'image') {
@@ -190,7 +200,10 @@ export function applyRandomization(updates, objects, randomizeFields) {
     }
     pUpdates.sort(
       (a, b) =>
-        (b.p.w ?? b.p.width ?? 0) + (b.p.h ?? b.p.height ?? 0) - (a.p.w ?? a.p.width ?? 0) - (a.p.h ?? a.p.height ?? 0)
+        (b.p.w ?? b.p.width ?? 0) +
+        (b.p.h ?? b.p.height ?? 0) -
+        (a.p.w ?? a.p.width ?? 0) -
+        (a.p.h ?? a.p.height ?? 0)
     );
 
     for (const pUpdate of pUpdates) {

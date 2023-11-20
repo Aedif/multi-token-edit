@@ -22,5 +22,14 @@
         </div>
     </div>
 
+    {{#if documentEdit}}
+    <div class="form-group">
+        <label>Edit [{{documentEdit}}]</label>
+        <div class="form-fields">
+            <button  class="edit-document" type="button"><i class="fa-solid fa-gear"></i></button>
+        </div>
+    </div>
+    {{/if}}
+
     <button type="submit" data-action="apply"><i class="fas fa-check"></i> Apply</button>
 </form>

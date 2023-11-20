@@ -1,3 +1,10 @@
+# 1.46.0
+
+Presets
+
+- Placeable data can now be edited after selected `Edit` under preset context options
+- Added `Duplicate` context menu options
+
 # 1.45.1
 
 Presets

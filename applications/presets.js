@@ -4,6 +4,7 @@ import { SortingHelpersFixed } from '../scripts/fixedSort.js';
 import { applyRandomization } from '../scripts/randomizer/randomizerUtils.js';
 import { SUPPORTED_PLACEABLES } from '../scripts/utils.js';
 import { TokenDataAdapter } from './dataAdapters.js';
+import { showMassEdit } from './multiConfig.js';
 
 const META_INDEX_FIELDS = ['id', 'img', 'documentName'];
 const META_INDEX_ID = 'MassEditMetaData';
@@ -98,7 +99,10 @@ export class Preset {
     if (this.document) {
       const flagUpdate = {};
       Object.keys(data).forEach((k) => {
-        if (PRESET_FIELDS.includes(k) && data[k] !== this[k]) {
+        if (k === 'randomize' || k === 'addSubtract') {
+          flagUpdate[k] = Object.entries(data[k]);
+          this[k] = data[k];
+        } else if (PRESET_FIELDS.includes(k) && data[k] !== this[k]) {
           flagUpdate[k] = data[k];
           this[k] = data[k];
         }
@@ -1195,6 +1199,12 @@ export class MassEditPresets extends FormApplication {
         callback: (item) => this._onCopySelectedPresets(),
       },
       {
+        name: 'Duplicate',
+        icon: '<i class="fa-solid fa-copy"></i>',
+        condition: (item) => item.hasClass('editable'),
+        callback: (item) => this._onCopySelectedPresets(null, { keepFolder: true, keepId: false }),
+      },
+      {
         name: 'Export as JSON',
         icon: '<i class="fas fa-file-export fa-fw"></i>',
         callback: (item) => this._onExportSelectedPresets(),
@@ -1287,11 +1297,13 @@ export class MassEditPresets extends FormApplication {
     if (pack) this._onCopySelectedPresets(pack);
   }
 
-  async _onCopySelectedPresets(pack) {
+  async _onCopySelectedPresets(pack, { keepFolder = false, keepId = true } = {}) {
     const [selected, _] = await this._getSelectedPresets();
     for (const preset of selected) {
-      preset.folder = null;
-      await PresetCollection.set(preset, pack);
+      const p = preset.clone();
+      if (!keepFolder) p.folder = null;
+      if (!keepId) p.id = randomID();
+      await PresetCollection.set(p, pack);
     }
     if (selected.length) this.render(true);
   }
@@ -1663,10 +1675,7 @@ export class MassEditPresets extends FormApplication {
   // }
 
   async _onPresetUpdate(event) {
-    const uuid = $(event.target).closest('.item').data('uuid');
-    if (!uuid) return;
-
-    const preset = await PresetCollection.get(uuid);
+    const preset = await PresetCollection.get($(event.target).closest('.item').data('uuid'));
     if (!preset) return;
 
     const selectedFields =
@@ -1687,9 +1696,7 @@ export class MassEditPresets extends FormApplication {
       TokenDataAdapter.correctDetectionModeOrder(selectedFields, randomize);
     }
 
-    preset.data = selectedFields;
-    preset.randomize = randomize;
-    preset.addSubtract = addSubtract;
+    preset.update({ data: selectedFields, randomize, addSubtract });
 
     ui.notifications.info(`Preset "${preset.name}" updated`);
 
@@ -1908,8 +1915,13 @@ class PresetConfig extends FormApplication {
     if (this.presets.length === 1) data.preset = this.presets[0];
 
     data.minlength = this.presets.length > 1 ? 0 : 1;
-
     data.tva = game.modules.get('token-variants')?.active;
+
+    // Check if all presets are for the same document type and thus can be edited using a Mass Edit form
+    const docName = this.presets[0].documentName;
+    if (this.presets.every((p) => p.documentName === docName)) {
+      data.documentEdit = docName;
+    }
 
     return data;
   }
@@ -1919,6 +1931,8 @@ class PresetConfig extends FormApplication {
 
     // Auto-select so that the pre-defined names can be conveniently erased
     html.find('[name="name"]').select();
+
+    html.find('.edit-document').on('click', this._onEditDocument.bind(this));
 
     // TVA Support
     const tvaButton = html.find('.token-variants-image-select-button');
@@ -1932,23 +1946,65 @@ class PresetConfig extends FormApplication {
     });
   }
 
+  async _onEditDocument() {
+    const documents = [];
+    const cls = CONFIG[this.presets[0].documentName].documentClass;
+    for (const p of this.presets) {
+      documents.push(new cls(p.data));
+    }
+
+    const app = await showMassEdit(documents, null, {
+      presetEdit: true,
+      callback: (obj) => {
+        this.addSubtract = {};
+        this.randomize = {};
+        for (const k of Object.keys(obj.data)) {
+          if (k in obj.randomize) this.randomize[k] = obj.randomize[k];
+          if (k in obj.addSubtract) this.addSubtract[k] = obj.addSubtract[k];
+        }
+        this.data = obj.data;
+      },
+    });
+
+    // For randomize and addSubtract only take into account the first preset
+    // and apply them to the form
+    const preset = new Preset({
+      data: {},
+      randomize: this.presets[0].randomize,
+      addSubtract: this.presets[0].addSubtract,
+    });
+    setTimeout(() => {
+      app._applyPreset(preset);
+    }, 400);
+  }
+
   async _updatePresets(formData) {
     formData.name = formData.name.trim();
     formData.img = formData.img.trim() || null;
 
     if (this.isCreate) {
       for (const preset of this.presets) {
-        await preset.update({
+        const update = {
           name: formData.name || preset.name || 'New Preset',
           img: formData.img ?? preset.img,
-        });
+        };
+        if (this.data) update.data = this.data;
+        if (this.addSubtract) update.addSubtract = this.addSubtract;
+        if (this.randomize) update.randomize = this.randomize;
+
+        await preset.update(update);
       }
     } else {
       for (const preset of this.presets) {
-        await preset.update({
+        const update = {
           name: formData.name || preset.name,
           img: formData.img || preset.img,
-        });
+        };
+        if (this.data) update.data = this.data;
+        if (this.addSubtract) update.addSubtract = this.addSubtract;
+        if (this.randomize) update.randomize = this.randomize;
+
+        await preset.update(update);
       }
     }
   }
