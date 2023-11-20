@@ -7,7 +7,7 @@
 
 FoundryVTT module for searching and editing multiple placeables at the same time.
 
-Support me on [Patreon](https://www.patreon.com/Aedif) to get access to the the version that supports field [Randomization](#randomization) and preset [Drag&Drop](#preset-dragdrop)
+Support me on [Patreon](https://www.patreon.com/Aedif) to get access to the the version that supports field [Randomization](#randomization).
 
 _Note that all keybinding referenced bellow can be changed via 'Configure Controls'_
 
@@ -60,11 +60,19 @@ You can also paste this data as plaintext in and out of foundry.
 
 ## Presets
 
-Any configuration window opened using the module will have a 'Presets' header button. It will open up a window where you can store currently selected fields and re-use them later.
+Any configuration window opened using the module will have a 'Presets' header button. It will open up a window where you can store currently selected fields and re-use them later. Alternatively you can drag in a placeable from the canvas onto the form to create a preset from it.
 
-![simplePreset](https://user-images.githubusercontent.com/7693704/184880356-fb816824-9624-4a2c-a673-09d9c57765c7.gif)
+![image](https://github.com/Aedif/multi-token-edit/assets/7693704/32d9b4ae-41c1-4072-b156-1d72b299ac45)
 
-Preset's window can also be opened using `Shift+X` allowing to quickly apply them on any selected placeable.
+The window can also be opened using Scene controls
+
+![image](https://github.com/Aedif/multi-token-edit/assets/7693704/01e4c873-2b45-41b9-91ec-e7e8429a251e)
+
+and a keybind (`Shift+X` by default)
+
+![image](https://github.com/Aedif/multi-token-edit/assets/7693704/beb698d9-9199-4132-bfbe-d80830a1838f)
+
+Short video clip: https://youtu.be/MRjHXc3MJWA
 
 ## Adding/Subtracting
 
@@ -160,9 +168,3 @@ At the moment a [Patreon](https://www.patreon.com/Aedif) exclusive feature.
 Randomize any numerical, color, text, image, drop-down, or coordinate values.
 
 https://user-images.githubusercontent.com/7693704/196006020-9d308238-1888-4b98-b452-e7ce88a643ac.mp4
-
-## Preset Drag&Drop
-
-Drag out presets onto the canvas to spawn placeables modified using the preset
-
-https://user-images.githubusercontent.com/7693704/237049633-5f348971-49fa-44e5-9995-05657efe64d1.mp4
