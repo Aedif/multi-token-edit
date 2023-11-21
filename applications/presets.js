@@ -1,6 +1,7 @@
 import { Brush } from '../scripts/brush.js';
 import { importPresetFromJSONDialog } from '../scripts/dialogs.js';
 import { SortingHelpersFixed } from '../scripts/fixedSort.js';
+import { getPickerOverlay } from '../scripts/randomizer/randomizerForm.js';
 import { applyRandomization } from '../scripts/randomizer/randomizerUtils.js';
 import { SUPPORTED_PLACEABLES } from '../scripts/utils.js';
 import { TokenDataAdapter } from './dataAdapters.js';
@@ -520,9 +521,9 @@ export class PresetAPI {
   /**
    * Retrieve saved preset
    * @param {object} [options={}]
-   * @param {String} [options.id]   Preset ID
-   * @param {String} [options.name] Preset name
-   * @param {String} [options.type] Preset type ("Token", "Tile", etc)
+   * @param {String} [options.uuid]   Preset UUID
+   * @param {String} [options.name]   Preset name
+   * @param {String} [options.type]   Preset type ("Token", "Tile", etc)
    * @returns {Preset}
    */
   static async getPreset({ uuid = null, name = null, type = null } = {}) {
@@ -595,14 +596,15 @@ export class PresetAPI {
 
   /**
    * Spawn a preset on the scene (id, name or preset itself are required).
+   * By default the current mouse position is used.
    * @param {object} [options={}]
    * @param {Preset} [options.preset]             Preset
-   * @param {String} [options.id]                 Preset ID
+   * @param {String} [options.uuid]               Preset UUID
    * @param {String} [options.name]               Preset name
    * @param {String} [options.type]               Preset type ("Token", "Tile", etc)
-   * @param {Number} [options.x]                  Spawn canvas x coordinate (required if spawnOnMouse is false)
-   * @param {Number} [options.y]                  Spawn canvas y coordinate (required if spawnOnMouse is false)
-   * @param {Boolean} [options.spawnOnMouse]      If 'true' current mouse position will be used as the spawn position
+   * @param {Number} [options.x]                  Spawn canvas x coordinate (mouse position used if x or y are null)
+   * @param {Number} [options.y]                  Spawn canvas y coordinate (mouse position used if x or y are null)
+   * @param {Boolean} [options.coordPicker]       If 'true' a crosshair will be activated allowing spawn position to be picked
    * @param {Boolean} [options.snapToGrid]        If 'true' snaps spawn position to the grid.
    * @param {Boolean} [options.hidden]            If 'true' preset will be spawned hidden.
    * @param {Boolean} [options.layerSwitch]       If 'true' the layer of the spawned preset will be activated.
@@ -615,17 +617,15 @@ export class PresetAPI {
     type = null,
     x = null,
     y = null,
-    spawnOnMouse = true,
+    coordPicker = false,
     snapToGrid = true,
     hidden = false,
     layerSwitch = false,
   } = {}) {
     if (!canvas.ready) throw Error("Canvas need to be 'ready' for a preset to be spawned.");
     if (!(uuid || preset || name)) throw Error('ID, Name, or Preset is needed to spawn it.');
-    if (!spawnOnMouse && (x == null || y == null))
-      throw Error(
-        'X and Y coordinates have to be provided or spawnOnMouse set to true for a preset to be spawned.'
-      );
+    if (!coordPicker && ((x == null && y != null) || (x != null && y == null)))
+      throw Error('Need both X and Y coordinates to spawn a preset.');
 
     preset = preset ?? (await PresetAPI.getPreset({ uuid, name, type }));
     if (!preset)
@@ -633,7 +633,14 @@ export class PresetAPI {
         `No preset could be found matching: { uuid: "${uuid}", name: "${name}", type: "${type}"}`
       );
 
-    if (spawnOnMouse && x == null) {
+    if (coordPicker) {
+      const coords = await new Promise((resolve) => {
+        canvas.stage.addChild(getPickerOverlay()).once('pick', resolve);
+      });
+      if (coords == null) return [];
+      x = coords.end.x;
+      y = coords.end.y;
+    } else if (x == null || y == null) {
       x = canvas.mousePosition.x;
       y = canvas.mousePosition.y;
 

@@ -1,3 +1,16 @@
+# 1.46.2
+
+- New option added to `MassEdit.spawnPreset(...)`
+  - `coordPicker` - If 'true' a crosshair will be activated allowing spawn location to be picked by clicking on the canvas
+  - e.g. `MassEdit.spawnPreset({ name: "Torch", coordPicker: true});`
+  - e.g. spawning 3 torches in a sequence:
+
+```js
+for (let i = 0; i < 3; i++) {
+  await MassEdit.spawnPreset({ name: 'Torch', coordPicker: true });
+}
+```
+
 # 1.46.1
 
 - Mass Edit API can now be accessed via `MassEdit` as well as `game.modules.get("multi-token-edit").api`

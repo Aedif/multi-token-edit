@@ -322,7 +322,9 @@ export default class RandomizerForm extends FormApplication {
     this.configApp.minimize();
 
     const t = this;
-    canvas.stage.addChild(_getPickerOverlay()).once('pick', (position) => {
+    canvas.stage.addChild(getPickerOverlay()).once('pick', (position) => {
+      if (position == null) return;
+
       const form = $(event.target).closest('form');
 
       const minX = Math.min(position.start.x, position.end.x);
@@ -487,9 +489,10 @@ let pickerOverlay;
 let boundStart;
 let boundEnd;
 
-function _getPickerOverlay() {
+export function getPickerOverlay() {
   if (pickerOverlay) {
     pickerOverlay.destroy(true);
+    pickerOverlay.emit('pick', null);
   }
 
   pickerOverlay = new PIXI.Container();
