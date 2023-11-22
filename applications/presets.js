@@ -618,6 +618,7 @@ export class PresetAPI {
     x = null,
     y = null,
     coordPicker = false,
+    pickerLabel = '',
     snapToGrid = true,
     hidden = false,
     layerSwitch = false,
@@ -633,9 +634,56 @@ export class PresetAPI {
         `No preset could be found matching: { uuid: "${uuid}", name: "${name}", type: "${type}"}`
       );
 
+    let data;
+
+    let presetData = flattenObject(preset.data);
+    const randomizer = preset.randomize;
+    if (!isEmpty(randomizer)) {
+      applyRandomization([presetData], null, randomizer);
+    }
+
+    // Set default values if needed
+    switch (preset.documentName) {
+      case 'Token':
+        data = { name: preset.name };
+        break;
+      case 'Tile':
+        data = { width: canvas.grid.w, height: canvas.grid.h };
+        break;
+      case 'AmbientSound':
+        data = { radius: 20 };
+        break;
+      case 'Drawing':
+        data = { 'shape.width': canvas.grid.w * 2, 'shape.height': canvas.grid.h * 2 };
+        break;
+      case 'MeasuredTemplate':
+        data = { distance: 10 };
+        break;
+      case 'AmbientLight':
+        if (!('config.dim' in presetData) && !('config.bright' in presetData)) {
+          data = { 'config.dim': 20, 'config.bright': 10 };
+          break;
+        }
+      default:
+        data = {};
+    }
+
+    mergeObject(data, presetData);
+
+    // ==================
+    // Determine position
     if (coordPicker) {
-      const coords = await new Promise((resolve) => {
-        canvas.stage.addChild(getPickerOverlay()).once('pick', resolve);
+      const coords = await new Promise(async (resolve) => {
+        canvas.stage
+          .addChild(
+            await getPickerOverlay({
+              documentName: preset.documentName,
+              snap: snapToGrid,
+              data: data,
+              label: pickerLabel,
+            })
+          )
+          .once('pick', resolve);
       });
       if (coords == null) return [];
       x = coords.end.x;
@@ -660,45 +708,14 @@ export class PresetAPI {
       );
     }
 
-    let data;
-
-    let presetData = flattenObject(preset.data);
-    const randomizer = preset.randomize;
-    if (!isEmpty(randomizer)) {
-      applyRandomization([presetData], null, randomizer);
-    }
-
-    // Set default values if needed
     switch (preset.documentName) {
-      case 'Token':
-        data = { name: preset.name };
-        break;
-      case 'Tile':
-        data = { width: canvas.grid.w, height: canvas.grid.h };
-        break;
-      case 'AmbientSound':
-        data = { radius: 20 };
-        break;
       case 'Wall':
-        data = { c: [pos.x, pos.y, pos.x + canvas.grid.w, pos.y] };
+        data.c = [pos.x, pos.y, pos.x + canvas.grid.w, pos.y];
         break;
-      case 'Drawing':
-        data = { 'shape.width': canvas.grid.w * 2, 'shape.height': canvas.grid.h * 2 };
-        break;
-      case 'MeasuredTemplate':
-        data = { distance: 10 };
-        break;
-      case 'AmbientLight':
-        if (!('config.dim' in presetData) && !('config.bright' in presetData)) {
-          data = { 'config.dim': 20, 'config.bright': 10 };
-          break;
-        }
       default:
-        data = {};
+        mergeObject(data, pos);
     }
-
-    mergeObject(data, presetData);
-    mergeObject(data, pos);
+    // ================
 
     if (hidden || game.keyboard.downKeys.has('AltLeft')) {
       data.hidden = true;

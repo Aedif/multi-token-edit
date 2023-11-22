@@ -1,3 +1,11 @@
+# 1.47.0
+
+- `Mass.spawnPreset(...)`
+  - **coordPicker** option will now display the preview of the placeable
+  - New option: **pickerLabel**
+    - A string that will be displayed above the crosshair when **coordPicker** is set to true
+    - e.g. `MassEdit.spawnPreset({ name: "Torch", coordPicker: true, pickerLabel: "Placing Torch" });`
+
 # 1.46.2
 
 - New option added to `MassEdit.spawnPreset(...)`
