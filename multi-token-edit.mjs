@@ -374,6 +374,8 @@ Hooks.once('init', () => {
           : this;
         app.presetFromPlaceable(placeables, ...args);
       }
+      // Pass in a fake event that hopefully is enough to allow other modules to function
+      this._onDragLeftCancel(...args);
     } else {
       return wrapped(...args);
     }

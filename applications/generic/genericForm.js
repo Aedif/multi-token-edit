@@ -34,7 +34,8 @@ export class MassEditGenericForm extends WMC {
     this.nav = nav;
     this.editableLabels = {};
 
-    this.pinnedFields = game.settings.get('multi-token-edit', 'pinnedFields')[this.documentName] ?? {};
+    this.pinnedFields =
+      game.settings.get('multi-token-edit', 'pinnedFields')[this.documentName] ?? {};
     this.customControls = customControls;
 
     if (options.callback) {
@@ -72,7 +73,7 @@ export class MassEditGenericForm extends WMC {
   }
 
   async getData(options) {
-    const data = super.getData(options);
+    const data = await super.getData(options);
     // Cache partials
     await getTemplate('modules/multi-token-edit/templates/generic/navHeaderPartial.html');
     await getTemplate('modules/multi-token-edit/templates/generic/form-group.html');
@@ -112,7 +113,10 @@ export class MassEditGenericForm extends WMC {
           col = Number(Color.fromString(event.target.value));
         } catch (e) {}
 
-        $(event.target).siblings(`[name="${event.target.dataset.editNumber}"]`).val(col).trigger('input');
+        $(event.target)
+          .siblings(`[name="${event.target.dataset.editNumber}"]`)
+          .val(col)
+          .trigger('input');
       }
     });
 
@@ -172,7 +176,13 @@ export class MassEditGenericForm extends WMC {
   }
 }
 
-function defineRangeControl(name, val, customControls, docName, { min = null, max = null, step = null } = {}) {
+function defineRangeControl(
+  name,
+  val,
+  customControls,
+  docName,
+  { min = null, max = null, step = null } = {}
+) {
   let content = `
 <div class="form-group slim">
   <label>Range</label>

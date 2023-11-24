@@ -955,8 +955,8 @@ export const WithMassConfig = (docName = 'NONE') => {
 
       // Fetch the currently selected fields before re-rendering
       const selectedFields = this.getSelectedFields();
-      selectedFields['mass-edit-randomize'] = this.randomizeFields;
-      selectedFields['mass-edit-addSubtract'] = this.addSubtractFields;
+      const randomize = this.randomizeFields;
+      const addSubtract = this.addSubtractFields;
 
       // Render, the selections will be wiped
       super.render(force, options);
@@ -966,7 +966,13 @@ export const WithMassConfig = (docName = 'NONE') => {
       // modifications to the configuration window
       setTimeout(() => {
         if (this.form) {
-          this._applyPreset(selectedFields);
+          this._applyPreset(
+            new Preset({
+              data: selectedFields,
+              randomize,
+              addSubtract,
+            })
+          );
         }
       }, 1000);
     }

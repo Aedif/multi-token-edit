@@ -1,6 +1,12 @@
+# 1.47.1
+
+- Slightly improved handling of placeable drop on preset window
+- Fixed selected fields being forgotten after the Mass Edit for is re-rendered
+- Fixed Generic Forms not rendering
+
 # 1.47.0
 
-- `Mass.spawnPreset(...)`
+- `MassEdit.spawnPreset(...)`
   - **coordPicker** option will now display the preview of the placeable
   - New option: **pickerLabel**
     - A string that will be displayed above the crosshair when **coordPicker** is set to true
