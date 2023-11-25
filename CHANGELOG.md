@@ -1,3 +1,9 @@
+# 1.47.2
+
+- Added support for `Token Attacher` prefabs. Tokens with attached elements can be dragged into the preset window to copy both the token and attached elements both.
+  - Requires forked version of Token Attacher:
+  - https://github.com/Aedif/token-attacher/releases/download/4.5.13.1/module.json
+
 # 1.47.1
 
 - Slightly improved handling of placeable drop on preset window

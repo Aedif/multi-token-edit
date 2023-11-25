@@ -3,7 +3,7 @@ import { importPresetFromJSONDialog } from '../scripts/dialogs.js';
 import { SortingHelpersFixed } from '../scripts/fixedSort.js';
 import { getPickerOverlay } from '../scripts/randomizer/randomizerForm.js';
 import { applyRandomization } from '../scripts/randomizer/randomizerUtils.js';
-import { SUPPORTED_PLACEABLES } from '../scripts/utils.js';
+import { SUPPORTED_PLACEABLES, UI_DOCS } from '../scripts/utils.js';
 import { TokenDataAdapter } from './dataAdapters.js';
 import { showMassEdit } from './multiConfig.js';
 
@@ -31,6 +31,7 @@ const PRESET_FIELDS = [
   'addSubtract',
   'randomize',
   'img',
+  //'actor',
 ];
 
 export class Preset {
@@ -53,6 +54,7 @@ export class Preset {
     this.img = data.img;
     this.folder = data.folder;
     this.uuid = data.uuid;
+    // this.actor = data.actor;
     this._visible = true;
   }
 
@@ -284,7 +286,7 @@ export class PresetCollection {
 
       if (type) {
         if (type === 'ALL') {
-          if (!SUPPORTED_PLACEABLES.includes(preset.documentName)) preset._visible = false;
+          if (!UI_DOCS.includes(preset.documentName)) preset._visible = false;
         } else if (preset.documentName !== type) preset._visible = false;
       }
 
@@ -566,6 +568,22 @@ export class PresetAPI {
       switch (defPreset.documentName) {
         case 'Token':
           defPreset.name = data.name;
+
+          // Check if `Token Attacher` has attached elements to this token
+          if (tokenAttacher?.generatePrototypeAttached) {
+            const attached = data.flags?.['token-attacher'].attached || {};
+            if (Object.keys(attached).length !== 0) {
+              const prototypeAttached = tokenAttacher.generatePrototypeAttached(data, attached);
+              setProperty(data, 'flags.token-attacher.attached', null);
+              setProperty(data, 'flags.token-attacher.prototypeAttached', prototypeAttached);
+              setProperty(data, 'flags.token-attacher.grid', {
+                size: canvas.grid.size,
+                w: canvas.grid.w,
+                h: canvas.grid.h,
+              });
+            }
+          }
+
         case 'Tile':
         case 'Note':
           defPreset.img = data.texture.src;
@@ -804,8 +822,8 @@ export class MassEditPresets extends FormApplication {
     data.staticFolders = this.tree.staticFolders.length ? this.tree.staticFolders : null;
 
     data.createEnabled = Boolean(this.configApp);
-    data.isPlaceable = this.docName === 'ALL' || SUPPORTED_PLACEABLES.includes(this.docName);
-    data.allowDocumentSwap = data.isPlaceable && !this.configApp;
+    data.isPlaceable = SUPPORTED_PLACEABLES.includes(this.docName);
+    data.allowDocumentSwap = UI_DOCS.includes(this.docName) && !this.configApp;
     data.docLockActive = game.settings.get('multi-token-edit', 'presetDocLock') === this.docName;
     data.layerSwitchActive = game.settings.get('multi-token-edit', 'presetLayerSwitch');
     data.extCompActive = displayExtCompendiums;
@@ -869,14 +887,14 @@ export class MassEditPresets extends FormApplication {
 
     data.lastSearch = MassEditPresets.lastSearch;
 
-    data.docs = ['ALL', ...SUPPORTED_PLACEABLES].reduce((obj, key) => {
+    data.docs = UI_DOCS.reduce((obj, key) => {
       return {
         ...obj,
         [key]: DOC_ICONS[key],
       };
     }, {});
 
-    data.documents = ['ALL', ...SUPPORTED_PLACEABLES];
+    data.documents = UI_DOCS;
     data.currentDocument = this.docName;
 
     data.callback = Boolean(this.callback);
@@ -1179,6 +1197,19 @@ export class MassEditPresets extends FormApplication {
     // End of Folder Listeners
     // ================
 
+    // const form = html.closest('.mass-edit-preset-form');
+
+    // form.on('dragover', (event) => {
+    //   console.log('FORM DRAGOVER', event);
+    // });
+
+    // form.on('drop', (event) => {
+    //   const data = TextEditor.getDragEventData(event.originalEvent);
+    //   if (data.type === 'Actor') {
+    //     console.log(data.uuid);
+    //   }
+    // });
+
     html.find('.toggle-sort').on('click', this._onToggleSort.bind(this));
     html.find('.toggle-doc-lock').on('click', this._onToggleLock.bind(this));
     html.find('.toggle-ext-comp').on('click', this._onToggleExtComp.bind(this));
@@ -1391,7 +1422,7 @@ export class MassEditPresets extends FormApplication {
     const types = [];
     if (this.docName === 'ALL') {
       types.push('ALL');
-    } else if (SUPPORTED_PLACEABLES.includes(this.docName)) {
+    } else if (UI_DOCS.includes(this.docName)) {
       types.push('ALL', this.docName);
     } else {
       types.push(this.docName);
@@ -1604,7 +1635,9 @@ export class MassEditPresets extends FormApplication {
 
       if (this.docName !== 'ALL') {
         if (game.settings.get('multi-token-edit', 'presetLayerSwitch'))
-          canvas.getLayerByEmbeddedName(this.docName)?.activate();
+          canvas
+            .getLayerByEmbeddedName(this.docName === 'Actor' ? 'Token' : this.docName)
+            ?.activate();
       }
 
       this.render(true);
@@ -1647,7 +1680,9 @@ export class MassEditPresets extends FormApplication {
     if (!preset) return;
 
     if (game.settings.get('multi-token-edit', 'presetLayerSwitch'))
-      canvas.getLayerByEmbeddedName(preset.documentName)?.activate();
+      canvas
+        .getLayerByEmbeddedName(preset.documentName === 'Actor' ? 'Token' : preset.documentName)
+        ?.activate();
 
     // For some reason canvas.mousePosition does not get updated during drag and drop
     // Acquire the cursor position transformed to Canvas coordinates
@@ -1700,11 +1735,6 @@ export class MassEditPresets extends FormApplication {
     MassEditPresets.objectHover = false;
     return super.close(options);
   }
-
-  // async render(force = false, options = {}) {
-  //   console.log('RENDER');
-  //   return super.render(force, options);
-  // }
 
   async _onPresetUpdate(event) {
     const preset = await PresetCollection.get($(event.target).closest('.item').data('uuid'));
@@ -1951,7 +1981,7 @@ class PresetConfig extends FormApplication {
 
     // Check if all presets are for the same document type and thus can be edited using a Mass Edit form
     const docName = this.presets[0].documentName;
-    if (this.presets.every((p) => p.documentName === docName)) {
+    if (docName !== 'Actor' && this.presets.every((p) => p.documentName === docName)) {
       data.documentEdit = docName;
     }
 
@@ -2103,7 +2133,7 @@ class PresetFolderConfig extends FolderConfig {
 
     let folderDocs = folder.flags['multi-token-edit']?.types ?? ['ALL'];
     let docs = [];
-    ['ALL', ...SUPPORTED_PLACEABLES].forEach((type) => {
+    UI_DOCS.forEach((type) => {
       docs.push({ name: type, icon: DOC_ICONS[type], active: folderDocs.includes(type) });
     });
 
