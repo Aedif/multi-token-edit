@@ -1,3 +1,27 @@
+# 1.48.0
+
+**API**
+
+- `MassEdit.getPreset(..)`
+  - New option added: `folder`
+    - Returns a random preset within the provided folder name
+  - `EXTERNAL COMPENDIUMS` will now also be searched
+- New function: `MassEdit.getPresets(...)`
+  - Has same options as `getPreset` but instead of returning one preset will return all matched
+  - Unique option: `format` (accepted values 'preset', 'name', 'nameAndFolder')
+  - Configures the format in which the placeables are turned in
+- `MassEdit.spawnPreset(...)`
+  - If the module finds multiple presets given the provided options a random preset will now be chosen from those found
+  - New option: `taPreview`
+    - If spawning a `Token Attacher` prefab with `coordPicker` options set to true, allows to specify the element to be displayed as the preview.
+    - Valid values include placeable names and optionally index number
+    - e.g. `Tile`, `Tile.1`, `MeasuredTemplate.2`
+    - e.g. `MassEdit.spawnPreset({name: "TA Prefab", coordPicker: "true", taPreview: "Tile"})`
+
+**Misc.**
+
+- Fixed placeable `Drag & Drop` onto preset form reporting errors for non-controllable placeables
+
 # 1.47.2
 
 - Added support for `Token Attacher` prefabs. Tokens with attached elements can be dragged into the preset window to copy both the token and attached elements both.

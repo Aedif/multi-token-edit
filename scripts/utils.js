@@ -419,3 +419,152 @@ export function getDocumentName(doc) {
   const docName = doc.document ? doc.document.documentName : doc.documentName;
   return docName ?? 'NONE';
 }
+
+/**
+ * Cross-hair and optional preview image/label that can be activated to allow the user to select
+ * an area on the screen.
+ */
+export class Picker {
+  static pickerOverlay;
+  static boundStart;
+  static boundEnd;
+  static callback;
+
+  /**
+   * Activates the picker overlay.
+   * @param {Function} callback callback function with coordinates returned as starting and ending bounds of a rectangles
+   *                            { start: {x1, y1}, end: {x2, y2} }
+   * @param {Object}  preview
+   * @param {String}  preview.documentName (optional) preview placeables document name
+   * @param {Object}  preview.data           (req) preview placeables data
+   * @param {String}  preview.taPreview      (optional) Designates the preview placeable when spawning a `Token Attacher` prefab.
+   *                                         e.g. "Tile", "Tile.1", "MeasuredTemplate.3"
+   * @param {Boolean} preview.snap         (optional) if true returned coordinates will be snapped to grid
+   * @param {String}  preview.label        (optional) preview placeables document name
+   */
+  static async activate(callback, preview) {
+    if (this.pickerOverlay) {
+      canvas.stage.removeChild(this.pickerOverlay);
+      this.pickerOverlay.destroy(true);
+      this.pickerOverlay.children?.forEach((c) => c.destroy(true));
+      this.callback?.(null);
+    }
+
+    const pickerOverlay = new PIXI.Container();
+    this.callback = callback;
+
+    if (preview) {
+      let label;
+      if (preview.label) {
+        label = new PreciseText(preview.label, { ...CONFIG.canvasTextStyle, _fontSize: 24 });
+        label.anchor.set(0.5, 1);
+        pickerOverlay.addChild(label);
+      }
+
+      let diffX = 0;
+      let diffY = 0;
+      let documentName = preview.documentName;
+      let data = preview.data;
+      let gridPrecision;
+      let previewObject;
+
+      if (preview.documentName) {
+        gridPrecision = canvas.getLayerByEmbeddedName(documentName).gridPrecision;
+
+        if (preview.taPreview && tokenAttacher) {
+          const attached = getProperty(preview.data, 'flags.token-attacher.prototypeAttached');
+          const pos = getProperty(preview.data, 'flags.token-attacher.pos');
+          const grid = getProperty(preview.data, 'flags.token-attacher.grid');
+          if (attached && pos && grid) {
+            const [name, index] = preview.taPreview.split('.');
+            const designatedPreviewData = attached[name]?.[index ?? 0];
+            if (name !== 'Wall' && designatedPreviewData) {
+              documentName = name;
+              data = designatedPreviewData;
+              diffX = data.x - pos.xy.x;
+              diffY = data.y - pos.xy.y;
+
+              if (canvas.grid.size !== grid.size) {
+                const ratio = canvas.grid.size / grid.size;
+                diffX *= ratio;
+                diffY *= ratio;
+                if (documentName === 'Tile' || documentName === 'Drawing') {
+                  data.width *= ratio;
+                  data.height *= ratio;
+                }
+              }
+            }
+          }
+        }
+
+        const layer = canvas.getLayerByEmbeddedName(documentName);
+        pickerOverlay.layer = layer;
+        previewObject = await this._createPreview.call(layer, data);
+      }
+
+      const setPositions = function (pos) {
+        if (!pos) return;
+        if (preview.snap && gridPrecision)
+          pos = canvas.grid.getSnappedPosition(pos.x, pos.y, gridPrecision);
+
+        if (previewObject) {
+          if (documentName === 'Wall') {
+            previewObject.document.c = [pos.x, pos.y, pos.x + canvas.grid.w, pos.y];
+          } else {
+            previewObject.document.x = pos.x + diffX;
+            previewObject.document.y = pos.y + diffY;
+          }
+          previewObject.document.alpha = 0.4;
+          previewObject.renderFlags.set({ refresh: true });
+        }
+
+        if (label) {
+          label.x = pos.x;
+          label.y = pos.y - 38;
+        }
+      };
+
+      pickerOverlay.on('pointermove', (event) => {
+        setPositions(event.data.getLocalPosition(pickerOverlay));
+      });
+      setPositions(canvas.mousePosition);
+    }
+
+    pickerOverlay.hitArea = canvas.dimensions.rect;
+    pickerOverlay.cursor = 'crosshair';
+    pickerOverlay.interactive = true;
+    pickerOverlay.zIndex = Infinity;
+    pickerOverlay.on('remove', () => pickerOverlay.off('pick'));
+    pickerOverlay.on('mousedown', (event) => {
+      Picker.boundStart = event.data.getLocalPosition(pickerOverlay);
+    });
+    pickerOverlay.on(
+      'mouseup',
+      (event) => (Picker.boundEnd = event.data.getLocalPosition(pickerOverlay))
+    );
+    pickerOverlay.on('click', (event) => {
+      this.callback?.({ start: this.boundStart, end: this.boundEnd });
+      pickerOverlay.parent.removeChild(pickerOverlay);
+      if (pickerOverlay.layer) pickerOverlay.layer.clearPreviewContainer();
+    });
+
+    this.pickerOverlay = pickerOverlay;
+
+    canvas.stage.addChild(this.pickerOverlay);
+  }
+
+  // Modified Foundry _createPreview
+  // Does not throw warning if user lacks document create permissions
+  static async _createPreview(createData) {
+    const documentName = this.constructor.documentName;
+    const cls = getDocumentClass(documentName);
+    const document = new cls(createData, { parent: canvas.scene });
+
+    const object = new CONFIG[documentName].objectClass(document);
+    this.preview.addChild(object);
+    await object.draw();
+    this.activate();
+
+    return object;
+  }
+}

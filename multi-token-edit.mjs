@@ -398,6 +398,7 @@ Hooks.once('init', () => {
     performMassSearch,
     showMassEdit,
     getPreset: PresetAPI.getPreset,
+    getPresets: PresetAPI.getPresets,
     createPreset: PresetAPI.createPreset,
     spawnPreset: PresetAPI.spawnPreset,
   };

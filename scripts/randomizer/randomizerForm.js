@@ -2,7 +2,7 @@ import { SPECIES_GENERATORS } from '../generator/fantasticSpeciesGenerator.js';
 import { GROUP_GENERATORS } from '../generator/groupNamesGenerator.js';
 import { NAME_GENERATOR } from '../generator/nameGenerator.js';
 import { TAVERN_GENERATOR } from '../generator/tavernGenerator.js';
-import { isImage, isVideo, recursiveTraverse } from '../utils.js';
+import { Picker, isImage, isVideo, recursiveTraverse } from '../utils.js';
 import { deselectField, nearestStep, selectField } from './randomizerUtils.js';
 import { ColorSlider } from './slider.js';
 
@@ -322,7 +322,8 @@ export default class RandomizerForm extends FormApplication {
     this.configApp.minimize();
 
     const t = this;
-    canvas.stage.addChild(await getPickerOverlay()).once('pick', (position) => {
+
+    Picker.activate((position) => {
       if (position == null) return;
 
       const form = $(event.target).closest('form');
@@ -483,78 +484,6 @@ export default class RandomizerForm extends FormApplication {
 
     if (this.configApp.updateBrushFields) this.configApp.updateBrushFields();
   }
-}
-
-let pickerOverlay;
-let boundStart;
-let boundEnd;
-
-/**
- *
- * @param {Object} rect
- * @returns
- */
-export async function getPickerOverlay(preview) {
-  if (pickerOverlay) {
-    pickerOverlay.destroy(true);
-    pickerOverlay.children?.forEach((c) => c.destroy(true));
-    pickerOverlay.emit('pick', null);
-  }
-
-  pickerOverlay = new PIXI.Container();
-
-  if (preview) {
-    const layer = canvas.getLayerByEmbeddedName(preview.documentName);
-    pickerOverlay.layer = layer;
-    const previewObject = await layer._createPreview(preview.data, { renderSheet: false });
-
-    let label;
-    if (preview.label) {
-      label = new PreciseText(preview.label, { ...CONFIG.canvasTextStyle, _fontSize: 24 });
-      label.anchor.set(0.5, 1);
-      pickerOverlay.addChild(label);
-    }
-
-    const setPositions = function (pos) {
-      if (!pos) return;
-      if (preview.snap) pos = canvas.grid.getSnappedPosition(pos.x, pos.y, layer.gridPrecision);
-
-      if (preview.documentName === 'Wall') {
-        previewObject.document.c = [pos.x, pos.y, pos.x + canvas.grid.w, pos.y];
-      } else {
-        previewObject.document.x = pos.x;
-        previewObject.document.y = pos.y;
-      }
-      previewObject.document.alpha = 0.4;
-      previewObject.renderFlags.set({ refresh: true });
-
-      if (label) {
-        label.x = pos.x;
-        label.y = pos.y - 38;
-      }
-    };
-
-    pickerOverlay.on('pointermove', (event) => {
-      setPositions(event.data.getLocalPosition(pickerOverlay));
-    });
-    setPositions(canvas.mousePosition);
-  }
-
-  pickerOverlay.hitArea = canvas.dimensions.rect;
-  pickerOverlay.cursor = 'crosshair';
-  pickerOverlay.interactive = true;
-  pickerOverlay.zIndex = Infinity;
-  pickerOverlay.on('remove', () => pickerOverlay.off('pick'));
-  pickerOverlay.on('mousedown', (event) => {
-    boundStart = event.data.getLocalPosition(pickerOverlay);
-  });
-  pickerOverlay.on('mouseup', (event) => (boundEnd = event.data.getLocalPosition(pickerOverlay)));
-  pickerOverlay.on('click', (event) => {
-    pickerOverlay.emit('pick', { start: boundStart, end: boundEnd });
-    pickerOverlay.parent.removeChild(pickerOverlay);
-    if (pickerOverlay.layer) pickerOverlay.layer.clearPreviewContainer();
-  });
-  return pickerOverlay;
 }
 
 // Show a dialog to select randomization settings for this form-group

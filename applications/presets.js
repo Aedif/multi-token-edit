@@ -1,9 +1,8 @@
 import { Brush } from '../scripts/brush.js';
 import { importPresetFromJSONDialog } from '../scripts/dialogs.js';
 import { SortingHelpersFixed } from '../scripts/fixedSort.js';
-import { getPickerOverlay } from '../scripts/randomizer/randomizerForm.js';
 import { applyRandomization } from '../scripts/randomizer/randomizerUtils.js';
-import { SUPPORTED_PLACEABLES, UI_DOCS } from '../scripts/utils.js';
+import { Picker, SUPPORTED_PLACEABLES, UI_DOCS } from '../scripts/utils.js';
 import { TokenDataAdapter } from './dataAdapters.js';
 import { showMassEdit } from './multiConfig.js';
 
@@ -517,37 +516,98 @@ export class PresetCollection {
     );
     return documents[0];
   }
+
+  static _searchPresetTree(tree, options) {
+    const presets = [];
+
+    if (!options.folder) this._searchPresetList(tree.allPresets, presets, options);
+    tree.allFolders.forEach((folder) => this._searchPresetFolder(folder, presets, options));
+
+    return presets;
+  }
+
+  static _searchPresetFolder(folder, presets, options) {
+    if (options.folder && folder.name !== options.folder) return;
+    this._searchPresetList(folder.presets, presets, options, folder.name);
+  }
+
+  static _searchPresetList(toSearch, presets, { name = null, type = null } = {}, folderName) {
+    for (const preset of toSearch) {
+      preset._folderName = folderName;
+      if (name && type) {
+        if (name === preset.name && type === preset.documentName) presets.push(preset);
+      } else if (name) {
+        if (name === preset.name) presets.push(preset);
+      } else if (type) {
+        if (type === preset.documentName) presets.push(preset);
+      } else {
+        console.log(folderName);
+        presets.push(preset);
+      }
+    }
+  }
 }
 
 export class PresetAPI {
   /**
-   * Retrieve saved preset
+   * Retrieve preset
    * @param {object} [options={}]
-   * @param {String} [options.uuid]   Preset UUID
-   * @param {String} [options.name]   Preset name
-   * @param {String} [options.type]   Preset type ("Token", "Tile", etc)
+   * @param {String} [options.uuid]    Preset UUID
+   * @param {String} [options.name]    Preset name
+   * @param {String} [options.type]    Preset type ("Token", "Tile", etc)
+   * @param {String} [options.folder]  Folder name
    * @returns {Preset}
    */
-  static async getPreset({ uuid = null, name = null, type = null } = {}) {
+  static async getPreset({ uuid, name, type, folder } = {}) {
     if (uuid) return await PresetCollection.get(uuid);
-    else if (!name) throw Error('UUID or Name required to retrieve a Preset.');
+    else if (!name && !type && !folder)
+      throw Error('UUID, Name, Type, and/or Folder required to retrieve a Preset.');
 
-    name = name.toLowerCase();
+    const presets = PresetCollection._searchPresetTree(await PresetCollection.getTree(), {
+      name,
+      type,
+      folder,
+    });
 
-    let { allPresets } = await PresetCollection.getTree();
-    if (type) allPresets = allPresets.filter((p) => p.documentName === type);
-    return allPresets
-      .find((p) => p.name.toLowerCase() === name)
-      ?.clone()
-      .load();
+    const preset = presets[Math.floor(Math.random() * presets.length)];
+    return preset?.clone().load();
+  }
+
+  /**
+   * Retrieve presets
+   * @param {object} [options={}]
+   * @param {String} [options.uuid]      Preset UUID
+   * @param {String} [options.name]      Preset name
+   * @param {String} [options.type]      Preset type ("Token", "Tile", etc)
+   * @param {String} [options.folder]    Folder name
+   * @param {String} [options.format]    The form to return placeables in ('preset', 'name', 'nameAndFolder')
+   * @returns {Array[Preset]|Array[String]|Array[Object]}
+   */
+  static async getPresets({ uuid, name, type, folder, format = 'preset' } = {}) {
+    if (uuid) return await PresetCollection.get(uuid);
+    else if (!name && !type && !folder)
+      throw Error('UUID, Name, Type, and/or Folder required to retrieve a Preset.');
+
+    const presets = PresetCollection._searchPresetTree(await PresetCollection.getTree(), {
+      name,
+      type,
+      folder,
+    });
+
+    if (format === 'name') return presets.map((p) => p.name);
+    else if (format === 'nameAndFolder')
+      return presets.map((p) => {
+        return { name: p.name, folder: p._folderName };
+      });
+    return presets;
   }
 
   /**
    * Create Presets from passed in placeables
    * @param {PlaceableObject|Array[PlaceableObject]} placeables Placeable/s to create the presets from.
-   * @param {object} [options={}] Optional Preset information
-   * @param {String} [options.name] Preset name
-   * @param {String} [options.img] Preset thumbnail image
+   * @param {object} [options={}]                               Optional Preset information
+   * @param {String} [options.name]                             Preset name
+   * @param {String} [options.img]                              Preset thumbnail image
    * @returns {Preset|Array[Preset]}
    */
   static async createPreset(placeables, options = {}) {
@@ -571,8 +631,8 @@ export class PresetAPI {
 
           // Check if `Token Attacher` has attached elements to this token
           if (tokenAttacher?.generatePrototypeAttached) {
-            const attached = data.flags?.['token-attacher'].attached || {};
-            if (Object.keys(attached).length !== 0) {
+            const attached = data.flags?.['token-attacher']?.attached || {};
+            if (!isEmpty(attached)) {
               const prototypeAttached = tokenAttacher.generatePrototypeAttached(data, attached);
               setProperty(data, 'flags.token-attacher.attached', null);
               setProperty(data, 'flags.token-attacher.prototypeAttached', prototypeAttached);
@@ -622,31 +682,37 @@ export class PresetAPI {
    * @param {String} [options.type]               Preset type ("Token", "Tile", etc)
    * @param {Number} [options.x]                  Spawn canvas x coordinate (mouse position used if x or y are null)
    * @param {Number} [options.y]                  Spawn canvas y coordinate (mouse position used if x or y are null)
-   * @param {Boolean} [options.coordPicker]       If 'true' a crosshair will be activated allowing spawn position to be picked
    * @param {Boolean} [options.snapToGrid]        If 'true' snaps spawn position to the grid.
    * @param {Boolean} [options.hidden]            If 'true' preset will be spawned hidden.
    * @param {Boolean} [options.layerSwitch]       If 'true' the layer of the spawned preset will be activated.
+   * @param {Boolean} [options.coordPicker]       If 'true' a crosshair and preview will be enabled allowing spawn position to be picked
+   * @param {String} [options.pickerLabel]          Label displayed above crosshair when `coordPicker` is enabled
+   * @param {String} [options.taPreview]            Designates the preview placeable when spawning a `Token Attacher` prefab. e.g. "Tile", "Tile.1", "MeasuredTemplate.3"
    * @returns {Array[Document]}
    */
   static async spawnPreset({
-    uuid = null,
-    preset = null,
-    name = null,
-    type = null,
-    x = null,
-    y = null,
+    uuid,
+    preset,
+    name,
+    type,
+    folder,
+    x,
+    y,
     coordPicker = false,
-    pickerLabel = '',
+    pickerLabel,
+    taPreview,
     snapToGrid = true,
     hidden = false,
     layerSwitch = false,
   } = {}) {
     if (!canvas.ready) throw Error("Canvas need to be 'ready' for a preset to be spawned.");
-    if (!(uuid || preset || name)) throw Error('ID, Name, or Preset is needed to spawn it.');
+    if (!(uuid || preset || name || type || folder))
+      throw Error('ID, Name, Folder, or Preset is needed to spawn it.');
     if (!coordPicker && ((x == null && y != null) || (x != null && y == null)))
       throw Error('Need both X and Y coordinates to spawn a preset.');
 
-    preset = preset ?? (await PresetAPI.getPreset({ uuid, name, type }));
+    if (preset) await preset.load();
+    preset = preset ?? (await PresetAPI.getPreset({ uuid, name, type, folder }));
     if (!preset)
       throw Error(
         `No preset could be found matching: { uuid: "${uuid}", name: "${name}", type: "${type}"}`
@@ -692,16 +758,13 @@ export class PresetAPI {
     // Determine position
     if (coordPicker) {
       const coords = await new Promise(async (resolve) => {
-        canvas.stage
-          .addChild(
-            await getPickerOverlay({
-              documentName: preset.documentName,
-              snap: snapToGrid,
-              data: data,
-              label: pickerLabel,
-            })
-          )
-          .once('pick', resolve);
+        Picker.activate(resolve, {
+          documentName: preset.documentName,
+          snap: snapToGrid,
+          data: data,
+          label: pickerLabel,
+          taPreview: taPreview,
+        });
       });
       if (coords == null) return [];
       x = coords.end.x;
@@ -742,6 +805,15 @@ export class PresetAPI {
     if (layerSwitch) canvas.getLayerByEmbeddedName(preset.documentName)?.activate();
 
     return await canvas.scene.createEmbeddedDocuments(preset.documentName, [data]);
+  }
+
+  static async listPresets() {
+    let { allPresets } = await PresetCollection.getTree();
+    if (type) allPresets = allPresets.filter((p) => p.documentName === type);
+    return allPresets
+      .find((p) => p.name.toLowerCase() === name)
+      ?.clone()
+      .load();
   }
 }
 
@@ -1790,6 +1862,7 @@ export class MassEditPresets extends FormApplication {
   }
 
   async presetFromPlaceable(placeables, event) {
+    if (!(placeables instanceof Array)) placeables = [placeables];
     const presets = await PresetAPI.createPreset(placeables);
 
     // Switch to just created preset's category before rendering if not set to 'ALL'
