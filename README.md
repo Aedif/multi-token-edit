@@ -74,6 +74,74 @@ and a keybind (`Shift+X` by default)
 
 Short video clip: https://youtu.be/MRjHXc3MJWA
 
+### API
+
+- MassEdit.getPreset
+- MassEdit.getPresets
+- MassEdit.spawnPreset
+- MassEdit.createPreset
+
+<details>
+  <summary>Documentation</summary>
+
+```js
+/**
+ * Retrieve preset
+ * @param {object} [options={}]
+ * @param {String} [options.uuid]    Preset UUID
+ * @param {String} [options.name]    Preset name
+ * @param {String} [options.type]    Preset type ("Token", "Tile", etc)
+ * @param {String} [options.folder]  Folder name
+ * @returns {Preset}
+ */
+static async getPreset({ uuid, name, type, folder } = {})
+
+/**
+ * Retrieve presets
+ * @param {object} [options={}]
+ * @param {String} [options.uuid]    Preset UUID
+ * @param {String} [options.name]    Preset name
+ * @param {String} [options.type]    Preset type ("Token", "Tile", etc)
+ * @param {String} [options.folder]  Folder name
+ * @param {String} [options.format]  The form to return placeables in ('preset', 'name', 'nameAndFolder')
+ * @returns {Array[Preset]|Array[String]|Array[Object]}
+ */
+static async getPresets({ uuid, name, type, folder, format = 'preset' } = {})
+
+/**
+ * Spawn a preset on the scene (id, name or preset itself are required).
+ * By default the current mouse position is used.
+ * @param {object} [options={}]
+ * @param {Preset} [options.preset]             Preset
+ * @param {String} [options.uuid]               Preset UUID
+ * @param {String} [options.name]               Preset name
+ * @param {String} [options.type]               Preset type ("Token", "Tile", etc)
+ * @param {Number} [options.x]                  Spawn canvas x coordinate (mouse position used if x or y are null)
+ * @param {Number} [options.y]                  Spawn canvas y coordinate (mouse position used if x or y are null)
+ * @param {Boolean} [options.snapToGrid]        If 'true' snaps spawn position to the grid.
+ * @param {Boolean} [options.hidden]            If 'true' preset will be spawned hidden.
+ * @param {Boolean} [options.layerSwitch]       If 'true' the layer of the spawned preset will be activated.
+ * @param {Boolean} [options.coordPicker]       If 'true' a crosshair and preview will be enabled allowing spawn position to be picked
+ * @param {String} [options.pickerLabel]          Label displayed above crosshair when `coordPicker` is enabled
+ * @param {String} [options.taPreview]            Designates the preview placeable when spawning a `Token Attacher` prefab. e.g. "Tile", "Tile.1", "MeasuredTemplate.3"
+ * @returns {Array[Document]}
+ */
+static async spawnPreset({ uuid, preset, name, type, folder, x, y, coordPicker = false, pickerLabel, taPreview, snapToGrid = true, hidden = false, layerSwitch = false,
+} = {})
+
+/**
+ * Create Presets from passed in placeables
+ * @param {PlaceableObject|Array[PlaceableObject]} placeables Placeable/s to create the presets from.
+ * @param {object} [options={}]                               Optional Preset information
+ * @param {String} [options.name]                             Preset name
+ * @param {String} [options.img]                              Preset thumbnail image
+ * @returns {Preset|Array[Preset]}
+ */
+static async createPreset(placeables, options = {})
+```
+
+</details>
+
 ## Adding/Subtracting
 
 Numerical fields can be added and subtracted instead of overriding the current value. This can be done by right-clicking the numerical controls in the Mass-Edit form. Green background indicating addition, and red subtraction.
@@ -87,7 +155,6 @@ Appended to the end:
 
 Appended to the start:
 ![image](https://github.com/Aedif/multi-token-edit/assets/7693704/dc205317-4dff-48ae-8713-1d7b62cb2909)
-
 
 ## Brush Tool
 
