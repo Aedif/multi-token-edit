@@ -104,6 +104,16 @@ export class Preset {
         if (k === 'randomize' || k === 'addSubtract') {
           flagUpdate[k] = Object.entries(data[k]);
           this[k] = data[k];
+        } else if (k === 'data' && !(data.data instanceof Array)) {
+          if (this.data instanceof Array) {
+            flagUpdate.data = this.data.map((d) => {
+              return mergeObject(d, data.data);
+            });
+            this.data = flagUpdate.data;
+          } else {
+            this.data = mergeObject(this.data, data.data);
+            flagUpdate.data = data.data;
+          }
         } else if (PRESET_FIELDS.includes(k) && data[k] !== this[k]) {
           flagUpdate[k] = data[k];
           this[k] = data[k];
@@ -541,7 +551,6 @@ export class PresetCollection {
       } else if (type) {
         if (type === preset.documentName) presets.push(preset);
       } else {
-        console.log(folderName);
         presets.push(preset);
       }
     }
@@ -576,11 +585,11 @@ export class PresetAPI {
   /**
    * Retrieve presets
    * @param {object} [options={}]
-   * @param {String} [options.uuid]      Preset UUID
-   * @param {String} [options.name]      Preset name
-   * @param {String} [options.type]      Preset type ("Token", "Tile", etc)
-   * @param {String} [options.folder]    Folder name
-   * @param {String} [options.format]    The form to return placeables in ('preset', 'name', 'nameAndFolder')
+   * @param {String} [options.uuid]    Preset UUID
+   * @param {String} [options.name]    Preset name
+   * @param {String} [options.type]    Preset type ("Token", "Tile", etc)
+   * @param {String} [options.folder]  Folder name
+   * @param {String} [options.format]  The form to return placeables in ('preset', 'name', 'nameAndFolder')
    * @returns {Array[Preset]|Array[String]|Array[Object]}
    */
   static async getPresets({ uuid, name, type, folder, format = 'preset' } = {}) {
@@ -614,39 +623,52 @@ export class PresetAPI {
     if (!placeables) return;
     if (!(placeables instanceof Array)) placeables = [placeables];
 
-    const presets = [];
+    // Alike placeables will be made into single presets. Lets batch them up together.
 
+    const groups = {};
     for (const placeable of placeables) {
-      let data = placeable.document.toCompendium();
-      delete data.x;
-      delete data.y;
+      const docName = placeable.document.documentName;
+      if (!groups.hasOwnProperty(docName)) groups[docName] = [];
+      groups[docName].push(placeable);
+    }
+
+    const presets = [];
+    for (const [docName, placeables] of Object.entries(groups)) {
+      const data = [];
+      for (const placeable of placeables) {
+        const d = placeable.document.toCompendium();
+
+        // Check if `Token Attacher` has attached elements to this token
+        if (docName === 'Token' && tokenAttacher?.generatePrototypeAttached) {
+          const attached = d.flags?.['token-attacher']?.attached || {};
+          if (!isEmpty(attached)) {
+            const prototypeAttached = tokenAttacher.generatePrototypeAttached(d, attached);
+            setProperty(d, 'flags.token-attacher.attached', null);
+            setProperty(d, 'flags.token-attacher.prototypeAttached', prototypeAttached);
+            setProperty(d, 'flags.token-attacher.grid', {
+              size: canvas.grid.size,
+              w: canvas.grid.w,
+              h: canvas.grid.h,
+            });
+          }
+        }
+
+        data.push(d);
+      }
 
       // Preset data before merging with user provided
-      const defPreset = { name: 'New Preset', documentName: placeable.document.documentName, data };
-      if (defPreset.documentName === 'Wall') delete data.c;
+      const defPreset = {
+        name: 'New Preset',
+        documentName: docName,
+        data: data.length > 1 ? data : data[0],
+      };
 
       switch (defPreset.documentName) {
         case 'Token':
-          defPreset.name = data.name;
-
-          // Check if `Token Attacher` has attached elements to this token
-          if (tokenAttacher?.generatePrototypeAttached) {
-            const attached = data.flags?.['token-attacher']?.attached || {};
-            if (!isEmpty(attached)) {
-              const prototypeAttached = tokenAttacher.generatePrototypeAttached(data, attached);
-              setProperty(data, 'flags.token-attacher.attached', null);
-              setProperty(data, 'flags.token-attacher.prototypeAttached', prototypeAttached);
-              setProperty(data, 'flags.token-attacher.grid', {
-                size: canvas.grid.size,
-                w: canvas.grid.w,
-                h: canvas.grid.h,
-              });
-            }
-          }
-
+          defPreset.name = data[0].name;
         case 'Tile':
         case 'Note':
-          defPreset.img = data.texture.src;
+          defPreset.img = data[0].texture.src;
           break;
         case 'AmbientSound':
           defPreset.img = 'icons/svg/sound.svg';
@@ -687,7 +709,9 @@ export class PresetAPI {
    * @param {Boolean} [options.layerSwitch]       If 'true' the layer of the spawned preset will be activated.
    * @param {Boolean} [options.coordPicker]       If 'true' a crosshair and preview will be enabled allowing spawn position to be picked
    * @param {String} [options.pickerLabel]          Label displayed above crosshair when `coordPicker` is enabled
-   * @param {String} [options.taPreview]            Designates the preview placeable when spawning a `Token Attacher` prefab. e.g. "Tile", "Tile.1", "MeasuredTemplate.3"
+   * @param {String} [options.taPreview]            Designates the preview placeable when spawning a `Token Attacher` prefab.
+   *                                                Accepted values are "ALL" for all elements and document name optionally followed by an index number
+   *                                                 e.g. "ALL", "Tile", "AmbientLight.1"
    * @returns {Array[Document]}
    */
   static async spawnPreset({
@@ -718,50 +742,58 @@ export class PresetAPI {
         `No preset could be found matching: { uuid: "${uuid}", name: "${name}", type: "${type}"}`
       );
 
-    let data;
+    let dataArray = preset.data instanceof Array ? preset.data : [preset.data];
 
-    let presetData = flattenObject(preset.data);
+    let toCreate = [];
+
+    for (let presetData of dataArray) {
+      presetData = flattenObject(presetData);
+
+      let data;
+
+      // Set default values if needed
+      switch (preset.documentName) {
+        case 'Token':
+          data = { name: preset.name };
+          break;
+        case 'Tile':
+          data = { width: canvas.grid.w, height: canvas.grid.h };
+          break;
+        case 'AmbientSound':
+          data = { radius: 20 };
+          break;
+        case 'Drawing':
+          data = { 'shape.width': canvas.grid.w * 2, 'shape.height': canvas.grid.h * 2 };
+          break;
+        case 'MeasuredTemplate':
+          data = { distance: 10 };
+          break;
+        case 'AmbientLight':
+          if (!('config.dim' in presetData) && !('config.bright' in presetData)) {
+            data = { 'config.dim': 20, 'config.bright': 10 };
+            break;
+          }
+        default:
+          data = {};
+      }
+
+      mergeObject(data, presetData);
+      toCreate.push(flattenObject(data));
+    }
+
     const randomizer = preset.randomize;
     if (!isEmpty(randomizer)) {
-      applyRandomization([presetData], null, randomizer);
+      applyRandomization(toCreate, null, randomizer);
     }
-
-    // Set default values if needed
-    switch (preset.documentName) {
-      case 'Token':
-        data = { name: preset.name };
-        break;
-      case 'Tile':
-        data = { width: canvas.grid.w, height: canvas.grid.h };
-        break;
-      case 'AmbientSound':
-        data = { radius: 20 };
-        break;
-      case 'Drawing':
-        data = { 'shape.width': canvas.grid.w * 2, 'shape.height': canvas.grid.h * 2 };
-        break;
-      case 'MeasuredTemplate':
-        data = { distance: 10 };
-        break;
-      case 'AmbientLight':
-        if (!('config.dim' in presetData) && !('config.bright' in presetData)) {
-          data = { 'config.dim': 20, 'config.bright': 10 };
-          break;
-        }
-      default:
-        data = {};
-    }
-
-    mergeObject(data, presetData);
 
     // ==================
-    // Determine position
+    // Determine spawn position
     if (coordPicker) {
       const coords = await new Promise(async (resolve) => {
         Picker.activate(resolve, {
           documentName: preset.documentName,
           snap: snapToGrid,
-          data: data,
+          previewData: toCreate,
           label: pickerLabel,
           taPreview: taPreview,
         });
@@ -789,22 +821,51 @@ export class PresetAPI {
       );
     }
 
-    switch (preset.documentName) {
-      case 'Wall':
-        data.c = [pos.x, pos.y, pos.x + canvas.grid.w, pos.y];
-        break;
-      default:
-        mergeObject(data, pos);
+    // Set positions taking into account relative distances between each object
+    let diffX = 0;
+    let diffY = 0;
+
+    if (preset.documentName === 'Wall') {
+      if (toCreate[0].c) {
+        diffX = pos.x - toCreate[0].c[0];
+        diffY = pos.y - toCreate[0].c[1];
+      } else {
+        diffX = pos.x;
+        diffY = pos.y;
+      }
+    } else {
+      if (toCreate[0].x && toCreate[0].y) {
+        diffX = pos.x - toCreate[0].x;
+        diffY = pos.y - toCreate[0].y;
+      } else {
+        diffX = pos.x;
+        diffY = pos.y;
+      }
+    }
+
+    for (const data of toCreate) {
+      if (preset.documentName === 'Wall') {
+        if (!data.c) data.c = [pos.x, pos.y, pos.x + canvas.grid.w * 2, pos.y];
+        else {
+          data.c[0] += diffX;
+          data.c[1] += diffY;
+          data.c[2] += diffX;
+          data.c[3] += diffY;
+        }
+      } else {
+        data.x = data.x != null ? data.x + diffX : diffX;
+        data.y = data.y != null ? data.y + diffY : diffY;
+      }
+
+      if (hidden || game.keyboard.downKeys.has('AltLeft')) {
+        data.hidden = true;
+      }
     }
     // ================
 
-    if (hidden || game.keyboard.downKeys.has('AltLeft')) {
-      data.hidden = true;
-    }
-
     if (layerSwitch) canvas.getLayerByEmbeddedName(preset.documentName)?.activate();
 
-    return await canvas.scene.createEmbeddedDocuments(preset.documentName, [data]);
+    return await canvas.scene.createEmbeddedDocuments(preset.documentName, toCreate);
   }
 
   static async listPresets() {
@@ -1006,7 +1067,6 @@ export class MassEditPresets extends FormApplication {
     const itemList = html.find('.item-list');
 
     // Multi-select
-    // TODO: do not let editable and non-editable items to be selected together
     html.on('click', '.item', (e) => {
       const item = $(e.target).closest('.item');
       const items = itemList.find('.item');
@@ -1543,7 +1603,6 @@ export class MassEditPresets extends FormApplication {
     }
   }
 
-  // TODO: Needs to work with static folders
   _onSearchInput(event, items, folder) {
     MassEditPresets.lastSearch = event.target.value;
 
@@ -2084,8 +2143,10 @@ class PresetConfig extends FormApplication {
   async _onEditDocument() {
     const documents = [];
     const cls = CONFIG[this.presets[0].documentName].documentClass;
+
     for (const p of this.presets) {
-      documents.push(new cls(p.data));
+      let data = p.data instanceof Array ? p.data : [p.data];
+      data.forEach((d) => documents.push(new cls(d)));
     }
 
     const app = await showMassEdit(documents, null, {

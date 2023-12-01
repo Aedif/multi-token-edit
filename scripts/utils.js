@@ -436,11 +436,11 @@ export class Picker {
    *                            { start: {x1, y1}, end: {x2, y2} }
    * @param {Object}  preview
    * @param {String}  preview.documentName (optional) preview placeables document name
-   * @param {Object}  preview.data           (req) preview placeables data
-   * @param {String}  preview.taPreview      (optional) Designates the preview placeable when spawning a `Token Attacher` prefab.
-   *                                         e.g. "Tile", "Tile.1", "MeasuredTemplate.3"
-   * @param {Boolean} preview.snap         (optional) if true returned coordinates will be snapped to grid
-   * @param {String}  preview.label        (optional) preview placeables document name
+   * @param {Array[Object]}  preview.previewData    (req) preview placeables data
+   * @param {String}  preview.taPreview            (optional) Designates the preview placeable when spawning a `Token Attacher` prefab.
+   *                                                e.g. "Tile", "Tile.1", "MeasuredTemplate.3"
+   * @param {Boolean} preview.snap                  (optional) if true returned coordinates will be snapped to grid
+   * @param {String}  preview.label                  (optional) preview placeables document name
    */
   static async activate(callback, preview) {
     if (this.pickerOverlay) {
@@ -461,67 +461,41 @@ export class Picker {
         pickerOverlay.addChild(label);
       }
 
-      let diffX = 0;
-      let diffY = 0;
-      let documentName = preview.documentName;
-      let data = preview.data;
-      let gridPrecision;
-      let previewObject;
-
-      if (preview.documentName) {
-        gridPrecision = canvas.getLayerByEmbeddedName(documentName).gridPrecision;
-
-        if (preview.taPreview && tokenAttacher) {
-          const attached = getProperty(preview.data, 'flags.token-attacher.prototypeAttached');
-          const pos = getProperty(preview.data, 'flags.token-attacher.pos');
-          const grid = getProperty(preview.data, 'flags.token-attacher.grid');
-          if (attached && pos && grid) {
-            const [name, index] = preview.taPreview.split('.');
-            const designatedPreviewData = attached[name]?.[index ?? 0];
-            if (name !== 'Wall' && designatedPreviewData) {
-              documentName = name;
-              data = designatedPreviewData;
-              diffX = data.x - pos.xy.x;
-              diffY = data.y - pos.xy.y;
-
-              if (canvas.grid.size !== grid.size) {
-                const ratio = canvas.grid.size / grid.size;
-                diffX *= ratio;
-                diffY *= ratio;
-                if (documentName === 'Tile' || documentName === 'Drawing') {
-                  data.width *= ratio;
-                  data.height *= ratio;
-                }
-              }
-            }
-          }
-        }
-
-        const layer = canvas.getLayerByEmbeddedName(documentName);
-        pickerOverlay.layer = layer;
-        previewObject = await this._createPreview.call(layer, data);
-      }
+      const { previews, layer, previewDocuments } = await this._genPreviews(preview);
 
       const setPositions = function (pos) {
         if (!pos) return;
-        if (preview.snap && gridPrecision)
-          pos = canvas.grid.getSnappedPosition(pos.x, pos.y, gridPrecision);
+        if (preview.snap && layer)
+          pos = canvas.grid.getSnappedPosition(pos.x, pos.y, layer.gridPrecision);
 
-        if (previewObject) {
-          if (documentName === 'Wall') {
-            previewObject.document.c = [pos.x, pos.y, pos.x + canvas.grid.w, pos.y];
+        for (const preview of previews) {
+          if (preview.document.documentName === 'Wall') {
+            const c = preview.document.c;
+            c[0] = pos.x + preview._previewOffset[0];
+            c[1] = pos.y + preview._previewOffset[1];
+            c[2] = pos.x + preview._previewOffset[2];
+            c[3] = pos.y + preview._previewOffset[3];
+            preview.document.c = c;
           } else {
-            previewObject.document.x = pos.x + diffX;
-            previewObject.document.y = pos.y + diffY;
+            preview.document.x = pos.x + preview._previewOffset.x;
+            preview.document.y = pos.y + preview._previewOffset.y;
           }
-          previewObject.document.alpha = 0.4;
-          previewObject.renderFlags.set({ refresh: true });
+          preview.document.alpha = 0.4;
+          preview.renderFlags.set({ refresh: true });
+
+          preview.visible = true;
+          if (preview.controlIcon) {
+            preview.controlIcon.alpha = 0.4;
+            preview.controlIcon.visible = true;
+          }
         }
 
         if (label) {
           label.x = pos.x;
           label.y = pos.y - 38;
         }
+
+        pickerOverlay.previewDocuments = previewDocuments;
       };
 
       pickerOverlay.on('pointermove', (event) => {
@@ -545,7 +519,10 @@ export class Picker {
     pickerOverlay.on('click', (event) => {
       this.callback?.({ start: this.boundStart, end: this.boundEnd });
       pickerOverlay.parent.removeChild(pickerOverlay);
-      if (pickerOverlay.layer) pickerOverlay.layer.clearPreviewContainer();
+      if (pickerOverlay.previewDocuments)
+        pickerOverlay.previewDocuments.forEach((name) =>
+          canvas.getLayerByEmbeddedName(name)?.clearPreviewContainer()
+        );
     });
 
     this.pickerOverlay = pickerOverlay;
@@ -558,13 +535,131 @@ export class Picker {
   static async _createPreview(createData) {
     const documentName = this.constructor.documentName;
     const cls = getDocumentClass(documentName);
+    createData._id = randomID(); // Needed to allow rendering of multiple previews at the same time
     const document = new cls(createData, { parent: canvas.scene });
 
     const object = new CONFIG[documentName].objectClass(document);
     this.preview.addChild(object);
     await object.draw();
-    this.activate();
 
     return object;
+  }
+
+  static async _genPreviews(preview) {
+    const previewData = preview.previewData;
+    const documentName = preview.documentName;
+    if (!previewData || !documentName) return { previews: [] };
+
+    const previewDocuments = new Set([documentName]);
+    const layer = canvas.getLayerByEmbeddedName(documentName);
+    const previews = [];
+
+    let mainPreview;
+    for (const data of previewData) {
+      // Create Preview
+      const previewObject = await this._createPreview.call(layer, data);
+      previews.push(previewObject);
+
+      if (!mainPreview) mainPreview = previewObject;
+
+      // Calculate offset from first preview
+      if (preview.documentName === 'Wall') {
+        const off = [
+          previewObject.document.c[0] - mainPreview.document.c[0],
+          previewObject.document.c[1] - mainPreview.document.c[1],
+          previewObject.document.c[2] - mainPreview.document.c[0],
+          previewObject.document.c[3] - mainPreview.document.c[1],
+        ];
+        previewObject._previewOffset = off;
+      } else {
+        previewObject._previewOffset = {
+          x: previewObject.document.x - mainPreview.document.x,
+          y: previewObject.document.y - mainPreview.document.y,
+        };
+      }
+
+      if (preview.taPreview) {
+        const documentNames = await this._genTAPreviews(
+          data,
+          preview.taPreview,
+          previewObject,
+          previews
+        );
+        documentNames.forEach((dName) => previewDocuments.add(dName));
+      }
+    }
+
+    return { previews, layer, previewDocuments };
+  }
+
+  static _parseTAPreview(taPreview, attached) {
+    if (taPreview === 'ALL') return attached;
+
+    const attachedData = {};
+    taPreview = taPreview.split(',');
+
+    for (const taIndex of taPreview) {
+      let [name, index] = taIndex.trim().split('.');
+      if (!attached[name]) continue;
+
+      if (index == null) {
+        attachedData[name] = attached[name];
+      } else {
+        if (attached[name][index]) {
+          if (!attachedData[name]) attachedData[name] = [];
+          attachedData[name].push(attached[name][index]);
+        }
+      }
+    }
+
+    return attachedData;
+  }
+
+  static async _genTAPreviews(data, taPreview, parent, previews) {
+    if (!tokenAttacher) return [];
+
+    const attached = getProperty(data, 'flags.token-attacher.prototypeAttached');
+    const pos = getProperty(data, 'flags.token-attacher.pos');
+    const grid = getProperty(data, 'flags.token-attacher.grid');
+
+    if (!(attached && pos && grid)) return [];
+
+    const documentNames = new Set();
+
+    const ratio = canvas.grid.size / grid.size;
+    const attachedData = this._parseTAPreview(taPreview, attached);
+
+    for (const [name, dataList] of Object.entries(attachedData)) {
+      for (const data of dataList) {
+        if (['Token', 'Tile', 'Drawing'].includes(name)) {
+          data.width *= ratio;
+          data.height *= ratio;
+        }
+
+        const taPreviewObject = await this._createPreview.call(
+          canvas.getLayerByEmbeddedName(name),
+          data
+        );
+        documentNames.add(name);
+        previews.push(taPreviewObject);
+
+        // Calculate offset from parent preview
+        if (name === 'Wall') {
+          taPreviewObject._previewOffset = [
+            (data.c[0] - pos.xy.x) * ratio + parent._previewOffset.x,
+            (data.c[1] - pos.xy.y) * ratio + parent._previewOffset.y,
+            (data.c[2] - pos.xy.x) * ratio + parent._previewOffset.x,
+            (data.c[3] - pos.xy.y) * ratio + parent._previewOffset.y,
+          ];
+        } else {
+          taPreviewObject._previewOffset = {
+            x: (data.x - pos.xy.x) * ratio + parent._previewOffset.x,
+            y: (data.y - pos.xy.y) * ratio + parent._previewOffset.y,
+          };
+        }
+      }
+    }
+
+    return documentNames;
   }
 }
