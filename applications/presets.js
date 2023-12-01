@@ -2,7 +2,7 @@ import { Brush } from '../scripts/brush.js';
 import { importPresetFromJSONDialog } from '../scripts/dialogs.js';
 import { SortingHelpersFixed } from '../scripts/fixedSort.js';
 import { applyRandomization } from '../scripts/randomizer/randomizerUtils.js';
-import { Picker, SUPPORTED_PLACEABLES, UI_DOCS } from '../scripts/utils.js';
+import { Picker, SUPPORTED_PLACEABLES, UI_DOCS, createDocuments } from '../scripts/utils.js';
 import { TokenDataAdapter } from './dataAdapters.js';
 import { showMassEdit } from './multiConfig.js';
 
@@ -863,9 +863,12 @@ export class PresetAPI {
     }
     // ================
 
-    if (layerSwitch) canvas.getLayerByEmbeddedName(preset.documentName)?.activate();
+    if (layerSwitch) {
+      if (game.user.isGM || ['Token', 'MeasuredTemplate', 'Note'].includes(preset.documentName))
+        canvas.getLayerByEmbeddedName(preset.documentName)?.activate();
+    }
 
-    return await canvas.scene.createEmbeddedDocuments(preset.documentName, toCreate);
+    return await createDocuments(preset.documentName, toCreate, canvas.scene.id);
   }
 
   static async listPresets() {

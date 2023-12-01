@@ -420,6 +420,60 @@ export function getDocumentName(doc) {
   return docName ?? 'NONE';
 }
 
+export const DOCUMENT_CREATE_REQUESTS = {};
+
+/**
+ * Creates documents either directly or by delegating the task to a GM
+ * @param {String} documentName  document type to be created
+ * @param {Array[Object]} data   data defining the documents
+ * @param {String} sceneID       scene the documents should be created on
+ * @returns placeable documents that have been created
+ */
+export async function createDocuments(documentName, data, sceneID) {
+  if (game.user.isGM) {
+    return game.scenes.get(sceneID).createEmbeddedDocuments(documentName, data);
+  }
+
+  const requestID = randomID();
+
+  const message = {
+    handlerName: 'document',
+    args: { sceneID, documentName, data, requestID },
+    type: 'CREATE',
+  };
+  game.socket.emit(`module.multi-token-edit`, message);
+
+  return new Promise((resolve) => {
+    DOCUMENT_CREATE_REQUESTS[requestID] = resolve;
+  });
+}
+
+/**
+ * Resolves the delegated create documents request
+ * @param {object} options
+ * @param {String} options.requestID          request to be resolved
+ * @param {String} options.sceneID            scene the documents have been created on
+ * @param {String} options.documentName       type of document that has been created
+ * @param {Array[String]} options.documentIDs array of document ids that have been created
+ */
+export function resolveCreateDocumentRequest({
+  requestID,
+  sceneID,
+  documentName,
+  documentIDs,
+} = {}) {
+  if (!DOCUMENT_CREATE_REQUESTS.hasOwnProperty(requestID)) return;
+
+  const scene = game.scenes.get(sceneID);
+  const documents = [];
+  for (const docID of documentIDs) {
+    documents.push(scene.getEmbeddedDocument(documentName, docID));
+  }
+
+  DOCUMENT_CREATE_REQUESTS[requestID](documents);
+  delete DOCUMENT_CREATE_REQUESTS[requestID];
+}
+
 /**
  * Cross-hair and optional preview image/label that can be activated to allow the user to select
  * an area on the screen.
