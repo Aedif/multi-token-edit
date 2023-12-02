@@ -1,0 +1,20 @@
+{
+  "name": "multi-token-edit",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "source:": "multi-token-edit/multi-token-edit.mjs",
+  "main": "multi-token-edit/bundle.js",
+  "targets": {
+    "main": {
+      "optimize": true
+    }
+  },
+  "devDependencies": {
+    "parcel": "^2.9.3"
+  },
+  "scripts": {
+    "build": "npx parcel build multi-token-edit/multi-token-edit.mjs",
+    "watch": "npx parcel watch multi-token-edit/multi-token-edit.mjs"
+  }
+}

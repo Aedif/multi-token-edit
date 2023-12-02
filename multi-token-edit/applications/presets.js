@@ -2,7 +2,7 @@ import { Brush } from '../scripts/brush.js';
 import { importPresetFromJSONDialog } from '../scripts/dialogs.js';
 import { SortingHelpersFixed } from '../scripts/fixedSort.js';
 import { applyRandomization } from '../scripts/randomizer/randomizerUtils.js';
-import { Picker, SUPPORTED_PLACEABLES, UI_DOCS, createDocuments } from '../scripts/utils.js';
+import { Picker, SUPPORTED_PLACEABLES, UI_DOCS, createDocuments, flattenToDepth } from '../scripts/utils.js';
 import { TokenDataAdapter } from './dataAdapters.js';
 import { showMassEdit } from './multiConfig.js';
 
@@ -42,13 +42,9 @@ export class Preset {
     this.documentName = data.documentName;
     this.sort = data.sort ?? 0;
     this.addSubtract =
-      data.addSubtract instanceof Array
-        ? Object.fromEntries(data.addSubtract)
-        : deepClone(data.addSubtract ?? {});
+      data.addSubtract instanceof Array ? Object.fromEntries(data.addSubtract) : deepClone(data.addSubtract ?? {});
     this.randomize =
-      data.randomize instanceof Array
-        ? Object.fromEntries(data.randomize)
-        : deepClone(data.randomize ?? {});
+      data.randomize instanceof Array ? Object.fromEntries(data.randomize) : deepClone(data.randomize ?? {});
     this.data = data.data ? deepClone(data.data) : null;
     this.img = data.img;
     this.folder = data.folder;
@@ -80,13 +76,9 @@ export class Preset {
         this.img = preset.img;
         this.data = preset.data;
         this.randomize =
-          getType(preset.randomize) === 'Object'
-            ? preset.randomize
-            : Object.fromEntries(preset.randomize ?? []);
+          getType(preset.randomize) === 'Object' ? preset.randomize : Object.fromEntries(preset.randomize ?? []);
         this.addSubtract =
-          getType(preset.addSubtract) === 'Object'
-            ? preset.addSubtract
-            : Object.fromEntries(preset.addSubtract ?? []);
+          getType(preset.addSubtract) === 'Object' ? preset.addSubtract : Object.fromEntries(preset.addSubtract ?? []);
       }
     }
     return this;
@@ -304,8 +296,7 @@ export class PresetCollection {
     }
 
     // Sort folders
-    const sorting =
-      game.settings.get('multi-token-edit', 'presetSortMode') === 'manual' ? 'm' : 'a';
+    const sorting = game.settings.get('multi-token-edit', 'presetSortMode') === 'manual' ? 'm' : 'a';
     const sortedFolders = this._sortFolders(Array.from(topLevelFolders.values()), sorting);
     const sortedPresets = this._sortPresets(topLevelPresets, sorting);
 
@@ -324,14 +315,12 @@ export class PresetCollection {
       folder.presets = this._sortPresets(folder.presets, folder.sorting);
     }
 
-    if (sorting === 'a')
-      return folders.sort((f1, f2) => f1.name.localeCompare(f2.name, 'en', { numeric: true }));
+    if (sorting === 'a') return folders.sort((f1, f2) => f1.name.localeCompare(f2.name, 'en', { numeric: true }));
     else return folders.sort((f1, f2) => f1.sort - f2.sort);
   }
 
   static _sortPresets(presets, sorting = 'a') {
-    if (sorting === 'a')
-      return presets.sort((p1, p2) => p1.name.localeCompare(p2.name, 'en', { numeric: true }));
+    if (sorting === 'a') return presets.sort((p1, p2) => p1.name.localeCompare(p2.name, 'en', { numeric: true }));
     else return presets.sort((p1, p2) => p1.sort - p2.sort);
   }
 
@@ -438,10 +427,7 @@ export class PresetCollection {
     const index = collection.index.get(documentId);
 
     if (index) {
-      const metaIndex = (await collection.getDocument(META_INDEX_ID))?.getFlag(
-        'multi-token-edit',
-        'index'
-      );
+      const metaIndex = (await collection.getDocument(META_INDEX_ID))?.getFlag('multi-token-edit', 'index');
       const mIndex = metaIndex[index._id];
 
       const preset = new Preset({ ...index, ...mIndex, pack: collection.collection });
@@ -569,8 +555,7 @@ export class PresetAPI {
    */
   static async getPreset({ uuid, name, type, folder } = {}) {
     if (uuid) return await PresetCollection.get(uuid);
-    else if (!name && !type && !folder)
-      throw Error('UUID, Name, Type, and/or Folder required to retrieve a Preset.');
+    else if (!name && !type && !folder) throw Error('UUID, Name, Type, and/or Folder required to retrieve a Preset.');
 
     const presets = PresetCollection._searchPresetTree(await PresetCollection.getTree(), {
       name,
@@ -594,8 +579,7 @@ export class PresetAPI {
    */
   static async getPresets({ uuid, name, type, folder, format = 'preset' } = {}) {
     if (uuid) return await PresetCollection.get(uuid);
-    else if (!name && !type && !folder)
-      throw Error('UUID, Name, Type, and/or Folder required to retrieve a Preset.');
+    else if (!name && !type && !folder) throw Error('UUID, Name, Type, and/or Folder required to retrieve a Preset.');
 
     const presets = PresetCollection._searchPresetTree(await PresetCollection.getTree(), {
       name,
@@ -730,54 +714,20 @@ export class PresetAPI {
     layerSwitch = false,
   } = {}) {
     if (!canvas.ready) throw Error("Canvas need to be 'ready' for a preset to be spawned.");
-    if (!(uuid || preset || name || type || folder))
-      throw Error('ID, Name, Folder, or Preset is needed to spawn it.');
+    if (!(uuid || preset || name || type || folder)) throw Error('ID, Name, Folder, or Preset is needed to spawn it.');
     if (!coordPicker && ((x == null && y != null) || (x != null && y == null)))
       throw Error('Need both X and Y coordinates to spawn a preset.');
 
     if (preset) await preset.load();
     preset = preset ?? (await PresetAPI.getPreset({ uuid, name, type, folder }));
-    if (!preset)
-      throw Error(
-        `No preset could be found matching: { uuid: "${uuid}", name: "${name}", type: "${type}"}`
-      );
+    if (!preset) throw Error(`No preset could be found matching: { uuid: "${uuid}", name: "${name}", type: "${type}"}`);
 
     let dataArray = preset.data instanceof Array ? preset.data : [preset.data];
 
     let toCreate = [];
 
     for (let presetData of dataArray) {
-      presetData = flattenObject(presetData);
-
-      let data;
-
-      // Set default values if needed
-      switch (preset.documentName) {
-        case 'Token':
-          data = { name: preset.name };
-          break;
-        case 'Tile':
-          data = { width: canvas.grid.w, height: canvas.grid.h };
-          break;
-        case 'AmbientSound':
-          data = { radius: 20 };
-          break;
-        case 'Drawing':
-          data = { 'shape.width': canvas.grid.w * 2, 'shape.height': canvas.grid.h * 2 };
-          break;
-        case 'MeasuredTemplate':
-          data = { distance: 10 };
-          break;
-        case 'AmbientLight':
-          if (!('config.dim' in presetData) && !('config.bright' in presetData)) {
-            data = { 'config.dim': 20, 'config.bright': 10 };
-            break;
-          }
-        default:
-          data = {};
-      }
-
-      mergeObject(data, presetData);
+      const data = mergePresetDataToDefaultDoc(preset, presetData);
       toCreate.push(flattenObject(data));
     }
 
@@ -964,8 +914,7 @@ export class MassEditPresets extends FormApplication {
     data.layerSwitchActive = game.settings.get('multi-token-edit', 'presetLayerSwitch');
     data.extCompActive = displayExtCompendiums;
     data.sortMode = SORT_MODES[game.settings.get('multi-token-edit', 'presetSortMode')];
-    data.displayDragDropMessage =
-      data.allowDocumentSwap && !(this.tree.presets.length || this.tree.folders.length);
+    data.displayDragDropMessage = data.allowDocumentSwap && !(this.tree.presets.length || this.tree.folders.length);
 
     data.lastSearch = MassEditPresets.lastSearch;
 
@@ -994,11 +943,7 @@ export class MassEditPresets extends FormApplication {
     html
       .closest('.window-content')
       .on('mouseover', (event) => {
-        if (
-          canvas.activeLayer?.preview?.children.some(
-            (c) => c._original?.mouseInteractionManager?.isDragging
-          )
-        ) {
+        if (canvas.activeLayer?.preview?.children.some((c) => c._original?.mouseInteractionManager?.isDragging)) {
           hoverOverlay.show();
           MassEditPresets.objectHover = true;
         } else {
@@ -1043,11 +988,9 @@ export class MassEditPresets extends FormApplication {
           } else {
             let itemArr = items.toArray();
             if (itemIndex > lastSelectedIndex) {
-              for (let i = lastSelectedIndex; i <= itemIndex; i++)
-                $(itemArr[i]).addClass('selected');
+              for (let i = lastSelectedIndex; i <= itemIndex; i++) $(itemArr[i]).addClass('selected');
             } else {
-              for (let i = lastSelectedIndex; i >= itemIndex; i--)
-                $(itemArr[i]).addClass('selected');
+              for (let i = lastSelectedIndex; i >= itemIndex; i--) $(itemArr[i]).addClass('selected');
             }
           }
         } else {
@@ -1715,9 +1658,7 @@ export class MassEditPresets extends FormApplication {
 
       if (this.docName !== 'ALL') {
         if (game.settings.get('multi-token-edit', 'presetLayerSwitch'))
-          canvas
-            .getLayerByEmbeddedName(this.docName === 'Actor' ? 'Token' : this.docName)
-            ?.activate();
+          canvas.getLayerByEmbeddedName(this.docName === 'Actor' ? 'Token' : this.docName)?.activate();
       }
 
       this.render(true);
@@ -1729,11 +1670,7 @@ export class MassEditPresets extends FormApplication {
 
     // If right-clicked item is not selected, de-select the others and select it
     if (!item.hasClass('selected')) {
-      item
-        .closest('.item-list')
-        .find('.item.selected')
-        .removeClass('selected')
-        .removeClass('last-selected');
+      item.closest('.item-list').find('.item.selected').removeClass('selected').removeClass('last-selected');
       item.addClass('selected').addClass('last-selected');
     }
   }
@@ -1760,9 +1697,7 @@ export class MassEditPresets extends FormApplication {
     if (!preset) return;
 
     if (game.settings.get('multi-token-edit', 'presetLayerSwitch'))
-      canvas
-        .getLayerByEmbeddedName(preset.documentName === 'Actor' ? 'Token' : preset.documentName)
-        ?.activate();
+      canvas.getLayerByEmbeddedName(preset.documentName === 'Actor' ? 'Token' : preset.documentName)?.activate();
 
     // For some reason canvas.mousePosition does not get updated during drag and drop
     // Acquire the cursor position transformed to Canvas coordinates
@@ -1794,9 +1729,7 @@ export class MassEditPresets extends FormApplication {
       } else {
         $(event.target).closest('form').find('.preset-brush').removeClass('active');
         if (!activated) {
-          if (
-            Brush.activate({ preset, deactivateCallback: this._onPresetBrushDeactivate.bind(this) })
-          ) {
+          if (Brush.activate({ preset, deactivateCallback: this._onPresetBrushDeactivate.bind(this) })) {
             brushControl.addClass('active');
           }
         } else {
@@ -1821,9 +1754,7 @@ export class MassEditPresets extends FormApplication {
     if (!preset) return;
 
     const selectedFields =
-      this.configApp instanceof ActiveEffectConfig
-        ? this._getActiveEffectFields()
-        : this.configApp.getSelectedFields();
+      this.configApp instanceof ActiveEffectConfig ? this._getActiveEffectFields() : this.configApp.getSelectedFields();
     if (!selectedFields || isEmpty(selectedFields)) {
       ui.notifications.warn('No fields selected, unable to update.');
       return;
@@ -1847,9 +1778,7 @@ export class MassEditPresets extends FormApplication {
 
   async _onPresetCreate(event) {
     const selectedFields =
-      this.configApp instanceof ActiveEffectConfig
-        ? this._getActiveEffectFields()
-        : this.configApp.getSelectedFields();
+      this.configApp instanceof ActiveEffectConfig ? this._getActiveEffectFields() : this.configApp.getSelectedFields();
     if (!selectedFields || isEmpty(selectedFields)) {
       ui.notifications.warn('No fields selected.');
       return;
@@ -1978,11 +1907,7 @@ async function exportPresets(presets, fileName) {
     return preset;
   });
 
-  saveDataToFile(
-    JSON.stringify(presets, null, 2),
-    'text/json',
-    (fileName ?? 'mass-edit-presets') + '.json'
-  );
+  saveDataToFile(JSON.stringify(presets, null, 2), 'text/json', (fileName ?? 'mass-edit-presets') + '.json');
 }
 
 class PresetConfig extends FormApplication {
@@ -2095,7 +2020,7 @@ class PresetConfig extends FormApplication {
 
     for (const p of this.presets) {
       let data = p.data instanceof Array ? p.data : [p.data];
-      data.forEach((d) => documents.push(new cls(d)));
+      data.forEach((d) => documents.push(new cls(mergePresetDataToDefaultDoc(p, d))));
     }
 
     const app = await showMassEdit(documents, null, {
@@ -2295,9 +2220,9 @@ function getCompendiumDialog(resolve, { exportTo = false, preselectPack = '' } =
   let options = '';
   for (const p of game.packs) {
     if (!p.locked && p.documentName === 'JournalEntry') {
-      options += `<option value="${p.collection}" ${
-        preselectPack === p.collection ? 'selected="selected"' : ''
-      }>${p.title}</option>`;
+      options += `<option value="${p.collection}" ${preselectPack === p.collection ? 'selected="selected"' : ''}>${
+        p.title
+      }</option>`;
     }
   }
 
@@ -2326,4 +2251,37 @@ function getCompendiumDialog(resolve, { exportTo = false, preselectPack = '' } =
     close: () => resolve(null),
     default: 'cancel',
   }).render(true);
+}
+
+function mergePresetDataToDefaultDoc(preset, presetData) {
+  let data;
+  presetData = flattenObject(presetData);
+
+  // Set default values if needed
+  switch (preset.documentName) {
+    case 'Token':
+      data = { name: preset.name };
+      break;
+    case 'Tile':
+      data = { width: canvas.grid.w, height: canvas.grid.h };
+      break;
+    case 'AmbientSound':
+      data = { radius: 20 };
+      break;
+    case 'Drawing':
+      data = { 'shape.width': canvas.grid.w * 2, 'shape.height': canvas.grid.h * 2 };
+      break;
+    case 'MeasuredTemplate':
+      data = { distance: 10 };
+      break;
+    case 'AmbientLight':
+      if (!('config.dim' in presetData) && !('config.bright' in presetData)) {
+        data = { 'config.dim': 20, 'config.bright': 10 };
+        break;
+      }
+    default:
+      data = {};
+  }
+
+  return mergeObject(data, presetData);
 }
