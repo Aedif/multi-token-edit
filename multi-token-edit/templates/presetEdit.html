@@ -23,12 +23,23 @@
     </div>
 
     {{#if documentEdit}}
-    <div class="form-group">
-        <label>Edit [{{documentEdit}}]</label>
-        <div class="form-fields">
-            <button  class="edit-document" type="button"><i class="fa-solid fa-gear"></i></button>
+    <fieldset>
+        <legend>Data</legend>
+        <div class="form-group">
+            <label>Edit [{{documentEdit}}]</label>
+            <div class="form-fields">
+                <button  class="edit-document" type="button"><i class="fa-solid fa-gear"></i></button>
+            </div>
+            <p class="notes">Edit {{documentEdit}} data present on the preset/s.</p>
         </div>
-    </div>
+        <div class="form-group">
+            <label>Assign [{{documentEdit}}]</label>
+            <div class="form-fields">
+                <button  class="assign-document" type="button"><i class="fa-solid fa-arrow-right-to-arc"></i></button>
+            </div>
+            <p class="notes">Assign currently selected {{documentEdit}}/s to the preset/s.</p>
+        </div>
+    </fieldset>
     {{/if}}
 
     <button type="submit" data-action="apply"><i class="fas fa-check"></i> Apply</button>

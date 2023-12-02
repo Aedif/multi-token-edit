@@ -620,24 +620,7 @@ export class PresetAPI {
     for (const [docName, placeables] of Object.entries(groups)) {
       const data = [];
       for (const placeable of placeables) {
-        const d = placeable.document.toCompendium();
-
-        // Check if `Token Attacher` has attached elements to this token
-        if (docName === 'Token' && tokenAttacher?.generatePrototypeAttached) {
-          const attached = d.flags?.['token-attacher']?.attached || {};
-          if (!isEmpty(attached)) {
-            const prototypeAttached = tokenAttacher.generatePrototypeAttached(d, attached);
-            setProperty(d, 'flags.token-attacher.attached', null);
-            setProperty(d, 'flags.token-attacher.prototypeAttached', prototypeAttached);
-            setProperty(d, 'flags.token-attacher.grid', {
-              size: canvas.grid.size,
-              w: canvas.grid.w,
-              h: canvas.grid.h,
-            });
-          }
-        }
-
-        data.push(d);
+        data.push(placeableToData(placeable));
       }
 
       // Preset data before merging with user provided
@@ -1919,6 +1902,7 @@ class PresetConfig extends FormApplication {
     this.presets = presets;
     this.callback = options.callback;
     this.isCreate = options.isCreate;
+    console.log(presets);
   }
 
   /** @inheritdoc */
@@ -2001,6 +1985,7 @@ class PresetConfig extends FormApplication {
     html.find('[name="name"]').select();
 
     html.find('.edit-document').on('click', this._onEditDocument.bind(this));
+    html.find('.assign-document').on('click', this._onAssignDocument.bind(this));
 
     // TVA Support
     const tvaButton = html.find('.token-variants-image-select-button');
@@ -2012,6 +1997,17 @@ class PresetConfig extends FormApplication {
         searchType: 'Item',
       });
     });
+  }
+
+  async _onAssignDocument() {
+    const layer = canvas.getLayerByEmbeddedName(this.presets[0].documentName);
+    if (!layer) return;
+
+    const data = layer.controlled.map((p) => placeableToData(p));
+    if (data.length) {
+      this.data = data;
+      ui.notifications.info(`Assigned ${data.length} ${this.presets[0].documentName}s to preset.`);
+    }
   }
 
   async _onEditDocument() {
@@ -2284,4 +2280,25 @@ function mergePresetDataToDefaultDoc(preset, presetData) {
   }
 
   return mergeObject(data, presetData);
+}
+
+function placeableToData(placeable) {
+  const data = placeable.document.toCompendium();
+
+  // Check if `Token Attacher` has attached elements to this token
+  if (placeable.document.documentName === 'Token' && tokenAttacher?.generatePrototypeAttached) {
+    const attached = data.flags?.['token-attacher']?.attached || {};
+    if (!isEmpty(attached)) {
+      const prototypeAttached = tokenAttacher.generatePrototypeAttached(data, attached);
+      setProperty(data, 'flags.token-attacher.attached', null);
+      setProperty(data, 'flags.token-attacher.prototypeAttached', prototypeAttached);
+      setProperty(data, 'flags.token-attacher.grid', {
+        size: canvas.grid.size,
+        w: canvas.grid.w,
+        h: canvas.grid.h,
+      });
+    }
+  }
+
+  return data;
 }
