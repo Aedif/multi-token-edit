@@ -793,7 +793,7 @@ export class PresetAPI {
         Picker.activate(resolve, {
           documentName: preset.documentName,
           snap: snapToGrid,
-          previewData: toCreate,
+          previewData: expandObject(toCreate),
           label: pickerLabel,
           taPreview: taPreview,
         });
@@ -963,61 +963,7 @@ export class MassEditPresets extends FormApplication {
     data.docLockActive = game.settings.get('multi-token-edit', 'presetDocLock') === this.docName;
     data.layerSwitchActive = game.settings.get('multi-token-edit', 'presetLayerSwitch');
     data.extCompActive = displayExtCompendiums;
-
     data.sortMode = SORT_MODES[game.settings.get('multi-token-edit', 'presetSortMode')];
-
-    // const aeModeString = function (mode) {
-    //   let s = Object.keys(CONST.ACTIVE_EFFECT_MODES).find(
-    //     (k) => CONST.ACTIVE_EFFECT_MODES[k] === mode
-    //   );
-    //   return s ?? mode;
-    // };
-
-    // Process presets
-
-    // for (const p of presetList) {
-    //   const fields = p.data;
-
-    //   let title = p.documentName;
-
-    //   if (p.documentName === 'ActiveEffect') {
-    //     title = '';
-    //     for (const k of Object.keys(fields)) {
-    //       if (k in p.randomize) {
-    //         title += `${k}: {{randomized}}\n`;
-    //       } else if (k in p.addSubtract) {
-    //         const val = 'value' in p.addSubtract[k] ? p.addSubtract[k].value : fields[k];
-    //         title += `${k}: ${p.addSubtract[k].method === 'add' ? '+' : '-'}${val}\n`;
-    //       } else if (k === 'changes' && this.docName === 'ActiveEffect') {
-    //         fields[k].forEach((c) => {
-    //           title += `${c.key} | ${aeModeString(c.mode)} | ${c.value} | ${c.priority}\n`;
-    //         });
-    //       } else {
-    //         title += `${k}: ${fields[k]}\n`;
-    //       }
-    //     }
-    //   }
-
-    //   // Convert color to CSS rgba with opacity <1
-    //   let color;
-    //   try {
-    //     if (p.color) color = new PIXI.Color(p.color);
-    //   } catch (e) {}
-    //   if (color) {
-    //     color = color.toUint8RgbArray();
-    //     color = `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0.3)`;
-    //   }
-
-    //   data.presets.push({
-    //     uuid: p.uuid,
-    //     name: p.name,
-    //     img: p.img || CONST.DEFAULT_TOKEN,
-    //     title: title,
-    //     color: color,
-    //     icon: DOC_ICONS[p.documentName] ?? DOC_ICONS.DEFAULT,
-    //   });
-    // }
-
     data.displayDragDropMessage =
       data.allowDocumentSwap && !(this.tree.presets.length || this.tree.folders.length);
 
