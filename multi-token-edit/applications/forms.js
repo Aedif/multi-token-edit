@@ -944,7 +944,7 @@ export const WithMassConfig = (docName = 'NONE') => {
       // =====================
       let timeoutRequired = false;
 
-      const data = preset.data;
+      const data = flattenObject(preset.data[0]);
 
       // Monk's Active Tiles
       if ('flags.monks-active-tiles.actions' in data) {
@@ -999,12 +999,14 @@ export const WithMassConfig = (docName = 'NONE') => {
       selectRandomizerFields(form, this.randomizeFields);
       selectAddSubtractFields(form, this.addSubtractFields);
 
-      for (const key of Object.keys(preset.data)) {
+      const data = flattenObject(preset.data[0]);
+      GeneralDataAdapter.dataToForm(this.documentName, preset.data[0], data);
+      for (const key of Object.keys(data)) {
         const el = form.find(`[name="${key}"]`);
         if (el.is(':checkbox')) {
-          el.prop('checked', preset.data[key]);
+          el.prop('checked', data[key]);
         } else {
-          el.val(preset.data[key]);
+          el.val(data[key]);
         }
         el.trigger('change');
       }
@@ -1068,9 +1070,7 @@ export function pasteDataUpdate(docs, preset, suppressNotif = false, excludePosi
     if (!isEmpty(preset.randomize)) context.randomizeFields = preset.randomize;
     if (!isEmpty(preset.addSubtract)) context.addSubtractFields = preset.addSubtract;
 
-    let data = deepClone(
-      preset.data instanceof Array ? preset.data[Math.floor(Math.random() * preset.data.length)] : preset.data
-    );
+    let data = deepClone(preset.data[Math.floor(Math.random() * preset.data.length)]);
     if (excludePosition) {
       delete data.x;
       delete data.y;
@@ -1489,7 +1489,7 @@ export function copyToClipboard(preset, command, isPrototype) {
   }
 
   // Also copy the fields to the game clipboard as plain text
-  game.clipboard.copyPlainText(JSON.stringify(deepClone(preset.data), null, 2));
+  game.clipboard.copyPlainText(JSON.stringify(deepClone(preset.data[0]), null, 2));
 
   ui.notifications.info(
     game.i18n.format('multi-token-edit.clipboard.copy', {

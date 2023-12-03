@@ -329,16 +329,16 @@ export function activeEffectPresetSelect(aeConfig) {
       aeConfig,
       (preset) => {
         if (!isEmpty(preset.randomize)) {
-          applyRandomization([preset.data], null, preset.randomize);
+          applyRandomization(preset.data, null, preset.randomize);
         }
 
         const changes = aeConfig.object.changes ?? [];
         let nChanges = [];
 
-        Object.keys(preset.data).forEach((k) => {
+        Object.keys(preset.data[0]).forEach((k) => {
           let value;
-          if (getType(preset.data[k]) === 'string') value = preset.data[k];
-          else value = JSON.stringify(preset.data[k]);
+          if (getType(preset.data[0][k]) === 'string') value = preset.data[0][k];
+          else value = JSON.stringify(preset.data[0][k]);
 
           nChanges.push({
             key: docName === 'Token' ? 'ATL.' + k : k,
@@ -365,7 +365,7 @@ export function activeEffectPresetSelect(aeConfig) {
         const changes = aeConfig.object.changes ?? [];
         let nChanges = [];
 
-        preset.data.changes?.forEach((change) => {
+        preset.data[0].changes?.forEach((change) => {
           if (change.key) {
             nChanges.push(mergeObject({ mode: CONST.ACTIVE_EFFECT_MODES.OVERRIDE, priority: 20 }, change));
           }

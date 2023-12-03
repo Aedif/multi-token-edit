@@ -45,7 +45,7 @@ export class Preset {
       data.addSubtract instanceof Array ? Object.fromEntries(data.addSubtract) : deepClone(data.addSubtract ?? {});
     this.randomize =
       data.randomize instanceof Array ? Object.fromEntries(data.randomize) : deepClone(data.randomize ?? {});
-    this.data = data.data ? deepClone(data.data) : null;
+    this.data = deepClone(data.data);
     this.img = data.img;
     this.folder = data.folder;
     this.uuid = data.uuid;
@@ -65,6 +65,16 @@ export class Preset {
     if (this.document?.pages.size) return this.document.toJSON().pages;
     else if (this._pages) return this._pages;
     return null;
+  }
+
+  set data(data) {
+    if (data instanceof Array) this._data = data;
+    else if (data == null) this._data = null;
+    else this._data = [data];
+  }
+
+  get data() {
+    return this._data;
   }
 
   async load() {
@@ -97,15 +107,10 @@ export class Preset {
           flagUpdate[k] = Object.entries(data[k]);
           this[k] = data[k];
         } else if (k === 'data' && !(data.data instanceof Array)) {
-          if (this.data instanceof Array) {
-            flagUpdate.data = this.data.map((d) => {
-              return mergeObject(d, data.data);
-            });
-            this.data = flagUpdate.data;
-          } else {
-            this.data = mergeObject(this.data, data.data);
-            flagUpdate.data = data.data;
-          }
+          flagUpdate.data = this.data.map((d) => {
+            return mergeObject(d, data.data);
+          });
+          this.data = flagUpdate.data;
         } else if (PRESET_FIELDS.includes(k) && data[k] !== this[k]) {
           flagUpdate[k] = data[k];
           this[k] = data[k];
@@ -705,11 +710,9 @@ export class PresetAPI {
     preset = preset ?? (await PresetAPI.getPreset({ uuid, name, type, folder }));
     if (!preset) throw Error(`No preset could be found matching: { uuid: "${uuid}", name: "${name}", type: "${type}"}`);
 
-    let dataArray = preset.data instanceof Array ? preset.data : [preset.data];
-
     let toCreate = [];
 
-    for (let presetData of dataArray) {
+    for (let presetData of preset.data) {
       const data = mergePresetDataToDefaultDoc(preset, presetData);
       toCreate.push(flattenObject(data));
     }
