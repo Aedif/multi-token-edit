@@ -803,15 +803,6 @@ export class PresetAPI {
 
     return await createDocuments(preset.documentName, toCreate, canvas.scene.id);
   }
-
-  static async listPresets() {
-    let { allPresets } = await PresetCollection.getTree();
-    if (type) allPresets = allPresets.filter((p) => p.documentName === type);
-    return allPresets
-      .find((p) => p.name.toLowerCase() === name)
-      ?.clone()
-      .load();
-  }
 }
 
 const DOC_ICONS = {
@@ -1223,6 +1214,7 @@ export class MassEditPresets extends FormApplication {
     html.find('.toggle-layer-switch').on('click', this._onToggleLayerSwitch.bind(this));
     html.find('.document-select').on('click', this._onDocumentChange.bind(this));
     html.find('.item').on('contextmenu', this._onRightClickPreset.bind(this));
+    html.find('.item').on('dblclick', this._onDoubleClickPreset.bind(this));
     html.find('.create-folder').on('click', this._onCreateFolder.bind(this));
     html.on('click', '.preset-create', this._onPresetCreate.bind(this));
     html.on('click', '.preset-update a', this._onPresetUpdate.bind(this));
@@ -1237,6 +1229,18 @@ export class MassEditPresets extends FormApplication {
 
     // Activate context menu
     this._contextMenu(html.find('.item-list'));
+  }
+
+  async _onDoubleClickPreset(event) {
+    const uuid = $(event.target).closest('.item').data('uuid');
+    if (!uuid) return;
+    ui.notifications.info('Mass Edit: Spawning Preset');
+    PresetAPI.spawnPreset({
+      uuid,
+      coordPicker: true,
+      taPreview: 'ALL',
+      layerSwitch: game.settings.get('multi-token-edit', 'presetLayerSwitch'),
+    });
   }
 
   _contextMenu(html) {

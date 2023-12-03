@@ -20,14 +20,7 @@ export const SUPPORT_SHEET_CONFIGS = [...SUPPORTED_PLACEABLES, 'Actor', 'Playlis
 
 export const SUPPORTED_HISTORY_DOCS = [...SUPPORTED_PLACEABLES, 'Scene', 'Actor', 'PlaylistSound'];
 
-export const SUPPORTED_COLLECTIONS = [
-  'Item',
-  'Cards',
-  'RollTable',
-  'Actor',
-  'JournalEntry',
-  'Scene',
-];
+export const SUPPORTED_COLLECTIONS = ['Item', 'Cards', 'RollTable', 'Actor', 'JournalEntry', 'Scene'];
 
 export function interpolateColor(u, c1, c2) {
   return c1.map((a, i) => Math.floor((1 - u) * a + u * c2[i]));
@@ -80,10 +73,7 @@ export function flagCompare(data, flag, flagVal) {
   if (data[flag] == flagVal) return true;
 
   const falseyFlagVal =
-    flagVal == null ||
-    flagVal === false ||
-    flagVal === '' ||
-    (getType(flagVal) === 'Object' && isEmpty(flagVal));
+    flagVal == null || flagVal === false || flagVal === '' || (getType(flagVal) === 'Object' && isEmpty(flagVal));
 
   const falseyDataVal =
     data[flag] == null ||
@@ -154,9 +144,7 @@ export function applyAddSubtract(updates, objects, docName, addSubtractFields) {
 
         // Special processing for Tagger module fields
         if (field === 'flags.tagger.tags') {
-          const currentTags = Array.isArray(val)
-            ? val
-            : (val ?? '').split(',').map((s) => s.trim());
+          const currentTags = Array.isArray(val) ? val : (val ?? '').split(',').map((s) => s.trim());
           const modTags = (update[field] ?? '').split(',').map((s) => s.trim());
           for (const tag of modTags) {
             if (ctrl.method === 'add') {
@@ -379,9 +367,7 @@ export function activeEffectPresetSelect(aeConfig) {
 
         preset.data.changes?.forEach((change) => {
           if (change.key) {
-            nChanges.push(
-              mergeObject({ mode: CONST.ACTIVE_EFFECT_MODES.OVERRIDE, priority: 20 }, change)
-            );
+            nChanges.push(mergeObject({ mode: CONST.ACTIVE_EFFECT_MODES.OVERRIDE, priority: 20 }, change));
           }
         });
 
@@ -443,6 +429,11 @@ export async function createDocuments(documentName, data, sceneID) {
   };
   game.socket.emit(`module.multi-token-edit`, message);
 
+  // Self resolve in 4s if no response from a GM is received
+  setTimeout(() => {
+    DOCUMENT_CREATE_REQUESTS[requestID]?.([]);
+  }, 4000);
+
   return new Promise((resolve) => {
     DOCUMENT_CREATE_REQUESTS[requestID] = resolve;
   });
@@ -456,12 +447,7 @@ export async function createDocuments(documentName, data, sceneID) {
  * @param {String} options.documentName       type of document that has been created
  * @param {Array[String]} options.documentIDs array of document ids that have been created
  */
-export function resolveCreateDocumentRequest({
-  requestID,
-  sceneID,
-  documentName,
-  documentIDs,
-} = {}) {
+export function resolveCreateDocumentRequest({ requestID, sceneID, documentName, documentIDs } = {}) {
   if (!DOCUMENT_CREATE_REQUESTS.hasOwnProperty(requestID)) return;
 
   const scene = game.scenes.get(sceneID);
@@ -519,8 +505,7 @@ export class Picker {
 
       const setPositions = function (pos) {
         if (!pos) return;
-        if (preview.snap && layer)
-          pos = canvas.grid.getSnappedPosition(pos.x, pos.y, layer.gridPrecision);
+        if (preview.snap && layer) pos = canvas.grid.getSnappedPosition(pos.x, pos.y, layer.gridPrecision);
 
         for (const preview of previews) {
           if (preview.document.documentName === 'Wall') {
@@ -566,17 +551,12 @@ export class Picker {
     pickerOverlay.on('mousedown', (event) => {
       Picker.boundStart = event.data.getLocalPosition(pickerOverlay);
     });
-    pickerOverlay.on(
-      'mouseup',
-      (event) => (Picker.boundEnd = event.data.getLocalPosition(pickerOverlay))
-    );
+    pickerOverlay.on('mouseup', (event) => (Picker.boundEnd = event.data.getLocalPosition(pickerOverlay)));
     pickerOverlay.on('click', (event) => {
       this.callback?.({ start: this.boundStart, end: this.boundEnd });
       pickerOverlay.parent.removeChild(pickerOverlay);
       if (pickerOverlay.previewDocuments)
-        pickerOverlay.previewDocuments.forEach((name) =>
-          canvas.getLayerByEmbeddedName(name)?.clearPreviewContainer()
-        );
+        pickerOverlay.previewDocuments.forEach((name) => canvas.getLayerByEmbeddedName(name)?.clearPreviewContainer());
     });
 
     this.pickerOverlay = pickerOverlay;
@@ -633,12 +613,7 @@ export class Picker {
       }
 
       if (preview.taPreview) {
-        const documentNames = await this._genTAPreviews(
-          data,
-          preview.taPreview,
-          previewObject,
-          previews
-        );
+        const documentNames = await this._genTAPreviews(data, preview.taPreview, previewObject, previews);
         documentNames.forEach((dName) => previewDocuments.add(dName));
       }
     }
@@ -690,10 +665,7 @@ export class Picker {
           data.height *= ratio;
         }
 
-        const taPreviewObject = await this._createPreview.call(
-          canvas.getLayerByEmbeddedName(name),
-          data
-        );
+        const taPreviewObject = await this._createPreview.call(canvas.getLayerByEmbeddedName(name), data);
         documentNames.add(name);
         previews.push(taPreviewObject);
 
