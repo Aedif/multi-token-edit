@@ -1,5 +1,5 @@
 import { generateMacro, hasSpecialField } from '../scripts/macro/generator.js';
-import { SUPPORTED_COLLECTIONS, SUPPORTED_PLACEABLES } from '../scripts/utils.js';
+import { SUPPORTED_COLLECTIONS, SUPPORTED_PLACEABLES, localFormat, localize } from '../scripts/utils.js';
 import { GeneralDataAdapter } from './dataAdapters.js';
 
 export default class MacroForm extends FormApplication {
@@ -46,24 +46,24 @@ export default class MacroForm extends FormApplication {
     const targetingOptions = [
       {
         value: 'all',
-        title: `Macro will target ALL ${this.docName}s at run-time within the chosen 'Scope'.`,
-        label: 'ALL',
+        title: localFormat('macro.target-all-title', { document: this.docName }),
+        label: localize('common.all'),
       },
       {
         value: 'ids',
-        title: `IDs of currently selected ${data.selectable ? 'placeables' : 'documents'} will be stored in the macro.`,
-        label: 'IDs of Current Selected',
+        title: localize('macro.target-ids-title'),
+        label: localize('macro.target-ids'),
       },
       {
         value: 'search',
-        title: `Macro will search for ${this.docName}s matching specific fields at run-time.`,
-        label: 'Search',
+        title: localFormat('macro.target-search-title', { document: this.docName }),
+        label: localize('FILES.Search', false),
       },
     ];
     if (SUPPORTED_PLACEABLES.includes(this.docName) && game.modules.get('tagger')?.active) {
       targetingOptions.push({
         value: 'tagger',
-        title: "Macro will target Tagger module's tags at run-time.",
+        title: localize('macro.target-tagger-title'),
         label: 'Tagger',
       });
     }
@@ -106,7 +106,7 @@ export default class MacroForm extends FormApplication {
       content: content,
       buttons: {
         Ok: {
-          label: `Save`,
+          label: localize('Save', false),
           callback: (html) => {
             try {
               const val = JSON.parse(html.find('[name="json"]').val() || '{}');

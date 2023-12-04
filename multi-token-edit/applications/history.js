@@ -1,4 +1,5 @@
 import { HISTORY } from '../multi-token-edit.mjs';
+import { localize } from '../scripts/utils.js';
 import { GeneralDataAdapter } from './dataAdapters.js';
 import { copyToClipboard } from './forms.js';
 import { LAYER_MAPPINGS } from './multiConfig.js';
@@ -26,7 +27,7 @@ export default class MassEditHistory extends FormApplication {
   }
 
   get title() {
-    return `[${this.docName}] ${game.i18n.localize('multi-token-edit.common.history')}`;
+    return `[${this.docName}] ${localize('common.history')}`;
   }
 
   async getData(options) {

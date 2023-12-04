@@ -26,6 +26,8 @@ export function interpolateColor(u, c1, c2) {
   return c1.map((a, i) => Math.floor((1 - u) * a + u * c2[i]));
 }
 
+export const MODULE_ID = 'multi-token-edit';
+
 /**
  * Returns true of provided path points to an image
  */
@@ -123,7 +125,10 @@ export function selectAddSubtractFields(form, fields) {
       .removeClass('me-add')
       .removeClass('me-subtract')
       .addClass(fields[key].method === 'add' ? 'me-add' : 'me-subtract')
-      .attr('title', fields[key].method === 'add' ? '+ Adding' : '- Subtracting');
+      .attr(
+        'title',
+        fields[key].method === 'add' ? `+ ${localize('form.adding')}` : `- ${localize('form.subtracting')}`
+      );
   }
 }
 
@@ -382,7 +387,7 @@ export function activeEffectPresetSelect(aeConfig) {
   };
 
   new Dialog({
-    title: 'Open Presets',
+    title: localize('common.presets'),
     content: ``,
     buttons: {
       activeEffect: {
@@ -688,4 +693,14 @@ export class Picker {
 
     return documentNames;
   }
+}
+
+export function localize(path, moduleLocalization = true) {
+  if (moduleLocalization) return game.i18n.localize(`${MODULE_ID}.${path}`);
+  else game.i18n.localize(path);
+}
+
+export function localFormat(path, insert, moduleLocalization = true) {
+  if (moduleLocalization) return game.i18n.format(`${MODULE_ID}.${path}`, insert);
+  else return game.i18n.format(path, insert);
 }

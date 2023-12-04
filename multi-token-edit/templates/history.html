@@ -1,14 +1,14 @@
 <form class="mass-edit-history-form">
     <ol class="item-list">
         <li class="items-header flexrow">
-            <div class="item-update">Update</div>
+            <div class="item-update">{{localize 'Update'}}</div>
             {{#if includeDiff}}
             <div class="item-update">Diff</div>
             {{/if}}
-            <div>Doc</div>
-            <div>Copy</div>
+            <div>Document</div>
+            <div>{{localize 'multi-token-edit.common.copy'}}</div>
             {{#if includeDiff}}
-            <div>Copy Diff</div>
+            <div>{{localize 'multi-token-edit.common.copy'}} Diff</div>
             {{/if}}
         </li>
         {{#each updates as |update|}}

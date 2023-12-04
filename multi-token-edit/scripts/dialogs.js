@@ -1,12 +1,12 @@
 import { LAYER_MAPPINGS, showMassSelect } from '../applications/multiConfig.js';
-import { SUPPORTED_COLLECTIONS, SUPPORTED_PLACEABLES } from './utils.js';
+import { SUPPORTED_COLLECTIONS, SUPPORTED_PLACEABLES, localFormat, localize } from './utils.js';
 
 export function showPlaceableTypeSelectDialog() {
   let content = '';
   for (const config of SUPPORTED_PLACEABLES.concat(SUPPORTED_COLLECTIONS)) {
     content += `<option value="${config}">${config}</option>`;
   }
-  content = `<label>Choose a document type you wish to search:</label>
+  content = `<label>${localize('dialog.search-document')}</label>
     <select style="width: 100%;" name="documentName">${content}</select>`;
 
   new Dialog({
@@ -32,7 +32,7 @@ export function showPlaceableTypeSelectDialog() {
           if (docs.length) {
             showMassSelect(docs[0]);
           } else {
-            ui.notifications.warn(`No documents found for the selected type. (${documentName})`);
+            ui.notifications.warn(localFormat('dialog.document-not-found', { document: documentName }));
           }
         },
       },
@@ -43,7 +43,7 @@ export function showPlaceableTypeSelectDialog() {
 export async function importPresetFromJSONDialog() {
   const content = `
   <div class="form-group">
-      <label for="data">JSON File </label>
+      <label for="data">${localize('FILES.SelectFile', false)} </label>
       <input type="file" name="data">
   </div>
   `;
@@ -51,12 +51,12 @@ export async function importPresetFromJSONDialog() {
   let dialog = new Promise((resolve, reject) => {
     new Dialog(
       {
-        title: 'Import Presets',
+        title: localize('presets.import'),
         content: content,
         buttons: {
           import: {
             icon: '<i class="fas fa-file-import"></i>',
-            label: 'Import',
+            label: localize('common.import'),
             callback: async (html) => {
               let presets;
               readTextFromFile(html.find('[name="data"]')[0].files[0]).then((json) => {
@@ -69,7 +69,7 @@ export async function importPresetFromJSONDialog() {
           },
           no: {
             icon: '<i class="fas fa-times"></i>',
-            label: 'Cancel',
+            label: localize('Cancel', false),
             callback: () => resolve(false),
           },
         },

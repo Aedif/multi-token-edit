@@ -2,7 +2,15 @@ import { Brush } from '../scripts/brush.js';
 import { importPresetFromJSONDialog } from '../scripts/dialogs.js';
 import { SortingHelpersFixed } from '../scripts/fixedSort.js';
 import { applyRandomization } from '../scripts/randomizer/randomizerUtils.js';
-import { Picker, SUPPORTED_PLACEABLES, UI_DOCS, createDocuments, flattenToDepth } from '../scripts/utils.js';
+import {
+  Picker,
+  SUPPORTED_PLACEABLES,
+  UI_DOCS,
+  createDocuments,
+  flattenToDepth,
+  localFormat,
+  localize,
+} from '../scripts/utils.js';
 import { TokenDataAdapter } from './dataAdapters.js';
 import { showMassEdit } from './multiConfig.js';
 
@@ -804,7 +812,7 @@ export class PresetAPI {
         canvas.getLayerByEmbeddedName(preset.documentName)?.activate();
     }
 
-    return await createDocuments(preset.documentName, toCreate, canvas.scene.id);
+    return createDocuments(preset.documentName, toCreate, canvas.scene.id);
   }
 }
 
@@ -823,9 +831,12 @@ const DOC_ICONS = {
 };
 
 const SORT_MODES = {
-  manual: { tooltip: 'Sort Manually', icon: '<i class="fa-solid fa-arrow-down-short-wide"></i>' },
+  manual: {
+    tooltip: localize('SIDEBAR.SortModeManual', false),
+    icon: '<i class="fa-solid fa-arrow-down-short-wide"></i>',
+  },
   alphabetical: {
-    tooltip: 'Sort Alphabetically',
+    tooltip: localize('SIDEBAR.SortModeAlpha', false),
     icon: '<i class="fa-solid fa-arrow-down-a-z"></i>',
   },
 };
@@ -867,7 +878,7 @@ export class MassEditPresets extends FormApplication {
   }
 
   get title() {
-    return `${game.i18n.localize('multi-token-edit.common.presets')}`;
+    return localize('common.presets');
   }
 
   async getData(options) {
@@ -1237,7 +1248,7 @@ export class MassEditPresets extends FormApplication {
   async _onDoubleClickPreset(event) {
     const uuid = $(event.target).closest('.item').data('uuid');
     if (!uuid) return;
-    ui.notifications.info('Mass Edit: Spawning Preset');
+    ui.notifications.info(`Mass Edit: ${localize('presets.spawning')}`);
     PresetAPI.spawnPreset({
       uuid,
       coordPicker: true,
@@ -1746,7 +1757,7 @@ export class MassEditPresets extends FormApplication {
     const selectedFields =
       this.configApp instanceof ActiveEffectConfig ? this._getActiveEffectFields() : this.configApp.getSelectedFields();
     if (!selectedFields || isEmpty(selectedFields)) {
-      ui.notifications.warn('No fields selected, unable to update.');
+      ui.notifications.warn(localize('presets.warn-no-fields'));
       return;
     }
 
@@ -1770,12 +1781,12 @@ export class MassEditPresets extends FormApplication {
     const selectedFields =
       this.configApp instanceof ActiveEffectConfig ? this._getActiveEffectFields() : this.configApp.getSelectedFields();
     if (!selectedFields || isEmpty(selectedFields)) {
-      ui.notifications.warn('No fields selected.');
+      ui.notifications.warn(localize('presets.warn-no-fields'));
       return;
     }
 
     const preset = new Preset({
-      name: 'New Preset',
+      name: localize('presets.default-name'),
       documentName: this.docName,
       data: selectedFields,
       addSubtract: this.configApp.addSubtractFields,
@@ -1867,7 +1878,7 @@ export class MassEditPresets extends FormApplication {
       }
     }
 
-    ui.notifications.info(`Mass Edit: Imported ${importCount} presets.`);
+    ui.notifications.info(`Mass Edit: ${localFormat('presets.imported', { count: importCount })}`);
 
     if (importCount) this.render(true);
   }
@@ -2013,7 +2024,9 @@ class PresetConfig extends FormApplication {
     const data = layer.controlled.map((p) => placeableToData(p));
     if (data.length) {
       this.data = data;
-      ui.notifications.info(`Assigned ${data.length} ${this.presets[0].documentName}s to preset.`);
+      ui.notifications.info(
+        localFormat('presets.assign', { count: data.length, document: this.presets[0].documentName })
+      );
     }
   }
 
@@ -2058,7 +2071,7 @@ class PresetConfig extends FormApplication {
     if (this.isCreate) {
       for (const preset of this.presets) {
         const update = {
-          name: formData.name || preset.name || 'New Preset',
+          name: formData.name || preset.name || localize('presets.default-name'),
           img: formData.img ?? preset.img,
         };
         if (this.data) update.data = this.data;
@@ -2114,8 +2127,8 @@ class PresetFolderConfig extends FolderConfig {
 
   /** @override */
   get title() {
-    if (this.object.id) return `${game.i18n.localize('FOLDER.Update')}: ${this.object.name}`;
-    return game.i18n.localize('FOLDER.Create');
+    if (this.object.id) return `${localize('FOLDER.Update', false)}: ${this.object.name}`;
+    return localize('FOLDER.Create', false);
   }
 
   activateListeners(html) {
@@ -2140,7 +2153,7 @@ class PresetFolderConfig extends FolderConfig {
   /** @override */
   async getData(options = {}) {
     const folder = this.document.toObject();
-    const label = game.i18n.localize(Folder.implementation.metadata.label);
+    const label = localize(Folder.implementation.metadata.label, false);
 
     let folderDocs = folder.flags['multi-token-edit']?.types ?? ['ALL'];
     let docs = [];
@@ -2151,10 +2164,10 @@ class PresetFolderConfig extends FolderConfig {
     return {
       folder: folder,
       name: folder._id ? folder.name : '',
-      newName: game.i18n.format('DOCUMENT.New', { type: label }),
+      newName: localFormat('DOCUMENT.New', { type: label }, false),
       safeColor: folder.color ?? '#000000',
       sortingModes: { a: 'FOLDER.SortAlphabetical', m: 'FOLDER.SortManual' },
-      submitText: game.i18n.localize(folder._id ? 'FOLDER.Update' : 'FOLDER.Create'),
+      submitText: localize(folder._id ? 'FOLDER.Update' : 'FOLDER.Create', false),
       docs,
     };
   }
@@ -2206,17 +2219,15 @@ function getCompendiumDialog(resolve, { exportTo = false, preselectPack = '' } =
   let config;
   if (exportTo) {
     config = {
-      title: 'Select Export Target',
-      message:
-        'This operation will make the destination into a Mass Edit preset compendium. Make sure it does not contain Journals that are not presets to avoid unexpected problems.',
-      buttonLabel: 'Export',
+      title: localize('presets.select-compendium'),
+      message: localize('presets.export-directory-message'),
+      buttonLabel: localize('FOLDER.Export', false),
     };
   } else {
     config = {
-      title: 'Select New Working Compendium',
-      message:
-        'Change the compendium the module will store and edit presets within. Make sure it does not contains Journals that are not presets to avoid unexpected problems.',
-      buttonLabel: 'Change',
+      title: localize('presets.select-compendium'),
+      message: localize('presets.working-directory-message'),
+      buttonLabel: localize('common.swap'),
     };
   }
 
@@ -2232,7 +2243,7 @@ function getCompendiumDialog(resolve, { exportTo = false, preselectPack = '' } =
   let content = `
   <p style="color: orangered;">${config.message}</p>
   <div class="form-group">
-    <label>Compendium</label>
+    <label>${localize('PACKAGE.TagCompendium', false)}</label>
     <div class="form-fields">
       <select style="width: 100%; margin-bottom: 10px;">${options}</select>
     </div>
@@ -2247,7 +2258,7 @@ function getCompendiumDialog(resolve, { exportTo = false, preselectPack = '' } =
         callback: (html) => resolve($(html).find('select').val()),
       },
       cancel: {
-        label: 'Cancel',
+        label: localize('Cancel', false),
         callback: () => resolve(null),
       },
     },

@@ -3,14 +3,43 @@
     "form": {
       "immediate-update-title": "Automatically apply updates on field changes.",
       "global-search-title": "Enable world search.",
-      "global-delete-title": "Delete."
+      "global-delete-title": "Delete.",
+      "actions": "Actions",
+      "images": "Images",
+      "shaders": "Shaders",
+      "delete-warning": "DELETING [{count}] {document}s",
+      "proceed": "Do you wish to proceed?",
+      "search-and-edit": "Search and Edit",
+      "apply-on-current-scene": "Apply on Current Scene",
+      "apply-on-all-scenes": "Apply on ALL Scenes",
+      "apply-update-proto": "Apply and Update Proto",
+      "apply-json": "Apply JSON Data",
+      "mass-search-title": "Mass-{document} SEARCH",
+      "mass-edit-title": "Mass-{document} EDIT [ {count} ]",
+      "adding": "Adding",
+      "subtracting": "Subtracting"
+    },
+    "dialog": {
+      "search-document": "Choose a document type you wish to search:",
+      "document-not-found": "`No documents found for the selected type. ({document})`"
+    },
+    "generic-form": {
+      "step-size": "Step Size",
+      "define-range": "Define Range Control",
+      "define-dropdown": "Define Dropdown Control",
+      "pinned": "Pinned"
     },
     "clipboard": {
-      "copy": "Mass Edit: Copied {documentName} data to clipboard",
-      "paste": "Mass Edit: Pasted data into {number} {documentName}s"
+      "copy": "Mass Edit: Copied {document} data to clipboard",
+      "paste": "Mass Edit: Pasted data into {count} {document}s"
     },
     "macro": {
-      "dependency-warning": "This macro requires {module} module to be active."
+      "dependency-warning": "This macro requires {module} module to be active.",
+      "target-all-title": "Macro will target ALL {document}s at run-time within the chosen 'Scope'.",
+      "target-ids": "IDs of Current Selected",
+      "target-ids-title": "IDs of currently selected documents will be stored in the macro.",
+      "target-search-title": "Macro will search for {document}s matching specific fields at run-time.",
+      "target-tagger-title": "Macro will target Tagger module's tags at run-time."
     },
     "keybindings": {
       "presetApply": {
@@ -85,7 +114,22 @@
       "stepSize": "Step size",
       "snapToGrid": "Snap to grid"
     },
-    "presets": {},
+    "presets": {
+      "default-name": "New Preset",
+      "spawning": "Spawning Preset",
+      "warn-no-fields": "No fields selected, unable to update.",
+      "imported": "Imported {count} presets.",
+      "import": "Import Presets",
+      "assign": "Assigned {count} {document}s to preset.",
+      "select-compendium": "Select Compendium",
+      "export-directory-message": "This operation will make the destination into a Mass Edit preset compendium. Make sure it does not contain Journals that are not presets to avoid unexpected problems.",
+      "working-directory-message": "Change the compendium the module will store and edit presets within. Make sure it does not contains Journals that are not presets to avoid unexpected problems.",
+      "update-preset": "Update Preset",
+      "activate-brush": "Activate Brush"
+    },
+    "css": {
+      "pick": "Pick a style:"
+    },
     "common": {
       "range": "Range",
       "min": "Min",
@@ -98,13 +142,18 @@
       "replace": "Replace",
       "list": "List",
       "generate": "Generate",
-      "hidden": "Hidden",
       "pin": "Pin",
-      "pinned": "Pinned",
+      "preset": "Preset",
       "presets": "Presets",
       "history": "History",
       "delete": "Delete",
-      "apply": "Apply"
+      "apply": "Apply",
+      "ratio": "Ratio",
+      "options": "Options",
+      "all": "All",
+      "swap": "Swap",
+      "import": "Import",
+      "copy": "Copy"
     }
   }
 }

@@ -1,5 +1,5 @@
 import { CUSTOM_CONTROLS } from '../../data/custom-controls.js';
-import { getCommonData } from '../../scripts/utils.js';
+import { getCommonData, localize } from '../../scripts/utils.js';
 import { WithMassConfig } from '../forms.js';
 import { showMassEdit } from '../multiConfig.js';
 import { constructNav, isColorField } from './navGenerator.js';
@@ -34,8 +34,7 @@ export class MassEditGenericForm extends WMC {
     this.nav = nav;
     this.editableLabels = {};
 
-    this.pinnedFields =
-      game.settings.get('multi-token-edit', 'pinnedFields')[this.documentName] ?? {};
+    this.pinnedFields = game.settings.get('multi-token-edit', 'pinnedFields')[this.documentName] ?? {};
     this.customControls = customControls;
 
     if (options.callback) {
@@ -113,10 +112,7 @@ export class MassEditGenericForm extends WMC {
           col = Number(Color.fromString(event.target.value));
         } catch (e) {}
 
-        $(event.target)
-          .siblings(`[name="${event.target.dataset.editNumber}"]`)
-          .val(col)
-          .trigger('input');
+        $(event.target).siblings(`[name="${event.target.dataset.editNumber}"]`).val(col).trigger('input');
       }
     });
 
@@ -176,32 +172,26 @@ export class MassEditGenericForm extends WMC {
   }
 }
 
-function defineRangeControl(
-  name,
-  val,
-  customControls,
-  docName,
-  { min = null, max = null, step = null } = {}
-) {
+function defineRangeControl(name, val, customControls, docName, { min = null, max = null, step = null } = {}) {
   let content = `
 <div class="form-group slim">
   <label>Range</label>
   <div class="form-fields">
-    <label>Min</label>
+    <label>${localize('Minimum', false)}</label>
     <input type="number" value="${min ?? val}" name="min" step="any">
-    <label>Max</label>
+    <label>${localize('Maximum', false)}</label>
     <input type="number" value="${max ?? val}" name="max" step="any">
-    <label>Step</label>
+    <label>${localize('generic-form.step-size')}</label>
     <input type="number" value="${step ?? 1}" name="step" step="any">
   </div>
 </div>
   `;
   new Dialog({
-    title: `Define Range Control`,
+    title: localize('generic-form.define-range'),
     content: content,
     buttons: {
       save: {
-        label: 'Save',
+        label: localize('Save', false),
         callback: async (html) => {
           const min = html.find('[name="min"]').val() || val;
           const max = html.find('[name="max"]').val() || val;
@@ -220,16 +210,16 @@ function defineRangeControl(
 function defineSelectControl(name, val, customControls, docName, { options = null } = {}) {
   let content = `
 <div class="form-group slim">
-  <label>Options</label>
+  <label>${localize('common.options')}</label>
   <textarea name="options">${options ? options.join('\n') : val}</textarea>
 </div>
   `;
   new Dialog({
-    title: `Define dropdown control`,
+    title: localize('generic-form.define-dropdown'),
     content: content,
     buttons: {
       save: {
-        label: 'Save',
+        label: localize('Save', false),
         callback: async (html) => {
           const options = html.find('[name="options"]').val().trim();
           if (options) {
