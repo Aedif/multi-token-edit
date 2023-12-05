@@ -38,7 +38,7 @@
         <ol class="folder-items top-level-folder-items">
             {{#each folders as |folder|}}
                 {{#if folder.visible}}
-                    {{>modules/multi-token-edit/templates/generic/presetFolder.html folder=folder refreshEnabled=../refreshEnabled createEnabled=../createEnabled isPlaceable=../isPlaceable callback=../callback editable=true}}
+                    {{>modules/multi-token-edit/templates/generic/presetFolder.html folder=folder refreshEnabled=../refreshEnabled createEnabled=../createEnabled callback=../callback editable=true}}
                 {{/if}}
             {{/each}}
         </ol>
@@ -46,7 +46,7 @@
         <ol class="preset-items top-level-preset-items">
             {{#each presets as |preset|}}
             {{#if preset._visible}}
-                {{>modules/multi-token-edit/templates/generic/preset.html preset=preset refreshEnabled=../refreshEnabled createEnabled=../createEnabled isPlaceable=../isPlaceable callback=../callback editable=true}}
+                {{>modules/multi-token-edit/templates/generic/preset.html preset=preset refreshEnabled=../refreshEnabled createEnabled=../createEnabled callback=../callback editable=true}}
             {{/if}}
             {{/each}}
         </ol>
@@ -56,7 +56,7 @@
         <ol class="folder-items static">
             {{#each staticFolders as |folder|}}
                 {{#if folder.visible}}
-                    {{>modules/multi-token-edit/templates/generic/presetFolder.html folder=folder refreshEnabled=../refreshEnabled createEnabled=../createEnabled isPlaceable=../isPlaceable callback=../callback}}
+                    {{>modules/multi-token-edit/templates/generic/presetFolder.html folder=folder refreshEnabled=../refreshEnabled createEnabled=../createEnabled callback=../callback}}
                 {{/if}}
             {{/each}}
         </ol>

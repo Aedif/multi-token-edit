@@ -1,3 +1,33 @@
+# 1.49.0
+
+**Presets**
+
+- Grouped Placeables
+  - When dragging in multiple placeables onto the preset form a single preset will be created containing all of the placeables with their relative positions
+  - When these presets are spawned using `MassEdit.spawnPreset(...)` API with `coordPicker` option enabled previews will be created for each placeable within the group
+- When editing a preset there is now an option to `Assign` new placeables to it.
+- Presets can now be double clicked to spawn them on the canvas with a preview
+
+**API**
+
+- `MassEdit.spawnPreset(...)`
+  - Can now be called by players if an active GM is present
+  - Option: `taPreview`
+  - Accepted values and their behaviour has been changed
+    - **"ALL\*"** - displays previews for all attached elements
+    - **"{documentName}"** - displays preview for all elements of this type
+      - e.g "Tile", "Wall", "MeasuredTemplate", etc.
+    - **"{documentName}.{index}"** - displays a preview of a specific element matching document type and index
+      - e.g. "Tile.0", "AmbientLight.3", "AmbientSound.2"
+    - Values can be chained using a comma
+      - e.g. "Tile, Wall, MeasuredTemplate.1"
+
+**Misc.**
+
+- The module's code has been bundled to reduce number of http requests
+- Fixed some preset fields not applying to forms
+- As of **Token Attacher** version **4.5.14**, tokens and their attached elements will be saved when creating a token preset
+
 # 1.48.0
 
 **API**

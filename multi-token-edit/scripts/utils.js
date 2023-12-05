@@ -650,7 +650,7 @@ export class Picker {
   }
 
   static async _genTAPreviews(data, taPreview, parent, previews) {
-    if (!tokenAttacher) return [];
+    if (!game.modules.get('token-attacher')?.active) return [];
 
     const attached = getProperty(data, 'flags.token-attacher.prototypeAttached');
     const pos = getProperty(data, 'flags.token-attacher.pos');
@@ -697,10 +697,10 @@ export class Picker {
 
 export function localize(path, moduleLocalization = true) {
   if (moduleLocalization) return game.i18n.localize(`${MODULE_ID}.${path}`);
-  else game.i18n.localize(path);
+  return game.i18n.localize(path);
 }
 
 export function localFormat(path, insert, moduleLocalization = true) {
   if (moduleLocalization) return game.i18n.format(`${MODULE_ID}.${path}`, insert);
-  else return game.i18n.format(path, insert);
+  return game.i18n.format(path, insert);
 }

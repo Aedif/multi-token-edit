@@ -1,5 +1,5 @@
 import { constructNav } from '../applications/generic/navGenerator.js';
-import { getDocumentName } from './utils.js';
+import { getDocumentName, localize } from './utils.js';
 
 export function injectVisibility(app) {
   const docName = getDocumentName(app.meObjects[0]);
@@ -13,7 +13,6 @@ export function injectVisibility(app) {
   if (isInjected.length) return;
 
   const hidden = app.object.hidden;
-
   const newHtml = `
   <div class="form-group">
     <label>${localize(`Hidden`, false)}</label>

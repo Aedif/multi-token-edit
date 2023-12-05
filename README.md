@@ -17,11 +17,9 @@ _Note that all keybinding referenced bellow can be changed via 'Configure Contro
   - Will allow to select normally un-selectable placeables such as lights and templates
 - Multiple Document Selection (https://foundryvtt.com/packages/multiple-document-selection)
   - Will enable selection of multiple documents in the sidebar
-  - Mass Edit will recognise these selection for Actors, Scenes, and Journals
+  - Mass Edit will recognise these selections for Actors, Scenes, and Journals
 - Token Attacher (https://foundryvtt.com/packages/token-attacher/)
   - Allows to store groups of placeables as a single token preset
-  - Modified version of Token Attacher is required, can be installed using the following manifest:
-  - https://github.com/Aedif/token-attacher/releases/download/4.5.13.1/module.json
 
 #### Showcases by Foundry community members
 

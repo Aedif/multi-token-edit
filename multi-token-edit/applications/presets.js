@@ -2,15 +2,7 @@ import { Brush } from '../scripts/brush.js';
 import { importPresetFromJSONDialog } from '../scripts/dialogs.js';
 import { SortingHelpersFixed } from '../scripts/fixedSort.js';
 import { applyRandomization } from '../scripts/randomizer/randomizerUtils.js';
-import {
-  Picker,
-  SUPPORTED_PLACEABLES,
-  UI_DOCS,
-  createDocuments,
-  flattenToDepth,
-  localFormat,
-  localize,
-} from '../scripts/utils.js';
+import { Picker, SUPPORTED_PLACEABLES, UI_DOCS, createDocuments, localFormat, localize } from '../scripts/utils.js';
 import { TokenDataAdapter } from './dataAdapters.js';
 import { showMassEdit } from './multiConfig.js';
 
@@ -42,6 +34,8 @@ const PRESET_FIELDS = [
 ];
 
 export class Preset {
+  static name = 'Preset';
+
   document;
 
   constructor(data) {
@@ -79,6 +73,10 @@ export class Preset {
     if (data instanceof Array) this._data = data;
     else if (data == null) this._data = null;
     else this._data = [data];
+  }
+
+  get isPlaceable() {
+    return SUPPORTED_PLACEABLES.includes(this.documentName);
   }
 
   get data() {
@@ -557,6 +555,8 @@ export class PresetCollection {
 }
 
 export class PresetAPI {
+  static name = 'PresetAPI';
+
   /**
    * Retrieve preset
    * @param {object} [options={}]
@@ -832,11 +832,15 @@ const DOC_ICONS = {
 
 const SORT_MODES = {
   manual: {
-    tooltip: localize('SIDEBAR.SortModeManual', false),
+    get tooltip() {
+      return localize('SIDEBAR.SortModeManual', false);
+    },
     icon: '<i class="fa-solid fa-arrow-down-short-wide"></i>',
   },
   alphabetical: {
-    tooltip: localize('SIDEBAR.SortModeAlpha', false),
+    get tooltip() {
+      return localize('SIDEBAR.SortModeAlpha', false);
+    },
     icon: '<i class="fa-solid fa-arrow-down-a-z"></i>',
   },
 };
@@ -896,7 +900,7 @@ export class MassEditPresets extends FormApplication {
     data.staticFolders = this.tree.staticFolders.length ? this.tree.staticFolders : null;
 
     data.createEnabled = Boolean(this.configApp);
-    data.isPlaceable = SUPPORTED_PLACEABLES.includes(this.docName);
+    data.isPlaceable = SUPPORTED_PLACEABLES.includes(this.docName) || this.docName === 'ALL';
     data.allowDocumentSwap = UI_DOCS.includes(this.docName) && !this.configApp;
     data.docLockActive = game.settings.get('multi-token-edit', 'presetDocLock') === this.docName;
     data.layerSwitchActive = game.settings.get('multi-token-edit', 'presetLayerSwitch');
@@ -1477,6 +1481,7 @@ export class MassEditPresets extends FormApplication {
       const options = { resolve, ...header.offset() };
       options.top += header.height();
 
+      console.log(folder);
       new PresetFolderConfig(folder, options).render(true);
     }).then(() => this.render(true));
   }
@@ -1912,6 +1917,8 @@ async function exportPresets(presets, fileName) {
 }
 
 class PresetConfig extends FormApplication {
+  static name = 'PresetConfig';
+
   /**
    * @param {Array[Preset]} presets
    */
@@ -2107,6 +2114,8 @@ class PresetConfig extends FormApplication {
 }
 
 class PresetFolderConfig extends FolderConfig {
+  static name = 'PresetFolderConfig';
+
   /** @inheritdoc */
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
@@ -2304,7 +2313,11 @@ function placeableToData(placeable) {
   const data = placeable.document.toCompendium();
 
   // Check if `Token Attacher` has attached elements to this token
-  if (placeable.document.documentName === 'Token' && tokenAttacher?.generatePrototypeAttached) {
+  if (
+    placeable.document.documentName === 'Token' &&
+    game.modules.get('token-attacher')?.active &&
+    tokenAttacher?.generatePrototypeAttached
+  ) {
     const attached = data.flags?.['token-attacher']?.attached || {};
     if (!isEmpty(attached)) {
       const prototypeAttached = tokenAttacher.generatePrototypeAttached(data, attached);

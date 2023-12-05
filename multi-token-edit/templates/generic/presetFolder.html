@@ -3,14 +3,14 @@
     <ol class="folder-items">
         {{#each children as |child|}}
             {{#if child.visible}}
-                 {{>modules/multi-token-edit/templates/generic/presetFolder.html folder=child refreshEnabled=../refreshEnabled createEnabled=../createEnabled isPlaceable=../isPlaceable callback=../callback editable=../editable}}
+                 {{>modules/multi-token-edit/templates/generic/presetFolder.html folder=child refreshEnabled=../refreshEnabled createEnabled=../createEnabled callback=../callback editable=../editable}}
             {{/if}}
         {{/each}}
     </ol>
     <ol class="preset-items">
         {{#each presets as |preset|}}
             {{#if preset._visible}}
-                {{>modules/multi-token-edit/templates/generic/preset.html preset=preset refreshEnabled=../refreshEnabled createEnabled=../createEnabled isPlaceable=../isPlaceable callback=../callback editable=../editable}}
+                {{>modules/multi-token-edit/templates/generic/preset.html preset=preset refreshEnabled=../refreshEnabled createEnabled=../createEnabled callback=../callback editable=../editable}}
             {{/if}}
         {{/each}}
     </ol>
