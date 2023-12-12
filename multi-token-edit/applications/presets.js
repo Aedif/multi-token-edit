@@ -2138,7 +2138,8 @@ class PresetFieldDelete extends FormApplication {
   constructor(data, callback) {
     super();
     this.presetData = data;
-    this.dataAsObject = !(data instanceof Array);
+    this.isObject = !(data instanceof Array);
+    this.singleData = !this.isObject && data.length === 1;
     this.callback = callback;
   }
 
@@ -2156,13 +2157,12 @@ class PresetFieldDelete extends FormApplication {
 
   /** @override */
   get title() {
-    return localize('presets.delete-fields');
+    return localize('presets.select-fields');
   }
 
   activateListeners(html) {
     super.activateListeners(html);
     html.find('.item').on('click', this._onFieldClick);
-    // html.find('.document-select').on('click', this._onDocumentChange.bind(this));
   }
 
   _onFieldClick(event) {
@@ -2171,9 +2171,15 @@ class PresetFieldDelete extends FormApplication {
 
   /** @override */
   async getData(options = {}) {
-    let data = flattenObject(this.presetData);
-    let fields = [];
+    let data;
+    if (this.singleData) {
+      data = this.presetData[0];
+    } else {
+      data = this.presetData;
+    }
+    data = flattenObject(data);
 
+    let fields = [];
     for (const [k, v] of Object.entries(data)) {
       fields.push({ name: k, value: JSON.stringify(v) });
     }
@@ -2185,7 +2191,13 @@ class PresetFieldDelete extends FormApplication {
 
   /** @override */
   async _updateObject(event, formData) {
-    let data = flattenObject(this.presetData);
+    let data;
+    if (this.singleData) {
+      data = this.presetData[0];
+    } else {
+      data = this.presetData;
+    }
+    data = flattenObject(data);
 
     const form = $(event.target).closest('form');
     form.find('.item.selected').each(function () {
@@ -2194,13 +2206,18 @@ class PresetFieldDelete extends FormApplication {
     });
     data = expandObject(data);
 
-    let reorganizedData = [];
-    for (let i = 0; i < this.presetData.length; i++) {
-      if (!data[i]) continue;
-      reorganizedData.push(data[i]);
+    if (this.singleData) {
+      data = [data];
+    } else if (!this.isObject) {
+      let reorganizedData = [];
+      for (let i = 0; i < this.presetData.length; i++) {
+        if (!data[i]) continue;
+        reorganizedData.push(data[i]);
+      }
+      data = reorganizedData;
     }
-    if (this.dataAsObject) reorganizedData = reorganizedData[0];
-    this.callback(reorganizedData);
+
+    this.callback(data);
   }
 }
 

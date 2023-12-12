@@ -115,6 +115,8 @@
       "snapToGrid": "Snap to grid"
     },
     "presets": {
+      "drag-placeable-message": "Drag in placeables to create a preset.",
+      "drag-over-message": "CREATE PRESET",
       "default-name": "New Preset",
       "spawning": "Spawning Preset",
       "warn-no-fields": "No fields selected, unable to update.",
