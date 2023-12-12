@@ -962,43 +962,7 @@ export class MassEditPresets extends FormApplication {
 
     // Multi-select
     html.on('click', '.item', (e) => {
-      const item = $(e.target).closest('.item');
-      const items = itemList.find('.item');
-      const lastSelected = items.filter('.last-selected');
-
-      if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
-        lastSelected.removeClass('last-selected');
-        items.removeClass('selected');
-        item.addClass('selected').addClass('last-selected');
-      } else if (e.ctrlKey || e.metaKey) {
-        item.toggleClass('selected');
-        if (item.hasClass('selected')) {
-          lastSelected.removeClass('last-selected');
-          item.addClass('last-selected');
-        } else item.removeClass('last-index');
-      } else if (e.shiftKey) {
-        if (lastSelected.length) {
-          let itemIndex = items.index(item);
-          let lastSelectedIndex = items.index(lastSelected);
-
-          if (itemIndex === lastSelectedIndex) {
-            item.toggleClass('selected');
-            if (item.hasClass('selected')) item.addClass('last-selected');
-            else lastSelected.removeClass('last-selected');
-          } else {
-            let itemArr = items.toArray();
-            if (itemIndex > lastSelectedIndex) {
-              for (let i = lastSelectedIndex; i <= itemIndex; i++) $(itemArr[i]).addClass('selected');
-            } else {
-              for (let i = lastSelectedIndex; i >= itemIndex; i--) $(itemArr[i]).addClass('selected');
-            }
-          }
-        } else {
-          lastSelected.removeClass('last-selected');
-          item.toggleClass('selected');
-          if (item.hasClass('selected')) item.addClass('last-selected');
-        }
-      }
+      itemSelect(e, itemList);
     });
     html.on('dragstart', '.item', (event) => {
       this.dragType = 'item';
@@ -2165,8 +2129,8 @@ class PresetFieldDelete extends FormApplication {
     html.find('.item').on('click', this._onFieldClick);
   }
 
-  _onFieldClick(event) {
-    $(event.target).closest('.item').toggleClass('selected');
+  _onFieldClick(e) {
+    itemSelect(e, $(e.target).closest('.preset-field-list'));
   }
 
   /** @override */
@@ -2440,4 +2404,49 @@ function placeableToData(placeable) {
   }
 
   return data;
+}
+
+/**
+ * Controls select/multi-select flow for item lists
+ * @param {*} e item click event
+ * @param {*} itemList list of items that this item exists within
+ */
+function itemSelect(e, itemList) {
+  const item = $(e.target).closest('.item');
+  const items = itemList.find('.item');
+  const lastSelected = items.filter('.last-selected');
+
+  if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+    lastSelected.removeClass('last-selected');
+    items.removeClass('selected');
+    item.addClass('selected').addClass('last-selected');
+  } else if (e.ctrlKey || e.metaKey) {
+    item.toggleClass('selected');
+    if (item.hasClass('selected')) {
+      lastSelected.removeClass('last-selected');
+      item.addClass('last-selected');
+    } else item.removeClass('last-index');
+  } else if (e.shiftKey) {
+    if (lastSelected.length) {
+      let itemIndex = items.index(item);
+      let lastSelectedIndex = items.index(lastSelected);
+
+      if (itemIndex === lastSelectedIndex) {
+        item.toggleClass('selected');
+        if (item.hasClass('selected')) item.addClass('last-selected');
+        else lastSelected.removeClass('last-selected');
+      } else {
+        let itemArr = items.toArray();
+        if (itemIndex > lastSelectedIndex) {
+          for (let i = lastSelectedIndex; i <= itemIndex; i++) $(itemArr[i]).addClass('selected');
+        } else {
+          for (let i = lastSelectedIndex; i >= itemIndex; i--) $(itemArr[i]).addClass('selected');
+        }
+      }
+    } else {
+      lastSelected.removeClass('last-selected');
+      item.toggleClass('selected');
+      if (item.hasClass('selected')) item.addClass('last-selected');
+    }
+  }
 }

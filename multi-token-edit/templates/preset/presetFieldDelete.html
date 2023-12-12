@@ -1,6 +1,6 @@
 <form autocomplete="off" style="flex-direction: column; display: flex; justify-content: space-between;">
     <div style="max-height: 700px; overflow: auto; color: rgba(255, 255, 240, 0.8);">
-        <ol class="preset-field-list">
+        <ol class="preset-field-list" style="padding: 0 1.5em 0 1.5em">
             {{#each fields as |field|}}
             <li class="item flexrow" name="{{field.name}}" title="{{field.value}}"><label>{{field.name}}</label><label class="value">{{field.value}}</label></li>
             {{/each}}
