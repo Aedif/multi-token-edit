@@ -1,4 +1,4 @@
-import { SUPPORTED_COLLECTIONS } from '../utils.js';
+import { MODULE_ID, SUPPORTED_COLLECTIONS, localFormat } from '../utils.js';
 import { genAction } from './action.js';
 import { genTargets } from './targets.js';
 
@@ -104,7 +104,7 @@ function genMacroDependencies(options, docName) {
   let dep = '';
 
   const depWarning = (module) => {
-    return `ui.notifications.warn('${game.i18n.format('multi-token-edit.macro.dependency-warning', {
+    return `ui.notifications.warn('${localFormat('macro.dependency-warning', {
       module,
     })}');`;
   };
@@ -120,7 +120,7 @@ if (!game.modules.get('tagger')?.active) {
 
   if (hasMassEditDependency(options))
     dep += `
-const MassEdit = game.modules.get('multi-token-edit');
+const MassEdit = game.modules.get('${MODULE_ID}');
 if(!MassEdit?.active){
   ${depWarning('Mass Edit')}
   return;

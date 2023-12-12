@@ -8,17 +8,17 @@
 
     <div class="item-controls flexrow {{#unless refreshEnabled}}short{{/unless}}">
     {{#if createEnabled}}
-        <div class="item-control preset-update"><a title="{{localize 'multi-token-edit.presets.update-preset'}}"><i class="fas fa-sync"></i></a></div>
+        <div class="item-control preset-update"><a title="{{localize 'MassEdit.presets.update-preset'}}"><i class="fas fa-sync"></i></a></div>
         &nbsp;
     {{/if}}
     {{#if preset.isPlaceable}}
     <div class="item-control preset-brush">
-        <a title="{{localize 'multi-token-edit.presets.activate-brush'}}"><i class="fas fa-paint-brush"></i></a>
+        <a title="{{localize 'MassEdit.presets.activate-brush'}}"><i class="fas fa-paint-brush"></i></a>
     </div>
     {{/if}}
     {{#if callback}}
     &nbsp;
-    <div class="item-control preset-callback"><a title="{{localize 'multi-token-edit.common.apply'}}"><i class="fa-solid fa-arrow-right-to-arc"></i></a></div>
+    <div class="item-control preset-callback"><a title="{{localize 'MassEdit.common.apply'}}"><i class="fa-solid fa-arrow-right-to-arc"></i></a></div>
      {{/if}}
     </div>
     <i class="icon {{preset.icon}}"></i>

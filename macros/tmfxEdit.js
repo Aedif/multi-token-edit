@@ -3,6 +3,8 @@
  * Edited filters can be saved as a new preset.
  */
 
+import { MODULE_ID } from '../multi-token-edit/scripts/utils.js';
+
 const controlled = TokenMagic.getControlledPlaceables();
 if (!controlled.length) return;
 
@@ -11,20 +13,14 @@ if (!filters.length) return;
 
 let params = filters.map((f) => {
   const tmParams = deepClone(f.tmFilters.tmParams);
-  ['placeableId', 'placeableType', 'filterInternalId', 'filterOwner', 'updateId'].forEach(
-    (k) => delete tmParams[k]
-  );
+  ['placeableId', 'placeableType', 'filterInternalId', 'filterOwner', 'updateId'].forEach((k) => delete tmParams[k]);
   return tmParams;
 });
 if (!params.length) return;
 
 async function savePreset() {
   let content = `<label>Macro</label>
-  <textarea style="width:100%; height: 300px;" readonly>let params = ${JSON.stringify(
-    params,
-    null,
-    2
-  )};
+  <textarea style="width:100%; height: 300px;" readonly>let params = ${JSON.stringify(params, null, 2)};
 
 await TokenMagic.addUpdateFiltersOnSelected(params);</textarea>
   <label>Preset Name</label><input class="presetName" type="text" value="${
@@ -58,9 +54,9 @@ async function promptParamChoice(params) {
       let label = params[i].filterType ?? params[i].filterId;
       if (label in buttons) label = label + ' ' + i;
       buttons[label] = {
-        label: `<span style="background-color: ${
-          params[i].enabled ? 'none' : 'rgba(255, 80, 80, 0.5)'
-        };">${params[i].filterId} {${params[i].filterType}}</span>`,
+        label: `<span style="background-color: ${params[i].enabled ? 'none' : 'rgba(255, 80, 80, 0.5)'};">${
+          params[i].filterId
+        } {${params[i].filterType}}</span>`,
         callback: () => {
           resolve(i);
         },
@@ -75,10 +71,7 @@ async function promptParamChoice(params) {
       buttons,
       render: (html) => {
         let dialogButtons = html.find('.dialog-button');
-        dialogButtons.attr(
-          'title',
-          'Right-click to remove filter.\nMiddle-click to disable filter.'
-        );
+        dialogButtons.attr('title', 'Right-click to remove filter.\nMiddle-click to disable filter.');
         dialogButtons.contextmenu((event) => {
           dialog.close();
           const index = dialogButtons.index($(event.target).closest('.dialog-button'));
@@ -114,7 +107,7 @@ async function configureParam() {
   let param = params[i];
 
   if (param)
-    game.modules.get('multi-token-edit').api.showGenericForm(param, param.filterType ?? 'TMFX', {
+    game.modules.get(MODULE_ID).api.showGenericForm(param, param.filterType ?? 'TMFX', {
       callback: async (obj) => configureParam(),
       inputChangeCallback: (selected) => {
         mergeObject(param, selected, { inplace: true });

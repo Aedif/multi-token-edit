@@ -2,7 +2,7 @@ import { SPECIES_GENERATORS } from '../generator/fantasticSpeciesGenerator.js';
 import { GROUP_GENERATORS } from '../generator/groupNamesGenerator.js';
 import { NAME_GENERATOR } from '../generator/nameGenerator.js';
 import { TAVERN_GENERATOR } from '../generator/tavernGenerator.js';
-import { Picker, isImage, isVideo, recursiveTraverse } from '../utils.js';
+import { MODULE_ID, Picker, isImage, isVideo, recursiveTraverse } from '../utils.js';
 import { deselectField, nearestStep, selectField } from './randomizerUtils.js';
 import { ColorSlider } from './slider.js';
 
@@ -69,7 +69,7 @@ export default class RandomizerForm extends FormApplication {
     return mergeObject(super.defaultOptions, {
       id: 'mass-edit-randomizer-form',
       classes: ['sheet'],
-      template: 'modules/multi-token-edit/templates/randomizerForm.html',
+      template: `modules/${MODULE_ID}/templates/randomizerForm.html`,
       resizable: true,
       minimizable: false,
     });
@@ -319,7 +319,7 @@ export default class RandomizerForm extends FormApplication {
       t.maximize();
       t.configApp.maximize();
 
-      if (game.settings.get('multi-token-edit', 'autoSnap')) {
+      if (game.settings.get(MODULE_ID, 'autoSnap')) {
         t._onSnapToGrid(event);
       }
     });

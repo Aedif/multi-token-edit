@@ -2,7 +2,15 @@ import { Brush } from '../scripts/brush.js';
 import { importPresetFromJSONDialog } from '../scripts/dialogs.js';
 import { SortingHelpersFixed } from '../scripts/fixedSort.js';
 import { applyRandomization } from '../scripts/randomizer/randomizerUtils.js';
-import { Picker, SUPPORTED_PLACEABLES, UI_DOCS, createDocuments, localFormat, localize } from '../scripts/utils.js';
+import {
+  MODULE_ID,
+  Picker,
+  SUPPORTED_PLACEABLES,
+  UI_DOCS,
+  createDocuments,
+  localFormat,
+  localize,
+} from '../scripts/utils.js';
 import { TokenDataAdapter } from './dataAdapters.js';
 import { showMassEdit } from './multiConfig.js';
 
@@ -87,7 +95,7 @@ export class Preset {
     if (!this.document && this.uuid) {
       this.document = await fromUuid(this.uuid);
       if (this.document) {
-        const preset = this.document.getFlag('multi-token-edit', 'preset') ?? {};
+        const preset = this.document.getFlag(MODULE_ID, 'preset') ?? {};
         this.documentName = preset.documentName;
         this.img = preset.img;
         this.data = preset.data;
@@ -124,7 +132,7 @@ export class Preset {
       });
 
       if (!isEmpty(flagUpdate)) {
-        const docUpdate = { flags: { 'multi-token-edit': { preset: flagUpdate } } };
+        const docUpdate = { flags: { [MODULE_ID]: { preset: flagUpdate } } };
         DOCUMENT_FIELDS.forEach((field) => {
           if (field in flagUpdate && this.document[field] !== flagUpdate[field]) {
             docUpdate[field] = flagUpdate[field];
@@ -152,7 +160,7 @@ export class Preset {
       if (metaDoc) {
         let tmp = {};
         tmp[this.id] = update;
-        await metaDoc.setFlag('multi-token-edit', 'index', tmp);
+        await metaDoc.setFlag(MODULE_ID, 'index', tmp);
       } else {
         console.warn(`META INDEX missing in ${this.document.pack}`);
         return;
@@ -253,7 +261,7 @@ export class PresetCollection {
         draggable: f.pack === this.workingPack,
         expanded: game.folders._expanded[f.uuid],
         folder: f.folder?.uuid,
-        visible: type ? (f.flags['multi-token-edit']?.types || ['ALL']).includes(type) : true,
+        visible: type ? (f.flags[MODULE_ID]?.types || ['ALL']).includes(type) : true,
       });
       topLevelFolders.set(f.uuid, folders.get(f.uuid));
     }
@@ -271,7 +279,7 @@ export class PresetCollection {
     const allPresets = [];
     const topLevelPresets = [];
     let hasVisible = false; // tracks whether there exists at least one visible preset within this tree
-    let metaIndex = (await pack.getDocument(META_INDEX_ID))?.getFlag('multi-token-edit', 'index');
+    let metaIndex = (await pack.getDocument(META_INDEX_ID))?.getFlag(MODULE_ID, 'index');
 
     const index = pack.index.contents;
     for (const idx of index) {
@@ -307,7 +315,7 @@ export class PresetCollection {
     }
 
     // Sort folders
-    const sorting = game.settings.get('multi-token-edit', 'presetSortMode') === 'manual' ? 'm' : 'a';
+    const sorting = game.settings.get(MODULE_ID, 'presetSortMode') === 'manual' ? 'm' : 'a';
     const sortedFolders = this._sortFolders(Array.from(topLevelFolders.values()), sorting);
     const sortedPresets = this._sortPresets(topLevelPresets, sorting);
 
@@ -340,7 +348,7 @@ export class PresetCollection {
 
     const presets = [];
 
-    let metaIndex = (await pack.getDocument(META_INDEX_ID))?.getFlag('multi-token-edit', 'index');
+    let metaIndex = (await pack.getDocument(META_INDEX_ID))?.getFlag(MODULE_ID, 'index');
 
     const index = pack.index.contents;
     for (const idx of index) {
@@ -358,7 +366,7 @@ export class PresetCollection {
     const doc = await compendium.getDocument(preset.id);
     const updateDoc = {
       name: preset.name,
-      flags: { 'multi-token-edit': { preset: preset.toJSON() } },
+      flags: { [MODULE_ID]: { preset: preset.toJSON() } },
     };
     const pages = preset.pages;
     if (pages) updateDoc.pages = pages;
@@ -372,7 +380,7 @@ export class PresetCollection {
       documentName: preset.documentName,
     };
 
-    await metaDoc.setFlag('multi-token-edit', 'index', update);
+    await metaDoc.setFlag(MODULE_ID, 'index', update);
   }
 
   /**
@@ -410,7 +418,7 @@ export class PresetCollection {
           name: preset.name,
           pages: preset.pages ?? [],
           folder: preset.folder,
-          flags: { 'multi-token-edit': { preset: preset.toJSON() } },
+          flags: { [MODULE_ID]: { preset: preset.toJSON() } },
         },
       ],
       {
@@ -430,7 +438,7 @@ export class PresetCollection {
       documentName: preset.documentName,
     };
 
-    await metaDoc.setFlag('multi-token-edit', 'index', update);
+    await metaDoc.setFlag(MODULE_ID, 'index', update);
   }
 
   static async get(uuid, { full = true } = {}) {
@@ -438,7 +446,7 @@ export class PresetCollection {
     const index = collection.index.get(documentId);
 
     if (index) {
-      const metaIndex = (await collection.getDocument(META_INDEX_ID))?.getFlag('multi-token-edit', 'index');
+      const metaIndex = (await collection.getDocument(META_INDEX_ID))?.getFlag(MODULE_ID, 'index');
       const mIndex = metaIndex[index._id];
 
       const preset = new Preset({ ...index, ...mIndex, pack: collection.collection });
@@ -479,7 +487,7 @@ export class PresetCollection {
         metaUpdate['-=' + preset.id] = null;
       }
 
-      metaDoc.setFlag('multi-token-edit', 'index', metaUpdate);
+      metaDoc.setFlag(MODULE_ID, 'index', metaUpdate);
     }
   }
 
@@ -513,7 +521,7 @@ export class PresetCollection {
         {
           _id: META_INDEX_ID,
           name: '!!! METADATA: DO NOT DELETE !!!',
-          flags: { 'multi-token-edit': { index: {} } },
+          flags: { [MODULE_ID]: { index: {} } },
         },
       ],
       {
@@ -859,7 +867,7 @@ export class MassEditPresets extends FormApplication {
     this.draggedElements = null;
 
     if (!configApp) {
-      const docLock = game.settings.get('multi-token-edit', 'presetDocLock');
+      const docLock = game.settings.get(MODULE_ID, 'presetDocLock');
       this.docName = docLock || docName;
     } else {
       this.configApp = configApp;
@@ -871,7 +879,7 @@ export class MassEditPresets extends FormApplication {
     return mergeObject(super.defaultOptions, {
       id: 'mass-edit-presets',
       classes: ['sheet'],
-      template: 'modules/multi-token-edit/templates/preset/presets.html',
+      template: `modules/${MODULE_ID}/templates/preset/presets.html`,
       resizable: true,
       minimizable: false,
       title: `Presets`,
@@ -889,10 +897,10 @@ export class MassEditPresets extends FormApplication {
     const data = super.getData(options);
 
     // Cache partials
-    await getTemplate('modules/multi-token-edit/templates/preset/preset.html');
-    await getTemplate('modules/multi-token-edit/templates/preset/presetFolder.html');
+    await getTemplate(`modules/${MODULE_ID}/templates/preset/preset.html`);
+    await getTemplate(`modules/${MODULE_ID}/templates/preset/presetFolder.html`);
 
-    const displayExtCompendiums = game.settings.get('multi-token-edit', 'presetExtComp');
+    const displayExtCompendiums = game.settings.get(MODULE_ID, 'presetExtComp');
 
     this.tree = await PresetCollection.getTree(this.docName, !displayExtCompendiums);
     data.presets = this.tree.presets;
@@ -902,10 +910,10 @@ export class MassEditPresets extends FormApplication {
     data.createEnabled = Boolean(this.configApp);
     data.isPlaceable = SUPPORTED_PLACEABLES.includes(this.docName) || this.docName === 'ALL';
     data.allowDocumentSwap = UI_DOCS.includes(this.docName) && !this.configApp;
-    data.docLockActive = game.settings.get('multi-token-edit', 'presetDocLock') === this.docName;
-    data.layerSwitchActive = game.settings.get('multi-token-edit', 'presetLayerSwitch');
+    data.docLockActive = game.settings.get(MODULE_ID, 'presetDocLock') === this.docName;
+    data.layerSwitchActive = game.settings.get(MODULE_ID, 'presetLayerSwitch');
     data.extCompActive = displayExtCompendiums;
-    data.sortMode = SORT_MODES[game.settings.get('multi-token-edit', 'presetSortMode')];
+    data.sortMode = SORT_MODES[game.settings.get(MODULE_ID, 'presetSortMode')];
     data.displayDragDropMessage = data.allowDocumentSwap && !(this.tree.presets.length || this.tree.folders.length);
 
     data.lastSearch = MassEditPresets.lastSearch;
@@ -1257,7 +1265,7 @@ export class MassEditPresets extends FormApplication {
       uuid,
       coordPicker: true,
       taPreview: 'ALL',
-      layerSwitch: game.settings.get('multi-token-edit', 'presetLayerSwitch'),
+      layerSwitch: game.settings.get(MODULE_ID, 'presetLayerSwitch'),
     });
   }
 
@@ -1356,7 +1364,7 @@ export class MassEditPresets extends FormApplication {
 
     if (folder) {
       let types;
-      if (folderDoc) types = folderDoc.flags['multi-token-edit']?.types ?? ['ALL'];
+      if (folderDoc) types = folderDoc.flags[MODULE_ID]?.types ?? ['ALL'];
       else types = ['ALL'];
 
       const data = {
@@ -1364,7 +1372,7 @@ export class MassEditPresets extends FormApplication {
         color: folder.color,
         sorting: folder.sorting,
         folder: parentId,
-        flags: { 'multi-token-edit': { types } },
+        flags: { [MODULE_ID]: { types } },
         type: 'JournalEntry',
       };
 
@@ -1462,7 +1470,7 @@ export class MassEditPresets extends FormApplication {
         name: Folder.defaultName(),
         type: 'JournalEntry',
         sorting: 'm',
-        flags: { 'multi-token-edit': { types } },
+        flags: { [MODULE_ID]: { types } },
       },
       { pack: PresetCollection.workingPack }
     );
@@ -1613,9 +1621,9 @@ export class MassEditPresets extends FormApplication {
   }
 
   async _onToggleSort(event) {
-    const currentSort = game.settings.get('multi-token-edit', 'presetSortMode');
+    const currentSort = game.settings.get(MODULE_ID, 'presetSortMode');
     const newSort = currentSort === 'manual' ? 'alphabetical' : 'manual';
-    await game.settings.set('multi-token-edit', 'presetSortMode', newSort);
+    await game.settings.set(MODULE_ID, 'presetSortMode', newSort);
 
     this.render(true);
   }
@@ -1623,7 +1631,7 @@ export class MassEditPresets extends FormApplication {
   _onToggleLock(event) {
     const lockControl = $(event.target).closest('.toggle-doc-lock');
 
-    let currentLock = game.settings.get('multi-token-edit', 'presetDocLock');
+    let currentLock = game.settings.get(MODULE_ID, 'presetDocLock');
     let newLock = this.docName;
 
     if (newLock !== currentLock) lockControl.addClass('active');
@@ -1632,27 +1640,27 @@ export class MassEditPresets extends FormApplication {
       newLock = '';
     }
 
-    game.settings.set('multi-token-edit', 'presetDocLock', newLock);
+    game.settings.set(MODULE_ID, 'presetDocLock', newLock);
   }
 
   _onToggleLayerSwitch(event) {
     const switchControl = $(event.target).closest('.toggle-layer-switch');
 
-    const value = !game.settings.get('multi-token-edit', 'presetLayerSwitch');
+    const value = !game.settings.get(MODULE_ID, 'presetLayerSwitch');
     if (value) switchControl.addClass('active');
     else switchControl.removeClass('active');
 
-    game.settings.set('multi-token-edit', 'presetLayerSwitch', value);
+    game.settings.set(MODULE_ID, 'presetLayerSwitch', value);
   }
 
   async _onToggleExtComp(event) {
     const switchControl = $(event.target).closest('.toggle-ext-comp');
 
-    const value = !game.settings.get('multi-token-edit', 'presetExtComp');
+    const value = !game.settings.get(MODULE_ID, 'presetExtComp');
     if (value) switchControl.addClass('active');
     else switchControl.removeClass('active');
 
-    await game.settings.set('multi-token-edit', 'presetExtComp', value);
+    await game.settings.set(MODULE_ID, 'presetExtComp', value);
     this.render(true);
   }
 
@@ -1662,7 +1670,7 @@ export class MassEditPresets extends FormApplication {
       this.docName = newDocName;
 
       if (this.docName !== 'ALL') {
-        if (game.settings.get('multi-token-edit', 'presetLayerSwitch'))
+        if (game.settings.get(MODULE_ID, 'presetLayerSwitch'))
           canvas.getLayerByEmbeddedName(this.docName === 'Actor' ? 'Token' : this.docName)?.activate();
       }
 
@@ -1701,7 +1709,7 @@ export class MassEditPresets extends FormApplication {
     const preset = await PresetCollection.get(uuid);
     if (!preset) return;
 
-    if (game.settings.get('multi-token-edit', 'presetLayerSwitch'))
+    if (game.settings.get(MODULE_ID, 'presetLayerSwitch'))
       canvas.getLayerByEmbeddedName(preset.documentName === 'Actor' ? 'Token' : preset.documentName)?.activate();
 
     // For some reason canvas.mousePosition does not get updated during drag and drop
@@ -1853,7 +1861,7 @@ export class MassEditPresets extends FormApplication {
       getCompendiumDialog(resolve, { preselectPack: PresetCollection.workingPack })
     );
     if (pack && pack !== PresetCollection.workingPack) {
-      await game.settings.set('multi-token-edit', 'workingPack', pack);
+      await game.settings.set(MODULE_ID, 'workingPack', pack);
       this.render(true);
     }
   }
@@ -1932,7 +1940,7 @@ class PresetConfig extends FormApplication {
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
       classes: ['sheet'],
-      template: 'modules/multi-token-edit/templates/preset/presetEdit.html',
+      template: `modules/${MODULE_ID}/templates/preset/presetEdit.html`,
       width: 360,
     });
   }
@@ -2138,7 +2146,7 @@ class PresetFieldDelete extends FormApplication {
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
       classes: ['sheet', 'preset-field-delete'],
-      template: 'modules/multi-token-edit/templates/preset/presetFieldDelete.html',
+      template: `modules/${MODULE_ID}/templates/preset/presetFieldDelete.html`,
       width: 600,
       resizable: false,
     });
@@ -2203,7 +2211,7 @@ class PresetFolderConfig extends FolderConfig {
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
       classes: ['sheet', 'folder-edit'],
-      template: 'modules/multi-token-edit/templates/preset/presetFolderEdit.html',
+      template: `modules/${MODULE_ID}/templates/preset/presetFolderEdit.html`,
       width: 360,
     });
   }
@@ -2247,7 +2255,7 @@ class PresetFolderConfig extends FolderConfig {
     const folder = this.document.toObject();
     const label = localize(Folder.implementation.metadata.label, false);
 
-    let folderDocs = folder.flags['multi-token-edit']?.types ?? ['ALL'];
+    let folderDocs = folder.flags[MODULE_ID]?.types ?? ['ALL'];
     let docs = [];
     UI_DOCS.forEach((type) => {
       docs.push({ name: type, icon: DOC_ICONS[type], active: folderDocs.includes(type) });
@@ -2276,7 +2284,7 @@ class PresetFolderConfig extends FolderConfig {
       });
     if (!visibleTypes.length) visibleTypes.push('ALL');
 
-    formData['flags.multi-token-edit.types'] = visibleTypes;
+    formData[`flags.${MODULE_ID}.types`] = visibleTypes;
 
     let doc = this.object;
     if (!formData.name?.trim()) formData.name = Folder.implementation.defaultName();

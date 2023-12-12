@@ -432,7 +432,7 @@ export async function createDocuments(documentName, data, sceneID) {
     args: { sceneID, documentName, data, requestID },
     type: 'CREATE',
   };
-  game.socket.emit(`module.multi-token-edit`, message);
+  game.socket.emit(`module.${MODULE_ID}`, message);
 
   // Self resolve in 4s if no response from a GM is received
   setTimeout(() => {
@@ -696,11 +696,11 @@ export class Picker {
 }
 
 export function localize(path, moduleLocalization = true) {
-  if (moduleLocalization) return game.i18n.localize(`${MODULE_ID}.${path}`);
+  if (moduleLocalization) return game.i18n.localize(`MassEdit.${path}`);
   return game.i18n.localize(path);
 }
 
 export function localFormat(path, insert, moduleLocalization = true) {
-  if (moduleLocalization) return game.i18n.format(`${MODULE_ID}.${path}`, insert);
+  if (moduleLocalization) return game.i18n.format(`MassEdit.${path}`, insert);
   return game.i18n.format(path, insert);
 }

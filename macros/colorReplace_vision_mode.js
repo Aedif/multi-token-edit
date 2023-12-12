@@ -4,6 +4,8 @@
  * mode can be used outside this macro.
  */
 
+import { MODULE_ID } from '../multi-token-edit/scripts/utils.js';
+
 const data = {
   'Colors->': 16746496,
   '<-Colors': 16711854,
@@ -44,20 +46,18 @@ async function updateFilter() {
      float e = 1.0e-10;
      vec3 hsv = vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
 
-     float distance = min( abs( ${mid.toFixed(PREC)} - hsv.x), abs( 1.0 - ${mid.toFixed(
-      PREC
-    )} + hsv.x) );
+     float distance = min( abs( ${mid.toFixed(PREC)} - hsv.x), abs( 1.0 - ${mid.toFixed(PREC)} + hsv.x) );
      float percent = 1.0 - distance / ${halfDiff.toFixed(PREC)};
 
      if(percent > 0.0 && hsv.y > 0.05 && hsv.z > 0.05) {
       ${data.factor != 1.0 ? `percent = min(percent * ${data.factor.toFixed(2)}, 1.0);` : ''}
-      vec3 target =  vec3(${data.hue.toFixed(PREC)}, ${data.saturation.toFixed(
+      vec3 target =  vec3(${data.hue.toFixed(PREC)}, ${data.saturation.toFixed(PREC)}, ${data.brightness.toFixed(
       PREC
-    )}, ${data.brightness.toFixed(PREC)});
+    )});
   
-      ${data.mixHue ? '' : 'target.x = hsv.x;\n'}${
-      data.mixSaturation ? '' : 'target.y = hsv.y;\n'
-    }${data.mixBrightness ? '' : 'target.z = hsv.z;\n'}
+      ${data.mixHue ? '' : 'target.x = hsv.x;\n'}${data.mixSaturation ? '' : 'target.y = hsv.y;\n'}${
+      data.mixBrightness ? '' : 'target.z = hsv.z;\n'
+    }
       hsv = mix(hsv, target, percent);
       vec4 Kl = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
       vec3 L = abs(fract(hsv.rrr + Kl.xyz) * 6.0 - Kl.www);
@@ -175,7 +175,7 @@ const CUSTOM_CONTROLS = {
   },
 };
 
-game.modules.get('multi-token-edit').api.showGenericForm(data, 'VISION_MODE', {
+game.modules.get(MODULE_ID).api.showGenericForm(data, 'VISION_MODE', {
   customControls: CUSTOM_CONTROLS,
   callback: async (obj) => displayWorldScript(),
   inputChangeCallback: (selected) => {

@@ -1,5 +1,5 @@
 import { CUSTOM_CONTROLS } from '../../data/custom-controls.js';
-import { getCommonData, localize } from '../../scripts/utils.js';
+import { MODULE_ID, getCommonData, localize } from '../../scripts/utils.js';
 import { WithMassConfig } from '../forms.js';
 import { showMassEdit } from '../multiConfig.js';
 import { constructNav, isColorField } from './navGenerator.js';
@@ -17,7 +17,7 @@ export class MassEditGenericForm extends WMC {
 
     let customControls = mergeObject(
       CUSTOM_CONTROLS[documentName] ?? {},
-      game.settings.get('multi-token-edit', 'customControls')[documentName] ?? {}
+      game.settings.get(MODULE_ID, 'customControls')[documentName] ?? {}
     );
     customControls = mergeObject(customControls, options.customControls?.[documentName] ?? {});
 
@@ -34,7 +34,7 @@ export class MassEditGenericForm extends WMC {
     this.nav = nav;
     this.editableLabels = {};
 
-    this.pinnedFields = game.settings.get('multi-token-edit', 'pinnedFields')[this.documentName] ?? {};
+    this.pinnedFields = game.settings.get(MODULE_ID, 'pinnedFields')[this.documentName] ?? {};
     this.customControls = customControls;
 
     if (options.callback) {
@@ -46,7 +46,7 @@ export class MassEditGenericForm extends WMC {
     return mergeObject(super.defaultOptions, {
       id: 'mass-edit-generic-form',
       classes: ['sheet'],
-      template: 'modules/multi-token-edit/templates/generic/genericForm.html',
+      template: `modules/${MODULE_ID}/templates/generic/genericForm.html`,
       resizable: true,
       minimizable: false,
       title: `Generic`,
@@ -74,8 +74,8 @@ export class MassEditGenericForm extends WMC {
   async getData(options) {
     const data = await super.getData(options);
     // Cache partials
-    await getTemplate('modules/multi-token-edit/templates/generic/navHeaderPartial.html');
-    await getTemplate('modules/multi-token-edit/templates/generic/form-group.html');
+    await getTemplate(`modules/${MODULE_ID}/templates/generic/navHeaderPartial.html`);
+    await getTemplate(`modules/${MODULE_ID}/templates/generic/form-group.html`);
 
     data.nav = this.nav;
 
@@ -151,7 +151,7 @@ export class MassEditGenericForm extends WMC {
     super._updateObject(event, formData);
 
     // Save pinned field values and labels
-    const pinned = game.settings.get('multi-token-edit', 'pinnedFields');
+    const pinned = game.settings.get(MODULE_ID, 'pinnedFields');
     pinned[this.documentName] = this.pinnedFields;
 
     for (const name of Object.keys(this.pinnedFields)) {
@@ -168,7 +168,7 @@ export class MassEditGenericForm extends WMC {
       this.editableLabels = {};
     }
 
-    game.settings.set('multi-token-edit', 'pinnedFields', pinned);
+    game.settings.set(MODULE_ID, 'pinnedFields', pinned);
   }
 }
 
@@ -198,9 +198,9 @@ function defineRangeControl(name, val, customControls, docName, { min = null, ma
           const step = html.find('[name="step"]').val() || 1;
 
           setProperty(customControls, name, { range: true, min, max, step });
-          const allControls = game.settings.get('multi-token-edit', 'customControls');
+          const allControls = game.settings.get(MODULE_ID, 'customControls');
           allControls[docName] = customControls;
-          game.settings.set('multi-token-edit', 'customControls', allControls);
+          game.settings.set(MODULE_ID, 'customControls', allControls);
         },
       },
     },
@@ -227,9 +227,9 @@ function defineSelectControl(name, val, customControls, docName, { options = nul
               select: true,
               options: options.split('\n').filter((o) => o),
             });
-            const allControls = game.settings.get('multi-token-edit', 'customControls');
+            const allControls = game.settings.get(MODULE_ID, 'customControls');
             allControls[docName] = customControls;
-            game.settings.set('multi-token-edit', 'customControls', allControls);
+            game.settings.set(MODULE_ID, 'customControls', allControls);
           }
         },
       },
@@ -238,8 +238,8 @@ function defineSelectControl(name, val, customControls, docName, { options = nul
 }
 
 function unsetCustomControl(name, docName) {
-  const allControls = game.settings.get('multi-token-edit', 'customControls');
+  const allControls = game.settings.get(MODULE_ID, 'customControls');
   let docControls = allControls[docName] || {};
   setProperty(docControls, name, null);
-  game.settings.set('multi-token-edit', 'customControls', allControls);
+  game.settings.set(MODULE_ID, 'customControls', allControls);
 }

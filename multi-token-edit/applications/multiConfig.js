@@ -1,11 +1,6 @@
 import { showPlaceableTypeSelectDialog } from '../scripts/dialogs.js';
 import { IS_PRIVATE } from '../scripts/randomizer/randomizerForm.js';
-import {
-  getData,
-  getDocumentName,
-  SUPPORT_SHEET_CONFIGS,
-  SUPPORTED_COLLECTIONS,
-} from '../scripts/utils.js';
+import { getData, getDocumentName, MODULE_ID, SUPPORT_SHEET_CONFIGS, SUPPORTED_COLLECTIONS } from '../scripts/utils.js';
 import { getClipboardData, pasteDataUpdate, WithMassConfig } from './forms.js';
 import { MassEditGenericForm } from './generic/genericForm.js';
 import { PresetAPI } from './presets.js';
@@ -68,10 +63,7 @@ function getSelectedDocuments(placeableSelect) {
     $(`.directory-list .${doc.class}.selected`).each(function (_) {
       let d;
       if (doc.name === 'Playlist') {
-        d = game.collections
-          .get(doc.name)
-          .get(this.dataset.playlistId)
-          ?.sounds.get(this.dataset.soundId);
+        d = game.collections.get(doc.name).get(this.dataset.playlistId)?.sounds.get(this.dataset.soundId);
       } else {
         d = game.collections.get(doc.name).get(this.dataset.documentId);
       }
@@ -171,7 +163,7 @@ export async function showMassEdit(found = null, documentName, options = {}) {
   // If there are no placeable in control or just one, then either exit or display the default config window
   if (!selected || !selected.length) return;
 
-  if (game.settings.get('multi-token-edit', 'singleDocDefaultConfig')) {
+  if (game.settings.get(MODULE_ID, 'singleDocDefaultConfig')) {
     if (selected.length === 1) {
       if (selected[0].sheet) selected[0].sheet.render(true, {});
       return;

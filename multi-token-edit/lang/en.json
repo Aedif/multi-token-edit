@@ -1,5 +1,5 @@
 {
-  "multi-token-edit": {
+  "MassEdit": {
     "form": {
       "immediate-update-title": "Automatically apply updates on field changes.",
       "global-search-title": "Enable world search.",

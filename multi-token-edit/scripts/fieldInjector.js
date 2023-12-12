@@ -1,5 +1,5 @@
 import { constructNav } from '../applications/generic/navGenerator.js';
-import { getDocumentName, localize } from './utils.js';
+import { MODULE_ID, getDocumentName, localize } from './utils.js';
 
 export function injectVisibility(app) {
   const docName = getDocumentName(app.meObjects[0]);
@@ -35,7 +35,7 @@ export function injectVisibility(app) {
 export async function injectFlagTab(app) {
   // Disable for now, until duplicate value fix is found
   return;
-  if (!game.settings.get('multi-token-edit', 'enableFlagsTab')) return;
+  if (!game.settings.get(MODULE_ID, 'enableFlagsTab')) return;
   if (app.constructor.name === 'MassEditGenericForm') return;
   const doc = app.meObjects[0];
   let flags = flattenObject((doc.document ?? doc).flags ?? {});
@@ -67,9 +67,9 @@ export async function injectFlagTab(app) {
     if (mod) item.label = mod.title;
   });
 
-  await getTemplate('modules/multi-token-edit/templates/generic/form-group.html');
-  await getTemplate('modules/multi-token-edit/templates/generic/navHeaderPartial.html');
-  let htmlNav = await renderTemplate('modules/multi-token-edit/templates/generic/navHeaderPartial.html', flagNav);
+  await getTemplate(`modules/${MODULE_ID}/templates/generic/form-group.html`);
+  await getTemplate(`modules/${MODULE_ID}/templates/generic/navHeaderPartial.html`);
+  let htmlNav = await renderTemplate(`modules/${MODULE_ID}/templates/generic/navHeaderPartial.html`, flagNav);
 
   htmlNav = $(htmlNav);
 

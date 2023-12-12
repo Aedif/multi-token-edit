@@ -1,5 +1,6 @@
 import { pasteDataUpdate } from '../applications/forms.js';
 import { Preset } from '../applications/presets.js';
+import { MODULE_ID } from './utils.js';
 
 export class Brush {
   static app;
@@ -113,7 +114,7 @@ export class Brush {
 
     const interaction = canvas.app.renderer.events;
     if (!interaction.cursorStyles['brush']) {
-      interaction.cursorStyles['brush'] = "url('modules/multi-token-edit/images/brush_icon.png'), auto";
+      interaction.cursorStyles['brush'] = `url('modules/${MODULE_ID}/images/brush_icon.png'), auto`;
     }
 
     this.active = true;

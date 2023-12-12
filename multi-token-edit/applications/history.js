@@ -1,5 +1,5 @@
 import { HISTORY } from '../multi-token-edit.mjs';
-import { localize } from '../scripts/utils.js';
+import { MODULE_ID, localize } from '../scripts/utils.js';
 import { GeneralDataAdapter } from './dataAdapters.js';
 import { copyToClipboard } from './forms.js';
 import { LAYER_MAPPINGS } from './multiConfig.js';
@@ -17,7 +17,7 @@ export default class MassEditHistory extends FormApplication {
     return mergeObject(super.defaultOptions, {
       id: 'mass-edit-history',
       classes: ['sheet'],
-      template: 'modules/multi-token-edit/templates/history.html',
+      template: `modules/${MODULE_ID}/templates/history.html`,
       resizable: false,
       minimizable: false,
       title: `History`,

@@ -1,4 +1,4 @@
-import { localize } from '../../scripts/utils.js';
+import { MODULE_ID, localize } from '../../scripts/utils.js';
 
 export function constructNav(allData, documentName, customControls) {
   const nav = {
@@ -24,7 +24,7 @@ export function constructNav(allData, documentName, customControls) {
     }
   }
 
-  const pinned = documentName ? game.settings.get('multi-token-edit', 'pinnedFields')[documentName] || {} : {};
+  const pinned = documentName ? game.settings.get(MODULE_ID, 'pinnedFields')[documentName] || {} : {};
 
   _constructControls(nav, object, tabSelectors, '', pinned, customControls);
 

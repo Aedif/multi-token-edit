@@ -1,5 +1,5 @@
 import { generateMacro, hasSpecialField } from '../scripts/macro/generator.js';
-import { SUPPORTED_COLLECTIONS, SUPPORTED_PLACEABLES, localFormat, localize } from '../scripts/utils.js';
+import { MODULE_ID, SUPPORTED_COLLECTIONS, SUPPORTED_PLACEABLES, localFormat, localize } from '../scripts/utils.js';
 import { GeneralDataAdapter } from './dataAdapters.js';
 
 export default class MacroForm extends FormApplication {
@@ -23,7 +23,7 @@ export default class MacroForm extends FormApplication {
     return mergeObject(super.defaultOptions, {
       id: 'mass-edit-macro',
       classes: ['sheet'],
-      template: 'modules/multi-token-edit/templates/macro.html',
+      template: `modules/${MODULE_ID}/templates/macro.html`,
       resizable: true,
       minimizable: false,
       title: `Generate Macro`,

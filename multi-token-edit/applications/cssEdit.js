@@ -1,9 +1,11 @@
+import { MODULE_ID } from '../scripts/utils.js';
+
 export function getInUseStyle() {
-  const styleInUse = game.settings.get('multi-token-edit', 'cssStyle');
+  const styleInUse = game.settings.get(MODULE_ID, 'cssStyle');
   if (styleInUse in STYLES) {
     return [styleInUse, STYLES[styleInUse]];
   } else {
-    return ['CUSTOM', game.settings.get('multi-token-edit', 'cssCustom') || ''];
+    return ['CUSTOM', game.settings.get(MODULE_ID, 'cssCustom') || ''];
   }
 }
 
@@ -16,7 +18,7 @@ export default class CSSEdit extends FormApplication {
     return mergeObject(super.defaultOptions, {
       id: 'mass-edit-css',
       classes: ['sheet'],
-      template: 'modules/multi-token-edit/templates/cssEdit.html',
+      template: `modules/${MODULE_ID}/templates/cssEdit.html`,
       resizable: true,
       minimizable: false,
       title: 'Edit CSS',
@@ -47,7 +49,7 @@ export default class CSSEdit extends FormApplication {
     $(html).on('change', '.selectStyle', (event) => {
       let css;
       if (event.target.value === 'CUSTOM') {
-        css = game.settings.get('multi-token-edit', 'cssCustom');
+        css = game.settings.get(MODULE_ID, 'cssCustom');
       } else {
         css = STYLES[event.target.value];
       }
@@ -68,9 +70,9 @@ export default class CSSEdit extends FormApplication {
    */
   async _updateObject(event, formData) {
     if (formData.selectedStyle === 'CUSTOM') {
-      game.settings.set('multi-token-edit', 'cssCustom', formData.css);
+      game.settings.set(MODULE_ID, 'cssCustom', formData.css);
     }
-    game.settings.set('multi-token-edit', 'cssStyle', formData.selectedStyle);
+    game.settings.set(MODULE_ID, 'cssStyle', formData.selectedStyle);
   }
 }
 
