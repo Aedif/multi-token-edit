@@ -126,7 +126,10 @@
       "working-directory-message": "Change the compendium the module will store and edit presets within. Make sure it does not contains Journals that are not presets to avoid unexpected problems.",
       "update-preset": "Update Preset",
       "activate-brush": "Activate Brush",
-      "delete-fields-title": "Select fields to delete"
+      "delete-fields": "Delete Fields",
+      "select-fields": "Select fields you wish to remove from this preset.",
+      "data-edit": "Edit {document} data stored in the preset/s.",
+      "data-assign": "Assign currently selected {document}/s to the preset/s."
     },
     "css": {
       "pick": "Pick a style:"
@@ -154,7 +157,8 @@
       "all": "All",
       "swap": "Swap",
       "import": "Import",
-      "copy": "Copy"
+      "copy": "Copy",
+      "data": "Data"
     }
   }
 }
