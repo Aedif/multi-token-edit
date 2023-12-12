@@ -7,7 +7,7 @@ import {
   showGenericForm,
 } from './applications/multiConfig.js';
 import CSSEdit, { STYLES } from './applications/cssEdit.js';
-import { MassEditPresets, Preset, PresetAPI, PresetCollection } from './applications/presets.js';
+import { DEFAULT_PACK, MassEditPresets, Preset, PresetAPI, PresetCollection } from './applications/presets.js';
 import {
   checkApplySpecialFields,
   deleteFromClipboard,
@@ -371,9 +371,7 @@ Hooks.once('init', () => {
       this.mouseInteractionManager.cancel(...args);
       const app = Object.values(ui.windows).find((x) => x instanceof MassEditPresets);
       if (app) {
-        const placeables = canvas.activeLayer.controlled.length
-          ? [...canvas.activeLayer.controlled]
-          : this;
+        const placeables = canvas.activeLayer.controlled.length ? [...canvas.activeLayer.controlled] : this;
         app.presetFromPlaceable(placeables, ...args);
       }
       // Pass in a fake event that hopefully is enough to allow other modules to function
@@ -384,12 +382,7 @@ Hooks.once('init', () => {
   };
 
   SUPPORTED_PLACEABLES.forEach((name) => {
-    libWrapper.register(
-      'multi-token-edit',
-      `${name}.prototype._onDragLeftDrop`,
-      dragDropHandler,
-      'MIXED'
-    );
+    libWrapper.register('multi-token-edit', `${name}.prototype._onDragLeftDrop`, dragDropHandler, 'MIXED');
   });
 
   // Handle broadcasts
@@ -474,6 +467,10 @@ Hooks.on('renderSceneControls', (sceneControls, html, options) => {
 
 // Migrate Presets (02/11/2023)
 Hooks.on('ready', async () => {
+  if (!game.packs.get(PresetCollection.workingPack)) {
+    game.settings.set('multi-token-edit', 'workingPack', DEFAULT_PACK);
+  }
+
   if (!game.settings.get('multi-token-edit', 'presetsMigrated')) {
     const presets = game.settings.get('multi-token-edit', 'presets');
     if (getType(presets) === 'Object' && !isEmpty(presets)) {
@@ -486,9 +483,7 @@ Hooks.on('ready', async () => {
           newPreset.name = name;
           newPreset.documentName = documentName;
           newPreset.color =
-            oldPreset['mass-edit-preset-color'] !== '#ffffff'
-              ? oldPreset['mass-edit-preset-color']
-              : null;
+            oldPreset['mass-edit-preset-color'] !== '#ffffff' ? oldPreset['mass-edit-preset-color'] : null;
           newPreset.order = oldPreset['mass-edit-preset-order'] ?? -1;
           newPreset.addSubtract = oldPreset['mass-edit-addSubtract'] ?? {};
           newPreset.randomize = oldPreset['mass-edit-randomize'] ?? {};
@@ -633,9 +628,7 @@ function saveHistory(obj, update, historyItem, _id, docName) {
 Hooks.on('renderActiveEffectConfig', (app) => {
   const el = $(app.form).find('.effects-header .key');
   if (el.length) {
-    const me = $(
-      '<i title="Apply \'Mass Edit\' preset" style="font-size:smaller;color:brown;"> <a>[ME]</a></i>'
-    );
+    const me = $('<i title="Apply \'Mass Edit\' preset" style="font-size:smaller;color:brown;"> <a>[ME]</a></i>');
     me.on('click', () => activeEffectPresetSelect(app));
     el.append(me);
   }

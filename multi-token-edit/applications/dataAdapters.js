@@ -43,8 +43,11 @@ class NoteDataAdapter {
   }
 
   static dataToForm(note, data) {
-    data['icon.selected'] = (note.document ?? note).texture.src;
-    data['icon.custom'] = (note.document ?? note).texture.src;
+    const doc = note.document ?? note;
+    if (doc.texture?.src != null) {
+      data['icon.selected'] = doc.texture.src;
+      data['icon.custom'] = doc.texture.src;
+    }
   }
 }
 
@@ -62,9 +65,9 @@ export class TokenDataAdapter {
 
   static dataToForm(token, data) {
     const doc = token.document ?? token;
-    data.scale = Math.abs(doc.texture.scaleX);
-    data.mirrorX = doc.texture.scaleX < 0;
-    data.mirrorY = doc.texture.scaleY < 0;
+    if (doc.texture?.scaleX != null) data.scale = Math.abs(doc.texture.scaleX);
+    if (doc.texture?.scaleX != null) data.mirrorX = doc.texture.scaleX < 0;
+    if (doc.texture?.scaleY != null) data.mirrorY = doc.texture.scaleY < 0;
   }
 
   static formToData(token, formData) {
@@ -163,9 +166,7 @@ export class TokenDataAdapter {
     const pModes = Object.values(foundry.utils.expandObject(data)?.detectionModes || {});
     if (!pModes.length) return;
 
-    const modes = Object.values(
-      foundry.utils.expandObject(app._getSubmitData())?.detectionModes || {}
-    );
+    const modes = Object.values(foundry.utils.expandObject(app._getSubmitData())?.detectionModes || {});
 
     const dataClone = deepClone(data);
     const randomize = data['mass-edit-randomize'] ?? {};

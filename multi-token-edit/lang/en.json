@@ -125,7 +125,8 @@
       "export-directory-message": "This operation will make the destination into a Mass Edit preset compendium. Make sure it does not contain Journals that are not presets to avoid unexpected problems.",
       "working-directory-message": "Change the compendium the module will store and edit presets within. Make sure it does not contains Journals that are not presets to avoid unexpected problems.",
       "update-preset": "Update Preset",
-      "activate-brush": "Activate Brush"
+      "activate-brush": "Activate Brush",
+      "delete-fields-title": "Select fields to delete"
     },
     "css": {
       "pick": "Pick a style:"

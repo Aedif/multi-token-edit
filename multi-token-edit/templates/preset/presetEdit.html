@@ -39,6 +39,16 @@
             </div>
             <p class="notes">Assign currently selected {{documentEdit}}/s to the preset/s.</p>
         </div>
+        {{#if allowFieldDelete}}
+        <div class="form-group">
+            <label>Delete Fields</label>
+            <div class="form-fields">
+                <button  class="delete-fields" type="button"><i class="fa-solid fa-arrow-right-to-arc"></i></button>
+            </div>
+            <p class="notes">Select fields you wish to remove from this preset.</p>
+        </div>
+        {{/if}}
+
     </fieldset>
     {{/if}}
 
