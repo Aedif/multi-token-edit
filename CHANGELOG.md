@@ -1,3 +1,24 @@
+# 1.50.0
+
+**Presets**
+
+- Working directory will now be automatically switched back to default if the previous working directory has been removed
+- Added new window control: `Scale To Grid`
+  - When toggled on, Tiles, Drawings, and Walls dragged out onto the scene will be scaled according to pixel density (Grid Size)
+- Added `Delete Fields` option to preset edit form
+
+  - Allows to delete individual fields from the stored placeable data
+
+**API**
+
+- `MassEdit.spawnPreset(...)`
+  - New option: `scaleToGrid`
+    - When set to true Tiles, Drawings, and Walls will be scaled according to the scene's pixel density (Grid Size)
+
+**Misc.**
+
+- Housekeeping: The majority of user facing text should now be contained in `lang/en.json`
+
 # 1.49.0
 
 **Presets**
