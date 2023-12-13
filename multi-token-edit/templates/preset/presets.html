@@ -8,10 +8,11 @@
             {{#each docs}}
             <a class="document-select {{#if (eq @key ../currentDocument)}}active{{/if}}" title="{{@key}}" data-name="{{@key}}"><i class="{{this}} fa-lg"></i></a>
             {{/each}}
-            <div style="flex: 0 0 60px; margin-left: 10px; border-left: 2px solid gray;">
-                <a class="header-control toggle-doc-lock {{#if docLockActive}}active{{/if}}" data-tooltip="Lock current category as default on form open."><i class="fa-solid fa-lock"></i></a>
-                <a class="header-control toggle-layer-switch {{#if layerSwitchActive}}active{{/if}}" data-tooltip="Auto layer switching."><i class="fa-solid fa-arrows-cross"></i></a>
-                <a class="header-control toggle-ext-comp {{#if extCompActive}}active{{/if}}" data-tooltip="Display external preset compendiums."><i class="fa-solid fa-books"></i></a>
+            <div class="window-controls">
+                <a class="header-control toggle-doc-lock {{#if docLockActive}}active{{/if}}" data-tooltip="{{localize 'MassEdit.presets.controls.document-lock'}}"><i class="fa-solid fa-lock"></i></a>
+                <a class="header-control toggle-layer-switch {{#if layerSwitchActive}}active{{/if}}" data-tooltip="{{localize 'MassEdit.presets.controls.layer-switch'}}"><i class="fa-solid fa-arrows-cross"></i></a>
+                <a class="header-control toggle-ext-comp {{#if extCompActive}}active{{/if}}" data-tooltip="{{localize 'MassEdit.presets.controls.external-compendiums'}}"><i class="fa-solid fa-books"></i></a>
+                <a class="header-control toggle-scaling {{#if scaling}}active{{/if}}" data-tooltip="{{localize 'MassEdit.presets.controls.scale-to-grid'}}"><i class="fa-solid fa-arrow-down-big-small"></i></a>
             </div>
         </div>
 

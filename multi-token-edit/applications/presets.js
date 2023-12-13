@@ -38,7 +38,7 @@ const PRESET_FIELDS = [
   'addSubtract',
   'randomize',
   'img',
-  //'actor',
+  'gridSize',
 ];
 
 export class Preset {
@@ -59,7 +59,7 @@ export class Preset {
     this.img = data.img;
     this.folder = data.folder;
     this.uuid = data.uuid;
-    // this.actor = data.actor;
+    this.gridSize = data.gridSize;
     this._visible = true;
   }
 
@@ -103,6 +103,7 @@ export class Preset {
           getType(preset.randomize) === 'Object' ? preset.randomize : Object.fromEntries(preset.randomize ?? []);
         this.addSubtract =
           getType(preset.addSubtract) === 'Object' ? preset.addSubtract : Object.fromEntries(preset.addSubtract ?? []);
+        this.gridSize = preset.gridSize;
       }
     }
     return this;
@@ -648,7 +649,7 @@ export class PresetAPI {
       const defPreset = {
         name: 'New Preset',
         documentName: docName,
-        data: data.length > 1 ? data : data[0],
+        data: data,
       };
 
       switch (defPreset.documentName) {
@@ -671,6 +672,8 @@ export class PresetAPI {
           defPreset.img = 'icons/svg/circle.svg';
           break;
       }
+
+      defPreset.gridSize = placeables[0].document.parent.grid.size;
 
       mergeObject(defPreset, options, { inplace: true });
 
@@ -695,6 +698,7 @@ export class PresetAPI {
    * @param {Boolean} [options.snapToGrid]        If 'true' snaps spawn position to the grid.
    * @param {Boolean} [options.hidden]            If 'true' preset will be spawned hidden.
    * @param {Boolean} [options.layerSwitch]       If 'true' the layer of the spawned preset will be activated.
+   * @param {Boolean} [options.scaleToGrid]       If 'true' Tiles, Drawings, and Walls will be scaled relative to grid size.
    * @param {Boolean} [options.coordPicker]       If 'true' a crosshair and preview will be enabled allowing spawn position to be picked
    * @param {String} [options.pickerLabel]          Label displayed above crosshair when `coordPicker` is enabled
    * @param {String} [options.taPreview]            Designates the preview placeable when spawning a `Token Attacher` prefab.
@@ -716,6 +720,7 @@ export class PresetAPI {
     snapToGrid = true,
     hidden = false,
     layerSwitch = false,
+    scaleToGrid = false,
   } = {}) {
     if (!canvas.ready) throw Error("Canvas need to be 'ready' for a preset to be spawned.");
     if (!(uuid || preset || name || type || folder)) throw Error('ID, Name, Folder, or Preset is needed to spawn it.');
@@ -736,6 +741,10 @@ export class PresetAPI {
     const randomizer = preset.randomize;
     if (!isEmpty(randomizer)) {
       applyRandomization(toCreate, null, randomizer);
+    }
+
+    if (scaleToGrid) {
+      scaleDataToGrid(toCreate, preset.documentName, preset.gridSize);
     }
 
     // ==================
@@ -912,6 +921,7 @@ export class MassEditPresets extends FormApplication {
     data.allowDocumentSwap = UI_DOCS.includes(this.docName) && !this.configApp;
     data.docLockActive = game.settings.get(MODULE_ID, 'presetDocLock') === this.docName;
     data.layerSwitchActive = game.settings.get(MODULE_ID, 'presetLayerSwitch');
+    data.scaling = game.settings.get(MODULE_ID, 'presetScaling');
     data.extCompActive = displayExtCompendiums;
     data.sortMode = SORT_MODES[game.settings.get(MODULE_ID, 'presetSortMode')];
     data.displayDragDropMessage = data.allowDocumentSwap && !(this.tree.presets.length || this.tree.folders.length);
@@ -1201,6 +1211,7 @@ export class MassEditPresets extends FormApplication {
     html.find('.toggle-sort').on('click', this._onToggleSort.bind(this));
     html.find('.toggle-doc-lock').on('click', this._onToggleLock.bind(this));
     html.find('.toggle-ext-comp').on('click', this._onToggleExtComp.bind(this));
+    html.find('.toggle-scaling').on('click', this._onToggleScaling.bind(this));
     html.find('.toggle-layer-switch').on('click', this._onToggleLayerSwitch.bind(this));
     html.find('.document-select').on('click', this._onDocumentChange.bind(this));
     html.find('.item').on('contextmenu', this._onRightClickPreset.bind(this));
@@ -1230,6 +1241,7 @@ export class MassEditPresets extends FormApplication {
       coordPicker: true,
       taPreview: 'ALL',
       layerSwitch: game.settings.get(MODULE_ID, 'presetLayerSwitch'),
+      scaleToGrid: game.settings.get(MODULE_ID, 'presetScaling'),
     });
   }
 
@@ -1628,6 +1640,16 @@ export class MassEditPresets extends FormApplication {
     this.render(true);
   }
 
+  async _onToggleScaling(event) {
+    const switchControl = $(event.target).closest('.toggle-scaling');
+
+    const value = !game.settings.get(MODULE_ID, 'presetScaling');
+    if (value) switchControl.addClass('active');
+    else switchControl.removeClass('active');
+
+    game.settings.set(MODULE_ID, 'presetScaling', value);
+  }
+
   _onDocumentChange(event) {
     const newDocName = $(event.target).closest('.document-select').data('name');
     if (newDocName != this.docName) {
@@ -1688,7 +1710,14 @@ export class MassEditPresets extends FormApplication {
       mouseY -= canvas.dimensions.size / 2;
     }
 
-    PresetAPI.spawnPreset({ preset, x: mouseX, y: mouseY, mousePosition: false });
+    PresetAPI.spawnPreset({
+      preset,
+      x: mouseX,
+      y: mouseY,
+      mousePosition: false,
+      layerSwitch: game.settings.get(MODULE_ID, 'presetLayerSwitch'),
+      scaleToGrid: game.settings.get(MODULE_ID, 'presetScaling'),
+    });
   }
 
   async _onPresetBrush(event) {
@@ -2447,6 +2476,35 @@ function itemSelect(e, itemList) {
       lastSelected.removeClass('last-selected');
       item.toggleClass('selected');
       if (item.hasClass('selected')) item.addClass('last-selected');
+    }
+  }
+}
+
+function scaleDataToGrid(data, documentName, gridSize) {
+  if (!['Tile', 'Drawing', 'Wall'].includes(documentName)) return;
+  if (!gridSize) gridSize = 100;
+
+  const ratio = canvas.grid.size / gridSize;
+
+  console.log(data, documentName, gridSize);
+
+  for (const d of data) {
+    switch (documentName) {
+      case 'Tile':
+        if ('width' in d) d.width *= ratio;
+        if ('height' in d) d.height *= ratio;
+        break;
+      case 'Drawing':
+        if ('shape.width' in d) d['shape.width'] *= ratio;
+        if ('shape.height' in d) d['shape.height'] *= ratio;
+        break;
+      case 'Wall':
+        if ('c' in d) {
+          for (let i = 0; i < d.c.length; i++) {
+            d.c[i] *= ratio;
+          }
+        }
+        break;
     }
   }
 }

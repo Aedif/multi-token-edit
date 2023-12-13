@@ -127,11 +127,17 @@
       "export-directory-message": "This operation will make the destination into a Mass Edit preset compendium. Make sure it does not contain Journals that are not presets to avoid unexpected problems.",
       "working-directory-message": "Change the compendium the module will store and edit presets within. Make sure it does not contains Journals that are not presets to avoid unexpected problems.",
       "update-preset": "Update Preset",
-      "activate-brush": "Activate Brush",
       "delete-fields": "Delete Fields",
       "select-fields": "Select fields you wish to remove from this preset.",
       "data-edit": "Edit {document} data stored in the preset/s.",
-      "data-assign": "Assign currently selected {document}/s to the preset/s."
+      "data-assign": "Assign currently selected {document}/s to the preset/s.",
+      "controls": {
+        "activate-brush": "Activate Brush",
+        "document-lock": "Lock current category as default on form open.",
+        "layer-switch": "Automatic layer switching.",
+        "external-compendiums": "Display external preset compendiums.",
+        "scale-to-grid": "Scale Tiles, Drawings, and Walls according to grid size."
+      }
     },
     "css": {
       "pick": "Pick a style:"

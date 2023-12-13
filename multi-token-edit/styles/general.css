@@ -148,6 +148,20 @@
   align-items: center;
 }
 
+.mass-edit-preset-form .preset-header .window-controls {
+  margin-left: 4px;
+  border-left: 2px solid gray;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  padding-bottom: 12px;
+  padding-left: 5px;
+}
+
+.mass-edit-preset-form .preset-header .window-controls .header-control {
+  width: 20px;
+  height: 20px;
+}
+
 .mass-edit-preset-form .preset-header .header-control .fa-plus {
   position: absolute;
   top: 4px;
