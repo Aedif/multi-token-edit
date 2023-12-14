@@ -266,6 +266,11 @@ Hooks.once('init', () => {
       },
     ],
     onDown: () => {
+      const app = Object.values(ui.windows).find((w) => w.meObjects);
+      if (app) {
+        app.close();
+        return;
+      }
       showMassEdit();
     },
     restricted: true,
@@ -315,6 +320,28 @@ Hooks.once('init', () => {
       if (!SUPPORTED_PLACEABLES.includes(docName)) return;
 
       new MassEditPresets(null, null, docName).render(true);
+    },
+    restricted: true,
+    precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
+  });
+
+  game.keybindings.register(MODULE_ID, 'presetApplyScene', {
+    name: localize('keybindings.presetApplyScene.name'),
+    hint: localize('keybindings.presetApplyScene.hint'),
+    editable: [],
+    onDown: () => {
+      const app = Object.values(ui.windows).find((w) => w instanceof MassEditPresets);
+      if (app) {
+        app.close(true);
+        return;
+      }
+      new MassEditPresets(
+        null,
+        (preset) => {
+          if (preset && canvas.scene) canvas.scene.update(preset.data[0]);
+        },
+        'Scene'
+      ).render(true);
     },
     restricted: true,
     precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
@@ -371,6 +398,26 @@ Hooks.once('init', () => {
       return wrapped(...args);
     },
     'MIXED'
+  );
+
+  // Add SceneControl option to open Mass Edit form
+  libWrapper.register(
+    MODULE_ID,
+    'SceneNavigation.prototype._getContextMenuOptions',
+    function (wrapped, ...args) {
+      const options = wrapped(...args);
+      options.push({
+        name: 'Mass Edit',
+        icon: '<i class="fa-solid fa-pen-to-square"></i>',
+        condition: game.user.isGM,
+        callback: (li) => {
+          const sceneId = li.attr('data-scene-id');
+          showMassEdit(game.scenes.get(sceneId));
+        },
+      });
+      return options;
+    },
+    'WRAPPER'
   );
 
   // Intercept and prevent certain placeable drag and drop if they are hovering over the MassEditPresets form

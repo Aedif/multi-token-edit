@@ -44,7 +44,11 @@
     "keybindings": {
       "presetApply": {
         "name": "Open Presets",
-        "hint": "Opens Preset dialog for the hovered/selected placeables to immediately apply them."
+        "hint": "Opens placeable preset window."
+      },
+      "presetApplyScene": {
+        "name": "Open Scene Presets",
+        "hint": "Opens scene preset window."
       },
       "selectKey": {
         "name": "Open Placeable Search and Select",

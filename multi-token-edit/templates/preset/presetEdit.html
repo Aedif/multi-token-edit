@@ -41,6 +41,7 @@
             <p class="notes">{{localize "MassEdit.presets.select-fields"}}</p>
         </div>
         {{/if}}
+        {{#if isPlaceable}}
         <div class="form-group">
             <label>Assign [{{documentEdit}}]</label>
             <div class="form-fields">
@@ -48,6 +49,7 @@
             </div>
             <p class="notes">{{localize "MassEdit.presets.data-assign" document=documentEdit}}</p>
         </div>
+        {{/if}}
 
     </fieldset>
     {{/if}}

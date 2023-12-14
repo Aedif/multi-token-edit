@@ -844,6 +844,7 @@ const DOC_ICONS = {
   AmbientSound: 'fa-solid fa-music',
   Note: 'fa-solid fa-bookmark',
   Actor: 'fas fa-user-alt',
+  Scene: 'fas fa-map',
   DEFAULT: 'fa-solid fa-question',
 };
 
@@ -1233,6 +1234,8 @@ export class MassEditPresets extends FormApplication {
   }
 
   async _onDoubleClickPreset(event) {
+    if (!UI_DOCS.includes(this.docName)) return;
+
     const uuid = $(event.target).closest('.item').data('uuid');
     if (!uuid) return;
     ui.notifications.info(`Mass Edit: ${localize('presets.spawning')}`);
@@ -1691,6 +1694,8 @@ export class MassEditPresets extends FormApplication {
   }
 
   async _onPresetDragOut(event) {
+    if (!UI_DOCS.includes(this.docName)) return;
+
     const uuid = $(event.originalEvent.target).closest('.item').data('uuid');
     const preset = await PresetCollection.get(uuid);
     if (!preset) return;
@@ -2000,6 +2005,7 @@ class PresetConfig extends FormApplication {
     const docName = this.presets[0].documentName;
     if (docName !== 'Actor' && this.presets.every((p) => p.documentName === docName)) {
       data.documentEdit = docName;
+      data.isPlaceable = SUPPORTED_PLACEABLES.includes(docName);
     }
 
     return data;

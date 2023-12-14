@@ -817,8 +817,18 @@ export const WithMassConfig = (docName = 'NONE') => {
         label: '',
         class: 'mass-edit-presets',
         icon: 'fas fa-box',
-        onclick: (ev) =>
-          new MassEditPresets(this, async (preset) => this._processPreset(preset), this.docName).render(true),
+        onclick: () => {
+          this.linkedPresetForm = new MassEditPresets(
+            this,
+            async (preset) => this._processPreset(preset),
+            this.docName,
+            {
+              left: this.position.left - 370,
+              top: this.position.top,
+            }
+          );
+          this.linkedPresetForm.render(true);
+        },
       });
 
       // Apply JSON data onto the form
@@ -910,6 +920,7 @@ export const WithMassConfig = (docName = 'NONE') => {
       ) {
         this._resetPreview();
       }
+      if (this.linkedPresetForm) this.linkedPresetForm.close();
       return super.close(options);
     }
 
