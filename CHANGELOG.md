@@ -1,3 +1,16 @@
+# 1.51.0
+
+- New keybinding: `Open Scene Presets`
+  - Toggles a scene preset form on and off, allowing to apply presets to the active scene
+- New scene context option: `Mass Edit`
+  - Opens Mass Edit form for the selected scene
+
+Misc.
+
+- Preset forms opened from within Mass Edit forms will now:
+  - Will be opened next to parent form
+  - Automatically close with the parent form
+
 # 1.50.0
 
 **Presets**

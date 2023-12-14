@@ -337,8 +337,19 @@ Hooks.once('init', () => {
       }
       new MassEditPresets(
         null,
-        (preset) => {
-          if (preset && canvas.scene) canvas.scene.update(preset.data[0]);
+        async (preset) => {
+          if (preset && canvas.scene) {
+            const data = flattenObject(preset.data[0]);
+            await canvas.scene.update(data);
+
+            // Grid doesn't redraw on scene update, do it manually here
+            if ('grid.color' in data || 'grid.alpha' in data) {
+              canvas.grid.grid.draw({
+                color: data['grid.color'].replace('#', '0x'),
+                alpha: Number(data['grid.alpha']),
+              });
+            }
+          }
         },
         'Scene'
       ).render(true);
@@ -401,24 +412,26 @@ Hooks.once('init', () => {
   );
 
   // Add SceneControl option to open Mass Edit form
-  libWrapper.register(
-    MODULE_ID,
-    'SceneNavigation.prototype._getContextMenuOptions',
-    function (wrapped, ...args) {
-      const options = wrapped(...args);
-      options.push({
-        name: 'Mass Edit',
-        icon: '<i class="fa-solid fa-pen-to-square"></i>',
-        condition: game.user.isGM,
-        callback: (li) => {
-          const sceneId = li.attr('data-scene-id');
-          showMassEdit(game.scenes.get(sceneId));
-        },
-      });
-      return options;
-    },
-    'WRAPPER'
-  );
+  if (game.settings.get(MODULE_ID, 'presetSceneControl')) {
+    libWrapper.register(
+      MODULE_ID,
+      'SceneNavigation.prototype._getContextMenuOptions',
+      function (wrapped, ...args) {
+        const options = wrapped(...args);
+        options.push({
+          name: 'Mass Edit',
+          icon: '<i class="fa-solid fa-pen-to-square"></i>',
+          condition: game.user.isGM,
+          callback: (li) => {
+            const sceneId = li.attr('data-scene-id');
+            showMassEdit(game.scenes.get(sceneId));
+          },
+        });
+        return options;
+      },
+      'WRAPPER'
+    );
+  }
 
   // Intercept and prevent certain placeable drag and drop if they are hovering over the MassEditPresets form
   // passing on the placeable to it to perform preset creation.
