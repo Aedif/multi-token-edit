@@ -29,11 +29,11 @@ export function constructNav(allData, documentName, customControls) {
   _constructControls(nav, object, tabSelectors, '', pinned, customControls);
 
   const pinned_groups = [];
-  const flatObject = flattenObject(object);
+  const flatObject = foundry.utils.flattenObject(object);
   for (const [k, v] of Object.entries(pinned)) {
     const value = k in flatObject ? flatObject[k] : v.value;
 
-    let control = genControl(getType(value), v.label, value, k, {}, true, customControls);
+    let control = genControl(foundry.utils.getType(value), v.label, value, k, {}, true, customControls);
     control.pinned = true;
     pinned_groups.push(control);
   }
@@ -63,7 +63,7 @@ function _constructControls(nav, data, tabSelectors, name, pinned, customControl
   for (const [k, v] of Object.entries(data)) {
     const name2 = name ? name + '.' + k : k;
     if (v !== null) {
-      let t = getType(v);
+      let t = foundry.utils.getType(v);
       let control;
       if (t === 'Object') {
         if (_hasNonNullKeys(v)) {
@@ -104,9 +104,9 @@ function _constructControls(nav, data, tabSelectors, name, pinned, customControl
 }
 
 function _hasNonNullKeys(obj) {
-  if (isEmpty(obj)) return false;
+  if (foundry.utils.isEmpty(obj)) return false;
   for (const [k, v] of Object.entries(obj)) {
-    if (getType(v) === 'Object') {
+    if (foundry.utils.getType(v) === 'Object') {
       if (_hasNonNullKeys(v)) return true;
     } else if (v != null) return true;
   }
@@ -134,7 +134,7 @@ function genControl(type, label, value, name, pinned, editableLabel = false, cus
   //   console.log(name, customControls, customControls[name]);
   // }
   if (getProperty(customControls, name)) {
-    control = mergeObject(control, getProperty(customControls, name));
+    control = foundry.utils.mergeObject(control, getProperty(customControls, name));
   } else if (type === 'number') {
     control.number = true;
     const varName = name.split('.').pop();
@@ -156,7 +156,7 @@ function genControl(type, label, value, name, pinned, editableLabel = false, cus
     else if (isColorField(varName)) control.colorPicker = true;
   } else if (type === 'boolean') {
     control.boolean = true;
-  } else if (type === 'Array' && value.every((el) => allowedArrayElTypes.includes(getType(el)))) {
+  } else if (type === 'Array' && value.every((el) => allowedArrayElTypes.includes(foundry.utils.getType(el)))) {
     control.value = value.join(', ');
     control.array = true;
   } else if (type === 'Array') {

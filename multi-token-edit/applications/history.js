@@ -10,11 +10,11 @@ export default class MassEditHistory extends FormApplication {
     super({}, {});
     this.callback = callback;
     this.docName = docName;
-    this.history = deepClone(HISTORY);
+    this.history = foundry.utils.deepClone(HISTORY);
   }
 
   static get defaultOptions() {
-    return mergeObject(super.defaultOptions, {
+    return foundry.utils.mergeObject(super.defaultOptions, {
       id: 'mass-edit-history',
       classes: ['sheet'],
       template: `modules/${MODULE_ID}/templates/history.html`,
@@ -59,8 +59,8 @@ export default class MassEditHistory extends FormApplication {
       const rdm = item.ctrl['mass-edit-randomize'] || {};
       const addSubtract = item.ctrl['mass-edit-addSubtract'] || {};
 
-      const fullTitle = getTitle(deepClone(item.update), rdm, addSubtract);
-      const title = getTitle(deepClone(item.diff), rdm, addSubtract);
+      const fullTitle = getTitle(foundry.utils.deepClone(item.update), rdm, addSubtract);
+      const title = getTitle(foundry.utils.deepClone(item.diff), rdm, addSubtract);
 
       const hasDifferences = fullTitle !== title;
       if (hasDifferences) formHasDiff = true;
@@ -102,7 +102,7 @@ export default class MassEditHistory extends FormApplication {
       if (historyItem) {
         const preset = new Preset({
           documentName: docName,
-          data: deepClone(historyItem[type]),
+          data: foundry.utils.deepClone(historyItem[type]),
           randomize: historyItem.ctrl['mass-edit-randomize'],
           addSubtract: historyItem.ctrl['mass-edit-addSubtract'],
         });
@@ -128,7 +128,7 @@ export default class MassEditHistory extends FormApplication {
     const docHistory = this.history[this.docName] ?? [];
     const historyItem = docHistory[index];
     if (historyItem) {
-      const update = deepClone(historyItem[event.submitter.name]);
+      const update = foundry.utils.deepClone(historyItem[event.submitter.name]);
       GeneralDataAdapter.updateToForm(this.docName, update);
 
       const preset = new Preset({

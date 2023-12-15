@@ -47,15 +47,19 @@ export class Preset {
   document;
 
   constructor(data) {
-    this.id = data.id ?? data._id ?? randomID();
+    this.id = data.id ?? data._id ?? foundry.utils.randomID();
     this.name = data.name ?? 'Mass Edit Preset';
     this.documentName = data.documentName;
     this.sort = data.sort ?? 0;
     this.addSubtract =
-      data.addSubtract instanceof Array ? Object.fromEntries(data.addSubtract) : deepClone(data.addSubtract ?? {});
+      data.addSubtract instanceof Array
+        ? Object.fromEntries(data.addSubtract)
+        : foundry.utils.deepClone(data.addSubtract ?? {});
     this.randomize =
-      data.randomize instanceof Array ? Object.fromEntries(data.randomize) : deepClone(data.randomize ?? {});
-    this.data = deepClone(data.data);
+      data.randomize instanceof Array
+        ? Object.fromEntries(data.randomize)
+        : foundry.utils.deepClone(data.randomize ?? {});
+    this.data = foundry.utils.deepClone(data.data);
     this.img = data.img;
     this.folder = data.folder;
     this.uuid = data.uuid;
@@ -100,9 +104,13 @@ export class Preset {
         this.img = preset.img;
         this.data = preset.data;
         this.randomize =
-          getType(preset.randomize) === 'Object' ? preset.randomize : Object.fromEntries(preset.randomize ?? []);
+          foundry.utils.getType(preset.randomize) === 'Object'
+            ? preset.randomize
+            : Object.fromEntries(preset.randomize ?? []);
         this.addSubtract =
-          getType(preset.addSubtract) === 'Object' ? preset.addSubtract : Object.fromEntries(preset.addSubtract ?? []);
+          foundry.utils.getType(preset.addSubtract) === 'Object'
+            ? preset.addSubtract
+            : Object.fromEntries(preset.addSubtract ?? []);
         this.gridSize = preset.gridSize;
       }
     }
@@ -123,7 +131,7 @@ export class Preset {
           this[k] = update[k];
         } else if (k === 'data' && !(update.data instanceof Array)) {
           flagUpdate.data = this.data.map((d) => {
-            return mergeObject(d, update.data);
+            return foundry.utils.mergeObject(d, update.data);
           });
           this.data = flagUpdate.data;
         } else if (PRESET_FIELDS.includes(k) && update[k] !== this[k]) {
@@ -132,7 +140,7 @@ export class Preset {
         }
       });
 
-      if (!isEmpty(flagUpdate)) {
+      if (!foundry.utils.isEmpty(flagUpdate)) {
         const docUpdate = { flags: { [MODULE_ID]: { preset: flagUpdate } } };
         DOCUMENT_FIELDS.forEach((field) => {
           if (field in flagUpdate && this.document[field] !== flagUpdate[field]) {
@@ -155,7 +163,7 @@ export class Preset {
       if (field in data) update[field] = data[field];
     });
 
-    if (!isEmpty(update)) {
+    if (!foundry.utils.isEmpty(update)) {
       const pack = game.packs.get(this.document.pack);
       const metaDoc = await pack.getDocument(META_INDEX_ID);
       if (metaDoc) {
@@ -675,7 +683,7 @@ export class PresetAPI {
 
       defPreset.gridSize = placeables[0].document.parent.grid.size;
 
-      mergeObject(defPreset, options, { inplace: true });
+      foundry.utils.mergeObject(defPreset, options, { inplace: true });
 
       const preset = new Preset(defPreset);
       await PresetCollection.set(preset);
@@ -735,11 +743,11 @@ export class PresetAPI {
 
     for (let presetData of preset.data) {
       const data = mergePresetDataToDefaultDoc(preset, presetData);
-      toCreate.push(flattenObject(data));
+      toCreate.push(foundry.utils.flattenObject(data));
     }
 
     const randomizer = preset.randomize;
-    if (!isEmpty(randomizer)) {
+    if (!foundry.utils.isEmpty(randomizer)) {
       await applyRandomization(toCreate, null, randomizer);
     }
 
@@ -886,7 +894,7 @@ export class MassEditPresets extends FormApplication {
   }
 
   static get defaultOptions() {
-    return mergeObject(super.defaultOptions, {
+    return foundry.utils.mergeObject(super.defaultOptions, {
       id: 'mass-edit-presets',
       classes: ['sheet'],
       template: `modules/${MODULE_ID}/templates/preset/presets.html`,
@@ -1381,7 +1389,7 @@ export class MassEditPresets extends FormApplication {
     for (const preset of selected) {
       const p = preset.clone();
       if (!keepFolder) p.folder = null;
-      if (!keepId) p.id = randomID();
+      if (!keepId) p.id = foundry.utils.randomID();
       await PresetCollection.set(p, pack);
     }
     if (selected.length) this.render(true);
@@ -1766,13 +1774,13 @@ export class MassEditPresets extends FormApplication {
 
     const selectedFields =
       this.configApp instanceof ActiveEffectConfig ? this._getActiveEffectFields() : this.configApp.getSelectedFields();
-    if (!selectedFields || isEmpty(selectedFields)) {
+    if (!selectedFields || foundry.utils.isEmpty(selectedFields)) {
       ui.notifications.warn(localize('presets.warn-no-fields'));
       return;
     }
 
-    const randomize = deepClone(this.configApp.randomizeFields || {});
-    const addSubtract = deepClone(this.configApp.addSubtractFields || {});
+    const randomize = foundry.utils.deepClone(this.configApp.randomizeFields || {});
+    const addSubtract = foundry.utils.deepClone(this.configApp.addSubtractFields || {});
 
     // Detection modes may have been selected out of order
     // Fix that here
@@ -1790,7 +1798,7 @@ export class MassEditPresets extends FormApplication {
   async _onPresetCreate(event) {
     const selectedFields =
       this.configApp instanceof ActiveEffectConfig ? this._getActiveEffectFields() : this.configApp.getSelectedFields();
-    if (!selectedFields || isEmpty(selectedFields)) {
+    if (!selectedFields || foundry.utils.isEmpty(selectedFields)) {
       ui.notifications.warn(localize('presets.warn-no-fields'));
       return;
     }
@@ -1826,7 +1834,7 @@ export class MassEditPresets extends FormApplication {
   }
 
   _getActiveEffectFields() {
-    return { changes: deepClone(this.configApp.object.changes ?? []) };
+    return { changes: foundry.utils.deepClone(this.configApp.object.changes ?? []) };
   }
 
   _getHeaderButtons() {
@@ -1875,10 +1883,10 @@ export class MassEditPresets extends FormApplication {
 
     let importCount = 0;
 
-    if (getType(json) === 'Array') {
+    if (foundry.utils.getType(json) === 'Array') {
       for (const p of json) {
         if (!('documentName' in p)) continue;
-        if (!('data' in p) || isEmpty(p.data)) continue;
+        if (!('data' in p) || foundry.utils.isEmpty(p.data)) continue;
 
         const preset = new Preset(p);
         preset._pages = p.pages;
@@ -2175,7 +2183,7 @@ class PresetFieldDelete extends FormApplication {
     } else {
       data = this.presetData;
     }
-    data = flattenObject(data);
+    data = foundry.utils.flattenObject(data);
 
     let fields = [];
     for (const [k, v] of Object.entries(data)) {
@@ -2195,7 +2203,7 @@ class PresetFieldDelete extends FormApplication {
     } else {
       data = this.presetData;
     }
-    data = flattenObject(data);
+    data = foundry.utils.flattenObject(data);
 
     const form = $(event.target).closest('form');
     form.find('.item.selected').each(function () {
@@ -2384,7 +2392,7 @@ function getCompendiumDialog(resolve, { exportTo = false, preselectPack = '' } =
 
 function mergePresetDataToDefaultDoc(preset, presetData) {
   let data;
-  presetData = flattenObject(presetData);
+  presetData = foundry.utils.flattenObject(presetData);
 
   // Set default values if needed
   switch (preset.documentName) {
@@ -2415,7 +2423,7 @@ function mergePresetDataToDefaultDoc(preset, presetData) {
       data = {};
   }
 
-  return mergeObject(data, presetData);
+  return foundry.utils.mergeObject(data, presetData);
 }
 
 function placeableToData(placeable) {
@@ -2428,7 +2436,7 @@ function placeableToData(placeable) {
     tokenAttacher?.generatePrototypeAttached
   ) {
     const attached = data.flags?.['token-attacher']?.attached || {};
-    if (!isEmpty(attached)) {
+    if (!foundry.utils.isEmpty(attached)) {
       const prototypeAttached = tokenAttacher.generatePrototypeAttached(data, attached);
       setProperty(data, 'flags.token-attacher.attached', null);
       setProperty(data, 'flags.token-attacher.prototypeAttached', prototypeAttached);

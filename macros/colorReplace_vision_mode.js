@@ -179,7 +179,7 @@ game.modules.get(MODULE_ID).api.showGenericForm(data, 'VISION_MODE', {
   customControls: CUSTOM_CONTROLS,
   callback: async (obj) => displayWorldScript(),
   inputChangeCallback: (selected) => {
-    mergeObject(data, selected, { inplace: true });
+    foundry.utils.mergeObject(data, selected, { inplace: true });
     updateFilter();
   },
 });

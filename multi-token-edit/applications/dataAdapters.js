@@ -145,19 +145,19 @@ export class TokenDataAdapter {
     if (!detectionModes.length) return;
 
     // Merge current detectionModes assigned to the token and the new ones being added
-    const mergedModes = deepClone(token.detectionModes).filter((d) => d.id);
+    const mergedModes = foundry.utils.deepClone(token.detectionModes).filter((d) => d.id);
     for (const dm of detectionModes) {
       if (dm.id == null) continue;
 
       let found = false;
       for (const tdm of mergedModes) {
         if (tdm.id === dm.id) {
-          mergeObject(tdm, dm);
+          foundry.utils.mergeObject(tdm, dm);
           found = true;
           break;
         }
       }
-      if (!found) mergedModes.push(mergeObject({ id: '', range: 0, enabled: true }, dm));
+      if (!found) mergedModes.push(foundry.utils.mergeObject({ id: '', range: 0, enabled: true }, dm));
     }
     data.detectionModes = mergedModes;
   }
@@ -168,7 +168,7 @@ export class TokenDataAdapter {
 
     const modes = Object.values(foundry.utils.expandObject(app._getSubmitData())?.detectionModes || {});
 
-    const dataClone = deepClone(data);
+    const dataClone = foundry.utils.deepClone(data);
     const randomize = data['mass-edit-randomize'] ?? {};
     const addSubtract = data['mass-edit-addSubtract'] ?? {};
 

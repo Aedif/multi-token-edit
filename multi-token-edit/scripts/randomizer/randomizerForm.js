@@ -41,14 +41,14 @@ export default class RandomizerForm extends FormApplication {
 
     if (configApp.randomizeFields && configApp.randomizeFields[this.fieldName]) {
       if (options.rangeForm) {
-        let ctrl = deepClone(configApp.randomizeFields[this.fieldName]);
+        let ctrl = foundry.utils.deepClone(configApp.randomizeFields[this.fieldName]);
         ctrl.minVal = ctrl.min;
         ctrl.maxVal = ctrl.max;
         delete ctrl.min;
         delete ctrl.max;
-        mergeObject(this.configuration, ctrl);
+        foundry.utils.mergeObject(this.configuration, ctrl);
       } else if (options.colorForm) {
-        let ctrl = deepClone(configApp.randomizeFields[this.fieldName]);
+        let ctrl = foundry.utils.deepClone(configApp.randomizeFields[this.fieldName]);
         if (ctrl.color1) {
           ctrl.colors = [
             { hex: ctrl.color1, offset: 0 },
@@ -57,16 +57,16 @@ export default class RandomizerForm extends FormApplication {
           delete ctrl.color1;
           delete ctrl.color2;
         }
-        mergeObject(this.configuration, ctrl);
+        foundry.utils.mergeObject(this.configuration, ctrl);
       } else {
-        mergeObject(this.configuration, configApp.randomizeFields[this.fieldName]);
+        foundry.utils.mergeObject(this.configuration, configApp.randomizeFields[this.fieldName]);
       }
       this.configuration.existing = true;
     }
   }
 
   static get defaultOptions() {
-    return mergeObject(super.defaultOptions, {
+    return foundry.utils.mergeObject(super.defaultOptions, {
       id: 'mass-edit-randomizer-form',
       classes: ['sheet'],
       template: `modules/${MODULE_ID}/templates/randomizerForm.html`,
@@ -81,7 +81,7 @@ export default class RandomizerForm extends FormApplication {
 
   async getData(options) {
     const data = super.getData(options);
-    mergeObject(data, this.configuration);
+    foundry.utils.mergeObject(data, this.configuration);
 
     if (data.step != null) {
       if (data.step === 'any' || data.step === '') {
@@ -375,7 +375,7 @@ export default class RandomizerForm extends FormApplication {
         method: 'random',
       };
     } else if (this.configuration.colorForm) {
-      let colors = deepClone(this.colorSlider.colors).sort((a, b) => a.offset - b.offset);
+      let colors = foundry.utils.deepClone(this.colorSlider.colors).sort((a, b) => a.offset - b.offset);
       this.configApp.randomizeFields[fieldName] = {
         type: 'color',
         method: formData.method,

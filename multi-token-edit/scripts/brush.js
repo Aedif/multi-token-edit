@@ -279,7 +279,7 @@ export class Brush {
 
     const completed = await CanvasAnimation.animate(translate, {
       duration: 700,
-      name: randomID(5),
+      name: foundry.utils.randomID(5),
     });
     if (completed) {
       this.brushOverlay.removeChild(cross).destroy();

@@ -12,7 +12,10 @@ export default class MacroForm extends FormApplication {
     this.randomizeFields = randomizeFields;
     this.addSubtractFields = addSubtractFields;
 
-    if ((randomizeFields && !isEmpty(randomizeFields)) || (addSubtractFields && !isEmpty(addSubtractFields))) {
+    if (
+      (randomizeFields && !foundry.utils.isEmpty(randomizeFields)) ||
+      (addSubtractFields && !foundry.utils.isEmpty(addSubtractFields))
+    ) {
       // keep selected fields in form format
     } else {
       GeneralDataAdapter.formToData(this.docName, this.mainObject, this.fields);
@@ -20,7 +23,7 @@ export default class MacroForm extends FormApplication {
   }
 
   static get defaultOptions() {
-    return mergeObject(super.defaultOptions, {
+    return foundry.utils.mergeObject(super.defaultOptions, {
       id: 'mass-edit-macro',
       classes: ['sheet'],
       template: `modules/${MODULE_ID}/templates/macro.html`,
@@ -69,12 +72,12 @@ export default class MacroForm extends FormApplication {
     }
     data.targetingOptions = targetingOptions;
 
-    if (this.addSubtractFields && !isEmpty(this.addSubtractFields)) {
+    if (this.addSubtractFields && !foundry.utils.isEmpty(this.addSubtractFields)) {
       data.hasAddSubtract = true;
       data.addSubtract = JSON.stringify(this.addSubtractFields);
     }
 
-    if (this.randomizeFields && !isEmpty(this.randomizeFields)) {
+    if (this.randomizeFields && !foundry.utils.isEmpty(this.randomizeFields)) {
       data.hasRandom = true;
       data.randomize = JSON.stringify(this.randomizeFields);
     }
@@ -110,7 +113,7 @@ export default class MacroForm extends FormApplication {
           callback: (html) => {
             try {
               const val = JSON.parse(html.find('[name="json"]').val() || '{}');
-              if (isEmpty(val)) {
+              if (foundry.utils.isEmpty(val)) {
                 control.hide();
                 store.prop('disabled', true);
                 this.setPosition({ height: 'auto' });
@@ -189,7 +192,7 @@ export default class MacroForm extends FormApplication {
 
     html.find('[name="method"]').on('change', (event) => {
       if (event.target.value === 'toggle') {
-        let data = flattenObject(getData(this.mainObject).toObject());
+        let data = foundry.utils.flattenObject(getData(this.mainObject).toObject());
 
         const toggleFields = {};
         Object.keys(this.fields).forEach((k) => (toggleFields[k] = data[k]));

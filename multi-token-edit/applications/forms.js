@@ -83,12 +83,12 @@ export const WithMassEditForm = (cls) => {
       const rangeSpanToTextbox = game.settings.get(MODULE_ID, 'rangeToTextbox');
 
       // Attach classes and controls to all relevant form-groups
-      const commonData = flattenObject(this.commonData || {});
+      const commonData = foundry.utils.flattenObject(this.commonData || {});
       const insertRNGControl = this.randomizerEnabled;
       const processFormGroup = function (formGroup, typeOverride = null) {
         // We only want to attach extra controls if the form-group contains named fields
         if (!$(formGroup).find('[name]').length) return;
-        if ($(formGroup).find('[name]:disabled').length) return;
+        // if ($(formGroup).find('[name]:disabled').length) return;
 
         // Check if fields within this form-group are part of common data or control a flag
         let fieldType = 'meCommon';
@@ -444,7 +444,7 @@ export const WithMassEditForm = (cls) => {
 
       // Some module flags get un-flattened
       // Flatten them again before attempting to find selected
-      formData = flattenObject(formData);
+      formData = foundry.utils.flattenObject(formData);
 
       // Modules Specific Logic
       // 3D Canvas
@@ -483,7 +483,7 @@ export const WithMassEditForm = (cls) => {
 
               // Module specific logic
               if (name === 'flags.limits') {
-                const limits = flattenObject(app.object.toObject().flags['limits'] ?? {});
+                const limits = foundry.utils.flattenObject(app.object.toObject().flags['limits'] ?? {});
                 for (const [k, v] of Object.entries(limits)) {
                   selectedFields['flags.limits.' + k] = v;
                 }
@@ -504,7 +504,7 @@ export const WithMassEditForm = (cls) => {
                 }
               }
 
-              if (getType(selectedFields[name]) === 'string') {
+              if (foundry.utils.getType(selectedFields[name]) === 'string') {
                 const input = $(this);
                 if (input.hasClass('tva-array')) {
                   if (v.trim()) {
@@ -676,11 +676,7 @@ export const WithMassConfig = (docName = 'NONE') => {
       await this.massUpdateObject(event, formData);
 
       // On v11 certain placeable will freeze the canvas layer if parent _updateObject is not called
-      if (
-        !isNewerVersion('11', game.version) &&
-        ['Token', 'AmbientLight'].includes(this.docName) &&
-        this.preview?.object
-      ) {
+      if (['Token', 'AmbientLight'].includes(this.docName) && this.preview?.object) {
         this._resetPreview();
       }
     }
@@ -734,7 +730,7 @@ export const WithMassConfig = (docName = 'NONE') => {
         }
       }
 
-      if (isEmpty(selectedFields)) return false;
+      if (foundry.utils.isEmpty(selectedFields)) return false;
 
       const preset = new Preset({
         documentName: this.documentName,
@@ -838,7 +834,7 @@ export const WithMassConfig = (docName = 'NONE') => {
         icon: 'far fa-money-check-edit',
         onclick: (ev) => {
           let selFields = expandObject(this.getSelectedFields());
-          if (isEmpty(selFields)) selFields = '';
+          if (foundry.utils.isEmpty(selFields)) selFields = '';
           else selFields = JSON.stringify(selFields, null, 2);
           let content = `<textarea class="json" style="width:100%; height: 300px;">${selFields}</textarea>`;
           new Dialog({
@@ -853,10 +849,10 @@ export const WithMassConfig = (docName = 'NONE') => {
                     json = JSON.parse(html.find('.json').val());
                   } catch (e) {}
 
-                  if (!isEmpty(json)) {
+                  if (!foundry.utils.isEmpty(json)) {
                     const preset = new Preset({
                       documentName: this.docName,
-                      data: flattenObject(json),
+                      data: foundry.utils.flattenObject(json),
                     });
                     this._processPreset(preset);
                   }
@@ -913,11 +909,7 @@ export const WithMassConfig = (docName = 'NONE') => {
       Brush.deactivate();
       options.force = true;
 
-      if (
-        !isNewerVersion('11', game.version) &&
-        ['Token', 'AmbientLight'].includes(this.docName) &&
-        this.preview?.object
-      ) {
+      if (['Token', 'AmbientLight'].includes(this.docName) && this.preview?.object) {
         this._resetPreview();
       }
       if (this.linkedPresetForm) this.linkedPresetForm.close();
@@ -966,7 +958,7 @@ export const WithMassConfig = (docName = 'NONE') => {
       // =====================
       let timeoutRequired = false;
 
-      const data = flattenObject(preset.data[0]);
+      const data = foundry.utils.flattenObject(preset.data[0]);
 
       // Monk's Active Tiles
       if ('flags.monks-active-tiles.actions' in data) {
@@ -1021,7 +1013,7 @@ export const WithMassConfig = (docName = 'NONE') => {
       selectRandomizerFields(form, this.randomizeFields);
       selectAddSubtractFields(form, this.addSubtractFields);
 
-      const data = flattenObject(preset.data[0]);
+      const data = foundry.utils.flattenObject(preset.data[0]);
       GeneralDataAdapter.dataToForm(this.documentName, preset.data[0], data);
       for (const key of Object.keys(data)) {
         const el = form.find(`[name="${key}"]`);
@@ -1087,17 +1079,17 @@ export function pasteDataUpdate(docs, preset, suppressNotif = false, excludePosi
     if (preset.documentName !== docName) return;
 
     const context = { meObjects: docs };
-    if (!isEmpty(preset.randomize)) context.randomizeFields = preset.randomize;
-    if (!isEmpty(preset.addSubtract)) context.addSubtractFields = preset.addSubtract;
+    if (!foundry.utils.isEmpty(preset.randomize)) context.randomizeFields = preset.randomize;
+    if (!foundry.utils.isEmpty(preset.addSubtract)) context.addSubtractFields = preset.addSubtract;
 
-    let data = deepClone(preset.data[Math.floor(Math.random() * preset.data.length)]);
+    let data = foundry.utils.deepClone(preset.data[Math.floor(Math.random() * preset.data.length)]);
     if (excludePosition) {
       delete data.x;
       delete data.y;
       delete data.c;
     }
 
-    performMassUpdate.call(context, flattenObject(data), docs, preset.documentName, applyType);
+    performMassUpdate.call(context, foundry.utils.flattenObject(data), docs, preset.documentName, applyType);
     if (!suppressNotif)
       ui.notifications.info(
         localFormat('clipboard.paste', {
@@ -1166,7 +1158,7 @@ function performDocSearch(docs, docName, selectedFields, found) {
   // Next select objects that match the selected fields
   for (const c of docs) {
     let matches = true;
-    const data = flattenObject(getData(c).toObject());
+    const data = foundry.utils.flattenObject(getData(c).toObject());
 
     // Special processing for some placeable types
     // Necessary when form data is not directly mappable to placeable
@@ -1218,7 +1210,7 @@ export async function performMassUpdate(data, objects, docName, applyType) {
     if (this.options.callback) this.options.callback(data);
     return;
   }
-  if (isEmpty(data)) {
+  if (foundry.utils.isEmpty(data)) {
     if (this.callbackOnUpdate) {
       this.callbackOnUpdate(objects);
     }
@@ -1234,7 +1226,7 @@ export async function performMassUpdate(data, objects, docName, applyType) {
 
   const total = objects.length;
   for (let i = 0; i < total; i++) {
-    const update = deepClone(data);
+    const update = foundry.utils.deepClone(data);
     update._id = objects[i].id;
 
     // push update
@@ -1244,8 +1236,8 @@ export async function performMassUpdate(data, objects, docName, applyType) {
   // If history is enabled we'll want to attach additional controls to the updates
   // so that they can be tracked.
   if (game.settings.get(MODULE_ID, 'enableHistory')) {
-    context['mass-edit-randomize'] = [deepClone(this.randomizeFields)];
-    context['mass-edit-addSubtract'] = [deepClone(this.addSubtractFields)];
+    context['mass-edit-randomize'] = [foundry.utils.deepClone(this.randomizeFields)];
+    context['mass-edit-addSubtract'] = [foundry.utils.deepClone(this.addSubtractFields)];
   }
 
   // Applies randomization
@@ -1311,7 +1303,7 @@ export async function performMassUpdate(data, objects, docName, applyType) {
     for (let i = 0; i < updates.length; i++) {
       const update = updates[i];
       delete update._id;
-      mergeObjectPreserveDot(objects[i], mergeObject(objects[i], update));
+      mergeObjectPreserveDot(objects[i], foundry.utils.mergeObject(objects[i], update));
     }
     if (this.callbackOnUpdate) {
       this.callbackOnUpdate(objects);
@@ -1325,7 +1317,7 @@ export async function performMassUpdate(data, objects, docName, applyType) {
       const actor = objects[i].actor;
       if (actor) actorUpdates[actor.id] = { _id: actor.id, prototypeToken: updates[i] };
     }
-    if (!isEmpty(actorUpdates)) {
+    if (!foundry.utils.isEmpty(actorUpdates)) {
       const updates = [];
       for (const id of Object.keys(actorUpdates)) {
         updates.push(actorUpdates[id]);
@@ -1397,7 +1389,7 @@ function deselectTabs(target) {
 }
 
 export function getObjFormData(obj, docName) {
-  const data = flattenObject(getData(obj).toObject());
+  const data = foundry.utils.flattenObject(getData(obj).toObject());
 
   // Special processing for some placeable types
   // Necessary when form data is not directly mappable to placeable
@@ -1420,7 +1412,7 @@ export const WithMassPermissions = () => {
     constructor(target, docs, options = {}) {
       // Generate common permissions
       const data = getData(docs[0]);
-      const commonData = flattenObject(data.ownership);
+      const commonData = foundry.utils.flattenObject(data.ownership);
 
       const metaLevels = CONST.DOCUMENT_META_OWNERSHIP_LEVELS;
 
@@ -1436,9 +1428,9 @@ export const WithMassPermissions = () => {
 
       for (let i = 1; i < docs.length; i++) {
         const data = getData(docs[i]);
-        const flatData = flattenObject(data.ownership);
+        const flatData = foundry.utils.flattenObject(data.ownership);
         addMissingPerms(flatData);
-        const diff = flattenObject(diffObject(commonData, flatData));
+        const diff = foundry.utils.flattenObject(foundry.utils.diffObject(commonData, flatData));
         for (const k of Object.keys(diff)) {
           delete commonData[k];
         }
@@ -1455,7 +1447,7 @@ export const WithMassPermissions = () => {
 
       const metaLevels = CONST.DOCUMENT_META_OWNERSHIP_LEVELS;
 
-      if (isEmpty(selectedFields)) return;
+      if (foundry.utils.isEmpty(selectedFields)) return;
 
       const ids = new Set();
       const updates = [];
@@ -1509,7 +1501,7 @@ export function copyToClipboard(preset, command, isPrototype) {
   }
 
   // Also copy the fields to the game clipboard as plain text
-  game.clipboard.copyPlainText(JSON.stringify(deepClone(preset.data[0]), null, 2));
+  game.clipboard.copyPlainText(JSON.stringify(foundry.utils.deepClone(preset.data[0]), null, 2));
 
   ui.notifications.info(
     localFormat('clipboard.copy', {

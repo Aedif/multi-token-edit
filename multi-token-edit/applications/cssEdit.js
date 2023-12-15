@@ -15,7 +15,7 @@ export default class CSSEdit extends FormApplication {
   }
 
   static get defaultOptions() {
-    return mergeObject(super.defaultOptions, {
+    return foundry.utils.mergeObject(super.defaultOptions, {
       id: 'mass-edit-css',
       classes: ['sheet'],
       template: `modules/${MODULE_ID}/templates/cssEdit.html`,

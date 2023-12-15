@@ -12,7 +12,7 @@ const filters = controlled[0].document.getFlag('tokenmagic', 'filters') || [];
 if (!filters.length) return;
 
 let params = filters.map((f) => {
-  const tmParams = deepClone(f.tmFilters.tmParams);
+  const tmParams = foundry.utils.deepClone(f.tmFilters.tmParams);
   ['placeableId', 'placeableType', 'filterInternalId', 'filterOwner', 'updateId'].forEach((k) => delete tmParams[k]);
   return tmParams;
 });
@@ -110,8 +110,8 @@ async function configureParam() {
     game.modules.get(MODULE_ID).api.showGenericForm(param, param.filterType ?? 'TMFX', {
       callback: async (obj) => configureParam(),
       inputChangeCallback: (selected) => {
-        mergeObject(param, selected, { inplace: true });
-        TokenMagic.addUpdateFiltersOnSelected(deepClone(params));
+        foundry.utils.mergeObject(param, selected, { inplace: true });
+        TokenMagic.addUpdateFiltersOnSelected(foundry.utils.deepClone(params));
       },
     });
 }

@@ -32,7 +32,7 @@ export function selectRandomizerFields(form, fields) {
 
 export async function applyRandomization(updates, objects, randomizeFields) {
   // See if any field is to be randomized
-  if (!randomizeFields || isEmpty(randomizeFields)) return;
+  if (!randomizeFields || foundry.utils.isEmpty(randomizeFields)) return;
 
   let requiresCoordRandomization = false;
 
@@ -185,7 +185,7 @@ export async function applyRandomization(updates, objects, randomizeFields) {
         } else if (obj.type === 'text') {
           if (obj.method === 'findAndReplace' || obj.method === 'findAndReplaceRegex') {
             if (objects) {
-              const data = flattenObject(getData(objects[i]).toObject());
+              const data = foundry.utils.flattenObject(getData(objects[i]).toObject());
               if (!data[field] && !obj.find) {
                 update[field] = obj.replace;
               } else if (data[field]) {

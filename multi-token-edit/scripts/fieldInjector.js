@@ -38,7 +38,7 @@ export async function injectFlagTab(app) {
   if (!game.settings.get(MODULE_ID, 'enableFlagsTab')) return;
   if (app.constructor.name === 'MassEditGenericForm') return;
   const doc = app.meObjects[0];
-  let flags = flattenObject((doc.document ?? doc).flags ?? {});
+  let flags = foundry.utils.flattenObject((doc.document ?? doc).flags ?? {});
 
   const html = $(app.form);
   for (const [k, v] of Object.entries(flags)) {
@@ -47,7 +47,7 @@ export async function injectFlagTab(app) {
     }
   }
 
-  if (isEmpty(flags)) return;
+  if (foundry.utils.isEmpty(flags)) return;
 
   flags = expandObject(flags);
 

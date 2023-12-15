@@ -143,7 +143,7 @@ export function showMassSelect(basePlaceable) {
   const docName = getDocumentName(target);
 
   const options = {
-    commonData: flattenObject(getData(target).toObject()),
+    commonData: foundry.utils.flattenObject(getData(target).toObject()),
     massSelect: true,
     documentName: docName,
   };

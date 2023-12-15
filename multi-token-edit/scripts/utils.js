@@ -75,13 +75,16 @@ export function flagCompare(data, flag, flagVal) {
   if (data[flag] == flagVal) return true;
 
   const falseyFlagVal =
-    flagVal == null || flagVal === false || flagVal === '' || (getType(flagVal) === 'Object' && isEmpty(flagVal));
+    flagVal == null ||
+    flagVal === false ||
+    flagVal === '' ||
+    (foundry.utils.getType(flagVal) === 'Object' && foundry.utils.isEmpty(flagVal));
 
   const falseyDataVal =
     data[flag] == null ||
     data[flag] === false ||
     data[flag] === '' ||
-    (getType(data[flag]) === 'Object' && isEmpty(data[flag]));
+    (foundry.utils.getType(data[flag]) === 'Object' && foundry.utils.isEmpty(data[flag]));
 
   if (falseyFlagVal && falseyDataVal) return true;
 
@@ -134,11 +137,11 @@ export function selectAddSubtractFields(form, fields) {
 
 export function applyAddSubtract(updates, objects, docName, addSubtractFields) {
   // See if any field need to be added or subtracted
-  if (!addSubtractFields || isEmpty(addSubtractFields)) return;
+  if (!addSubtractFields || foundry.utils.isEmpty(addSubtractFields)) return;
 
   for (let i = 0; i < updates.length; i++) {
     const update = updates[i];
-    const data = flattenObject(getData(objects[i]).toObject());
+    const data = foundry.utils.flattenObject(getData(objects[i]).toObject());
 
     GeneralDataAdapter.dataToForm(docName, objects[i], data);
 
@@ -194,9 +197,11 @@ export function applyAddSubtract(updates, objects, docName, addSubtractFields) {
 
 export function getCommonData(objects) {
   if (!objects || !objects.length) return {};
-  const commonData = flattenObject(objects[0]);
+  const commonData = foundry.utils.flattenObject(objects[0]);
   for (let i = 1; i < objects.length; i++) {
-    const diff = flattenObject(diffObject(commonData, flattenObject(objects[i])));
+    const diff = foundry.utils.flattenObject(
+      foundry.utils.diffObject(commonData, foundry.utils.flattenObject(objects[i]))
+    );
     for (const k of Object.keys(diff)) {
       // Special handling for empty/undefined data
       if ((diff[k] === '' || diff[k] == null) && (commonData[k] === '' || commonData[k] == null)) {
@@ -216,7 +221,7 @@ export function mergeObjectPreserveDot(original, other = {}, nestedKey = '') {
   if (!other) return;
   for (const [key, val] of Object.entries(original)) {
     const fullKey = nestedKey ? nestedKey + '.' + key : key;
-    const t = getType(val);
+    const t = foundry.utils.getType(val);
     if (t === 'Object') mergeObjectPreserveDot(val, other, fullKey);
     else {
       const prop = getProperty(other, fullKey);
@@ -315,9 +320,9 @@ export function flattenToDepth(obj, d = 0) {
 
   const flat = {};
   for (let [k, v] of Object.entries(obj)) {
-    let t = getType(v);
+    let t = foundry.utils.getType(v);
     if (t === 'Object') {
-      if (isEmpty(v)) flat[k] = v;
+      if (foundry.utils.isEmpty(v)) flat[k] = v;
       let inner = flattenToDepth(v, d - 1);
       for (let [ik, iv] of Object.entries(inner)) {
         flat[`${k}.${ik}`] = iv;
@@ -333,7 +338,7 @@ export function activeEffectPresetSelect(aeConfig) {
     new MassEditPresets(
       aeConfig,
       async (preset) => {
-        if (!isEmpty(preset.randomize)) {
+        if (!foundry.utils.isEmpty(preset.randomize)) {
           await applyRandomization(preset.data, null, preset.randomize);
         }
 
@@ -342,7 +347,7 @@ export function activeEffectPresetSelect(aeConfig) {
 
         Object.keys(preset.data[0]).forEach((k) => {
           let value;
-          if (getType(preset.data[0][k]) === 'string') value = preset.data[0][k];
+          if (foundry.utils.getType(preset.data[0][k]) === 'string') value = preset.data[0][k];
           else value = JSON.stringify(preset.data[0][k]);
 
           nChanges.push({
@@ -372,7 +377,9 @@ export function activeEffectPresetSelect(aeConfig) {
 
         preset.data[0].changes?.forEach((change) => {
           if (change.key) {
-            nChanges.push(mergeObject({ mode: CONST.ACTIVE_EFFECT_MODES.OVERRIDE, priority: 20 }, change));
+            nChanges.push(
+              foundry.utils.mergeObject({ mode: CONST.ACTIVE_EFFECT_MODES.OVERRIDE, priority: 20 }, change)
+            );
           }
         });
 
@@ -425,7 +432,7 @@ export async function createDocuments(documentName, data, sceneID) {
     return game.scenes.get(sceneID).createEmbeddedDocuments(documentName, data);
   }
 
-  const requestID = randomID();
+  const requestID = foundry.utils.randomID();
 
   const message = {
     handlerName: 'document',
@@ -574,7 +581,7 @@ export class Picker {
   static async _createPreview(createData) {
     const documentName = this.constructor.documentName;
     const cls = getDocumentClass(documentName);
-    createData._id = randomID(); // Needed to allow rendering of multiple previews at the same time
+    createData._id = foundry.utils.randomID(); // Needed to allow rendering of multiple previews at the same time
     const document = new cls(createData, { parent: canvas.scene });
 
     const object = new CONFIG[documentName].objectClass(document);

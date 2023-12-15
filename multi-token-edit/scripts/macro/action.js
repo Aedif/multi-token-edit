@@ -65,9 +65,9 @@ function genUpdate(options, docName) {
   let command = '';
 
   // Macro only execution, ignore update code
-  if (isEmpty(options.fields) && !options.toggle) {
+  if (foundry.utils.isEmpty(options.fields) && !options.toggle) {
     return '';
-  } else if (options.toggle && isEmpty(options.toggle.fields) && isEmpty(options.fields)) {
+  } else if (options.toggle && foundry.utils.isEmpty(options.toggle.fields) && foundry.utils.isEmpty(options.fields)) {
     return `
 const toggleOnTargets = [];
 const toggleOffTargets = [];
@@ -101,9 +101,9 @@ targets.forEach((t) => {
 
   let u;
   if(toggleOn(t, update)) {
-    u = deepClone(update2);${macroTracking ? '\ntoggleOffTargets.push(t);' : ''}
+    u = foundry.utils.deepClone(update2);${macroTracking ? '\ntoggleOffTargets.push(t);' : ''}
   } else {
-    u = deepClone(update);${macroTracking ? '\ntoggleOnTargets.push(t);' : ''}
+    u = foundry.utils.deepClone(update);${macroTracking ? '\ntoggleOnTargets.push(t);' : ''}
   }
   u._id = t.id;
 
@@ -116,7 +116,7 @@ targets.forEach((t) => {
   const sceneId = t.parent.id;
   if(!updates[sceneId]) updates[sceneId] = [];
   
-  let u = deepClone(update);
+  let u = foundry.utils.deepClone(update);
   u._id = t.id;
     updates[sceneId].push(u);
 });
@@ -129,9 +129,9 @@ targets.forEach((t) => {
 targets.forEach((t) => {
   let u;
   if(toggleOn(t, update)) {
-    u = deepClone(update2);${macroTracking ? '\ntoggleOffTargets.push(t);' : ''}
+    u = foundry.utils.deepClone(update2);${macroTracking ? '\ntoggleOffTargets.push(t);' : ''}
   } else {
-    u = deepClone(update);${macroTracking ? '\ntoggleOnTargets.push(t);' : ''}
+    u = foundry.utils.deepClone(update);${macroTracking ? '\ntoggleOnTargets.push(t);' : ''}
   }
   u._id = t.id;
   updates.push(u);
@@ -140,7 +140,7 @@ targets.forEach((t) => {
     } else {
       command += `
 targets.forEach((t) => {
-  let u = deepClone(update);
+  let u = foundry.utils.deepClone(update);
   u._id = t.id;
   updates.push(u);
 });
@@ -202,9 +202,9 @@ function genToggleUtil(options) {
   if (options.toggle.method === 'field') {
     command += `
 const toggleOn = function (obj, fields) {
-  const data = flattenObject(obj.toObject());
-  fields = flattenObject(fields);
-  return isEmpty(diffObject(data, fields));
+  const data = foundry.utils.flattenObject(obj.toObject());
+  fields = foundry.utils.flattenObject(fields);
+  return foundry.utils.isEmpty(foundry.utils.diffObject(data, fields));
 };
   `;
   } else {

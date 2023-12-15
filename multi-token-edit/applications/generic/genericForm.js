@@ -10,16 +10,16 @@ export class MassEditGenericForm extends WMC {
     const objects = docs.map((a) => (a.toObject ? a.toObject() : a));
     const allData = {};
     for (let i = objects.length; i >= 0; i--) {
-      mergeObject(allData, objects[i]);
+      foundry.utils.mergeObject(allData, objects[i]);
     }
 
     let documentName = options.documentName ?? 'NONE';
 
-    let customControls = mergeObject(
+    let customControls = foundry.utils.mergeObject(
       CUSTOM_CONTROLS[documentName] ?? {},
       game.settings.get(MODULE_ID, 'customControls')[documentName] ?? {}
     );
-    customControls = mergeObject(customControls, options.customControls?.[documentName] ?? {});
+    customControls = foundry.utils.mergeObject(customControls, options.customControls?.[documentName] ?? {});
 
     const [nav, tabSelectors] = constructNav(allData, documentName, customControls);
     const commonData = getCommonData(objects);
@@ -43,7 +43,7 @@ export class MassEditGenericForm extends WMC {
   }
 
   static get defaultOptions() {
-    return mergeObject(super.defaultOptions, {
+    return foundry.utils.mergeObject(super.defaultOptions, {
       id: 'mass-edit-generic-form',
       classes: ['sheet'],
       template: `modules/${MODULE_ID}/templates/generic/genericForm.html`,
@@ -158,7 +158,7 @@ export class MassEditGenericForm extends WMC {
       this.pinnedFields[name].value = formData[name];
     }
 
-    if (!isEmpty(this.editableLabels)) {
+    if (!foundry.utils.isEmpty(this.editableLabels)) {
       for (const [name, label] of Object.entries(this.editableLabels)) {
         if (name in this.pinnedFields) {
           this.pinnedFields[name].label = label;
