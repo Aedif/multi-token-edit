@@ -2060,8 +2060,7 @@ class PresetConfig extends FormApplication {
     const cls = CONFIG[this.presets[0].documentName].documentClass;
 
     for (const p of this.presets) {
-      let data = p.data instanceof Array ? p.data : [p.data];
-      data.forEach((d) => documents.push(new cls(mergePresetDataToDefaultDoc(p, d))));
+      p.data.forEach((d) => documents.push(new cls(mergePresetDataToDefaultDoc(p, d))));
     }
 
     const app = await showMassEdit(documents, null, {
@@ -2409,6 +2408,9 @@ function mergePresetDataToDefaultDoc(preset, presetData) {
         data = { 'config.dim': 20, 'config.bright': 10 };
         break;
       }
+    case 'Scene':
+      data = { name: preset.name };
+      break;
     default:
       data = {};
   }

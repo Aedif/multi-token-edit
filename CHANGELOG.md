@@ -1,3 +1,7 @@
+# 1.51.1
+
+- Fixed Scene preset editing errors
+
 # 1.51.0
 
 - New keybinding: `Open Scene Presets`
