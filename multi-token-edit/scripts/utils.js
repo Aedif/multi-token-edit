@@ -332,9 +332,9 @@ export function activeEffectPresetSelect(aeConfig) {
   const showPresetGeneric = function (docName) {
     new MassEditPresets(
       aeConfig,
-      (preset) => {
+      async (preset) => {
         if (!isEmpty(preset.randomize)) {
-          applyRandomization(preset.data, null, preset.randomize);
+          await applyRandomization(preset.data, null, preset.randomize);
         }
 
         const changes = aeConfig.object.changes ?? [];

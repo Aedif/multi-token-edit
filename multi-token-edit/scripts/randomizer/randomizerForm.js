@@ -92,6 +92,7 @@ export default class RandomizerForm extends FormApplication {
 
     data.fieldName = this.fieldName;
     data.title = this.title;
+    data.isTile = 'Tile' === this.configApp.docName;
 
     // Assign default values for some specific fields
     if (this.configuration.numberForm && !this.configuration.existing) {
@@ -152,6 +153,7 @@ export default class RandomizerForm extends FormApplication {
       }
       data.find = this.configuration.find ?? this.configuration.current;
       data.replace = this.configuration.replace ?? this.configuration.current;
+      data.maintainAspect = this.configuration.maintainAspect;
     }
 
     if (this.configuration.rangeForm && !this.configuration.existing) {
@@ -399,6 +401,7 @@ export default class RandomizerForm extends FormApplication {
           type: 'image',
           method: formData.method,
           images: images,
+          maintainAspect: formData.maintainAspect,
         };
       }
     } else if (this.configuration.textForm) {

@@ -740,7 +740,7 @@ export class PresetAPI {
 
     const randomizer = preset.randomize;
     if (!isEmpty(randomizer)) {
-      applyRandomization(toCreate, null, randomizer);
+      await applyRandomization(toCreate, null, randomizer);
     }
 
     if (scaleToGrid) {

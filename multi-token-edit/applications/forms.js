@@ -1249,7 +1249,7 @@ export async function performMassUpdate(data, objects, docName, applyType) {
   }
 
   // Applies randomization
-  if (this) applyRandomization(updates, objects, this.randomizeFields);
+  if (this) await applyRandomization(updates, objects, this.randomizeFields);
   if (this) applyAddSubtract(updates, objects, docName, this.addSubtractFields);
 
   // Special processing for some placeable types

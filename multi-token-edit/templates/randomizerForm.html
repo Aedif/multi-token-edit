@@ -123,6 +123,10 @@
         </div>
         <div><p class="notes">{{localize "MassEdit.randomizer.listOfImages"}}:</p></div>
         <textarea class="images" name="images" rows="4" cols="50">{{images}}</textarea>
+        {{#if isTile}}
+        <label>Maintain Aspect Ratio</label>
+        <input name="maintainAspect" type="checkbox" {{#if maintainAspect}}checked{{/if}}>
+        {{/if}}
     </div>
     <div class="find-and-replace" hidden>
         <div class="form-group">

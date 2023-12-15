@@ -13,8 +13,7 @@ export function deselectField(control, configApp) {
   let allRandomizedRemoved = true;
   if (configApp) {
     formGroup.find('[name]').each(function () {
-      if (allRandomizedRemoved)
-        allRandomizedRemoved = !Boolean(configApp.randomizeFields[this.name]);
+      if (allRandomizedRemoved) allRandomizedRemoved = !Boolean(configApp.randomizeFields[this.name]);
     });
   }
 
@@ -31,7 +30,7 @@ export function selectRandomizerFields(form, fields) {
   }
 }
 
-export function applyRandomization(updates, objects, randomizeFields) {
+export async function applyRandomization(updates, objects, randomizeFields) {
   // See if any field is to be randomized
   if (!randomizeFields || isEmpty(randomizeFields)) return;
 
@@ -46,8 +45,7 @@ export function applyRandomization(updates, objects, randomizeFields) {
         if (obj.type === 'select') {
           update[field] = obj.selection[Math.floor(Math.random() * obj.selection.length)];
         } else if (obj.type === 'number') {
-          if (obj.step === 'any')
-            obj.step = 1; // default to integer 1 just to avoid very large decimals
+          if (obj.step === 'any') obj.step = 1; // default to integer 1 just to avoid very large decimals
           else obj.step = Number(obj.step);
 
           if (obj.method === 'interpolate') {
@@ -57,8 +55,7 @@ export function applyRandomization(updates, objects, randomizeFields) {
             const stepsInRange = (obj.max - obj.min) / obj.step;
             update[field] = (stepsInRange - (i % (stepsInRange + 1))) * obj.step + obj.min;
           } else {
-            const stepsInRange =
-              (obj.max - obj.min + (Number.isInteger(obj.step) ? 1 : 0)) / obj.step;
+            const stepsInRange = (obj.max - obj.min + (Number.isInteger(obj.step) ? 1 : 0)) / obj.step;
             update[field] = Math.floor(Math.random() * stepsInRange) * obj.step + obj.min;
           }
         } else if (obj.type === 'boolean') {
@@ -135,14 +132,7 @@ export function applyRandomization(updates, objects, randomizeFields) {
           let hexColor = rgb3.toString({ format: 'hex' });
           if (hexColor.length < 7) {
             // 3 char hex, duplicate chars
-            hexColor =
-              '#' +
-              hexColor[1] +
-              hexColor[1] +
-              hexColor[2] +
-              hexColor[2] +
-              hexColor[3] +
-              hexColor[3];
+            hexColor = '#' + hexColor[1] + hexColor[1] + hexColor[2] + hexColor[2] + hexColor[3] + hexColor[3];
           }
           update[field] = hexColor;
         } else if (obj.type === 'image') {
@@ -151,6 +141,47 @@ export function applyRandomization(updates, objects, randomizeFields) {
           } else {
             update[field] = obj.images[Math.floor(Math.random() * obj.images.length)];
           }
+
+          if (obj.maintainAspect) {
+            const width = objects?.[i]?.width ?? update.width;
+            const height = objects?.[i]?.height ?? update.height;
+            if (height != null && width != null) {
+              try {
+                const tex = await loadTexture(update[field]);
+                if (tex) {
+                  const tileRatio = width / height;
+                  const texRatio = tex.width / tex.height;
+                  console.log('width', width, 'height', height, 'tileRatio', tileRatio);
+                  if (texRatio !== tileRatio) {
+                    if (texRatio > tileRatio) {
+                      update['texture.scaleX'] = 1;
+                      update['texture.scaleY'] = tileRatio;
+                    } else {
+                      update['texture.scaleX'] = height / width;
+                      update['texture.scaleY'] = 1;
+                    }
+                  }
+                  console.log(update);
+
+                  // if (texRatio > tileRatio) {
+                  //   update['texture.scaleX'] = 1 - (tileRatio - texRatio);
+                  // } else if (tileRatio > texRatio) {
+                  //   update['texture.scaleX'] = tileRatio - texRatio;
+                  // }
+                }
+                /**
+                 * w/h = 1000 500
+                 * tw/th = 1000 1000
+                 *
+                 *
+                 *
+                 *
+                 *
+                 */
+              } catch (e) {}
+            }
+          }
+          console.log(obj);
         } else if (obj.type === 'text') {
           if (obj.method === 'findAndReplace' || obj.method === 'findAndReplaceRegex') {
             if (objects) {
@@ -200,10 +231,7 @@ export function applyRandomization(updates, objects, randomizeFields) {
     }
     pUpdates.sort(
       (a, b) =>
-        (b.p.w ?? b.p.width ?? 0) +
-        (b.p.h ?? b.p.height ?? 0) -
-        (a.p.w ?? a.p.width ?? 0) -
-        (a.p.h ?? a.p.height ?? 0)
+        (b.p.w ?? b.p.width ?? 0) + (b.p.h ?? b.p.height ?? 0) - (a.p.w ?? a.p.width ?? 0) - (a.p.h ?? a.p.height ?? 0)
     );
 
     for (const pUpdate of pUpdates) {
