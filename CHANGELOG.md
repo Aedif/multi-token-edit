@@ -1,3 +1,18 @@
+# 1.52.0
+
+**Presets**
+
+- New control added under Preset edit form: `Spawning > Modify`
+  - Allows to specify fields to be prompted for editing when spawning a preset
+- Certain conflicting operations will now disable controls until the Preset edit form is saved/closed
+
+API
+
+- `MassEdit.spawnPreset(...)`
+  - New option: `modifyPrompt`
+  - When enabled will display a pop-up prompt allowing preset data to be modified for fields selected using `Spawning > Modify` control on the Preset edit form
+  - Enabled by default
+
 # 1.51.1
 
 - Fixed Scene preset editing errors
