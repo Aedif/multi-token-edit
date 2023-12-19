@@ -122,7 +122,7 @@
       "drag-placeable-message": "Drag in placeables to create a preset.",
       "drag-over-message": "CREATE PRESET",
       "default-name": "New Preset",
-      "spawning": "Spawning Preset",
+      "spawning": "Spawning",
       "warn-no-fields": "No fields selected, unable to update.",
       "imported": "Imported {count} presets.",
       "import": "Import Presets",
@@ -132,7 +132,8 @@
       "working-directory-message": "Change the compendium the module will store and edit presets within. Make sure it does not contains Journals that are not presets to avoid unexpected problems.",
       "update-preset": "Update Preset",
       "delete-fields": "Delete Fields",
-      "select-fields": "Select fields you wish to remove from this preset.",
+      "select-delete": "Select fields you wish to remove from this preset.",
+      "select-modify": "Select fields to be prompted for modification when the preset is spawned.",
       "data-edit": "Edit {document} data stored in the preset/s.",
       "data-assign": "Assign currently selected {document}/s to the preset/s.",
       "controls": {
@@ -170,7 +171,9 @@
       "swap": "Swap",
       "import": "Import",
       "copy": "Copy",
-      "data": "Data"
+      "data": "Data",
+      "modify": "Modify",
+      "placeable": "Placeable"
     }
   }
 }

@@ -25,33 +25,47 @@
     {{#if documentEdit}}
     <fieldset>
         <legend>{{localize "MassEdit.common.data"}}</legend>
-        <div class="form-group">
+        <div class="form-group {{#if editDisabled}}disabled{{/if}}">
             <label>{{localize "SIDEBAR.Edit"}} [{{documentEdit}}]</label>
             <div class="form-fields">
-                <button  class="edit-document" type="button"><i class="fa-solid fa-gear"></i></button>
+                <button  class="edit-document" type="button" {{#if editDisabled}}disabled{{/if}}><i class="fa-solid fa-gear"></i></button>
             </div>
             <p class="notes">{{localize "MassEdit.presets.data-edit" document=documentEdit}}</p>
         </div>
-        {{#if allowFieldDelete}}
-        <div class="form-group">
+        {{#if displayFieldDelete}}
+        <div class="form-group {{#if deleteDisabled}}disabled{{/if}}">
             <label>{{localize "MassEdit.presets.delete-fields"}}</label>
             <div class="form-fields">
-                <button  class="delete-fields" type="button"><i class="fas fa-tasks"></i></button>
+                <button  class="delete-fields" type="button" {{#if deleteDisabled}}disabled{{/if}}><i class="fas fa-tasks"></i></button>
             </div>
-            <p class="notes">{{localize "MassEdit.presets.select-fields"}}</p>
+            <p class="notes">{{localize "MassEdit.presets.select-delete"}}</p>
         </div>
         {{/if}}
         {{#if isPlaceable}}
-        <div class="form-group">
+        <div class="form-group {{#if assignDisabled}}disabled{{/if}}">
             <label>Assign [{{documentEdit}}]</label>
             <div class="form-fields">
-                <button  class="assign-document" type="button"><i class="fa-solid fa-arrow-right-to-arc"></i></button>
+                <button  class="assign-document" type="button" {{#if assignDisabled}}disabled{{/if}}><i class="fa-solid fa-arrow-right-to-arc"></i></button>
             </div>
             <p class="notes">{{localize "MassEdit.presets.data-assign" document=documentEdit}}</p>
         </div>
         {{/if}}
 
     </fieldset>
+
+    {{#if displayFieldModify}}
+    <fieldset>
+        <legend>{{localize "MassEdit.presets.spawning"}}</legend>
+    
+        <div class="form-group {{#if modifyDisabled}}disabled{{/if}}">
+            <label>{{localize "MassEdit.common.modify"}}</label>
+            <div class="form-fields">
+                <button  class="spawn-fields" type="button" {{#if modifyDisabled}}disabled{{/if}}><i class="fas fa-tasks"></i></button>
+            </div>
+            <p class="notes">{{localize "MassEdit.presets.select-modify"}}</p>
+        </div>
+    </fieldset>
+    {{/if}}
     {{/if}}
 
     <button type="submit" data-action="apply"><i class="fas fa-check"></i> {{localize "MassEdit.common.apply"}}</button>

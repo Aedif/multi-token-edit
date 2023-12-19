@@ -8,9 +8,13 @@ const WMC = WithMassConfig();
 export class MassEditGenericForm extends WMC {
   constructor(docs, options = {}) {
     const objects = docs.map((a) => (a.toObject ? a.toObject() : a));
-    const allData = {};
+    let allData = {};
     for (let i = objects.length; i >= 0; i--) {
       foundry.utils.mergeObject(allData, objects[i]);
+    }
+
+    if (options.noTabs) {
+      allData = foundry.utils.flattenObject(allData);
     }
 
     let documentName = options.documentName ?? 'NONE';
@@ -169,6 +173,11 @@ export class MassEditGenericForm extends WMC {
     }
 
     game.settings.set(MODULE_ID, 'pinnedFields', pinned);
+  }
+
+  async close(options = {}) {
+    if (this.callbackOnUpdate) this.callbackOnUpdate(null);
+    return super.close(options);
   }
 }
 

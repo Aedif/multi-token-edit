@@ -117,7 +117,7 @@
 }
 
 #mass-edit-presets .window-content,
-.preset-field-delete .window-content {
+.preset-field-select .window-content {
   background: rgba(50, 50, 50, 0.8);
   padding-left: 1px;
   padding-right: 1px;
@@ -389,21 +389,31 @@ input.me-subtract {
   background-color: orangered;
 }
 
-.preset-field-delete .item {
+.preset-field-select .item {
   border-top: 1px solid dimgray;
   box-shadow: none;
   line-height: 24px;
 }
 
-.preset-field-delete .item .value {
+.preset-field-select .item .value {
   flex: 0.5;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.preset-field-delete .item.selected {
+.preset-field-select .item.selected {
   background-color: darkred;
+}
+
+.preset-field-select .header {
+  text-align: center;
+  background: rgba(0, 0, 0, 0.5);
+  line-height: 31px;
+}
+
+#mass-edit-preset-edit .form-group.disabled {
+  opacity: 0.5;
 }
 
 /* ===================== 

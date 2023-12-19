@@ -1,0 +1,17 @@
+<form autocomplete="off" style="flex-direction: column; display: flex; justify-content: space-between;">
+    <div style="max-height: 700px; overflow: auto; color: rgba(255, 255, 240, 0.8);">
+        <ol class="preset-field-list" style="padding: 0 1.5em 0 1.5em">
+            {{#each fields as |field|}}
+            {{#if field.header}}
+            <li class="header flexrow"><label>{{localize "MassEdit.common.placeable"}} {{field.index}}</label></li>
+            {{else}}
+            <li class="item flexrow {{#if field.selected}}selected{{/if}}" name="{{field.name}}" data-value="{{field.value}}" title="{{field.value}}"><label>{{field.label}}</label><label class="value">{{field.value}}</label></li>
+            {{/if}}
+            {{/each}}
+        </ol>
+    </div>
+
+    <footer class="sheet-footer flexrow">
+        <button type="submit" style="background: beige;">{{{button.icon}}} {{button.text}}</button>
+    </footer>
+</form>

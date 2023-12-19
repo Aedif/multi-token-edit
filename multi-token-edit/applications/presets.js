@@ -12,7 +12,7 @@ import {
   localize,
 } from '../scripts/utils.js';
 import { TokenDataAdapter } from './dataAdapters.js';
-import { showMassEdit } from './multiConfig.js';
+import { showGenericForm, showMassEdit } from './multiConfig.js';
 
 const META_INDEX_FIELDS = ['id', 'img', 'documentName'];
 const META_INDEX_ID = 'MassEditMetaData';
@@ -39,6 +39,7 @@ const PRESET_FIELDS = [
   'randomize',
   'img',
   'gridSize',
+  'modifyOnSpawn',
 ];
 
 export class Preset {
@@ -64,6 +65,7 @@ export class Preset {
     this.folder = data.folder;
     this.uuid = data.uuid;
     this.gridSize = data.gridSize;
+    this.modifyOnSpawn = data.modifyOnSpawn;
     this._visible = true;
   }
 
@@ -112,6 +114,7 @@ export class Preset {
             ? preset.addSubtract
             : Object.fromEntries(preset.addSubtract ?? []);
         this.gridSize = preset.gridSize;
+        this.modifyOnSpawn = preset.modifyOnSpawn;
       }
     }
     return this;
@@ -707,6 +710,7 @@ export class PresetAPI {
    * @param {Boolean} [options.hidden]            If 'true' preset will be spawned hidden.
    * @param {Boolean} [options.layerSwitch]       If 'true' the layer of the spawned preset will be activated.
    * @param {Boolean} [options.scaleToGrid]       If 'true' Tiles, Drawings, and Walls will be scaled relative to grid size.
+   * @param {Boolean} [options.modifyPrompt]       If 'true' a field modification prompt will be shown if configured via `Preset Edit > Modify` form
    * @param {Boolean} [options.coordPicker]       If 'true' a crosshair and preview will be enabled allowing spawn position to be picked
    * @param {String} [options.pickerLabel]          Label displayed above crosshair when `coordPicker` is enabled
    * @param {String} [options.taPreview]            Designates the preview placeable when spawning a `Token Attacher` prefab.
@@ -729,6 +733,7 @@ export class PresetAPI {
     hidden = false,
     layerSwitch = false,
     scaleToGrid = false,
+    modifyPrompt = true,
   } = {}) {
     if (!canvas.ready) throw Error("Canvas need to be 'ready' for a preset to be spawned.");
     if (!(uuid || preset || name || type || folder)) throw Error('ID, Name, Folder, or Preset is needed to spawn it.');
@@ -739,10 +744,19 @@ export class PresetAPI {
     preset = preset ?? (await PresetAPI.getPreset({ uuid, name, type, folder }));
     if (!preset) throw Error(`No preset could be found matching: { uuid: "${uuid}", name: "${name}", type: "${type}"}`);
 
+    let presetData = preset.data;
+
+    if (modifyPrompt && preset.modifyOnSpawn?.length) {
+      presetData = await modifySpawnData(presetData, preset.modifyOnSpawn);
+      // presetData being returned as null means that the modify field form has been canceled
+      // in which case we should cancel spawning as well
+      if (presetData == null) return;
+    }
+
     let toCreate = [];
 
-    for (let presetData of preset.data) {
-      const data = mergePresetDataToDefaultDoc(preset, presetData);
+    for (let data of presetData) {
+      data = mergePresetDataToDefaultDoc(preset, data);
       toCreate.push(foundry.utils.flattenObject(data));
     }
 
@@ -2003,11 +2017,17 @@ class PresetConfig extends FormApplication {
     data.preset = {};
     if (this.presets.length === 1) {
       data.preset = this.presets[0];
-      data.allowFieldDelete = true;
+      data.displayFieldDelete = true;
+      data.displayFieldModify = true;
     }
 
     data.minlength = this.presets.length > 1 ? 0 : 1;
     data.tva = game.modules.get('token-variants')?.active;
+
+    if (this.data && !(this.data instanceof Array)) {
+      data.modifyDisabled = true;
+      data.deleteDisabled = true;
+    }
 
     // Check if all presets are for the same document type and thus can be edited using a Mass Edit form
     const docName = this.presets[0].documentName;
@@ -2028,6 +2048,7 @@ class PresetConfig extends FormApplication {
     html.find('.edit-document').on('click', this._onEditDocument.bind(this));
     html.find('.assign-document').on('click', this._onAssignDocument.bind(this));
     html.find('.delete-fields').on('click', this._onDeleteFields.bind(this));
+    html.find('.spawn-fields').on('click', this._onSpawnFields.bind(this));
 
     // TVA Support
     const tvaButton = html.find('.token-variants-image-select-button');
@@ -2039,6 +2060,16 @@ class PresetConfig extends FormApplication {
         searchType: 'Item',
       });
     });
+  }
+
+  async _onSpawnFields() {
+    new PresetFieldModify(
+      this.data ?? this.presets[0].data,
+      (modifyOnSpawn) => {
+        this.modifyOnSpawn = modifyOnSpawn;
+      },
+      this.modifyOnSpawn ?? this.presets[0].modifyOnSpawn
+    ).render(true);
   }
 
   async _onDeleteFields() {
@@ -2060,6 +2091,7 @@ class PresetConfig extends FormApplication {
           document: this.presets[0].documentName,
         })
       );
+      this.render(true);
     }
   }
 
@@ -2081,6 +2113,7 @@ class PresetConfig extends FormApplication {
           if (k in obj.addSubtract) this.addSubtract[k] = obj.addSubtract[k];
         }
         this.data = obj.data;
+        this.render(true);
       },
     });
 
@@ -2109,6 +2142,7 @@ class PresetConfig extends FormApplication {
         if (this.data) update.data = this.data;
         if (this.addSubtract) update.addSubtract = this.addSubtract;
         if (this.randomize) update.randomize = this.randomize;
+        if (this.modifyOnSpawn) update.modifyOnSpawn = this.modifyOnSpawn;
 
         await preset.update(update);
       }
@@ -2121,6 +2155,7 @@ class PresetConfig extends FormApplication {
         if (this.data) update.data = this.data;
         if (this.addSubtract) update.addSubtract = this.addSubtract;
         if (this.randomize) update.randomize = this.randomize;
+        if (this.modifyOnSpawn) update.modifyOnSpawn = this.modifyOnSpawn;
 
         await preset.update(update);
       }
@@ -2138,33 +2173,27 @@ class PresetConfig extends FormApplication {
   }
 }
 
-class PresetFieldDelete extends FormApplication {
-  static name = 'PresetFieldDelete';
+class PresetFieldSelect extends FormApplication {
+  static name = 'PresetFieldSelect';
 
   constructor(data, callback) {
     super();
     this.presetData = data;
     this.isObject = !(data instanceof Array);
-    this.singleData = !this.isObject && data.length === 1;
     this.callback = callback;
   }
 
   /** @inheritdoc */
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
-      classes: ['sheet', 'preset-field-delete'],
-      template: `modules/${MODULE_ID}/templates/preset/presetFieldDelete.html`,
+      classes: ['sheet', 'preset-field-select'],
+      template: `modules/${MODULE_ID}/templates/preset/presetFieldSelect.html`,
       width: 600,
       resizable: false,
     });
   }
 
   /* -------------------------------------------- */
-
-  /** @override */
-  get title() {
-    return localize('presets.select-fields');
-  }
 
   activateListeners(html) {
     super.activateListeners(html);
@@ -2177,33 +2206,60 @@ class PresetFieldDelete extends FormApplication {
 
   /** @override */
   async getData(options = {}) {
-    let data;
-    if (this.singleData) {
-      data = this.presetData[0];
-    } else {
-      data = this.presetData;
-    }
-    data = foundry.utils.flattenObject(data);
+    let data = foundry.utils.flattenObject(this.presetData);
 
+    const singleData = !this.isObject && this.presetData.length === 1;
+
+    let index;
     let fields = [];
     for (const [k, v] of Object.entries(data)) {
-      fields.push({ name: k, value: JSON.stringify(v) });
+      if (!singleData) {
+        const i = k.split('.')[0];
+        if (!index) {
+          fields.push({ header: true, index: 0 });
+        } else if (i !== index) {
+          fields.push({ header: true, index: i });
+        }
+        index = i;
+      }
+
+      let label = k;
+      if (singleData) label = label.substring(label.indexOf('.') + 1);
+
+      let value;
+      const t = foundry.utils.getType(v);
+      if (t === 'Object' || t === 'Array' || t === 'null') value = JSON.stringify(v);
+      else value = v;
+
+      fields.push({ name: k, label, value, selected: false });
     }
 
     return { fields };
+  }
+}
+
+class PresetFieldDelete extends PresetFieldSelect {
+  static name = 'PresetFieldDelete';
+
+  /* -------------------------------------------- */
+
+  /** @override */
+  get title() {
+    return localize('presets.select-delete');
+  }
+
+  /** @override */
+  async getData(options = {}) {
+    const data = await super.getData(options);
+    data.button = { icon: '<i class="fas fa-trash"></i>', text: localize('common.delete') };
+    return data;
   }
 
   /* -------------------------------------------- */
 
   /** @override */
   async _updateObject(event, formData) {
-    let data;
-    if (this.singleData) {
-      data = this.presetData[0];
-    } else {
-      data = this.presetData;
-    }
-    data = foundry.utils.flattenObject(data);
+    let data = foundry.utils.flattenObject(this.presetData);
 
     const form = $(event.target).closest('form');
     form.find('.item.selected').each(function () {
@@ -2212,9 +2268,7 @@ class PresetFieldDelete extends FormApplication {
     });
     data = expandObject(data);
 
-    if (this.singleData) {
-      data = [data];
-    } else if (!this.isObject) {
+    if (!this.isObject) {
       let reorganizedData = [];
       for (let i = 0; i < this.presetData.length; i++) {
         if (!data[i]) continue;
@@ -2224,6 +2278,46 @@ class PresetFieldDelete extends FormApplication {
     }
 
     this.callback(data);
+  }
+}
+
+class PresetFieldModify extends PresetFieldSelect {
+  static name = 'PresetFieldModify';
+
+  constructor(data, callback, modifyOnSpawn) {
+    super(data, callback);
+    this.modifyOnSpawn = modifyOnSpawn ?? [];
+  }
+
+  /* -------------------------------------------- */
+
+  /** @override */
+  get title() {
+    return localize('presets.select-modify');
+  }
+
+  /** @override */
+  async getData(options = {}) {
+    const data = await super.getData(options);
+    data.button = { icon: '<i class="fas fa-check"></i>', text: localize('CONTROLS.CommonSelect', false) };
+    for (const field of data.fields) {
+      if (this.modifyOnSpawn.includes(field.name)) field.selected = true;
+    }
+    return data;
+  }
+
+  /* -------------------------------------------- */
+
+  /** @override */
+  async _updateObject(event, formData) {
+    const form = $(event.target).closest('form');
+    const modifyOnSpawn = [];
+    form.find('.item.selected').each(function () {
+      let name = $(this).attr('name');
+      modifyOnSpawn.push(name);
+    });
+
+    this.callback(modifyOnSpawn);
   }
 }
 
@@ -2523,4 +2617,52 @@ function scaleDataToGrid(data, documentName, gridSize) {
         break;
     }
   }
+}
+
+/**
+ * Opens a GenericMassEdit form to modify specific fields within the provided data
+ * @param {Object} data            data to be modified
+ * @param {Array[String]} toModify fields within data to be modified
+ * @returns modified data or null if form was canceled
+ */
+async function modifySpawnData(data, toModify) {
+  const fields = {};
+  const flatData = foundry.utils.flattenObject(data);
+  for (const field of toModify) {
+    if (field in flatData) {
+      if (flatData[field] == null) fields[field] = '';
+      else fields[field] = flatData[field];
+    }
+  }
+
+  if (!foundry.utils.isEmpty(fields)) {
+    await new Promise((resolve) => {
+      showGenericForm(fields, 'PresetFieldModify', {
+        callback: (modified) => {
+          if (foundry.utils.isEmpty(modified)) {
+            if (modified == null) data = null;
+            resolve();
+            return;
+          }
+
+          for (const [k, v] of Object.entries(modified)) {
+            flatData[k] = v;
+          }
+
+          const tmpData = foundry.utils.expandObject(flatData);
+
+          const reorganizedData = [];
+          for (let i = 0; i < data.length; i++) {
+            reorganizedData.push(tmpData[i]);
+          }
+          data = reorganizedData;
+          resolve();
+        },
+        simplified: true,
+        noTabs: true,
+      });
+    });
+  }
+
+  return data;
 }

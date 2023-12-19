@@ -808,24 +808,26 @@ export const WithMassConfig = (docName = 'NONE') => {
           });
       }
 
-      // Open Preset form
-      buttons.unshift({
-        label: '',
-        class: 'mass-edit-presets',
-        icon: 'fas fa-box',
-        onclick: () => {
-          this.linkedPresetForm = new MassEditPresets(
-            this,
-            async (preset) => this._processPreset(preset),
-            this.docName,
-            {
-              left: this.position.left - 370,
-              top: this.position.top,
-            }
-          );
-          this.linkedPresetForm.render(true);
-        },
-      });
+      if (!this.options.simplified) {
+        // Open Preset form
+        buttons.unshift({
+          label: '',
+          class: 'mass-edit-presets',
+          icon: 'fas fa-box',
+          onclick: () => {
+            this.linkedPresetForm = new MassEditPresets(
+              this,
+              async (preset) => this._processPreset(preset),
+              this.docName,
+              {
+                left: this.position.left - 370,
+                top: this.position.top,
+              }
+            );
+            this.linkedPresetForm.render(true);
+          },
+        });
+      }
 
       // Apply JSON data onto the form
       buttons.unshift({
