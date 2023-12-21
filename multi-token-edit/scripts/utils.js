@@ -715,13 +715,19 @@ export function localFormat(path, insert, moduleLocalization = true) {
 export async function applyPresetToScene(preset) {
   if (preset && canvas.scene) {
     const data = foundry.utils.flattenObject(preset.data[0]);
+
+    const randomizer = preset.randomize;
+    if (!foundry.utils.isEmpty(randomizer)) {
+      await applyRandomization([data], null, randomizer);
+    }
+
     await canvas.scene.update(data);
 
     // Grid doesn't redraw on scene update, do it manually here
     if ('grid.color' in data || 'grid.alpha' in data) {
       canvas.grid.grid.draw({
-        color: data['grid.color'].replace('#', '0x'),
-        alpha: Number(data['grid.alpha']),
+        color: (data['grid.color'] ?? canvas.scene.grid.color).replace('#', '0x'),
+        alpha: Number(data['grid.alpha'] ?? canvas.scene.grid.alpha),
       });
     }
   }
