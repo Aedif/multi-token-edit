@@ -1,3 +1,8 @@
+# 1.53.0
+
+- Presets can now be dragged onto Mass Edit form to apply them to it
+- Scene presets can be double-clicked or dragged out to apply them to the current scene
+
 # 1.52.0
 
 **Presets**

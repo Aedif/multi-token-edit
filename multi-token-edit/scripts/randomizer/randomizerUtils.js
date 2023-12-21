@@ -151,7 +151,6 @@ export async function applyRandomization(updates, objects, randomizeFields) {
                 if (tex) {
                   const tileRatio = width / height;
                   const texRatio = tex.width / tex.height;
-                  console.log('width', width, 'height', height, 'tileRatio', tileRatio);
                   if (texRatio !== tileRatio) {
                     if (texRatio > tileRatio) {
                       update['texture.scaleX'] = 1;
@@ -161,27 +160,10 @@ export async function applyRandomization(updates, objects, randomizeFields) {
                       update['texture.scaleY'] = 1;
                     }
                   }
-                  console.log(update);
-
-                  // if (texRatio > tileRatio) {
-                  //   update['texture.scaleX'] = 1 - (tileRatio - texRatio);
-                  // } else if (tileRatio > texRatio) {
-                  //   update['texture.scaleX'] = tileRatio - texRatio;
-                  // }
                 }
-                /**
-                 * w/h = 1000 500
-                 * tw/th = 1000 1000
-                 *
-                 *
-                 *
-                 *
-                 *
-                 */
               } catch (e) {}
             }
           }
-          console.log(obj);
         } else if (obj.type === 'text') {
           if (obj.method === 'findAndReplace' || obj.method === 'findAndReplaceRegex') {
             if (objects) {

@@ -19,6 +19,7 @@ import { MassEditGenericForm } from './applications/generic/genericForm.js';
 import {
   activeEffectPresetSelect,
   applyAddSubtract,
+  applyPresetToScene,
   createDocuments,
   flagCompare,
   getDocumentName,
@@ -335,24 +336,7 @@ Hooks.once('init', () => {
         app.close(true);
         return;
       }
-      new MassEditPresets(
-        null,
-        async (preset) => {
-          if (preset && canvas.scene) {
-            const data = foundry.utils.flattenObject(preset.data[0]);
-            await canvas.scene.update(data);
-
-            // Grid doesn't redraw on scene update, do it manually here
-            if ('grid.color' in data || 'grid.alpha' in data) {
-              canvas.grid.grid.draw({
-                color: data['grid.color'].replace('#', '0x'),
-                alpha: Number(data['grid.alpha']),
-              });
-            }
-          }
-        },
-        'Scene'
-      ).render(true);
+      new MassEditPresets(null, null, 'Scene').render(true);
     },
     restricted: true,
     precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,

@@ -7,6 +7,7 @@ import {
   Picker,
   SUPPORTED_PLACEABLES,
   UI_DOCS,
+  applyPresetToScene,
   createDocuments,
   localFormat,
   localize,
@@ -898,7 +899,7 @@ export class MassEditPresets extends FormApplication {
     this.dragData = null;
     this.draggedElements = null;
 
-    if (!configApp) {
+    if (!configApp && UI_DOCS.includes(docName)) {
       const docLock = game.settings.get(MODULE_ID, 'presetDocLock');
       this.docName = docLock || docName;
     } else {
@@ -914,7 +915,6 @@ export class MassEditPresets extends FormApplication {
       template: `modules/${MODULE_ID}/templates/preset/presets.html`,
       resizable: true,
       minimizable: false,
-      title: `Presets`,
       width: 350,
       height: 900,
       scrollY: ['ol.item-list'],
@@ -922,7 +922,10 @@ export class MassEditPresets extends FormApplication {
   }
 
   get title() {
-    return localize('common.presets');
+    let title = localize('common.presets');
+    if (!UI_DOCS.includes(this.docName)) title += ` [${this.docName}]`;
+    else title += ` [${localize('common.placeable')}]`;
+    return title;
   }
 
   async getData(options) {
@@ -1256,13 +1259,22 @@ export class MassEditPresets extends FormApplication {
   }
 
   async _onDoubleClickPreset(event) {
-    if (!UI_DOCS.includes(this.docName)) return;
-
     const uuid = $(event.target).closest('.item').data('uuid');
     if (!uuid) return;
-    ui.notifications.info(`Mass Edit: ${localize('presets.spawning')}`);
+
+    const preset = await PresetAPI.getPreset({ uuid });
+    if (!preset) return;
+
+    if (preset.documentName === 'Scene') {
+      ui.notifications.info(`Mass Edit: ${localize('common.apply')} [${preset.name}]`);
+      applyPresetToScene(preset);
+    }
+
+    if (!SUPPORTED_PLACEABLES.includes(preset.documentName)) return;
+
+    ui.notifications.info(`Mass Edit: ${localize('presets.spawning')} [${preset.name}]`);
     PresetAPI.spawnPreset({
-      uuid,
+      preset,
       coordPicker: true,
       taPreview: 'ALL',
       layerSwitch: game.settings.get(MODULE_ID, 'presetLayerSwitch'),
@@ -1716,14 +1728,22 @@ export class MassEditPresets extends FormApplication {
   }
 
   async _onPresetDragOut(event) {
-    if (!UI_DOCS.includes(this.docName)) return;
-
     const uuid = $(event.originalEvent.target).closest('.item').data('uuid');
     const preset = await PresetCollection.get(uuid);
     if (!preset) return;
 
-    if (game.settings.get(MODULE_ID, 'presetLayerSwitch'))
-      canvas.getLayerByEmbeddedName(preset.documentName === 'Actor' ? 'Token' : preset.documentName)?.activate();
+    // If released on top of a Mass Edit form, apply the preset to it instead of spawning it
+    const form = hoverMassEditForm(event.pageX, event.pageY, preset.documentName);
+    if (form) {
+      form._applyPreset(preset);
+      return;
+    }
+
+    // If it's a scene preset apply it to the currently active scene
+    if (preset.documentName === 'Scene') {
+      applyPresetToScene(preset);
+      return;
+    }
 
     // For some reason canvas.mousePosition does not get updated during drag and drop
     // Acquire the cursor position transformed to Canvas coordinates
@@ -1731,6 +1751,8 @@ export class MassEditPresets extends FormApplication {
     const t = canvas.stage.worldTransform;
     let mouseX = (x - t.tx) / canvas.stage.scale.x;
     let mouseY = (y - t.ty) / canvas.stage.scale.y;
+
+    if (!SUPPORTED_PLACEABLES.includes(preset.documentName)) return;
 
     if (preset.documentName === 'Token' || preset.documentName === 'Tile') {
       mouseX -= canvas.dimensions.size / 2;
@@ -2596,8 +2618,6 @@ function scaleDataToGrid(data, documentName, gridSize) {
 
   const ratio = canvas.grid.size / gridSize;
 
-  console.log(data, documentName, gridSize);
-
   for (const d of data) {
     switch (documentName) {
       case 'Tile':
@@ -2665,4 +2685,25 @@ async function modifySpawnData(data, toModify) {
   }
 
   return data;
+}
+
+/**
+ * Return Mass Edit form that the mouse is over if any
+ * @param {Number} mouseX
+ * @param {Number} mouseY
+ * @param {String} documentName
+ * @returns {Application|null} MassEdit form
+ */
+function hoverMassEditForm(mouseX, mouseY, documentName) {
+  const hitTest = function (app) {
+    const position = app.position;
+    const appX = position.left;
+    const appY = position.top;
+
+    if (mouseX > appX && mouseX < appX + position.width && mouseY > appY && mouseY < appY + position.height)
+      return true;
+    return false;
+  };
+
+  return Object.values(ui.windows).find((app) => app.meForm && app.documentName === documentName && hitTest(app));
 }

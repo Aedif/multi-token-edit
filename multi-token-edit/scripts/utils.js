@@ -711,3 +711,18 @@ export function localFormat(path, insert, moduleLocalization = true) {
   if (moduleLocalization) return game.i18n.format(`MassEdit.${path}`, insert);
   return game.i18n.format(path, insert);
 }
+
+export async function applyPresetToScene(preset) {
+  if (preset && canvas.scene) {
+    const data = foundry.utils.flattenObject(preset.data[0]);
+    await canvas.scene.update(data);
+
+    // Grid doesn't redraw on scene update, do it manually here
+    if ('grid.color' in data || 'grid.alpha' in data) {
+      canvas.grid.grid.draw({
+        color: data['grid.color'].replace('#', '0x'),
+        alpha: Number(data['grid.alpha']),
+      });
+    }
+  }
+}

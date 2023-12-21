@@ -50,6 +50,7 @@ export const WithMassEditForm = (cls) => {
 
       this.randomizeFields = {};
       this.addSubtractFields = {};
+      this.meForm = true;
     }
 
     async getData(options) {
