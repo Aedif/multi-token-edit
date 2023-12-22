@@ -816,15 +816,10 @@ export const WithMassConfig = (docName = 'NONE') => {
           class: 'mass-edit-presets',
           icon: 'fas fa-box',
           onclick: () => {
-            this.linkedPresetForm = new MassEditPresets(
-              this,
-              async (preset) => this._processPreset(preset),
-              this.docName,
-              {
-                left: this.position.left - 370,
-                top: this.position.top,
-              }
-            );
+            this.linkedPresetForm = new MassEditPresets(this, null, this.docName, {
+              left: this.position.left - 370,
+              top: this.position.top,
+            });
             this.linkedPresetForm.render(true);
           },
         });
@@ -1504,7 +1499,9 @@ export function copyToClipboard(preset, command, isPrototype) {
   }
 
   // Also copy the fields to the game clipboard as plain text
-  game.clipboard.copyPlainText(JSON.stringify(foundry.utils.deepClone(preset.data[0]), null, 2));
+  game.clipboard.copyPlainText(
+    JSON.stringify(foundry.utils.deepClone(preset.data.length === 1 ? preset.data[0] : preset.data), null, 2)
+  );
 
   ui.notifications.info(
     localFormat('clipboard.copy', {

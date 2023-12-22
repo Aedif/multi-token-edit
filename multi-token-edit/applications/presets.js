@@ -1323,6 +1323,12 @@ export class MassEditPresets extends FormApplication {
         callback: (item) => this._onCopySelectedPresets(null, { keepFolder: true, keepId: false }),
       },
       {
+        name: localize('presets.copy-to-clipboard'),
+        icon: '<i class="fa-solid fa-copy"></i>',
+        condition: (item) => $(this.form).find('.item-list').find('.item.selected').length === 1,
+        callback: (item) => this._onCopyPresetToClipboard(),
+      },
+      {
         name: localize('presets.export-as-json'),
         icon: '<i class="fas fa-file-export fa-fw"></i>',
         callback: (item) => this._onExportSelectedPresets(),
@@ -1331,12 +1337,6 @@ export class MassEditPresets extends FormApplication {
         name: localize('presets.export-to-compendium'),
         icon: '<i class="fas fa-file-export fa-fw"></i>',
         callback: (item) => this._onExportSelectedPresetsToComp(),
-      },
-      {
-        name: localize('presets.copy-to-clipboard'),
-        icon: '<i class="fa-solid fa-copy"></i>',
-        condition: (item) => $(this.form).find('.item-list').find('.item.selected').length === 1,
-        callback: (item) => this._onCopyPresetToClipboard(),
       },
       {
         name: localize('CONTROLS.CommonDelete', false),

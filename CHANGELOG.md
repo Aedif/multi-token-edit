@@ -1,3 +1,10 @@
+# 1.54.0
+
+- Brush once activated will now swap to the new preset if another is selected
+- Fixed a bug causing the brush to lose track of mouse up/down positions
+- New context menu option: `Copy to CLipboard`
+  - Copies selected preset's data to the clipboard which can then be pasted as plain text or onto selected placeables via `Ctrl+V`
+
 # 1.53.0
 
 - Presets can now be dragged onto Mass Edit form to apply them to it
