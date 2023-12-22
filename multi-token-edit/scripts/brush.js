@@ -54,13 +54,11 @@ export class Brush {
   }
 
   static _onBrushMove(event) {
-    if (this.brushOverlay.isMouseDown) {
-      const pos = event.data.getLocalPosition(this.brushOverlay);
-      const layer = canvas.getLayerByEmbeddedName(this.documentName);
-      for (const p of layer.placeables) {
-        if (p.visible && this.hitTest(pos, p) && !this.updatedPlaceables.find((u) => u.id === p.id)) {
-          this._performBrushDocumentUpdate(pos, p);
-        }
+    const pos = event.data.getLocalPosition(this.brushOverlay);
+    const layer = canvas.getLayerByEmbeddedName(this.documentName);
+    for (const p of layer.placeables) {
+      if (p.visible && this.hitTest(pos, p) && !this.updatedPlaceables.find((u) => u.id === p.id)) {
+        this._performBrushDocumentUpdate(pos, p);
       }
     }
   }
@@ -146,17 +144,15 @@ export class Brush {
     this.brushOverlay.interactive = true;
     this.brushOverlay.zIndex = Infinity;
 
-    this.brushOverlay.on('mousedown', (event) => {
-      this.brushOverlay.isMouseDown = true;
-    });
     this.brushOverlay.on('mousemove', (event) => {
-      this._onBrushMove(event);
-    });
-    this.brushOverlay.on('mouseup', (event) => {
-      if (event.nativeEvent.which !== 2) {
+      if (event.buttons === 1) {
         this._onBrushMove(event);
       }
-      this.brushOverlay.isMouseDown = false;
+    });
+    this.brushOverlay.on('mouseup', (event) => {
+      if (event.buttons !== 2) {
+        this._onBrushMove(event);
+      }
       this.updatedPlaceables = [];
     });
 

@@ -13,6 +13,7 @@ import {
   localize,
 } from '../scripts/utils.js';
 import { TokenDataAdapter } from './dataAdapters.js';
+import { copyToClipboard } from './forms.js';
 import { showGenericForm, showMassEdit } from './multiConfig.js';
 
 const META_INDEX_FIELDS = ['id', 'img', 'documentName'];
@@ -931,6 +932,9 @@ export class MassEditPresets extends FormApplication {
   async getData(options) {
     const data = super.getData(options);
 
+    // If we're re-rendering deactivate the brush
+    if (this._activeBrush) Brush.deactivate();
+
     // Cache partials
     await getTemplate(`modules/${MODULE_ID}/templates/preset/preset.html`);
     await getTemplate(`modules/${MODULE_ID}/templates/preset/presetFolder.html`);
@@ -997,8 +1001,9 @@ export class MassEditPresets extends FormApplication {
     const itemList = html.find('.item-list');
 
     // Multi-select
-    html.on('click', '.item', (e) => {
-      itemSelect(e, itemList);
+    html.on('click', '.item', (event) => {
+      itemSelect(event, itemList);
+      if (this._activeBrush) this._toggleBrush(event);
     });
     html.on('dragstart', '.item', (event) => {
       this.dragType = 'item';
@@ -1245,7 +1250,7 @@ export class MassEditPresets extends FormApplication {
     html.find('.create-folder').on('click', this._onCreateFolder.bind(this));
     html.on('click', '.preset-create', this._onPresetCreate.bind(this));
     html.on('click', '.preset-update a', this._onPresetUpdate.bind(this));
-    html.on('click', '.preset-brush', this._onPresetBrush.bind(this));
+    html.on('click', '.preset-brush', this._toggleBrush.bind(this));
     html.on('click', '.preset-callback', this._onApplyPreset.bind(this));
 
     const headerSearch = html.find('.header-search input');
@@ -1295,40 +1300,46 @@ export class MassEditPresets extends FormApplication {
   _getItemContextOptions() {
     return [
       {
-        name: 'Edit',
+        name: localize('CONTROLS.CommonEdit', false),
         icon: '<i class="fas fa-edit"></i>',
         condition: (item) => item.hasClass('editable'),
         callback: (item) => this._onEditSelectedPresets(item),
       },
       {
-        name: 'Open Journal',
+        name: localize('presets.open-journal'),
         icon: '<i class="fas fa-book-open"></i>',
         callback: (item) => this._onOpenJournal(item),
       },
       {
-        name: 'Copy',
+        name: localize('common.copy'),
         icon: '<i class="fa-solid fa-copy"></i>',
         condition: (item) => !item.hasClass('editable'),
         callback: (item) => this._onCopySelectedPresets(),
       },
       {
-        name: 'Duplicate',
+        name: localize('Duplicate', false),
         icon: '<i class="fa-solid fa-copy"></i>',
         condition: (item) => item.hasClass('editable'),
         callback: (item) => this._onCopySelectedPresets(null, { keepFolder: true, keepId: false }),
       },
       {
-        name: 'Export as JSON',
+        name: localize('presets.export-as-json'),
         icon: '<i class="fas fa-file-export fa-fw"></i>',
         callback: (item) => this._onExportSelectedPresets(),
       },
       {
-        name: 'Export to Compendium',
+        name: localize('presets.export-to-compendium'),
         icon: '<i class="fas fa-file-export fa-fw"></i>',
         callback: (item) => this._onExportSelectedPresetsToComp(),
       },
       {
-        name: 'Delete',
+        name: localize('presets.copy-to-clipboard'),
+        icon: '<i class="fa-solid fa-copy"></i>',
+        condition: (item) => $(this.form).find('.item-list').find('.item.selected').length === 1,
+        callback: (item) => this._onCopyPresetToClipboard(),
+      },
+      {
+        name: localize('CONTROLS.CommonDelete', false),
         icon: '<i class="fas fa-trash fa-fw"></i>',
         condition: (item) => item.hasClass('editable'),
         callback: (item) => this._onDeleteSelectedPresets(item),
@@ -1419,6 +1430,11 @@ export class MassEditPresets extends FormApplication {
       await PresetCollection.set(p, pack);
     }
     if (selected.length) this.render(true);
+  }
+
+  async _onCopyPresetToClipboard() {
+    const [selected, _] = await this._getSelectedPresets();
+    if (selected.length) copyToClipboard(selected[0]);
   }
 
   async _getSelectedPresets({ editableOnly = false } = {}) {
@@ -1769,33 +1785,41 @@ export class MassEditPresets extends FormApplication {
     });
   }
 
-  async _onPresetBrush(event) {
-    const uuid = $(event.target).closest('.item').data('uuid');
-    const preset = await PresetCollection.get(uuid);
-    if (preset) {
-      let activated = Brush.activate({
+  async _toggleBrush(event) {
+    const item = $(event.target).closest('.item');
+    const brushControl = item.find('.preset-brush');
+
+    if (brushControl.hasClass('active')) {
+      Brush.deactivate();
+      this._onPresetBrushDeactivate();
+    } else {
+      const uuid = item.data('uuid');
+      const preset = await PresetCollection.get(uuid);
+      if (!preset) {
+        Brush.deactivate();
+        this._onPresetBrushDeactivate();
+        return;
+      }
+
+      if (this._activeBrush) Brush.deactivate();
+
+      const activated = Brush.activate({
         preset,
         deactivateCallback: this._onPresetBrushDeactivate.bind(this),
       });
 
-      const brushControl = $(event.target).closest('.preset-brush');
-      if (brushControl.hasClass('active')) {
-        brushControl.removeClass('active');
+      if (activated) {
+        brushControl.addClass('active').addClass('fa-bounce');
+        this._activeBrush = true;
       } else {
-        $(event.target).closest('form').find('.preset-brush').removeClass('active');
-        if (!activated) {
-          if (Brush.activate({ preset, deactivateCallback: this._onPresetBrushDeactivate.bind(this) })) {
-            brushControl.addClass('active');
-          }
-        } else {
-          brushControl.addClass('active');
-        }
+        this._onPresetBrushDeactivate();
       }
     }
   }
 
   _onPresetBrushDeactivate() {
-    $(this.form).find('.preset-brush').removeClass('active');
+    $(this.form).find('.preset-brush').removeClass('active').removeClass('fa-bounce');
+    this._activeBrush = false;
   }
 
   async close(options = {}) {

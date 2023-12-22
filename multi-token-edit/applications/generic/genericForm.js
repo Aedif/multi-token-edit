@@ -25,7 +25,7 @@ export class MassEditGenericForm extends WMC {
     );
     customControls = foundry.utils.mergeObject(customControls, options.customControls?.[documentName] ?? {});
 
-    const [nav, tabSelectors] = constructNav(allData, documentName, customControls);
+    const [nav, tabSelectors] = constructNav(allData, documentName, customControls, !options.noTabs);
     const commonData = getCommonData(objects);
 
     super(docs[0], docs, {

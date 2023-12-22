@@ -142,7 +142,11 @@
         "layer-switch": "Automatic layer switching.",
         "external-compendiums": "Display external preset compendiums.",
         "scale-to-grid": "Scale Tiles, Drawings, and Walls according to grid size."
-      }
+      },
+      "export-as-json": "Export as JSON",
+      "open-journal": "Open Journal",
+      "export-to-compendium": "Export to Compendium",
+      "copy-to-clipboard": "Copy to Clipboard"
     },
     "css": {
       "pick": "Pick a style:"

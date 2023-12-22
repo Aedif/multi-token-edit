@@ -1,6 +1,6 @@
 import { MODULE_ID, localize } from '../../scripts/utils.js';
 
-export function constructNav(allData, documentName, customControls) {
+export function constructNav(allData, documentName, customControls, pins = true) {
   const nav = {
     dataGroup: 'main',
     items: [],
@@ -26,14 +26,14 @@ export function constructNav(allData, documentName, customControls) {
 
   const pinned = documentName ? game.settings.get(MODULE_ID, 'pinnedFields')[documentName] || {} : {};
 
-  _constructControls(nav, object, tabSelectors, '', pinned, customControls);
+  _constructControls(nav, object, tabSelectors, '', pinned, customControls, pins);
 
   const pinned_groups = [];
   const flatObject = foundry.utils.flattenObject(object);
   for (const [k, v] of Object.entries(pinned)) {
     const value = k in flatObject ? flatObject[k] : v.value;
 
-    let control = genControl(foundry.utils.getType(value), v.label, value, k, {}, true, customControls);
+    let control = genControl(foundry.utils.getType(value), v.label, value, k, {}, true, customControls, pins);
     control.pinned = true;
     pinned_groups.push(control);
   }
@@ -57,7 +57,7 @@ export function constructNav(allData, documentName, customControls) {
   return [nav, tabSelectors];
 }
 
-function _constructControls(nav, data, tabSelectors, name, pinned, customControls) {
+function _constructControls(nav, data, tabSelectors, name, pinned, customControls, pins) {
   const groups = [];
   let containsNav = false;
   for (const [k, v] of Object.entries(data)) {
@@ -75,11 +75,11 @@ function _constructControls(nav, data, tabSelectors, name, pinned, customControl
             contentSelector: `.tab[data-tab="${name2}"]`,
             initial: k + '-me-main',
           });
-          _constructControls(newNav, v, tabSelectors, name2, pinned, customControls);
+          _constructControls(newNav, v, tabSelectors, name2, pinned, customControls, pins);
           containsNav = true;
         }
       } else {
-        control = genControl(t, _genLabel(k), v, name2, pinned, false, customControls);
+        control = genControl(t, _genLabel(k), v, name2, pinned, false, customControls, pins);
       }
       if (control) {
         groups.push(control);
@@ -126,10 +126,10 @@ export function isColorField(name) {
   return COLOR_FIELDS.includes(name) || name.toLowerCase().includes('color');
 }
 
-function genControl(type, label, value, name, pinned, editableLabel = false, customControls = {}) {
+function genControl(type, label, value, name, pinned, editableLabel = false, customControls = {}, pins) {
   const allowedArrayElTypes = ['number', 'string'];
 
-  let control = { label: label, value, name, editableLabel };
+  let control = { label: label, value, name, editableLabel, pins };
   // if (name === 'animated.intensity.animType') {
   //   console.log(name, customControls, customControls[name]);
   // }
