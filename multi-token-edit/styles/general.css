@@ -218,7 +218,6 @@
   line-height: 48px;
   border-top: 1px solid dimgray;
   box-shadow: none;
-  margin-right: 3px;
   position: relative;
 }
 
@@ -228,10 +227,12 @@
   box-shadow: none;
   margin-right: 3px;
   position: relative;
+  margin-top: 1px;
 }
 
 .mass-edit-preset-form .preset-items {
   padding: 0;
+  margin: 0;
   /* min-height: 15px; */
 }
 
@@ -240,6 +241,7 @@
   padding-left: 2px;
   margin-top: 1px;
   padding: 0;
+  margin: 0;
 }
 
 .mass-edit-preset-form .folder {
@@ -303,7 +305,8 @@
 }
 
 .mass-edit-preset-form .folder .item {
-  margin-left: 5px;
+  margin-left: 2px;
+  margin-right: 0px;
 }
 
 .mass-edit-preset-form .folder.collapsed > ol {
@@ -339,7 +342,6 @@
 }
 
 .mass-edit-preset-form .item.item-s.selected {
-  border-color: orange;
   background: linear-gradient(#f005, #f005), linear-gradient(#0f05, #0f05);
 }
 

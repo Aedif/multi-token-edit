@@ -660,14 +660,14 @@ export class PresetAPI {
 
       // Preset data before merging with user provided
       const defPreset = {
-        name: 'New Preset',
+        name: localize('presets.default-name'),
         documentName: docName,
         data: data,
       };
 
+      // Assign preset image
       switch (defPreset.documentName) {
         case 'Token':
-          defPreset.name = data[0].name;
         case 'Tile':
         case 'Note':
           defPreset.img = data[0].texture.src;
@@ -683,6 +683,17 @@ export class PresetAPI {
           break;
         case 'MeasuredTemplate':
           defPreset.img = 'icons/svg/circle.svg';
+          break;
+      }
+
+      //  Assign preset name
+      switch (defPreset.documentName) {
+        case 'Token':
+          defPreset.name = data[0].name;
+          break;
+        default:
+          const taggerTag = data[0].flags?.tagger?.tags?.[0];
+          if (taggerTag) defPreset.name = taggerTag;
           break;
       }
 
@@ -1226,19 +1237,6 @@ export class MassEditPresets extends FormApplication {
     // End of Folder Listeners
     // ================
 
-    // const form = html.closest('.mass-edit-preset-form');
-
-    // form.on('dragover', (event) => {
-    //   console.log('FORM DRAGOVER', event);
-    // });
-
-    // form.on('drop', (event) => {
-    //   const data = TextEditor.getDragEventData(event.originalEvent);
-    //   if (data.type === 'Actor') {
-    //     console.log(data.uuid);
-    //   }
-    // });
-
     html.find('.toggle-sort').on('click', this._onToggleSort.bind(this));
     html.find('.toggle-doc-lock').on('click', this._onToggleLock.bind(this));
     html.find('.toggle-ext-comp').on('click', this._onToggleExtComp.bind(this));
@@ -1311,12 +1309,6 @@ export class MassEditPresets extends FormApplication {
         callback: (item) => this._onOpenJournal(item),
       },
       {
-        name: localize('common.copy'),
-        icon: '<i class="fa-solid fa-copy"></i>',
-        condition: (item) => !item.hasClass('editable'),
-        callback: (item) => this._onCopySelectedPresets(),
-      },
-      {
         name: localize('Duplicate', false),
         icon: '<i class="fa-solid fa-copy"></i>',
         condition: (item) => item.hasClass('editable'),
@@ -1361,12 +1353,6 @@ export class MassEditPresets extends FormApplication {
         callback: (header) => this._onExportFolder(header.closest('.folder').data('uuid')),
       },
       {
-        name: 'Copy',
-        icon: '<i class="fa-solid fa-copy"></i>',
-        condition: (header) => !header.closest('.folder').hasClass('editable'),
-        callback: (header) => this._onCopyFolder(header.closest('.folder').data('uuid')),
-      },
-      {
         name: 'Delete',
         icon: '<i class="fas fa-trash fa-fw"></i>',
         condition: (header) => header.closest('.folder').hasClass('editable'),
@@ -1376,11 +1362,13 @@ export class MassEditPresets extends FormApplication {
   }
 
   async _onExportFolder(uuid) {
-    let pack = await new Promise((resolve) => getCompendiumDialog(resolve, { exportTo: true }));
-    if (pack) this._onCopyFolder(uuid, null, pack);
+    let { pack, keepId } = await new Promise((resolve) =>
+      getCompendiumDialog(resolve, { exportTo: true, keepIdSelect: true })
+    );
+    if (pack) this._onCopyFolder(uuid, null, pack, true, keepId);
   }
 
-  async _onCopyFolder(uuid, parentId = null, pack, render = true) {
+  async _onCopyFolder(uuid, parentId = null, pack, render = true, keepId = true) {
     if (!pack) pack = PresetCollection.workingPack;
 
     const folder = this.tree.allFolders.get(uuid);
@@ -1403,13 +1391,14 @@ export class MassEditPresets extends FormApplication {
       const nFolder = await Folder.create(data, { pack });
 
       for (const preset of folder.presets) {
-        const p = await preset.load();
+        const p = (await preset.load()).clone();
         p.folder = nFolder.id;
+        if (!keepId) p.id = foundry.utils.randomID();
         await PresetCollection.set(p, pack);
       }
 
       for (const child of folder.children) {
-        await this._onCopyFolder(child.uuid, nFolder.id, pack, false);
+        await this._onCopyFolder(child.uuid, nFolder.id, pack, false, keepId);
       }
 
       if (render) this.render(true);
@@ -1417,8 +1406,10 @@ export class MassEditPresets extends FormApplication {
   }
 
   async _onExportSelectedPresetsToComp() {
-    let pack = await new Promise((resolve) => getCompendiumDialog(resolve, { exportTo: true }));
-    if (pack) this._onCopySelectedPresets(pack);
+    let { pack, keepId } = await new Promise((resolve) =>
+      getCompendiumDialog(resolve, { exportTo: true, keepIdSelect: true })
+    );
+    if (pack) this._onCopySelectedPresets(pack, { keepId });
   }
 
   async _onCopySelectedPresets(pack, { keepFolder = false, keepId = true } = {}) {
@@ -1923,9 +1914,7 @@ export class MassEditPresets extends FormApplication {
   }
 
   async _onWorkingPackChange() {
-    let pack = await new Promise((resolve) =>
-      getCompendiumDialog(resolve, { preselectPack: PresetCollection.workingPack })
-    );
+    let pack = await new Promise((resolve) => getCompendiumDialog(resolve, {}));
     if (pack && pack !== PresetCollection.workingPack) {
       await game.settings.set(MODULE_ID, 'workingPack', pack);
       this.render(true);
@@ -2478,7 +2467,7 @@ function checkMouseInWindow(event) {
   return false;
 }
 
-function getCompendiumDialog(resolve, { exportTo = false, preselectPack = '' } = {}) {
+function getCompendiumDialog(resolve, { excludePack, exportTo = false, keepIdSelect = false } = {}) {
   let config;
   if (exportTo) {
     config = {
@@ -2497,9 +2486,9 @@ function getCompendiumDialog(resolve, { exportTo = false, preselectPack = '' } =
   let options = '';
   for (const p of game.packs) {
     if (!p.locked && p.documentName === 'JournalEntry') {
-      options += `<option value="${p.collection}" ${preselectPack === p.collection ? 'selected="selected"' : ''}>${
-        p.title
-      }</option>`;
+      if (p.collection === excludePack) continue;
+      const workingPack = p.collection === PresetCollection.workingPack;
+      options += `<option value="${p.collection}" ${workingPack ? 'selected="selected"' : ''}>${p.title}</option>`;
     }
   }
 
@@ -2512,20 +2501,33 @@ function getCompendiumDialog(resolve, { exportTo = false, preselectPack = '' } =
     </div>
   </div>`;
 
+  if (keepIdSelect) {
+    content += `
+<div class="form-group">
+    <label>${localize('presets.keep-preset-ids')}</label>
+    <input type="checkbox" name="keepId">
+    <p style="font-size: smaller;">${localize('presets.keep-preset-ids-hint')}</p>
+</div>`;
+  }
+
   new Dialog({
     title: config.title,
     content: content,
     buttons: {
       export: {
         label: config.buttonLabel,
-        callback: (html) => resolve($(html).find('select').val()),
+        callback: (html) => {
+          const pack = $(html).find('select').val();
+          if (keepIdSelect) resolve({ pack, keepId: $(html).find('[name="keepId"]').is(':checked') });
+          else resolve(pack);
+        },
       },
       cancel: {
         label: localize('Cancel', false),
-        callback: () => resolve(null),
+        callback: () => resolve(keepIdSelect ? {} : null),
       },
     },
-    close: () => resolve(null),
+    close: () => resolve(keepIdSelect ? {} : null),
     default: 'cancel',
   }).render(true);
 }

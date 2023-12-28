@@ -1,3 +1,14 @@
+# 1.54.1
+
+**Presets**
+
+- Made the Preset window a little more compact
+- Fixed a visual bug causing context menu to get hidden before reaching the bottom of the form
+- Removed `Copy` context option in external compendiums as same result can be produced by using the `Export to Compendium` option and choosing the current working compendium
+- `Export to Compendium` dialog now has a `Keep Preset IDs` option
+  - When enabled exported presets will keep their IDs and will override any previously exported presets with the same IDs
+- On preset create instead of `New Preset`, the first `Tagger` module's tag will be used as the preset's name instead if one has been assigned
+
 # 1.54.0
 
 - Brush once activated will now swap to the new preset if another is selected

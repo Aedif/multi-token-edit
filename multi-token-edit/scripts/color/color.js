@@ -2419,7 +2419,6 @@ function deltaECMC(color, sample, { l = 2, c = 1 } = {}) {
   // By Georg A. Klein
 
   // let ΔH = ((a1 * b2) - (a2 * b1)) / Math.sqrt(0.5 * ((C2 * C1) + (a2 * a1) + (b2 * b1)));
-  // console.log({ΔH});
   // This gives the same result to 12 decimal places
   // except it sometimes NaNs when trying to root a negative number
 
@@ -2449,7 +2448,6 @@ function deltaECMC(color, sample, { l = 2, c = 1 } = {}) {
   } else {
     T = 0.36 + Math.abs(0.4 * Math.cos((H1 + 35) * d2r));
   }
-  // console.log({T});
 
   // SH Hue factor also depends on C1,
   let C4 = Math.pow(C1, 4);
@@ -2579,7 +2577,6 @@ var Jzazbz = new ColorSpace({
 
     // almost there, calculate Iz az bz
     let [Iz, az, bz] = multiplyMatrices(ConetoIab_M, PQLMS);
-    // console.log({Iz, az, bz});
 
     let Jz = ((1 + d) * Iz) / (1 + d * Iz) - d0;
     return [Jz, az, bz];
@@ -3663,11 +3660,9 @@ function adapt(W1, W2, id = 'Bradford') {
     [0, γd / γs, 0],
     [0, 0, βd / βs],
   ];
-  // console.log({scale});
 
   let scaled_cone_M = multiplyMatrices(scale, method.toCone_M);
   let adapt_M = multiplyMatrices(method.fromCone_M, scaled_cone_M);
-  // console.log({scaled_cone_M, adapt_M});
   return adapt_M;
 }
 defineCAT({
