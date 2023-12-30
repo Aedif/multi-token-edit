@@ -1,4 +1,12 @@
-# 1.54.1
+# 1.56.0
+
+- Header now sticks to the top of the window instead of scrolling with the presets
+- Search mode can now be toggled between `Presets` and `Presets & Folders`
+  - `Presets` - Displays only presets with matching names
+  - `Presets & Folders` - Displays presets and folders with matching names
+- Search bar will now be highlighted if text has been entered
+
+# 1.55.0
 
 **Presets**
 
