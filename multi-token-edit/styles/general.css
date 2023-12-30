@@ -184,6 +184,12 @@
   background: rgba(255, 255, 245, 0.8);
 }
 
+.mass-edit-preset-form .preset-header .header-search input.active {
+  background-color: orange;
+  color: black;
+  font-weight: 500;
+}
+
 .mass-edit-preset-form .preset-header .active {
   color: darkorange;
 }

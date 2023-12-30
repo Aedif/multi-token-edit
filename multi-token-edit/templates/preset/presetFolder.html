@@ -1,4 +1,4 @@
-<li class="folder {{#unless folder.expanded}}collapsed{{/unless}} {{#if editable}}editable{{/if}}" data-id="{{folder.id}}" data-uuid="{{folder.uuid}}" style="border-color: {{folder.color}};" {{#if draggable}}draggable="true"{{/if}}>
+<li class="folder {{#unless folder.expanded}}collapsed{{/unless}} {{#if editable}}editable{{/if}}" data-id="{{folder.id}}" data-uuid="{{folder.uuid}}" data-name="{{folder.name}}" style="border-color: {{folder.color}};" {{#if draggable}}draggable="true"{{/if}}>
     <header class="handle flexrow" style="background-color: {{folder.color}};"><h3><i class="fas fa-folder-{{#if folder.expanded}}open{{else}}closed{{/if}} fa-fw"></i>{{folder.name}}</h3></header>
     <ol class="folder-items">
         {{#each children as |child|}}

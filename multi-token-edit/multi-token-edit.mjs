@@ -162,6 +162,15 @@ Hooks.once('init', () => {
     default: 'manual',
   });
 
+  // p = preset only
+  // pf = preset & folder
+  game.settings.register(MODULE_ID, 'presetSearchMode', {
+    scope: 'world',
+    config: false,
+    type: String,
+    default: 'pf',
+  });
+
   game.settings.register(MODULE_ID, 'presetSceneControl', {
     name: 'Scene Controls: Preset Button',
     scope: 'world',

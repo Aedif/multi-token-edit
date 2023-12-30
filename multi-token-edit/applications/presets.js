@@ -898,6 +898,21 @@ const SORT_MODES = {
   },
 };
 
+const SEARCH_MODES = {
+  p: {
+    get tooltip() {
+      return 'Search Presets';
+    },
+    icon: '<i class="fas fa-search"></i>',
+  },
+  pf: {
+    get tooltip() {
+      return 'Search Presets & Folders';
+    },
+    icon: '<i class="fa-solid fa-folder-magnifying-glass"></i>',
+  },
+};
+
 export class MassEditPresets extends FormApplication {
   static objectHover = false;
   static lastSearch;
@@ -965,6 +980,7 @@ export class MassEditPresets extends FormApplication {
     data.scaling = game.settings.get(MODULE_ID, 'presetScaling');
     data.extCompActive = displayExtCompendiums;
     data.sortMode = SORT_MODES[game.settings.get(MODULE_ID, 'presetSortMode')];
+    data.searchMode = SEARCH_MODES[game.settings.get(MODULE_ID, 'presetSearchMode')];
     data.displayDragDropMessage = data.allowDocumentSwap && !(this.tree.presets.length || this.tree.folders.length);
 
     data.lastSearch = MassEditPresets.lastSearch;
@@ -1238,6 +1254,7 @@ export class MassEditPresets extends FormApplication {
     // ================
 
     html.find('.toggle-sort').on('click', this._onToggleSort.bind(this));
+    html.find('.toggle-search-mode').on('click', this._onToggleSearch.bind(this));
     html.find('.toggle-doc-lock').on('click', this._onToggleLock.bind(this));
     html.find('.toggle-ext-comp').on('click', this._onToggleExtComp.bind(this));
     html.find('.toggle-scaling').on('click', this._onToggleScaling.bind(this));
@@ -1538,6 +1555,7 @@ export class MassEditPresets extends FormApplication {
 
     const matchedFolderUuids = new Set();
     const filter = event.target.value.trim().toLowerCase();
+    $(event.target).addClass('active');
 
     // First hide/show items
     const app = this;
@@ -1557,13 +1575,36 @@ export class MassEditPresets extends FormApplication {
       }
     });
 
+    const parentMatchedFolderUuids = new Set();
     // Next hide/show folders depending on whether they contained matched items
     folder.each(function () {
       const folder = $(this);
-      if (matchedFolderUuids.has(folder.data('uuid'))) {
+      const uuid = folder.data('uuid');
+
+      if (matchedFolderUuids.has(uuid)) {
         folder.removeClass('collapsed');
         folder.show();
-      } else {
+      } else if (
+        game.settings.get(MODULE_ID, 'presetSearchMode') === 'pf' &&
+        folder.data('name').toLowerCase().includes(filter)
+      ) {
+        folder.show();
+        if (!game.folders._expanded[uuid]) folder.addClass('collapsed');
+        folder.find('.item').show();
+        folder.find('.folder').each(function () {
+          const folder = $(this);
+          const uuid = folder.data('uuid');
+          parentMatchedFolderUuids.add(uuid);
+          folder.show();
+          if (!matchedFolderUuids.has(uuid) && !game.folders._expanded[uuid]) folder.addClass('collapsed');
+        });
+        let parent = folder.parent().closest('.folder');
+        while (parent.length) {
+          parent.show();
+          parent.removeClass('collapsed');
+          parent = parent.parent().closest('.folder');
+        }
+      } else if (!parentMatchedFolderUuids.has(uuid)) {
         folder.hide();
       }
     });
@@ -1646,6 +1687,19 @@ export class MassEditPresets extends FormApplication {
     await game.settings.set(MODULE_ID, 'presetSortMode', newSort);
 
     this.render(true);
+  }
+
+  async _onToggleSearch(event) {
+    const searchControl = $(event.target).closest('.toggle-search-mode');
+
+    const currentMode = game.settings.get(MODULE_ID, 'presetSearchMode');
+    const newMode = currentMode === 'p' ? 'pf' : 'p';
+    await game.settings.set(MODULE_ID, 'presetSearchMode', newMode);
+
+    const mode = SEARCH_MODES[newMode];
+    searchControl.attr('data-tooltip', mode.tooltip).html(mode.icon);
+
+    $(this.form).find('.header-search input').trigger('input');
   }
 
   _onToggleLock(event) {
