@@ -901,13 +901,13 @@ const SORT_MODES = {
 const SEARCH_MODES = {
   p: {
     get tooltip() {
-      return 'Search Presets';
+      return localize('presets.search-presets');
     },
     icon: '<i class="fas fa-search"></i>',
   },
   pf: {
     get tooltip() {
-      return 'Search Presets & Folders';
+      return localize('presets.search-presets-folders');
     },
     icon: '<i class="fa-solid fa-folder-magnifying-glass"></i>',
   },
@@ -918,6 +918,11 @@ export class MassEditPresets extends FormApplication {
   static lastSearch;
 
   constructor(configApp, callback, docName, options = {}) {
+    if (!options.preventPositionOverride && MassEditPresets.lastPositionLeft) {
+      options.left = MassEditPresets.lastPositionLeft;
+      options.top = MassEditPresets.lastPositionTop;
+    }
+
     super({}, options);
     this.callback = callback;
 
@@ -1867,6 +1872,14 @@ export class MassEditPresets extends FormApplication {
     this._activeBrush = false;
   }
 
+  setPosition(options) {
+    super.setPosition(options);
+    if (!this.options.preventPositionOverride) {
+      MassEditPresets.lastPositionLeft = this.position.left;
+      MassEditPresets.lastPositionTop = this.position.top;
+    }
+  }
+
   async close(options = {}) {
     if (!Boolean(this.configApp)) Brush.deactivate();
     MassEditPresets.objectHover = false;
@@ -2180,6 +2193,8 @@ class PresetConfig extends FormApplication {
           document: this.presets[0].documentName,
         })
       );
+      this.gridSize = canvas.grid.size;
+      this.modifyOnSpawn = [];
       this.render(true);
     }
   }
@@ -2222,32 +2237,27 @@ class PresetConfig extends FormApplication {
     formData.name = formData.name.trim();
     formData.img = formData.img.trim() || null;
 
-    if (this.isCreate) {
-      for (const preset of this.presets) {
-        const update = {
+    for (const preset of this.presets) {
+      let update;
+      if (this.isCreate) {
+        update = {
           name: formData.name || preset.name || localize('presets.default-name'),
           img: formData.img ?? preset.img,
         };
-        if (this.data) update.data = this.data;
-        if (this.addSubtract) update.addSubtract = this.addSubtract;
-        if (this.randomize) update.randomize = this.randomize;
-        if (this.modifyOnSpawn) update.modifyOnSpawn = this.modifyOnSpawn;
-
-        await preset.update(update);
-      }
-    } else {
-      for (const preset of this.presets) {
-        const update = {
+      } else {
+        update = {
           name: formData.name || preset.name,
           img: formData.img || preset.img,
         };
-        if (this.data) update.data = this.data;
-        if (this.addSubtract) update.addSubtract = this.addSubtract;
-        if (this.randomize) update.randomize = this.randomize;
-        if (this.modifyOnSpawn) update.modifyOnSpawn = this.modifyOnSpawn;
-
-        await preset.update(update);
       }
+
+      if (this.data) update.data = this.data;
+      if (this.addSubtract) update.addSubtract = this.addSubtract;
+      if (this.randomize) update.randomize = this.randomize;
+      if (this.modifyOnSpawn) update.modifyOnSpawn = this.modifyOnSpawn;
+      if (this.gridSize) update.gridSize = this.gridSize;
+
+      await preset.update(update);
     }
   }
 

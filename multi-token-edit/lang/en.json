@@ -140,15 +140,17 @@
         "activate-brush": "Activate Brush",
         "document-lock": "Lock current category as default on form open.",
         "layer-switch": "Automatic layer switching.",
-        "external-compendiums": "Display external preset compendiums.",
-        "scale-to-grid": "Scale Tiles, Drawings, and Walls according to grid size."
+        "external-compendiums": "Display external compendiums.",
+        "scale-to-grid": "Scale Tiles, Drawings, and Walls relative to grid size."
       },
       "export-as-json": "Export as JSON",
       "open-journal": "Open Journal",
       "export-to-compendium": "Export to Compendium",
       "copy-to-clipboard": "Copy to Clipboard",
       "keep-preset-ids": "Keep Preset IDs",
-      "keep-preset-ids-hint": "Presets with the same IDs will be overridden at the destination."
+      "keep-preset-ids-hint": "Presets with the same IDs will be overridden at the destination.",
+      "search-presets": "Search Presets",
+      "search-presets-folders": "Search Presets & Folders"
     },
     "css": {
       "pick": "Pick a style:"

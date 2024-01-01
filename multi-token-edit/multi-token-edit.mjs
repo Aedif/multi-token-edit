@@ -19,7 +19,6 @@ import { MassEditGenericForm } from './applications/generic/genericForm.js';
 import {
   activeEffectPresetSelect,
   applyAddSubtract,
-  applyPresetToScene,
   createDocuments,
   flagCompare,
   getDocumentName,

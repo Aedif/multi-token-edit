@@ -819,6 +819,7 @@ export const WithMassConfig = (docName = 'NONE') => {
             this.linkedPresetForm = new MassEditPresets(this, null, this.docName, {
               left: this.position.left - 370,
               top: this.position.top,
+              preventPositionOverride: true,
             });
             this.linkedPresetForm.render(true);
           },

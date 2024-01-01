@@ -1,3 +1,13 @@
+# 1.56.1
+
+**Presets**
+
+- Window will now open in the position it was closed when re-opened via Keybind or Scene control
+- Fixed assignment of new placeables to presets not updating the internally tracked grid size used in automatic scaling
+- Pressing middle-mouse button while spawning a preset will now cancel the operation
+- Tooltip updates
+- Localizing more user facing strings
+
 # 1.56.0
 
 - Header now sticks to the top of the window instead of scrolling with the presets

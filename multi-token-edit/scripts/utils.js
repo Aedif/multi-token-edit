@@ -565,7 +565,11 @@ export class Picker {
     });
     pickerOverlay.on('mouseup', (event) => (Picker.boundEnd = event.data.getLocalPosition(pickerOverlay)));
     pickerOverlay.on('click', (event) => {
-      this.callback?.({ start: this.boundStart, end: this.boundEnd });
+      if (event.nativeEvent.which == 2) {
+        this.callback?.(null);
+      } else {
+        this.callback?.({ start: this.boundStart, end: this.boundEnd });
+      }
       pickerOverlay.parent.removeChild(pickerOverlay);
       if (pickerOverlay.previewDocuments)
         pickerOverlay.previewDocuments.forEach((name) => canvas.getLayerByEmbeddedName(name)?.clearPreviewContainer());
