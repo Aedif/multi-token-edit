@@ -13,7 +13,6 @@ export const SUPPORTED_PLACEABLES = [
   'Note',
 ];
 
-// TODO add 'Actor'
 export const UI_DOCS = ['ALL', ...SUPPORTED_PLACEABLES];
 
 export const SUPPORT_SHEET_CONFIGS = [...SUPPORTED_PLACEABLES, 'Actor', 'PlaylistSound', 'Scene'];

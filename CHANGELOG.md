@@ -1,3 +1,10 @@
+# 1.56.2
+
+**Presets**
+
+- `Drawing`s and `MeasuredTemplate`s will now be owned by the users that spawned them
+- Folders can now be created for non-placeables (e.g. `Scenes`)
+
 # 1.56.1
 
 **Presets**

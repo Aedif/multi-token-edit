@@ -759,14 +759,18 @@ export class PresetAPI {
 
     let presetData = preset.data;
 
+    // ==================
+    // Display modify data prompt if needed
     if (modifyPrompt && preset.modifyOnSpawn?.length) {
       presetData = await modifySpawnData(presetData, preset.modifyOnSpawn);
       // presetData being returned as null means that the modify field form has been canceled
       // in which case we should cancel spawning as well
       if (presetData == null) return;
     }
+    // ==================
 
-    let toCreate = [];
+    // Array of objects to be created
+    const toCreate = [];
 
     for (let data of presetData) {
       data = mergePresetDataToDefaultDoc(preset, data);
@@ -816,7 +820,9 @@ export class PresetAPI {
         canvas.getLayerByEmbeddedName(preset.documentName).gridPrecision
       );
     }
+    // ==================
 
+    // ==================
     // Set positions taking into account relative distances between each object
     let diffX = 0;
     let diffY = 0;
@@ -852,12 +858,25 @@ export class PresetAPI {
         data.x = data.x != null ? data.x + diffX : diffX;
         data.y = data.y != null ? data.y + diffY : diffY;
       }
+    }
+    // ==================
 
-      if (hidden || game.keyboard.downKeys.has('AltLeft')) {
+    if (hidden || game.keyboard.downKeys.has('AltLeft')) {
+      for (const data of toCreate) {
         data.hidden = true;
       }
     }
-    // ================
+
+    // Assign ownership for Drawings and MeasuredTemplates
+    if (['Drawing', 'MeasuredTemplate'].includes(preset.documentName)) {
+      for (const data of toCreate) {
+        if (preset.documentName === 'Drawing') {
+          data.author = game.user.id;
+        } else if (preset.documentName === 'MeasuredTemplate') {
+          data.user = game.user.id;
+        }
+      }
+    }
 
     if (layerSwitch) {
       if (game.user.isGM || ['Token', 'MeasuredTemplate', 'Note'].includes(preset.documentName))
@@ -2472,10 +2491,17 @@ class PresetFolderConfig extends FolderConfig {
     const label = localize(Folder.implementation.metadata.label, false);
 
     let folderDocs = folder.flags[MODULE_ID]?.types ?? ['ALL'];
-    let docs = [];
-    UI_DOCS.forEach((type) => {
-      docs.push({ name: type, icon: DOC_ICONS[type], active: folderDocs.includes(type) });
-    });
+
+    let docs;
+    // This is a non-placeable folder type, so we will not display controls to change types
+    if (folderDocs.length === 1 && !UI_DOCS.includes(folderDocs[0])) {
+      this.nonPlaceable = true;
+    } else {
+      docs = [];
+      UI_DOCS.forEach((type) => {
+        docs.push({ name: type, icon: DOC_ICONS[type], active: folderDocs.includes(type) });
+      });
+    }
 
     return {
       folder: folder,
@@ -2492,15 +2518,17 @@ class PresetFolderConfig extends FolderConfig {
 
   /** @override */
   async _updateObject(event, formData) {
-    let visibleTypes = [];
-    $(this.form)
-      .find('.document-select.active')
-      .each(function () {
-        visibleTypes.push($(this).data('name'));
-      });
-    if (!visibleTypes.length) visibleTypes.push('ALL');
+    if (!this.nonPlaceable) {
+      let visibleTypes = [];
+      $(this.form)
+        .find('.document-select.active')
+        .each(function () {
+          visibleTypes.push($(this).data('name'));
+        });
+      if (!visibleTypes.length) visibleTypes.push('ALL');
 
-    formData[`flags.${MODULE_ID}.types`] = visibleTypes;
+      formData[`flags.${MODULE_ID}.types`] = visibleTypes;
+    }
 
     let doc = this.object;
     if (!formData.name?.trim()) formData.name = Folder.implementation.defaultName();

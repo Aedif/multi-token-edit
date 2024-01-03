@@ -43,7 +43,7 @@ Hooks.once('init', () => {
     scope: 'world',
     config: false,
     type: String,
-    default: 'Default',
+    default: 'Solid Background',
   });
 
   game.settings.register(MODULE_ID, 'cssCustom', {
