@@ -332,13 +332,20 @@
 
 .mass-edit-preset-form .item .icon {
   position: absolute;
-  bottom: 0;
+  top: 34px;
   left: 0;
   color: white;
 }
 
 .mass-edit-preset-form .item .item-name {
   margin: 0 0 0 8px;
+}
+
+.mass-edit-preset-form .item .item-name label {
+  line-height: 1.5;
+  display: flex;
+  align-items: center;
+  line-break: anywhere;
 }
 
 .mass-edit-preset-form .item .item-controls {

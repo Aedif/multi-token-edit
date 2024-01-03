@@ -1,3 +1,13 @@
+# 1.56.3
+
+**Presets**
+
+- Improved spacing of preset names when they overflow to a new line
+
+**Forms**
+
+- Reduced likelihood of multiple `Apply` or `Search` buttons being inserted into forms
+
 # 1.56.2
 
 **Presets**

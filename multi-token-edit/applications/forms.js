@@ -227,7 +227,7 @@ export const WithMassEditForm = (cls) => {
         )}"><input type="checkbox" data-submit="world"><i class="far fa-globe"></i></div>`;
       }
 
-      let footer = $(html).find('.sheet-footer');
+      let footer = $(html).find('.sheet-footer').last();
       if (footer.length) {
         footer.append(htmlButtons);
       } else {
