@@ -1,3 +1,11 @@
+# 1.56.4
+
+**Presets**
+
+- Brush
+  - Will no longer affect all stacked placeables under the brush when clicked
+  - Hover will be triggered when above a placeable to improve clarity as to what will be affected
+
 # 1.56.3
 
 **Presets**

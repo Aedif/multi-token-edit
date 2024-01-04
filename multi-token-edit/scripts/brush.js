@@ -8,7 +8,9 @@ export class Brush {
   // @type {Preset}
   static preset;
   static brushOverlay;
-  static updatedPlaceables = [];
+  static updatedPlaceables = new Map();
+  static hoveredPlaceables = new Set();
+  static hoveredPlaceable;
   static documentName;
   static active = false;
   static hitTest;
@@ -24,7 +26,7 @@ export class Brush {
   static _performBrushDocumentUpdate(pos, placeable) {
     if (pos) this._animateCrossTranslate(pos.x, pos.y);
     pasteDataUpdate([placeable], this.preset, true, true);
-    this.updatedPlaceables.push(placeable);
+    this.updatedPlaceables.set(placeable.id, placeable);
   }
 
   static _hitTestWall(point, wall) {
@@ -46,6 +48,20 @@ export class Brush {
     );
   }
 
+  static _hitTestTile(point, placeable) {
+    const foreground = ui.controls.control.foreground ?? false;
+    if (placeable.document.overhead !== foreground) return false;
+    return this._hitTestArea(point, placeable);
+  }
+
+  static _hoverTestArea(placeable) {
+    return (
+      this.hoveredPlaceable &&
+      this.hoveredPlaceable.hitArea.width * this.hoveredPlaceable.hitArea.height >
+        placeable.hitArea.width * placeable.hitArea.height
+    );
+  }
+
   static _hitTestArea(point, placeable) {
     return (
       Number.between(point.x, placeable.x, placeable.x + placeable.hitArea.width) &&
@@ -56,10 +72,41 @@ export class Brush {
   static _onBrushMove(event) {
     const pos = event.data.getLocalPosition(this.brushOverlay);
     const layer = canvas.getLayerByEmbeddedName(this.documentName);
+    this._clearHover(event, pos);
+
     for (const p of layer.placeables) {
-      if (p.visible && this.hitTest(pos, p) && !this.updatedPlaceables.find((u) => u.id === p.id)) {
-        this._performBrushDocumentUpdate(pos, p);
+      if (p.visible && this.hitTest(pos, p) && !this.updatedPlaceables.has(p.id) && this.hoveredPlaceable !== p) {
+        if (this.hoverTest?.(p)) {
+          this.hoveredPlaceable._onHoverOut(event);
+          this.hoveredPlaceable = p;
+        } else if (!this.hoverTest && this.hoveredPlaceable && this.hoveredPlaceable !== p) {
+          this.hoveredPlaceable._onHoverOut(event);
+          this.hoveredPlaceable = p;
+        } else if (!this.hoveredPlaceable) {
+          this.hoveredPlaceable = p;
+        }
+
+        this.hoveredPlaceable._onHoverIn(event);
       }
+    }
+  }
+
+  static _clearHover(event, pos, force = false) {
+    if (this.hoveredPlaceable) {
+      if (force || !this.hoveredPlaceable.visible || !this.hitTest(pos, this.hoveredPlaceable)) {
+        this.hoveredPlaceable._onHoverOut(event);
+        this.hoveredPlaceable = null;
+      }
+    }
+  }
+
+  static _onBrushClickMove(event) {
+    if (
+      this.hoveredPlaceable &&
+      this.hoveredPlaceable.visible &&
+      !this.updatedPlaceables.has(this.hoveredPlaceable.id)
+    ) {
+      this._performBrushDocumentUpdate(event.data.getLocalPosition(this.brushOverlay), this.hoveredPlaceable);
     }
   }
 
@@ -70,7 +117,7 @@ export class Brush {
         game.Levels3DPreview.interactionManager._downCameraPosition.set(0, 0, 0);
         this._performBrushDocumentUpdate(null, p);
       }
-      this.updatedPlaceables = [];
+      this.updatedPlaceables.clear();
     }
   }
 
@@ -108,7 +155,7 @@ export class Brush {
     } else {
       this.documentName = this.preset.documentName;
     }
-    this.updatedPlaceables = [];
+    this.updatedPlaceables.clear();
 
     const interaction = canvas.app.renderer.events;
     if (!interaction.cursorStyles['brush']) {
@@ -133,8 +180,13 @@ export class Brush {
       case 'Note':
         this.hitTest = this._hitTestControlIcon;
         break;
+      case 'Tile':
+        this.hitTest = this._hitTestTile;
+        this.hoverTest = this._hoverTestArea;
+        break;
       default:
         this.hitTest = this._hitTestArea;
+        this.hoverTest = this._hoverTestArea;
     }
 
     // Create the brush overlay
@@ -145,15 +197,14 @@ export class Brush {
     this.brushOverlay.zIndex = Infinity;
 
     this.brushOverlay.on('mousemove', (event) => {
-      if (event.buttons === 1) {
-        this._onBrushMove(event);
-      }
+      this._onBrushMove(event);
+      if (event.buttons === 1) this._onBrushClickMove(event);
     });
     this.brushOverlay.on('mouseup', (event) => {
-      if (event.buttons !== 2) {
-        this._onBrushMove(event);
+      if (event.nativeEvent.which !== 2) {
+        this._onBrushClickMove(event);
       }
-      this.updatedPlaceables = [];
+      this.updatedPlaceables.clear();
     });
 
     this.brushOverlay.on('click', (event) => {
@@ -252,7 +303,9 @@ export class Brush {
         this.deactivate3DListeners();
       }
       this.active = false;
-      this.updatedPlaceables = [];
+      this.updatedPlaceables.clear();
+      this._clearHover(null, null, true);
+      this.hoverTest = null;
       this.deactivateCallback?.();
       this.deactivateCallback = null;
       this.app = null;
