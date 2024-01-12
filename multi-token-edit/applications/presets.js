@@ -9,6 +9,7 @@ import {
   UI_DOCS,
   applyPresetToScene,
   createDocuments,
+  executeScript,
   localFormat,
   localize,
 } from '../scripts/utils.js';
@@ -42,6 +43,8 @@ const PRESET_FIELDS = [
   'img',
   'gridSize',
   'modifyOnSpawn',
+  'preSpawnScript',
+  'postSpawnScript',
 ];
 
 export class Preset {
@@ -68,6 +71,8 @@ export class Preset {
     this.uuid = data.uuid;
     this.gridSize = data.gridSize;
     this.modifyOnSpawn = data.modifyOnSpawn;
+    this.preSpawnScript = data.preSpawnScript;
+    this.postSpawnScript = data.postSpawnScript;
     this._visible = true;
   }
 
@@ -117,6 +122,8 @@ export class Preset {
             : Object.fromEntries(preset.addSubtract ?? []);
         this.gridSize = preset.gridSize;
         this.modifyOnSpawn = preset.modifyOnSpawn;
+        this.preSpawnScript = preset.preSpawnScript;
+        this.postSpawnScript = preset.postSpawnScript;
       }
     }
     return this;
@@ -786,6 +793,10 @@ export class PresetAPI {
       scaleDataToGrid(toCreate, preset.documentName, preset.gridSize);
     }
 
+    if (preset.preSpawnScript) {
+      await executeScript(preset.preSpawnScript, { data: toCreate });
+    }
+
     // ==================
     // Determine spawn position
     if (coordPicker) {
@@ -883,7 +894,16 @@ export class PresetAPI {
         canvas.getLayerByEmbeddedName(preset.documentName)?.activate();
     }
 
-    return createDocuments(preset.documentName, toCreate, canvas.scene.id);
+    const documents = await createDocuments(preset.documentName, toCreate, canvas.scene.id);
+
+    if (preset.postSpawnScript) {
+      await executeScript(preset.postSpawnScript, {
+        documents,
+        objects: documents.map((d) => d.object).filter(Boolean),
+      });
+    }
+
+    return documents;
   }
 }
 
@@ -2170,6 +2190,7 @@ class PresetConfig extends FormApplication {
     html.find('.assign-document').on('click', this._onAssignDocument.bind(this));
     html.find('.delete-fields').on('click', this._onDeleteFields.bind(this));
     html.find('.spawn-fields').on('click', this._onSpawnFields.bind(this));
+    html.find('summary').on('click', () => setTimeout(() => this.setPosition({ height: 'auto' }), 30));
 
     // TVA Support
     const tvaButton = html.find('.token-variants-image-select-button');
@@ -2255,6 +2276,8 @@ class PresetConfig extends FormApplication {
   async _updatePresets(formData) {
     formData.name = formData.name.trim();
     formData.img = formData.img.trim() || null;
+    formData.preSpawnScript = formData.preSpawnScript?.trim();
+    formData.postSpawnScript = formData.postSpawnScript?.trim();
 
     for (const preset of this.presets) {
       let update;
@@ -2275,6 +2298,8 @@ class PresetConfig extends FormApplication {
       if (this.randomize) update.randomize = this.randomize;
       if (this.modifyOnSpawn) update.modifyOnSpawn = this.modifyOnSpawn;
       if (this.gridSize) update.gridSize = this.gridSize;
+      if (formData.preSpawnScript != null) update.preSpawnScript = formData.preSpawnScript;
+      if (formData.postSpawnScript != null) update.postSpawnScript = formData.postSpawnScript;
 
       await preset.update(update);
     }
@@ -2640,7 +2665,7 @@ function mergePresetDataToDefaultDoc(preset, presetData) {
       data = { radius: 20 };
       break;
     case 'Drawing':
-      data = { 'shape.width': canvas.grid.w * 2, 'shape.height': canvas.grid.h * 2 };
+      data = { 'shape.width': canvas.grid.w * 2, 'shape.height': canvas.grid.h * 2, strokeWidth: 8, strokeAlpha: 1.0 };
       break;
     case 'MeasuredTemplate':
       data = { distance: 10 };

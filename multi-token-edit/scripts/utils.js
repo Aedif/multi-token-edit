@@ -735,3 +735,30 @@ export async function applyPresetToScene(preset) {
     }
   }
 }
+
+export async function executeScript(command, { actor, token, ...scope } = {}) {
+  // Add variables to the evaluation scope
+  const speaker = ChatMessage.implementation.getSpeaker({ actor, token });
+  const character = game.user.character;
+  token = token || (canvas.ready ? canvas.tokens.get(speaker.token) : null);
+  actor = actor || token?.actor || game.actors.get(speaker.actor);
+
+  // Unpack argument names and values
+  const argNames = Object.keys(scope);
+  if (argNames.some((k) => Number.isNumeric(k))) {
+    throw new Error('Illegal numeric Macro parameter passed to execution scope.');
+  }
+  const argValues = Object.values(scope);
+
+  // Define an AsyncFunction that wraps the macro content
+  const AsyncFunction = async function () {}.constructor;
+  // eslint-disable-next-line no-new-func
+  const fn = new AsyncFunction('speaker', 'actor', 'token', 'character', 'scope', ...argNames, `{${command}\n}`);
+
+  // Attempt macro execution
+  try {
+    return await fn.call(this, speaker, actor, token, character, scope, ...argValues);
+  } catch (err) {
+    ui.notifications.error('MACRO.Error', { localize: true });
+  }
+}

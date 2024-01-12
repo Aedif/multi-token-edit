@@ -1,4 +1,4 @@
-<form autocomplete="off">
+<form autocomplete="off" style="overflow: hidden;">
     <input type="hidden" name="type" value="{{preset.documentName}}"/>
 
 
@@ -53,19 +53,36 @@
 
     </fieldset>
 
-    {{#if displayFieldModify}}
-    <fieldset>
-        <legend>{{localize "MassEdit.presets.spawning"}}</legend>
-    
-        <div class="form-group {{#if modifyDisabled}}disabled{{/if}}">
-            <label>{{localize "MassEdit.common.modify"}}</label>
-            <div class="form-fields">
-                <button  class="spawn-fields" type="button" {{#if modifyDisabled}}disabled{{/if}}><i class="fas fa-tasks"></i></button>
+    <hr>
+
+    <details>
+        <summary>{{localize "TOKEN.SightHeaderAdvanced"}}</summary> <br>
+
+        {{#if displayFieldModify}}
+        <fieldset>
+            <legend>{{localize "MassEdit.presets.spawning"}}</legend>
+        
+            <div class="form-group {{#if modifyDisabled}}disabled{{/if}}">
+                <label>{{localize "MassEdit.common.modify"}}</label>
+                <div class="form-fields">
+                    <button  class="spawn-fields" type="button" {{#if modifyDisabled}}disabled{{/if}}><i class="fas fa-tasks"></i></button>
+                </div>
+                <p class="notes">{{localize "MassEdit.presets.select-modify"}}</p>
             </div>
-            <p class="notes">{{localize "MassEdit.presets.select-modify"}}</p>
-        </div>
-    </fieldset>
-    {{/if}}
+
+            <div class="form-group stacked command">
+                <label>Pre-Spawn Script</label>
+                <textarea style="height: 120px" name="preSpawnScript">{{preset.preSpawnScript}}</textarea>
+            </div>
+
+            <div class="form-group stacked command">
+                <label>Post-Spawn Script</label>
+                <textarea style="height: 120px" name="postSpawnScript">{{preset.postSpawnScript}}</textarea>
+            </div>
+        </fieldset>
+        {{/if}}
+
+    </details>
     {{/if}}
 
     <button type="submit" data-action="apply"><i class="fas fa-check"></i> {{localize "MassEdit.common.apply"}}</button>

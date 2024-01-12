@@ -1,3 +1,21 @@
+# 1.57.0
+
+**Presets**
+
+- New preset editing options
+  - Pre-Spawn Script
+    - Executed before the preset is spawned
+    - Variables in-scope:
+      - `data` - data which will be used to spawn the placeable
+      - - Usual macro variables; 'speaker', 'actor', 'token', 'character', 'scope'
+  - Post-Spawn Script
+    - Executed after the preset has been spawned
+    - In-scope:
+      - `documents` - spawned documents
+      - `objects` - spawned placeables
+      - - Usual macro variables; 'speaker', 'actor', 'token', 'character', 'scope'
+- Fixed Drawing `strokeColor` not applying to `Mass Edit` forms when `strokeWidth` and `strokeAlpha` are not part of the preset data
+
 # 1.56.4
 
 **Presets**
