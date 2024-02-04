@@ -1,3 +1,4 @@
+<div class="drag-drop-overlay"><p class="label">ATTACH</p></div>
 <form autocomplete="off" style="overflow: hidden;">
     <input type="hidden" name="type" value="{{preset.documentName}}"/>
 
@@ -55,13 +56,27 @@
 
     <hr>
 
-    <details>
+    <details {{#if advancedOpen}}open{{/if}}>
         <summary>{{localize "TOKEN.SightHeaderAdvanced"}}</summary> <br>
 
         {{#if displayFieldModify}}
         <fieldset>
             <legend>{{localize "MassEdit.presets.spawning"}}</legend>
         
+            {{#if attached}}
+            <div class="form-group">
+                <label>Attached</label>
+
+                <div class="form-fields">
+                    <div>
+                        {{#each attached}}
+                        <a class="attached" data-index="{{@index}}"><i class="{{icon}}" data-tooltip="{{tooltip}}"></i></a>
+                        {{/each}}
+                    </div>
+                </div>
+            </div>
+            {{/if}}
+
             <div class="form-group {{#if modifyDisabled}}disabled{{/if}}">
                 <label>{{localize "MassEdit.common.modify"}}</label>
                 <div class="form-fields">

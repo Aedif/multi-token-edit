@@ -7,7 +7,14 @@ import {
   showGenericForm,
 } from './applications/multiConfig.js';
 import CSSEdit, { STYLES } from './applications/cssEdit.js';
-import { DEFAULT_PACK, MassEditPresets, Preset, PresetAPI, PresetCollection } from './applications/presets.js';
+import {
+  DEFAULT_PACK,
+  MassEditPresets,
+  Preset,
+  PresetAPI,
+  PresetCollection,
+  PresetConfig,
+} from './applications/presets.js';
 import {
   checkApplySpecialFields,
   deleteFromClipboard,
@@ -428,12 +435,16 @@ Hooks.once('init', () => {
   // Intercept and prevent certain placeable drag and drop if they are hovering over the MassEditPresets form
   // passing on the placeable to it to perform preset creation.
   const dragDropHandler = function (wrapped, ...args) {
-    if (MassEditPresets.objectHover) {
+    if (MassEditPresets.objectHover || PresetConfig.objectHover) {
       this.mouseInteractionManager.cancel(...args);
-      const app = Object.values(ui.windows).find((x) => x instanceof MassEditPresets);
+      const app = Object.values(ui.windows).find(
+        (x) =>
+          (MassEditPresets.objectHover && x instanceof MassEditPresets) ||
+          (PresetConfig.objectHover && x instanceof PresetConfig)
+      );
       if (app) {
-        const placeables = canvas.activeLayer.controlled.length ? [...canvas.activeLayer.controlled] : this;
-        app.presetFromPlaceable(placeables, ...args);
+        const placeables = canvas.activeLayer.controlled.length ? [...canvas.activeLayer.controlled] : [this];
+        app.dropPlaceable(placeables, ...args);
       }
       // Pass in a fake event that hopefully is enough to allow other modules to function
       this._onDragLeftCancel(...args);
@@ -504,13 +515,13 @@ Hooks.on('renderSceneControls', (sceneControls, html, options) => {
 
   const presetControl = $(`
 <li class="scene-control mass-edit-scene-control" data-control="me-presets" aria-label="Mass Edit: Presets" role="tab" data-tooltip="Mass Edit: Presets">
-<i class="fa-solid fa-books"></i>
+  <i class="fa-solid fa-books"></i>
 </li>
   `);
 
   presetControl.on('click', () => {
     let docName = canvas.activeLayer.constructor.documentName;
-    if (!SUPPORTED_PLACEABLES.includes(docName)) docName === 'ALL';
+    if (!SUPPORTED_PLACEABLES.includes(docName)) docName = 'ALL';
 
     const presetForm = Object.values(ui.windows).find((app) => app instanceof MassEditPresets);
     if (presetForm) {

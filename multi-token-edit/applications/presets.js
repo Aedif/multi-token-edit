@@ -45,6 +45,7 @@ const PRESET_FIELDS = [
   'modifyOnSpawn',
   'preSpawnScript',
   'postSpawnScript',
+  'attached',
 ];
 
 export class Preset {
@@ -73,6 +74,7 @@ export class Preset {
     this.modifyOnSpawn = data.modifyOnSpawn;
     this.preSpawnScript = data.preSpawnScript;
     this.postSpawnScript = data.postSpawnScript;
+    this.attached = data.attached;
     this._visible = true;
   }
 
@@ -124,6 +126,7 @@ export class Preset {
         this.modifyOnSpawn = preset.modifyOnSpawn;
         this.preSpawnScript = preset.preSpawnScript;
         this.postSpawnScript = preset.postSpawnScript;
+        this.attached = preset.attached;
       }
     }
     return this;
@@ -1050,7 +1053,7 @@ export class MassEditPresets extends FormApplication {
   activateListeners(html) {
     super.activateListeners(html);
 
-    const hoverOverlay = html.closest('.window-content').find('.overlay');
+    const hoverOverlay = html.closest('.window-content').find('.drag-drop-overlay');
     html
       .closest('.window-content')
       .on('mouseover', (event) => {
@@ -1974,8 +1977,12 @@ export class MassEditPresets extends FormApplication {
     this._editPresets([preset], { isCreate: true }, event);
   }
 
-  async presetFromPlaceable(placeables, event) {
-    if (!(placeables instanceof Array)) placeables = [placeables];
+  /**
+   * Create a preset from placeables dragged and dropped ont he form
+   * @param {Array[Placeable]} placeables
+   * @param {Event} event
+   */
+  async dropPlaceable(placeables, event) {
     const presets = await PresetAPI.createPreset(placeables);
 
     // Switch to just created preset's category before rendering if not set to 'ALL'
@@ -2084,7 +2091,7 @@ async function exportPresets(presets, fileName) {
   saveDataToFile(JSON.stringify(presets, null, 2), 'text/json', (fileName ?? 'mass-edit-presets') + '.json');
 }
 
-class PresetConfig extends FormApplication {
+export class PresetConfig extends FormApplication {
   static name = 'PresetConfig';
 
   /**
@@ -2154,12 +2161,24 @@ class PresetConfig extends FormApplication {
   /** @override */
   async getData(options = {}) {
     const data = {};
+    data.advancedOpen = this.advancedOpen;
 
     data.preset = {};
     if (this.presets.length === 1) {
       data.preset = this.presets[0];
       data.displayFieldDelete = true;
       data.displayFieldModify = true;
+
+      // TODO display attached
+      data.attached = this.attached || data.preset.attached;
+      if (data.attached) {
+        data.attached = data.attached.map((at) => {
+          return {
+            icon: DOC_ICONS[at.documentName] ?? DOC_ICONS.DEFAULT,
+            tooltip: at.documentName,
+          };
+        });
+      }
     }
 
     data.minlength = this.presets.length > 1 ? 0 : 1;
@@ -2191,6 +2210,7 @@ class PresetConfig extends FormApplication {
     html.find('.delete-fields').on('click', this._onDeleteFields.bind(this));
     html.find('.spawn-fields').on('click', this._onSpawnFields.bind(this));
     html.find('summary').on('click', () => setTimeout(() => this.setPosition({ height: 'auto' }), 30));
+    html.find('.attached').on('click', this.onAttachedRemove.bind(this));
 
     // TVA Support
     const tvaButton = html.find('.token-variants-image-select-button');
@@ -2202,6 +2222,54 @@ class PresetConfig extends FormApplication {
         searchType: 'Item',
       });
     });
+
+    // Advanced Options tracking between renders
+    html.find('details').on('toggle', (event) => {
+      this.advancedOpen = Boolean($(event.target).attr('open'));
+    });
+
+    //Hover
+    const hoverOverlay = html.closest('.window-content').find('.drag-drop-overlay');
+    html
+      .closest('.window-content')
+      .on('mouseover', (event) => {
+        if (this.presets.length !== 1) return;
+        if (canvas.activeLayer?.preview?.children.some((c) => c._original?.mouseInteractionManager?.isDragging)) {
+          hoverOverlay.show();
+          PresetConfig.objectHover = true;
+        } else {
+          hoverOverlay.hide();
+          PresetConfig.objectHover = false;
+        }
+      })
+      .on('mouseout', () => {
+        if (this.presets.length !== 1) return;
+        hoverOverlay.hide();
+        PresetConfig.objectHover = false;
+      });
+  }
+
+  /**
+   * Create a preset from placeables dragged and dropped ont he form
+   * @param {Array[Placeable]} placeables
+   * @param {Event} event
+   */
+  async dropPlaceable(placeables, event) {
+    this.advancedOpen = true;
+
+    if (!this.attached) this.attached = deepClone(this.presets[0].attached ?? []);
+    placeables.forEach((p) => this.attached.push({ documentName: p.document.documentName, data: placeableToData(p) }));
+
+    await this.render(true);
+    setTimeout(() => this.setPosition({ height: 'auto' }), 30);
+  }
+
+  async onAttachedRemove(event) {
+    const index = $(event.target).closest('.attached').data('index');
+    this.attached = this.attached || deepClone(this.presets[0].attached);
+    this.attached.splice(index, 1);
+    await this.render(true);
+    setTimeout(() => this.setPosition({ height: 'auto' }), 30);
   }
 
   async _onSpawnFields() {
@@ -2298,6 +2366,7 @@ class PresetConfig extends FormApplication {
       if (this.randomize) update.randomize = this.randomize;
       if (this.modifyOnSpawn) update.modifyOnSpawn = this.modifyOnSpawn;
       if (this.gridSize) update.gridSize = this.gridSize;
+      if (this.attached) update.attached = this.attached;
       if (formData.preSpawnScript != null) update.preSpawnScript = formData.preSpawnScript;
       if (formData.postSpawnScript != null) update.postSpawnScript = formData.postSpawnScript;
 

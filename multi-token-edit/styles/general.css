@@ -363,7 +363,7 @@
   /* background: linear-gradient(#f005, #f005), linear-gradient(#0f05, #0f05); */
 }
 
-#mass-edit-presets .overlay {
+.drag-drop-overlay {
   position: absolute;
   display: none;
   width: 100%;
@@ -375,7 +375,7 @@
   cursor: pointer;
 }
 
-#mass-edit-presets .overlay .label {
+.drag-drop-overlay .label {
   font-size: large;
   position: absolute;
   top: 50%;
