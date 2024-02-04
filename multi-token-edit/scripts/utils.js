@@ -595,45 +595,55 @@ export class Picker {
   }
 
   static async _genPreviews(preview) {
-    const previewData = preview.previewData;
+    let previewData = preview.previewData;
     const documentName = preview.documentName;
     if (!previewData || !documentName) return { previews: [] };
 
+    previewData = previewData.map((d) => {
+      return { documentName, data: d };
+    });
+    if (preview.attached?.length) previewData = previewData.concat(preview.attached);
+
     const previewDocuments = new Set([documentName]);
-    const layer = canvas.getLayerByEmbeddedName(documentName);
     const previews = [];
 
-    let mainPreview;
-    for (const data of previewData) {
+    let mainPreviewX;
+    let mainPreviewY;
+    for (const doc of previewData) {
       // Create Preview
-      const previewObject = await this._createPreview.call(layer, data);
+      const previewObject = await this._createPreview.call(canvas.getLayerByEmbeddedName(doc.documentName), doc.data);
       previews.push(previewObject);
 
-      if (!mainPreview) mainPreview = previewObject;
+      if (mainPreviewX == null) {
+        mainPreviewX =
+          previewObject.document.documentName === 'Wall' ? previewObject.document.c[0] : previewObject.document.x;
+        mainPreviewY =
+          previewObject.document.documentName === 'Wall' ? previewObject.document.c[1] : previewObject.document.y;
+      }
 
       // Calculate offset from first preview
       if (preview.documentName === 'Wall') {
         const off = [
-          previewObject.document.c[0] - mainPreview.document.c[0],
-          previewObject.document.c[1] - mainPreview.document.c[1],
-          previewObject.document.c[2] - mainPreview.document.c[0],
-          previewObject.document.c[3] - mainPreview.document.c[1],
+          previewObject.document.c[0] - mainPreviewX,
+          previewObject.document.c[1] - mainPreviewY,
+          previewObject.document.c[2] - mainPreviewX,
+          previewObject.document.c[3] - mainPreviewY,
         ];
         previewObject._previewOffset = off;
       } else {
         previewObject._previewOffset = {
-          x: previewObject.document.x - mainPreview.document.x,
-          y: previewObject.document.y - mainPreview.document.y,
+          x: previewObject.document.x - mainPreviewX,
+          y: previewObject.document.y - mainPreviewY,
         };
       }
 
       if (preview.taPreview) {
-        const documentNames = await this._genTAPreviews(data, preview.taPreview, previewObject, previews);
+        const documentNames = await this._genTAPreviews(doc.data, preview.taPreview, previewObject, previews);
         documentNames.forEach((dName) => previewDocuments.add(dName));
       }
     }
 
-    return { previews, layer, previewDocuments };
+    return { previews, layer: canvas.getLayerByEmbeddedName(documentName), previewDocuments };
   }
 
   static _parseTAPreview(taPreview, attached) {

@@ -810,6 +810,7 @@ export class PresetAPI {
           previewData: expandObject(toCreate),
           label: pickerLabel,
           taPreview: taPreview,
+          attached: preset.attached,
         });
       });
       if (coords == null) return [];
@@ -859,54 +860,70 @@ export class PresetAPI {
       }
     }
 
-    for (const data of toCreate) {
-      if (preset.documentName === 'Wall') {
-        if (!data.c) data.c = [pos.x, pos.y, pos.x + canvas.grid.w * 2, pos.y];
-        else {
-          data.c[0] += diffX;
-          data.c[1] += diffY;
-          data.c[2] += diffX;
-          data.c[3] += diffY;
-        }
-      } else {
-        data.x = data.x != null ? data.x + diffX : diffX;
-        data.y = data.y != null ? data.y + diffY : diffY;
+    // Lets sort the preset data as well as any attached placeable data into document groups
+    const docToData = new Map();
+    docToData.set(preset.documentName, toCreate);
+    if (preset.attached) {
+      for (const attached of preset.attached) {
+        if (!docToData.get(attached.documentName)) docToData.set(attached.documentName, []);
+        docToData.get(attached.documentName).push(deepClone(attached.data));
       }
     }
+
+    docToData.forEach((dataArr, documentName) => {
+      for (const data of dataArr) {
+        // Assign relative position
+        if (documentName === 'Wall') {
+          if (!data.c) data.c = [pos.x, pos.y, pos.x + canvas.grid.w * 2, pos.y];
+          else {
+            data.c[0] += diffX;
+            data.c[1] += diffY;
+            data.c[2] += diffX;
+            data.c[3] += diffY;
+          }
+        } else {
+          data.x = data.x != null ? data.x + diffX : diffX;
+          data.y = data.y != null ? data.y + diffY : diffY;
+        }
+
+        // Assign ownership for Drawings and MeasuredTemplates
+        if (['Drawing', 'MeasuredTemplate'].includes(documentName)) {
+          if (documentName === 'Drawing') {
+            data.author = game.user.id;
+          } else if (documentName === 'MeasuredTemplate') {
+            data.user = game.user.id;
+          }
+        }
+
+        // Hide
+        if (hidden || game.keyboard.downKeys.has('AltLeft')) {
+          data.hidden = true;
+        }
+      }
+    });
+
     // ==================
-
-    if (hidden || game.keyboard.downKeys.has('AltLeft')) {
-      for (const data of toCreate) {
-        data.hidden = true;
-      }
-    }
-
-    // Assign ownership for Drawings and MeasuredTemplates
-    if (['Drawing', 'MeasuredTemplate'].includes(preset.documentName)) {
-      for (const data of toCreate) {
-        if (preset.documentName === 'Drawing') {
-          data.author = game.user.id;
-        } else if (preset.documentName === 'MeasuredTemplate') {
-          data.user = game.user.id;
-        }
-      }
-    }
 
     if (layerSwitch) {
       if (game.user.isGM || ['Token', 'MeasuredTemplate', 'Note'].includes(preset.documentName))
         canvas.getLayerByEmbeddedName(preset.documentName)?.activate();
     }
 
-    const documents = await createDocuments(preset.documentName, toCreate, canvas.scene.id);
+    const allDocuments = [];
+
+    for (const [documentName, dataArr] of docToData.entries()) {
+      const documents = await createDocuments(documentName, dataArr, canvas.scene.id);
+      documents.forEach((d) => allDocuments.push(d));
+    }
 
     if (preset.postSpawnScript) {
       await executeScript(preset.postSpawnScript, {
-        documents,
+        documents: allDocuments,
         objects: documents.map((d) => d.object).filter(Boolean),
       });
     }
 
-    return documents;
+    return allDocuments;
   }
 }
 
