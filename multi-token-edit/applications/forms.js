@@ -89,6 +89,8 @@ export const WithMassEditForm = (cls) => {
       const processFormGroup = function (formGroup, typeOverride = null) {
         // We only want to attach extra controls if the form-group contains named fields
         if (!$(formGroup).find('[name]').length) return;
+        // Return if a checkbox is already inserted
+        if ($(formGroup).find('.mass-edit-checkbox').length) return;
         // if ($(formGroup).find('[name]:disabled').length) return;
 
         // Check if fields within this form-group are part of common data or control a flag
@@ -213,37 +215,40 @@ export const WithMassEditForm = (cls) => {
 
       // Add submit buttons
       let htmlButtons = '';
-      for (const button of this.massFormButtons) {
-        htmlButtons += `<button type="submit" value="${button.value}"><i class="${button.icon}"></i> ${button.title}</button>`;
-        // Auto update control
-        if (this.options.massEdit && !this.options.simplified && !this.options.presetEdit)
+      if (!this._meSubmitInserted) {
+        this._meSubmitInserted = true;
+        for (const button of this.massFormButtons) {
+          htmlButtons += `<button class="me-submit" type="submit" value="${button.value}"><i class="${button.icon}"></i> ${button.title}</button>`;
+          // Auto update control
+          if (this.options.massEdit && !this.options.simplified && !this.options.presetEdit)
+            htmlButtons += `<div class="me-mod-update" title="${localize(
+              `form.immediate-update-title`
+            )}"><input type="checkbox" data-submit="${button.value}"><i class="fas fa-cogs"></i></div>`;
+        }
+        if (this.options.massSelect && SUPPORTED_PLACEABLES.includes(this.documentName)) {
           htmlButtons += `<div class="me-mod-update" title="${localize(
-            `form.immediate-update-title`
-          )}"><input type="checkbox" data-submit="${button.value}"><i class="fas fa-cogs"></i></div>`;
-      }
-      if (this.options.massSelect && SUPPORTED_PLACEABLES.includes(this.documentName)) {
-        htmlButtons += `<div class="me-mod-update" title="${localize(
-          `form.global-search-title`
-        )}"><input type="checkbox" data-submit="world"><i class="far fa-globe"></i></div>`;
-      }
+            `form.global-search-title`
+          )}"><input type="checkbox" data-submit="world"><i class="far fa-globe"></i></div>`;
+        }
 
-      let footer = $(html).find('.sheet-footer').last();
-      if (footer.length) {
-        footer.append(htmlButtons);
-      } else {
-        footer = $(`<footer class="sheet-footer flexrow">${htmlButtons}</footer>`);
-        $(html).closest('form').append(footer);
-      }
+        let footer = $(html).find('.sheet-footer').last();
+        if (footer.length) {
+          footer.append(htmlButtons);
+        } else {
+          footer = $(`<footer class="sheet-footer flexrow">${htmlButtons}</footer>`);
+          $(html).closest('form').append(footer);
+        }
 
-      // Auto update listeners
-      footer.find('.me-mod-update > input').on('change', (event) => {
-        event.stopPropagation();
-        const isChecked = event.target.checked;
-        footer.find('.me-mod-update > input').not(this).prop('checked', false);
-        $(event.target).prop('checked', isChecked);
-        this.modUpdate = isChecked;
-        this.modUpdateType = event.target.dataset?.submit;
-      });
+        // Auto update listeners
+        footer.find('.me-mod-update > input').on('change', (event) => {
+          event.stopPropagation();
+          const isChecked = event.target.checked;
+          footer.find('.me-mod-update > input').not(this).prop('checked', false);
+          $(event.target).prop('checked', isChecked);
+          this.modUpdate = isChecked;
+          this.modUpdateType = event.target.dataset?.submit;
+        });
+      }
 
       if (this.options.inputChangeCallback) {
         html.on('change', 'input, select', async (event) => {
@@ -605,18 +610,12 @@ export const WithMassEditForm = (cls) => {
 export const WithMassConfig = (docName = 'NONE') => {
   let cls;
   const sheets = CONFIG[docName]?.sheetClasses;
-  if (!sheets) {
+  if (!sheets || docName === 'Actor') {
     cls = FormApplication;
-  } else if (docName === 'Drawing') {
-    if (CONFIG.Drawing.sheetClasses.e) {
-      cls = CONFIG.Drawing.sheetClasses.e['core.DrawingConfig'].cls;
-    } else {
-      cls = CONFIG.Drawing.sheetClasses.base['core.DrawingConfig'].cls;
-    }
-  } else if (docName === 'Actor') {
+
     cls = FormApplication;
   } else {
-    cls = sheets.base[`core.${docName}Config`].cls;
+    cls = Object.values(Object.values(sheets).pop() ?? {}).pop()?.cls;
   }
 
   const MEF = WithMassEditForm(cls);

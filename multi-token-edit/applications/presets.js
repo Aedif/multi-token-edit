@@ -729,6 +729,7 @@ export class PresetAPI {
    * @param {String} [options.type]               Preset type ("Token", "Tile", etc)
    * @param {Number} [options.x]                  Spawn canvas x coordinate (mouse position used if x or y are null)
    * @param {Number} [options.y]                  Spawn canvas y coordinate (mouse position used if x or y are null)
+   * @param {Number} [options.z]                  Spawn canvas z coordinate (3D Canvas)
    * @param {Boolean} [options.snapToGrid]        If 'true' snaps spawn position to the grid.
    * @param {Boolean} [options.hidden]            If 'true' preset will be spawned hidden.
    * @param {Boolean} [options.layerSwitch]       If 'true' the layer of the spawned preset will be activated.
@@ -749,6 +750,7 @@ export class PresetAPI {
     folder,
     x,
     y,
+    z,
     coordPicker = false,
     pickerLabel,
     taPreview,
@@ -780,7 +782,7 @@ export class PresetAPI {
     // ==================
 
     // Array of objects to be created
-    const toCreate = [];
+    let toCreate = [];
 
     for (let data of presetData) {
       data = mergePresetDataToDefaultDoc(preset, data);
@@ -795,6 +797,9 @@ export class PresetAPI {
     if (scaleToGrid) {
       scaleDataToGrid(toCreate, preset.documentName, preset.gridSize);
     }
+
+    // Re-expand data, flattened data no longer needed for randomizer or scaling
+    toCreate = toCreate.map((d) => expandObject(d));
 
     if (preset.preSpawnScript) {
       await executeScript(preset.preSpawnScript, { data: toCreate });
@@ -817,8 +822,15 @@ export class PresetAPI {
       x = coords.end.x;
       y = coords.end.y;
     } else if (x == null || y == null) {
-      x = canvas.mousePosition.x;
-      y = canvas.mousePosition.y;
+      if (game.Levels3DPreview?._active) {
+        const pos3d = game.Levels3DPreview.interactionManager.canvas2dMousePosition;
+        x = pos3d.x;
+        y = pos3d.y;
+        z = pos3d.z;
+      } else {
+        x = canvas.mousePosition.x;
+        y = canvas.mousePosition.y;
+      }
 
       if (preset.documentName === 'Token' || preset.documentName === 'Tile') {
         x -= canvas.dimensions.size / 2;
@@ -839,8 +851,7 @@ export class PresetAPI {
 
     // ==================
     // Set positions taking into account relative distances between each object
-    let diffX;
-    let diffY;
+    let diffX, diffY, diffZ;
 
     if (preset.documentName === 'Wall') {
       if (toCreate[0].c) {
@@ -851,6 +862,13 @@ export class PresetAPI {
       if (toCreate[0].x != null && toCreate[0].y != null) {
         diffX = pos.x - toCreate[0].x;
         diffY = pos.y - toCreate[0].y;
+      }
+
+      // 3D Canvas
+      if (z != null) {
+        if (getProperty(toCreate[0], 'flags.levels.rangeBottom') != null) {
+          diffZ = z - getProperty(toCreate[0], 'flags.levels.rangeBottom');
+        }
       }
     }
 
@@ -881,6 +899,13 @@ export class PresetAPI {
               diffY = pos.y - data.y;
             }
           }
+
+          // 3D Canvas
+          if (z != null) {
+            if (getProperty(data, 'flags.levels.rangeBottom') != null) {
+              diffZ = z - getProperty(data, 'flags.levels.rangeBottom');
+            }
+          }
         }
 
         // Assign relative position
@@ -895,6 +920,23 @@ export class PresetAPI {
         } else {
           data.x = data.x == null || diffX == null ? pos.x : data.x + diffX;
           data.y = data.y == null || diffY == null ? pos.y : data.y + diffY;
+        }
+
+        // 3D Canvas
+        if (z != null) {
+          delete data.z;
+          let elevation;
+
+          if (diffZ !== null && getProperty(data, 'flags.levels.rangeBottom') != null) {
+            elevation = getProperty(data, 'flags.levels.rangeBottom') + diffZ;
+            //setProperty(data, 'flags.levels.rangeBottom', getProperty(data, 'flags.levels.rangeBottom') + diffZ);
+          } else {
+            elevation = z;
+            //setProperty(data, 'flags.levels.rangeBottom', z);
+          }
+
+          setProperty(data, 'flags.levels.rangeBottom', elevation);
+          setProperty(data, 'flags.levels.rangeTop', elevation);
         }
 
         // Assign ownership for Drawings and MeasuredTemplates
@@ -1057,6 +1099,7 @@ export class MassEditPresets extends FormApplication {
     data.sortMode = SORT_MODES[game.settings.get(MODULE_ID, 'presetSortMode')];
     data.searchMode = SEARCH_MODES[game.settings.get(MODULE_ID, 'presetSearchMode')];
     data.displayDragDropMessage = data.allowDocumentSwap && !(this.tree.presets.length || this.tree.folders.length);
+    data.canvas3dActive = Boolean(game.Levels3DPreview?._active);
 
     data.lastSearch = MassEditPresets.lastSearch;
 
@@ -1097,6 +1140,14 @@ export class MassEditPresets extends FormApplication {
         hoverOverlay.hide();
         MassEditPresets.objectHover = false;
       });
+
+    // Create Preset from Selected
+    html.find('.create-preset').on('click', () => {
+      const controlled = canvas.activeLayer.controlled;
+      if (controlled.length && SUPPORTED_PLACEABLES.includes(controlled[0].document.documentName)) {
+        this.dropPlaceable(controlled);
+      }
+    });
 
     // =====================
     // Preset multi-select & drag Listeners
@@ -1849,7 +1900,7 @@ export class MassEditPresets extends FormApplication {
 
   _editPresets(presets, options = {}, event) {
     options.callback = () => this.render(true);
-    if (!('left' in options)) {
+    if (!('left' in options) && event) {
       options.left = event.originalEvent.x - PresetConfig.defaultOptions.width / 2;
       options.top = event.originalEvent.y;
     }
@@ -1881,24 +1932,38 @@ export class MassEditPresets extends FormApplication {
       return;
     }
 
-    // For some reason canvas.mousePosition does not get updated during drag and drop
-    // Acquire the cursor position transformed to Canvas coordinates
-    const [x, y] = [event.clientX, event.clientY];
-    const t = canvas.stage.worldTransform;
-    let mouseX = (x - t.tx) / canvas.stage.scale.x;
-    let mouseY = (y - t.ty) / canvas.stage.scale.y;
-
     if (!SUPPORTED_PLACEABLES.includes(preset.documentName)) return;
 
-    if (preset.documentName === 'Token' || preset.documentName === 'Tile') {
-      mouseX -= canvas.dimensions.size / 2;
-      mouseY -= canvas.dimensions.size / 2;
+    // For some reason canvas.mousePosition does not get updated during drag and drop
+    // Acquire the cursor position transformed to Canvas coordinates
+    let mouseX;
+    let mouseY;
+    let mouseZ;
+
+    if (game.Levels3DPreview?._active) {
+      game.Levels3DPreview.interactionManager._onMouseMove(event, true);
+      const { x, y, z } = game.Levels3DPreview.interactionManager.canvas2dMousePosition;
+      mouseX = x;
+      mouseY = y;
+      mouseZ = z;
+    } else {
+      const [x, y] = [event.clientX, event.clientY];
+      const t = canvas.stage.worldTransform;
+
+      mouseX = (x - t.tx) / canvas.stage.scale.x;
+      mouseY = (y - t.ty) / canvas.stage.scale.y;
+
+      if (preset.documentName === 'Token' || preset.documentName === 'Tile') {
+        mouseX -= canvas.dimensions.size / 2;
+        mouseY -= canvas.dimensions.size / 2;
+      }
     }
 
     PresetAPI.spawnPreset({
       preset,
       x: mouseX,
       y: mouseY,
+      z: mouseZ,
       mousePosition: false,
       layerSwitch: game.settings.get(MODULE_ID, 'presetLayerSwitch'),
       scaleToGrid: game.settings.get(MODULE_ID, 'presetScaling'),
@@ -2241,6 +2306,12 @@ export class PresetConfig extends FormApplication {
     html.find('.spawn-fields').on('click', this._onSpawnFields.bind(this));
     html.find('summary').on('click', () => setTimeout(() => this.setPosition({ height: 'auto' }), 30));
     html.find('.attached').on('click', this.onAttachedRemove.bind(this));
+    html.find('.attach-selected').on('click', () => {
+      const controlled = canvas.activeLayer.controlled;
+      if (controlled.length && SUPPORTED_PLACEABLES.includes(controlled[0].document.documentName)) {
+        this.dropPlaceable(controlled);
+      }
+    });
 
     // TVA Support
     const tvaButton = html.find('.token-variants-image-select-button');
