@@ -828,7 +828,7 @@ export class PresetAPI {
 
     let pos = { x, y };
 
-    if (snapToGrid) {
+    if (snapToGrid && !game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.SHIFT)) {
       pos = canvas.grid.getSnappedPosition(
         pos.x,
         pos.y,

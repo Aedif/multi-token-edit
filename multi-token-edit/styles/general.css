@@ -301,11 +301,6 @@
   margin-right: 10px;
 }
 
-.mass-edit-preset-form .folder.selected > header {
-  border-color: orange;
-  background: linear-gradient(#f005, #f005), linear-gradient(#0f05, #0f05);
-}
-
 .mass-edit-preset-form .folder.selected {
   border-left-color: orange !important;
 }
@@ -355,12 +350,11 @@
 }
 
 .mass-edit-preset-form .item.item-s.selected {
-  background: linear-gradient(#f005, #f005), linear-gradient(#0f05, #0f05);
+  background: linear-gradient(#f005, #f005), linear-gradient(#01bb0155, #0f05);
 }
 
 .mass-edit-preset-form .folder.item-s.selected {
   border-color: orange;
-  /* background: linear-gradient(#f005, #f005), linear-gradient(#0f05, #0f05); */
 }
 
 .drag-drop-overlay {

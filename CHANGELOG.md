@@ -1,3 +1,12 @@
+# 1.58.0
+
+**Presets**
+
+- Additional placeables can now be attached to presets by dragging them onto 'Preset Edit' forms
+- Holding `Shift` during preset drag out or with coord picker active (preset double-click) will prevent position snapping
+- ControlIcon previews (Notes, Templates, Lights) should now appear more consistently
+- Preset spawner should now be a bit more resilient to users manually deleting coordinate data within the preset
+
 # 1.57.0
 
 **Presets**

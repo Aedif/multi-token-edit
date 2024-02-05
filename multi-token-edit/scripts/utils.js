@@ -516,7 +516,8 @@ export class Picker {
 
       const setPositions = function (pos) {
         if (!pos) return;
-        if (preview.snap && layer) pos = canvas.grid.getSnappedPosition(pos.x, pos.y, layer.gridPrecision);
+        if (preview.snap && layer && !game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.SHIFT))
+          pos = canvas.grid.getSnappedPosition(pos.x, pos.y, layer.gridPrecision);
 
         for (const preview of previews) {
           if (preview.document.documentName === 'Wall') {
