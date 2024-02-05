@@ -839,24 +839,18 @@ export class PresetAPI {
 
     // ==================
     // Set positions taking into account relative distances between each object
-    let diffX = 0;
-    let diffY = 0;
+    let diffX;
+    let diffY;
 
     if (preset.documentName === 'Wall') {
       if (toCreate[0].c) {
         diffX = pos.x - toCreate[0].c[0];
         diffY = pos.y - toCreate[0].c[1];
-      } else {
-        diffX = pos.x;
-        diffY = pos.y;
       }
     } else {
-      if (toCreate[0].x && toCreate[0].y) {
+      if (toCreate[0].x != null && toCreate[0].y != null) {
         diffX = pos.x - toCreate[0].x;
         diffY = pos.y - toCreate[0].y;
-      } else {
-        diffX = pos.x;
-        diffY = pos.y;
       }
     }
 
@@ -872,9 +866,26 @@ export class PresetAPI {
 
     docToData.forEach((dataArr, documentName) => {
       for (const data of dataArr) {
+        // TODO: make this a bit prettier? and make it work for Picker too
+        // If the user manually deleted coordinate data from the the preset (toCreate[0]) we need to establish
+        // the first found coordinate as the reference point instead
+        if (diffX == null || diffY == null) {
+          if (documentName === 'Wall') {
+            if (data.c) {
+              diffX = pos.x - data.c[0];
+              diffY = pos.y - data.c[1];
+            }
+          } else {
+            if (data.x != null && data.y != null) {
+              diffX = pos.x - data.x;
+              diffY = pos.y - data.y;
+            }
+          }
+        }
+
         // Assign relative position
         if (documentName === 'Wall') {
-          if (!data.c) data.c = [pos.x, pos.y, pos.x + canvas.grid.w * 2, pos.y];
+          if (!data.c || diffX == null) data.c = [pos.x, pos.y, pos.x + canvas.grid.w * 2, pos.y];
           else {
             data.c[0] += diffX;
             data.c[1] += diffY;
@@ -882,8 +893,8 @@ export class PresetAPI {
             data.c[3] += diffY;
           }
         } else {
-          data.x = data.x != null ? data.x + diffX : diffX;
-          data.y = data.y != null ? data.y + diffY : diffY;
+          data.x = data.x == null || diffX == null ? pos.x : data.x + diffX;
+          data.y = data.y == null || diffY == null ? pos.y : data.y + diffY;
         }
 
         // Assign ownership for Drawings and MeasuredTemplates
