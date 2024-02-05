@@ -1,4 +1,4 @@
-<div class="drag-drop-overlay"><p class="label">ATTACH</p></div>
+<div class="drag-drop-overlay"><p class="label">{{localize "MassEdit.common.attach"}}</p></div>
 <form autocomplete="off" style="overflow: hidden;">
     <input type="hidden" name="type" value="{{preset.documentName}}"/>
 
@@ -63,19 +63,23 @@
         <fieldset>
             <legend>{{localize "MassEdit.presets.spawning"}}</legend>
         
-            {{#if attached}}
+           
             <div class="form-group">
-                <label>Attached</label>
+                <label>{{localize "MassEdit.common.attached"}}</label>
 
                 <div class="form-fields">
+                    {{#if attached}}
                     <div>
                         {{#each attached}}
                         <a class="attached" data-index="{{@index}}"><i class="{{icon}}" data-tooltip="{{tooltip}}"></i></a>
                         {{/each}}
                     </div>
+                    {{else}}
+                    <div style="border: 2px dashed; text-align: center; color: orangered; padding: 2px;">{{localize "MassEdit.presets.drag-placeable"}}</div>
+                    {{/if}}
                 </div>
+                <p class="notes">{{localize "MassEdit.presets.drag-placeable-hint"}}</p>
             </div>
-            {{/if}}
 
             <div class="form-group {{#if modifyDisabled}}disabled{{/if}}">
                 <label>{{localize "MassEdit.common.modify"}}</label>

@@ -2190,9 +2190,11 @@ export class PresetConfig extends FormApplication {
       data.attached = this.attached || data.preset.attached;
       if (data.attached) {
         data.attached = data.attached.map((at) => {
+          let tooltip = at.documentName;
+          if (at.documentName === 'Token' && at.data.name) tooltip += ': ' + at.data.name;
           return {
             icon: DOC_ICONS[at.documentName] ?? DOC_ICONS.DEFAULT,
-            tooltip: at.documentName,
+            tooltip,
           };
         });
       }

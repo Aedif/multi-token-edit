@@ -532,11 +532,20 @@ export class Picker {
           }
           preview.document.alpha = 0.4;
           preview.renderFlags.set({ refresh: true });
-
           preview.visible = true;
-          if (preview.controlIcon) {
+
+          if (preview.controlIcon && !preview.controlIcon._meVInsert) {
             preview.controlIcon.alpha = 0.4;
-            preview.controlIcon.visible = true;
+
+            // ControlIcon visibility is difficult to set and keep as true
+            // Lets hack it by defining a getter that always returns true
+            Object.defineProperty(preview.controlIcon, 'visible', {
+              get: function () {
+                return true;
+              },
+              set: function () {},
+            });
+            preview.controlIcon._meVInsert = true;
           }
         }
 
@@ -604,7 +613,7 @@ export class Picker {
     });
     if (preview.attached?.length) previewData = previewData.concat(preview.attached);
 
-    const previewDocuments = new Set([documentName]);
+    const previewDocuments = new Set();
     const previews = [];
 
     let mainPreviewX;
@@ -613,6 +622,7 @@ export class Picker {
       // Create Preview
       const previewObject = await this._createPreview.call(canvas.getLayerByEmbeddedName(doc.documentName), doc.data);
       previews.push(previewObject);
+      previewDocuments.add(doc.documentName);
 
       if (mainPreviewX == null) {
         mainPreviewX =
@@ -622,7 +632,7 @@ export class Picker {
       }
 
       // Calculate offset from first preview
-      if (preview.documentName === 'Wall') {
+      if (previewObject.document.documentName === 'Wall') {
         const off = [
           previewObject.document.c[0] - mainPreviewX,
           previewObject.document.c[1] - mainPreviewY,
