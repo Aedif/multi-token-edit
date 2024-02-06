@@ -877,8 +877,9 @@ export class PresetAPI {
 
           // 3D Canvas
           if (z != null) {
-            if (getProperty(data, 'flags.levels.rangeBottom') != null) {
-              diffZ = z - getProperty(data, 'flags.levels.rangeBottom');
+            const property = documentName === 'Token' ? 'elevation' : 'flags.levels.rangeBottom';
+            if (getProperty(data, property) != null) {
+              diffZ = z - getProperty(data, property);
             }
           }
         }
@@ -902,12 +903,16 @@ export class PresetAPI {
           delete data.z;
           let elevation;
 
-          if (diffZ !== null && getProperty(data, 'flags.levels.rangeBottom') != null)
-            elevation = getProperty(data, 'flags.levels.rangeBottom') + diffZ;
+          const property = documentName === 'Token' ? 'elevation' : 'flags.levels.rangeBottom';
+
+          if (diffZ !== null && getProperty(data, property) != null) elevation = getProperty(data, property) + diffZ;
           else elevation = z;
 
-          setProperty(data, 'flags.levels.rangeBottom', elevation);
-          setProperty(data, 'flags.levels.rangeTop', elevation);
+          setProperty(data, property, elevation);
+
+          if (documentName !== 'Token') {
+            setProperty(data, 'flags.levels.rangeTop', elevation);
+          }
         }
 
         // Assign ownership for Drawings and MeasuredTemplates
@@ -1375,6 +1380,7 @@ export class MassEditPresets extends FormApplication {
   }
 
   async _onDoubleClickPreset(event) {
+    if (this.canvas3dActive) return;
     const uuid = $(event.target).closest('.item').data('uuid');
     if (!uuid) return;
 

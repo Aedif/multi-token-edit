@@ -1,3 +1,17 @@
+# 1.58.1
+
+- Fixes for `DnD5e v3.0.0`
+
+**Presets**
+
+- Preset previews should display even if coordinate data has been manually removed from the preset
+- 3D Canvas compatibility
+  - Fixed multiple submit buttons being shown on Mass Edit forms
+  - Fixed multiple checkboxes being inserted on Mass Edit forms
+  - If on a 3D scene preset window will contain an additional control to create presets from selected placeables
+  - `Preset Config` window now has a button to attach all selected placeables
+  - `MassEdit.spawnPresets(...)` now accepts x, y, AND z coordinates
+
 # 1.58.0
 
 **Presets**
