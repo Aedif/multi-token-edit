@@ -487,7 +487,7 @@ export class Picker {
    *                            { start: {x1, y1}, end: {x2, y2} }
    * @param {Object}  preview
    * @param {String}  preview.documentName (optional) preview placeables document name
-   * @param {Array[Object]}  preview.previewData    (req) preview placeables data
+   * @param {Map[String,Array]}  preview.previewData    (req) preview placeables data
    * @param {String}  preview.taPreview            (optional) Designates the preview placeable when spawning a `Token Attacher` prefab.
    *                                                e.g. "Tile", "Tile.1", "MeasuredTemplate.3"
    * @param {Boolean} preview.snap                  (optional) if true returned coordinates will be snapped to grid
@@ -605,56 +605,61 @@ export class Picker {
   }
 
   static async _genPreviews(preview) {
-    let previewData = preview.previewData;
-    const documentName = preview.documentName;
-    if (!previewData || !documentName) return { previews: [] };
-
-    previewData = previewData.map((d) => {
-      return { documentName, data: d };
-    });
-    if (preview.attached?.length) previewData = previewData.concat(preview.attached);
+    if (!preview.previewData) return { previews: [] };
 
     const previewDocuments = new Set();
     const previews = [];
 
     let mainPreviewX;
     let mainPreviewY;
-    for (const doc of previewData) {
-      // Create Preview
-      const previewObject = await this._createPreview.call(canvas.getLayerByEmbeddedName(doc.documentName), doc.data);
-      previews.push(previewObject);
-      previewDocuments.add(doc.documentName);
 
-      if (mainPreviewX == null) {
-        mainPreviewX =
-          previewObject.document.documentName === 'Wall' ? previewObject.document.c[0] : previewObject.document.x;
-        mainPreviewY =
-          previewObject.document.documentName === 'Wall' ? previewObject.document.c[1] : previewObject.document.y;
-      }
+    for (const [documentName, dataArr] of preview.previewData.entries()) {
+      const layer = canvas.getLayerByEmbeddedName(documentName);
+      for (const data of dataArr) {
+        // Create Preview
+        const previewObject = await this._createPreview.call(layer, deepClone(data));
+        previews.push(previewObject);
+        previewDocuments.add(documentName);
 
-      // Calculate offset from first preview
-      if (previewObject.document.documentName === 'Wall') {
-        const off = [
-          previewObject.document.c[0] - mainPreviewX,
-          previewObject.document.c[1] - mainPreviewY,
-          previewObject.document.c[2] - mainPreviewX,
-          previewObject.document.c[3] - mainPreviewY,
-        ];
-        previewObject._previewOffset = off;
-      } else {
-        previewObject._previewOffset = {
-          x: previewObject.document.x - mainPreviewX,
-          y: previewObject.document.y - mainPreviewY,
-        };
-      }
+        // Determine point around which other previews are to be placed
+        if (mainPreviewX == null) {
+          if (documentName === 'Wall') {
+            if (data.c != null) {
+              mainPreviewX = previewObject.document.c[0];
+              mainPreviewY = previewObject.document.c[1];
+            }
+          } else {
+            if (data.x != null && data.y != null) {
+              mainPreviewX = previewObject.document.x;
+              mainPreviewY = previewObject.document.y;
+            }
+          }
+        }
 
-      if (preview.taPreview) {
-        const documentNames = await this._genTAPreviews(doc.data, preview.taPreview, previewObject, previews);
-        documentNames.forEach((dName) => previewDocuments.add(dName));
+        // Calculate offset from first preview
+        if (documentName === 'Wall') {
+          const off = [
+            previewObject.document.c[0] - (mainPreviewX ?? 0),
+            previewObject.document.c[1] - (mainPreviewY ?? 0),
+            previewObject.document.c[2] - (mainPreviewX ?? 0),
+            previewObject.document.c[3] - (mainPreviewY ?? 0),
+          ];
+          previewObject._previewOffset = off;
+        } else {
+          previewObject._previewOffset = {
+            x: previewObject.document.x - (mainPreviewX ?? 0),
+            y: previewObject.document.y - (mainPreviewY ?? 0),
+          };
+        }
+
+        if (preview.taPreview && documentName === 'Token') {
+          const documentNames = await this._genTAPreviews(data, preview.taPreview, previewObject, previews);
+          documentNames.forEach((dName) => previewDocuments.add(dName));
+        }
       }
     }
 
-    return { previews, layer: canvas.getLayerByEmbeddedName(documentName), previewDocuments };
+    return { previews, layer: canvas.getLayerByEmbeddedName(preview.documentName), previewDocuments };
   }
 
   static _parseTAPreview(taPreview, attached) {

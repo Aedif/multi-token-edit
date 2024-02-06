@@ -769,40 +769,48 @@ export class PresetAPI {
     preset = preset ?? (await PresetAPI.getPreset({ uuid, name, type, folder }));
     if (!preset) throw Error(`No preset could be found matching: { uuid: "${uuid}", name: "${name}", type: "${type}"}`);
 
-    let presetData = preset.data;
+    let presetData = deepClone(preset.data);
 
-    // ==================
-    // Display modify data prompt if needed
+    // Display prompt to modify data if needed
     if (modifyPrompt && preset.modifyOnSpawn?.length) {
       presetData = await modifySpawnData(presetData, preset.modifyOnSpawn);
       // presetData being returned as null means that the modify field form has been canceled
       // in which case we should cancel spawning as well
       if (presetData == null) return;
     }
-    // ==================
 
-    // Array of objects to be created
-    let toCreate = [];
+    // Populate preset data with default placeable data
+    presetData = presetData.map((data) => {
+      return mergePresetDataToDefaultDoc(preset, data);
+    });
 
-    for (let data of presetData) {
-      data = mergePresetDataToDefaultDoc(preset, data);
-      toCreate.push(foundry.utils.flattenObject(data));
-    }
-
+    // Randomize data if needed
     const randomizer = preset.randomize;
     if (!foundry.utils.isEmpty(randomizer)) {
-      await applyRandomization(toCreate, null, randomizer);
+      // Flat data required for randomizer
+      presetData = presetData.map((d) => foundry.utils.flattenObject(d));
+      await applyRandomization(presetData, null, randomizer);
+      presetData = presetData.map((d) => foundry.utils.expandObject(d));
     }
 
+    // Scale dimensions relative to grid size
     if (scaleToGrid) {
-      scaleDataToGrid(toCreate, preset.documentName, preset.gridSize);
+      scaleDataToGrid(presetData, preset.documentName, preset.gridSize);
     }
-
-    // Re-expand data, flattened data no longer needed for randomizer or scaling
-    toCreate = toCreate.map((d) => expandObject(d));
 
     if (preset.preSpawnScript) {
-      await executeScript(preset.preSpawnScript, { data: toCreate });
+      await executeScript(preset.preSpawnScript, { data: presetData });
+    }
+
+    // Lets sort the preset data as well as any attached placeable data into document groups
+    // documentName -> data array
+    const docToData = new Map();
+    docToData.set(preset.documentName, presetData);
+    if (preset.attached) {
+      for (const attached of preset.attached) {
+        if (!docToData.get(attached.documentName)) docToData.set(attached.documentName, []);
+        docToData.get(attached.documentName).push(deepClone(attached.data));
+      }
     }
 
     // ==================
@@ -811,11 +819,10 @@ export class PresetAPI {
       const coords = await new Promise(async (resolve) => {
         Picker.activate(resolve, {
           documentName: preset.documentName,
+          previewData: docToData,
           snap: snapToGrid,
-          previewData: expandObject(toCreate),
           label: pickerLabel,
           taPreview: taPreview,
-          attached: preset.attached,
         });
       });
       if (coords == null) return [];
@@ -830,11 +837,11 @@ export class PresetAPI {
       } else {
         x = canvas.mousePosition.x;
         y = canvas.mousePosition.y;
-      }
 
-      if (preset.documentName === 'Token' || preset.documentName === 'Tile') {
-        x -= canvas.dimensions.size / 2;
-        y -= canvas.dimensions.size / 2;
+        if (preset.documentName === 'Token' || preset.documentName === 'Tile') {
+          x -= canvas.dimensions.size / 2;
+          y -= canvas.dimensions.size / 2;
+        }
       }
     }
 
@@ -852,41 +859,9 @@ export class PresetAPI {
     // ==================
     // Set positions taking into account relative distances between each object
     let diffX, diffY, diffZ;
-
-    if (preset.documentName === 'Wall') {
-      if (toCreate[0].c) {
-        diffX = pos.x - toCreate[0].c[0];
-        diffY = pos.y - toCreate[0].c[1];
-      }
-    } else {
-      if (toCreate[0].x != null && toCreate[0].y != null) {
-        diffX = pos.x - toCreate[0].x;
-        diffY = pos.y - toCreate[0].y;
-      }
-
-      // 3D Canvas
-      if (z != null) {
-        if (getProperty(toCreate[0], 'flags.levels.rangeBottom') != null) {
-          diffZ = z - getProperty(toCreate[0], 'flags.levels.rangeBottom');
-        }
-      }
-    }
-
-    // Lets sort the preset data as well as any attached placeable data into document groups
-    const docToData = new Map();
-    docToData.set(preset.documentName, toCreate);
-    if (preset.attached) {
-      for (const attached of preset.attached) {
-        if (!docToData.get(attached.documentName)) docToData.set(attached.documentName, []);
-        docToData.get(attached.documentName).push(deepClone(attached.data));
-      }
-    }
-
     docToData.forEach((dataArr, documentName) => {
       for (const data of dataArr) {
-        // TODO: make this a bit prettier? and make it work for Picker too
-        // If the user manually deleted coordinate data from the the preset (toCreate[0]) we need to establish
-        // the first found coordinate as the reference point instead
+        // We need to establish the first found coordinate as the reference point
         if (diffX == null || diffY == null) {
           if (documentName === 'Wall') {
             if (data.c) {
@@ -927,13 +902,9 @@ export class PresetAPI {
           delete data.z;
           let elevation;
 
-          if (diffZ !== null && getProperty(data, 'flags.levels.rangeBottom') != null) {
+          if (diffZ !== null && getProperty(data, 'flags.levels.rangeBottom') != null)
             elevation = getProperty(data, 'flags.levels.rangeBottom') + diffZ;
-            //setProperty(data, 'flags.levels.rangeBottom', getProperty(data, 'flags.levels.rangeBottom') + diffZ);
-          } else {
-            elevation = z;
-            //setProperty(data, 'flags.levels.rangeBottom', z);
-          }
+          else elevation = z;
 
           setProperty(data, 'flags.levels.rangeBottom', elevation);
           setProperty(data, 'flags.levels.rangeTop', elevation);
@@ -941,17 +912,12 @@ export class PresetAPI {
 
         // Assign ownership for Drawings and MeasuredTemplates
         if (['Drawing', 'MeasuredTemplate'].includes(documentName)) {
-          if (documentName === 'Drawing') {
-            data.author = game.user.id;
-          } else if (documentName === 'MeasuredTemplate') {
-            data.user = game.user.id;
-          }
+          if (documentName === 'Drawing') data.author = game.user.id;
+          else if (documentName === 'MeasuredTemplate') data.user = game.user.id;
         }
 
         // Hide
-        if (hidden || game.keyboard.downKeys.has('AltLeft')) {
-          data.hidden = true;
-        }
+        if (hidden || game.keyboard.downKeys.has('AltLeft')) data.hidden = true;
       }
     });
 
@@ -962,6 +928,7 @@ export class PresetAPI {
         canvas.getLayerByEmbeddedName(preset.documentName)?.activate();
     }
 
+    // Create Documents
     const allDocuments = [];
 
     for (const [documentName, dataArr] of docToData.entries()) {
@@ -969,6 +936,7 @@ export class PresetAPI {
       documents.forEach((d) => allDocuments.push(d));
     }
 
+    // Execute post spawn scripts
     if (preset.postSpawnScript) {
       await executeScript(preset.postSpawnScript, {
         documents: allDocuments,
@@ -1050,6 +1018,8 @@ export class MassEditPresets extends FormApplication {
       this.configApp = configApp;
       this.docName = docName || this.configApp.documentName;
     }
+
+    this.canvas3dActive = Boolean(game.Levels3DPreview?._active);
   }
 
   static get defaultOptions() {
@@ -1099,7 +1069,7 @@ export class MassEditPresets extends FormApplication {
     data.sortMode = SORT_MODES[game.settings.get(MODULE_ID, 'presetSortMode')];
     data.searchMode = SEARCH_MODES[game.settings.get(MODULE_ID, 'presetSearchMode')];
     data.displayDragDropMessage = data.allowDocumentSwap && !(this.tree.presets.length || this.tree.folders.length);
-    data.canvas3dActive = Boolean(game.Levels3DPreview?._active);
+    data.canvas3dActive = this.canvas3dActive;
 
     data.lastSearch = MassEditPresets.lastSearch;
 
@@ -1940,7 +1910,7 @@ export class MassEditPresets extends FormApplication {
     let mouseY;
     let mouseZ;
 
-    if (game.Levels3DPreview?._active) {
+    if (this.canvas3dActive) {
       game.Levels3DPreview.interactionManager._onMouseMove(event, true);
       const { x, y, z } = game.Levels3DPreview.interactionManager.canvas2dMousePosition;
       mouseX = x;
@@ -2262,7 +2232,6 @@ export class PresetConfig extends FormApplication {
       data.displayFieldDelete = true;
       data.displayFieldModify = true;
 
-      // TODO display attached
       data.attached = this.attached || data.preset.attached;
       if (data.attached) {
         data.attached = data.attached.map((at) => {
@@ -2821,7 +2790,6 @@ function getCompendiumDialog(resolve, { excludePack, exportTo = false, keepIdSel
 
 function mergePresetDataToDefaultDoc(preset, presetData) {
   let data;
-  presetData = foundry.utils.flattenObject(presetData);
 
   // Set default values if needed
   switch (preset.documentName) {
@@ -2835,14 +2803,21 @@ function mergePresetDataToDefaultDoc(preset, presetData) {
       data = { radius: 20 };
       break;
     case 'Drawing':
-      data = { 'shape.width': canvas.grid.w * 2, 'shape.height': canvas.grid.h * 2, strokeWidth: 8, strokeAlpha: 1.0 };
+      data = {
+        shape: {
+          width: canvas.grid.w * 2,
+          height: canvas.grid.h * 2,
+          strokeWidth: 8,
+          strokeAlpha: 1.0,
+        },
+      };
       break;
     case 'MeasuredTemplate':
       data = { distance: 10 };
       break;
     case 'AmbientLight':
-      if (!('config.dim' in presetData) && !('config.bright' in presetData)) {
-        data = { 'config.dim': 20, 'config.bright': 10 };
+      if (presetData.config?.dim == null && presetData.config?.bright == null) {
+        data = { config: { dim: 20, bright: 20 } };
         break;
       }
     case 'Scene':
@@ -2938,8 +2913,8 @@ function scaleDataToGrid(data, documentName, gridSize) {
         if ('height' in d) d.height *= ratio;
         break;
       case 'Drawing':
-        if ('shape.width' in d) d['shape.width'] *= ratio;
-        if ('shape.height' in d) d['shape.height'] *= ratio;
+        if (d.shape?.width != null) d.shape.width *= ratio;
+        if (d.shape?.height != null) d.shape.height *= ratio;
         break;
       case 'Wall':
         if ('c' in d) {
