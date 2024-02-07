@@ -244,7 +244,7 @@ export class PresetCollection {
             }),
             presets: tree.presets,
             draggable: false,
-            expanded: game.folders._expanded[p.collection],
+            expanded: FolderState.expanded(p.collection),
             folder: null,
             visible: true,
           };
@@ -283,7 +283,7 @@ export class PresetCollection {
         children: [],
         presets: [],
         draggable: f.pack === this.workingPack,
-        expanded: game.folders._expanded[f.uuid],
+        expanded: FolderState.expanded(f.uuid),
         folder: f.folder?.uuid,
         visible: type ? (f.flags[MODULE_ID]?.types || ['ALL']).includes(type) : true,
       });
@@ -320,12 +320,15 @@ export class PresetCollection {
       }
 
       if (preset.folder) {
+        let matched = false;
         for (const [uuid, folder] of folders) {
           if (folder.id === preset.folder) {
             folder.presets.push(preset);
+            matched = true;
             break;
           }
         }
+        if (!matched) topLevelPresets.push(preset);
       } else topLevelPresets.push(preset);
 
       if (type) {
@@ -953,6 +956,35 @@ export class PresetAPI {
   }
 }
 
+/**
+ * Tracking of folder open/close state as a persistent setting
+ */
+export class FolderState {
+  static scope = 'world';
+  static setting = 'expandedFolders';
+
+  static init() {
+    game.settings.register(this.scope, this.setting, {
+      scope: 'world',
+      config: false,
+      type: Object,
+      default: {},
+    });
+    this.states = game.settings.get(this.scope, this.setting) ?? {};
+  }
+
+  static expanded(uuid) {
+    return this.states[uuid];
+  }
+
+  static setExpanded(uuid, state) {
+    if (Boolean(this.states[uuid]) !== state) {
+      this.states[uuid] = state;
+      game.settings.set(this.scope, this.setting, this.states);
+    }
+  }
+}
+
 const DOC_ICONS = {
   ALL: 'fas fa-globe',
   Token: 'fas fa-user-circle',
@@ -1222,12 +1254,12 @@ export class MassEditPresets extends FormApplication {
       const uuid = folder.data('uuid');
       const icon = folder.find('header h3 i').first();
 
-      if (!game.folders._expanded[uuid]) {
-        game.folders._expanded[uuid] = true;
+      if (!FolderState.expanded(uuid)) {
+        FolderState.setExpanded(uuid, true);
         folder.removeClass('collapsed');
         icon.removeClass('fa-folder-closed').addClass('fa-folder-open');
       } else {
-        game.folders._expanded[uuid] = false;
+        FolderState.setExpanded(uuid, false);
         folder.addClass('collapsed');
         icon.removeClass('fa-folder-open').addClass('fa-folder-closed');
       }
@@ -1584,8 +1616,20 @@ export class MassEditPresets extends FormApplication {
   async _onDeleteSelectedPresets(item) {
     const [selected, items] = await this._getSelectedPresets({ editableOnly: true });
     if (selected.length) {
-      await PresetCollection.delete(selected);
-      items.remove();
+      const confirm =
+        selected.length < 3
+          ? true
+          : await Dialog.confirm({
+              title: `${localize('common.delete')} [ ${selected.length} ]`,
+              content: `<p>${localize('AreYouSure', false)}</p><p>${localFormat('presets.delete-presets-warn', {
+                count: selected.length,
+              })}</p>`,
+            });
+
+      if (confirm) {
+        await PresetCollection.delete(selected);
+        items.remove();
+      }
     }
   }
 
@@ -1635,15 +1679,17 @@ export class MassEditPresets extends FormApplication {
   async _onFolderDelete(uuid, render = true) {
     const folder = this.tree.allFolders.get(uuid);
     if (folder) {
-      await PresetCollection.delete(folder.presets);
-      for (const c of folder.children) {
-        await this._onFolderDelete(c.uuid, false);
+      const confirm = await Dialog.confirm({
+        title: `${localize('FOLDER.Remove', false)}: ${folder.name}`,
+        content: `<h4>${localize('AreYouSure', false)}</h4><p>${localize('FOLDER.RemoveWarning', false)}</p>`,
+      });
+
+      if (confirm) {
+        const folderDoc = await fromUuid(uuid);
+        await folderDoc.delete({ deleteSubfolders: false, deleteContents: false });
+
+        if (render) this.render(true);
       }
-
-      const folderDoc = await fromUuid(uuid);
-      await folderDoc.delete();
-
-      if (render) this.render(true);
     }
   }
 
@@ -1691,14 +1737,14 @@ export class MassEditPresets extends FormApplication {
         folder.data('name').toLowerCase().includes(filter)
       ) {
         folder.show();
-        if (!game.folders._expanded[uuid]) folder.addClass('collapsed');
+        if (!FolderState.expanded(uuid)) folder.addClass('collapsed');
         folder.find('.item').show();
         folder.find('.folder').each(function () {
           const folder = $(this);
           const uuid = folder.data('uuid');
           parentMatchedFolderUuids.add(uuid);
           folder.show();
-          if (!matchedFolderUuids.has(uuid) && !game.folders._expanded[uuid]) folder.addClass('collapsed');
+          if (!matchedFolderUuids.has(uuid) && !FolderState.expanded(uuid)) folder.addClass('collapsed');
         });
         let parent = folder.parent().closest('.folder');
         while (parent.length) {

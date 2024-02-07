@@ -1,3 +1,11 @@
+# 1.58.2
+
+**Presets**
+
+- Folder open/close state now persists on game reload
+- Warnings will now be shown when attempting to delete a folder or more than 2 presets
+- Deleting a folder will no longer delete its presets and sub-folders
+
 # 1.58.1
 
 - Fixes for `DnD5e v3.0.0`

@@ -9,6 +9,7 @@ import {
 import CSSEdit, { STYLES } from './applications/cssEdit.js';
 import {
   DEFAULT_PACK,
+  FolderState,
   MassEditPresets,
   Preset,
   PresetAPI,
@@ -46,6 +47,8 @@ export const HISTORY = {};
 // Initialize module
 Hooks.once('init', () => {
   // Register Settings
+  FolderState.init();
+
   game.settings.register(MODULE_ID, 'cssStyle', {
     scope: 'world',
     config: false,
