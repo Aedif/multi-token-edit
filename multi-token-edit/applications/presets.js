@@ -14,7 +14,7 @@ import {
   localize,
 } from '../scripts/utils.js';
 import { TokenDataAdapter } from './dataAdapters.js';
-import { copyToClipboard } from './forms.js';
+import { copyToClipboard, pasteDataUpdate } from './forms.js';
 import { showGenericForm, showMassEdit } from './multiConfig.js';
 
 const META_INDEX_FIELDS = ['id', 'img', 'documentName'];
@@ -45,12 +45,12 @@ const PRESET_FIELDS = [
   'modifyOnSpawn',
   'preSpawnScript',
   'postSpawnScript',
+  'spawnRandom',
   'attached',
 ];
 
 export class Preset {
   static name = 'Preset';
-
   document;
 
   constructor(data) {
@@ -75,6 +75,7 @@ export class Preset {
     this.preSpawnScript = data.preSpawnScript;
     this.postSpawnScript = data.postSpawnScript;
     this.attached = data.attached;
+    this.spawnRandom = data.spawnRandom;
     this._visible = true;
   }
 
@@ -106,6 +107,10 @@ export class Preset {
     return this._data;
   }
 
+  /**
+   * Loads underlying JournalEntry document from the compendium
+   * @returns this
+   */
   async load() {
     if (!this.document && this.uuid) {
       this.document = await fromUuid(this.uuid);
@@ -127,6 +132,7 @@ export class Preset {
         this.preSpawnScript = preset.preSpawnScript;
         this.postSpawnScript = preset.postSpawnScript;
         this.attached = preset.attached;
+        this.spawnRandom = preset.spawnRandom;
       }
     }
     return this;
@@ -137,6 +143,27 @@ export class Preset {
     if (this.document) this.document.sheet.render(true);
   }
 
+  /**
+   * Attach placeables
+   * @param {Placeable|Array[Placeable]} placeables
+   * @returns
+   */
+  async attach(placeables) {
+    if (!placeables) return;
+    if (!(placeables instanceof Array)) placeables = [placeables];
+
+    if (!this.attached) this.attached = [];
+    for (const placeable of placeables) {
+      this.attached.push({ documentName: placeable.document.documentName, data: placeableToData(placeable) });
+    }
+
+    await this.update({ attached: this.attached });
+  }
+
+  /**
+   * Update preset with the provided data
+   * @param {Object} update
+   */
   async update(update) {
     if (this.document) {
       const flagUpdate = {};
@@ -723,7 +750,7 @@ export class PresetAPI {
   }
 
   /**
-   * Spawn a preset on the scene (id, name or preset itself are required).
+   * Spawn a preset on the scene (uuid, name or preset itself are required).
    * By default the current mouse position is used.
    * @param {object} [options={}]
    * @param {Preset} [options.preset]             Preset
@@ -737,11 +764,11 @@ export class PresetAPI {
    * @param {Boolean} [options.hidden]            If 'true' preset will be spawned hidden.
    * @param {Boolean} [options.layerSwitch]       If 'true' the layer of the spawned preset will be activated.
    * @param {Boolean} [options.scaleToGrid]       If 'true' Tiles, Drawings, and Walls will be scaled relative to grid size.
-   * @param {Boolean} [options.modifyPrompt]       If 'true' a field modification prompt will be shown if configured via `Preset Edit > Modify` form
+   * @param {Boolean} [options.modifyPrompt]      If 'true' a field modification prompt will be shown if configured via `Preset Edit > Modify` form
    * @param {Boolean} [options.coordPicker]       If 'true' a crosshair and preview will be enabled allowing spawn position to be picked
    * @param {String} [options.pickerLabel]          Label displayed above crosshair when `coordPicker` is enabled
    * @param {String} [options.taPreview]            Designates the preview placeable when spawning a `Token Attacher` prefab.
-   *                                                Accepted values are "ALL" for all elements and document name optionally followed by an index number
+   *                                                Accepted values are "ALL" (for all elements) and document name optionally followed by an index number
    *                                                 e.g. "ALL", "Tile", "AmbientLight.1"
    * @returns {Array[Document]}
    */
@@ -773,6 +800,10 @@ export class PresetAPI {
     if (!preset) throw Error(`No preset could be found matching: { uuid: "${uuid}", name: "${name}", type: "${type}"}`);
 
     let presetData = deepClone(preset.data);
+
+    // Instead of using the entire data group use only one random one
+    if (preset.spawnRandom && presetData.length)
+      presetData = [presetData[Math.floor(Math.random() * presetData.length)]];
 
     // Display prompt to modify data if needed
     if (modifyPrompt && preset.modifyOnSpawn?.length) {
@@ -1460,6 +1491,14 @@ export class MassEditPresets extends FormApplication {
         callback: (item) => this._onOpenJournal(item),
       },
       {
+        name: localize('presets.apply-to-selected'),
+        icon: '<i class="fas fa-arrow-circle-right"></i>',
+        condition: (item) =>
+          SUPPORTED_PLACEABLES.includes(item.data('doc-name')) &&
+          canvas.getLayerByEmbeddedName(item.data('doc-name')).controlled.length,
+        callback: (item) => this._onApplyToSelected(item),
+      },
+      {
         name: localize('Duplicate', false),
         icon: '<i class="fa-solid fa-copy"></i>',
         condition: (item) => item.hasClass('editable'),
@@ -1636,6 +1675,28 @@ export class MassEditPresets extends FormApplication {
   async _onOpenJournal(item) {
     const [selected, _] = await this._getSelectedPresets({ editableOnly: false });
     selected.forEach((p) => p.openJournal());
+  }
+
+  async _onApplyToSelected(item) {
+    const [selected, _] = await this._getSelectedPresets({ editableOnly: false });
+    if (!selected.length) return;
+
+    // Confirm that all presets are of the same document type
+    const types = new Set();
+    for (const s of selected) {
+      types.add(s.documentName);
+      if (types.size > 1) {
+        ui.notifications.warn(localize('presets.apply-to-selected-warn'));
+        return;
+      }
+    }
+
+    const controlled = canvas.getLayerByEmbeddedName(selected[0].documentName).controlled;
+    if (!controlled.length) return;
+
+    for (const s of selected) {
+      await pasteDataUpdate(controlled, s, false, true);
+    }
   }
 
   async _onCreateFolder(event) {
@@ -2449,6 +2510,7 @@ export class PresetConfig extends FormApplication {
         this.data = obj.data;
         this.render(true);
       },
+      forceForm: true,
     });
 
     // For randomize and addSubtract only take into account the first preset
@@ -2491,6 +2553,7 @@ export class PresetConfig extends FormApplication {
       if (this.attached) update.attached = this.attached;
       if (formData.preSpawnScript != null) update.preSpawnScript = formData.preSpawnScript;
       if (formData.postSpawnScript != null) update.postSpawnScript = formData.postSpawnScript;
+      if (formData.spawnRandom != null) update.spawnRandom = formData.spawnRandom;
 
       await preset.update(update);
     }

@@ -90,6 +90,14 @@
                 <p class="notes">{{localize "MassEdit.presets.select-modify"}}</p>
             </div>
 
+            <div class="form-group">
+                <label>{{localize "MassEdit.common.random"}}</label>
+                <div class="form-fields">
+                    <input type="checkbox" name="spawnRandom" {{#if preset.spawnRandom}}checked{{/if}} />
+                </div>
+                <p class="notes">{{localize "MassEdit.presets.spawn-random"}}</p>
+            </div>
+
             <div class="form-group stacked command">
                 <label>Pre-Spawn Script</label>
                 <p class="notes">data | token actor</p>

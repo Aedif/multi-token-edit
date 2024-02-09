@@ -1,3 +1,14 @@
+# 1.59.0
+
+**Presets**
+
+- New contextmenu option: `Apply to selected Placeables`
+  - Applies selected presets to selected placeables
+- New option added to the Preset Edit form: `Spawn` > `Random`
+  - If a preset consists of a group of placeables a random one will be chosen instead of spawning the entire group
+- Fixed `Single Placeable: Default Config` setting interfering with the opening of the Mass Edit form via `Preset Edit` form
+- Presets retrieved via `MassEdit.getPreset(...)` now have a method `attach` which allows attachment of passed in placeables to the preset
+
 # 1.58.2
 
 **Presets**
