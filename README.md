@@ -3,11 +3,11 @@
 ![GitHub All Releases](https://img.shields.io/github/downloads/Aedif/multi-token-edit/multi-token-edit.zip)
 [![Forge Installs](https://img.shields.io/badge/dynamic/json?label=Forge%20Installs&query=package.installs&suffix=%25&url=https%3A%2F%2Fforge-vtt.com%2Fapi%2Fbazaar%2Fpackage%2Fmulti-token-edit)](https://forge-vtt.com/bazaar#package=multi-token-edit)
 
-# Mass Edit
+# Baileywiki Mass Edit
 
-FoundryVTT module for searching and editing multiple placeables at the same time.
+FoundryVTT module for searching and editing multiple placeables at the same time and storing them as presets to be re-used.
 
-Support me on [Patreon](https://www.patreon.com/Aedif) to get access to the the version that supports field [Randomization](#randomization).
+Version that supports field [Randomization](#randomization) will soon become available via support of Baileywiki on [Patreon](https://www.patreon.com/baileywiki).
 
 _Note that all keybinding referenced bellow can be changed via 'Configure Controls'_
 
@@ -232,7 +232,7 @@ https://user-images.githubusercontent.com/7693704/179762435-e0f11294-35ed-4cd2-b
 
 ## Randomization
 
-At the moment a [Patreon](https://www.patreon.com/Aedif) exclusive feature.
+At the moment a Patreon exclusive feature.
 
 Randomize any numerical, color, text, image, drop-down, or coordinate values.
 

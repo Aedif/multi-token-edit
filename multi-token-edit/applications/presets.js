@@ -143,6 +143,66 @@ export class Preset {
     if (this.document) this.document.sheet.render(true);
   }
 
+  // TODO: Explore journal preview on hover
+  // Work-in-progress
+  // async previewJournal() {
+  //   if (!this.document) await this.load();
+
+  //   if (this.document) {
+  //     Preset._showEntry(this.uuid, false);
+
+  //     // const cls = SimpleJournal;
+  //     // if (!cls) return null;
+  //     // const sheet = new cls(this.document, { editable: false });
+  //     // sheet.render(true);
+  //   }
+  // }
+
+  // static async _showEntry(uuid, force = false) {
+  //   let entry = await fromUuid(uuid);
+  //   const options = {
+  //     tempOwnership: force,
+  //     mode: JournalSheet.VIEW_MODES.SINGLE,
+  //     pageIndex: 0,
+  //     collapsed: true,
+  //     height: 680,
+  //     width: 680,
+  //     scale: 0.75,
+  //     focus: false,
+  //     force: false,
+  //     zIndex: 0,
+  //   };
+  //   console.log(entry);
+  //   if (entry instanceof JournalEntryPage) {
+  //     options.pageId = entry.id;
+  //     // Set temporary observer permissions for this page.
+  //     entry.ownership[game.userId] = CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER;
+  //     entry = entry.parent;
+  //   } else if (entry instanceof JournalEntry) entry.ownership[game.userId] = CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER;
+  //   else return;
+  //   if (!force && !entry.visible) return;
+
+  //   // Show the sheet with the appropriate mode
+
+  //   const sheet = entry.sheet;
+  //   // sheet.setPosition = function (opts) {
+  //   //   opts.zIndex = 0;
+  //   //   this.setPosition(opts);
+  //   // };
+
+  //   await sheet.render(true, options);
+  // }
+
+  // // bringToTop() {
+  // //   const element = this.element[0];
+  // //   const z = document.defaultView.getComputedStyle(element).zIndex;
+  // //   if ( z < _maxZ ) {
+  // //     this.position.zIndex = Math.min(++_maxZ, 99999);
+  // //     element.style.zIndex = this.position.zIndex;
+  // //     ui.activeWindow = this;
+  // //   }
+  // // }
+
   /**
    * Attach placeables
    * @param {Placeable|Array[Placeable]} placeables
@@ -843,7 +903,9 @@ export class PresetAPI {
     if (preset.attached) {
       for (const attached of preset.attached) {
         if (!docToData.get(attached.documentName)) docToData.set(attached.documentName, []);
-        docToData.get(attached.documentName).push(deepClone(attached.data));
+        const data = deepClone(attached.data);
+        if (scaleToGrid) scaleDataToGrid([data], attached.documentName, preset.gridSize);
+        docToData.get(attached.documentName).push(data);
       }
     }
 
@@ -1656,7 +1718,7 @@ export class MassEditPresets extends FormApplication {
     const [selected, items] = await this._getSelectedPresets({ editableOnly: true });
     if (selected.length) {
       const confirm =
-        selected.length < 3
+        selected.length === 0
           ? true
           : await Dialog.confirm({
               title: `${localize('common.delete')} [ ${selected.length} ]`,
@@ -1695,7 +1757,7 @@ export class MassEditPresets extends FormApplication {
     if (!controlled.length) return;
 
     for (const s of selected) {
-      await pasteDataUpdate(controlled, s, false, true);
+      pasteDataUpdate(controlled, s, false, true);
     }
   }
 
@@ -3016,12 +3078,13 @@ function itemSelect(e, itemList) {
 }
 
 function scaleDataToGrid(data, documentName, gridSize) {
-  if (!['Tile', 'Drawing', 'Wall'].includes(documentName)) return;
+  if (!SUPPORTED_PLACEABLES.includes(documentName)) return;
   if (!gridSize) gridSize = 100;
 
   const ratio = canvas.grid.size / gridSize;
-
   for (const d of data) {
+    if ('x' in d) d.x *= ratio;
+    if ('y' in d) d.y *= ratio;
     switch (documentName) {
       case 'Tile':
         if ('width' in d) d.width *= ratio;

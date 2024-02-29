@@ -296,6 +296,43 @@ Hooks.once('init', () => {
     precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
   });
 
+  game.keybindings.register(MODULE_ID, 'copyKey', {
+    name: 'Copy',
+    hint: '',
+    editable: [
+      {
+        key: 'KeyC',
+        modifiers: ['Shift'],
+      },
+    ],
+    onDown: () => {
+      // Check if a Mass Config form is open and if so copy data from there
+      if (window.getSelection().toString() === '') {
+        Object.values(ui.windows)
+          .find((app) => app.meObjects != null)
+          ?.performMassCopy();
+      }
+    },
+    restricted: true,
+    precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
+  });
+
+  game.keybindings.register(MODULE_ID, 'pasteKey', {
+    name: 'Paste',
+    hint: '',
+    editable: [
+      {
+        key: 'KeyV',
+        modifiers: ['Shift'],
+      },
+    ],
+    onDown: () => {
+      pasteData();
+    },
+    restricted: true,
+    precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
+  });
+
   game.keybindings.register(MODULE_ID, 'selectKey', {
     name: localize('keybindings.selectKey.name'),
     hint: localize('keybindings.selectKey.hint'),

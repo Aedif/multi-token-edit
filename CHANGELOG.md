@@ -1,3 +1,11 @@
+# 1.59.2
+
+- Fixed Scale to Grid skewing positions of spawned placeables when as part of a group or as an attached element within a preset
+
+# 1.59.1
+
+- Fixed Mass Edit interfering with normal copy/paste flow
+
 # 1.59.0
 
 **Presets**

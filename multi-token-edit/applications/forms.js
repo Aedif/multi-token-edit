@@ -1049,7 +1049,7 @@ export const WithMassConfig = (docName = 'NONE') => {
  * @param {boolean} suppressNotif
  * @returns
  */
-export async function pasteDataUpdate(docs, preset, suppressNotif = false, excludePosition = false) {
+export function pasteDataUpdate(docs, preset, suppressNotif = false, excludePosition = false) {
   if (!docs || !docs.length) return false;
 
   let docName = docs[0].document ? docs[0].document.documentName : docs[0].documentName;
@@ -1087,7 +1087,7 @@ export async function pasteDataUpdate(docs, preset, suppressNotif = false, exclu
       delete data.c;
     }
 
-    await performMassUpdate.call(context, foundry.utils.flattenObject(data), docs, preset.documentName, applyType);
+    performMassUpdate.call(context, foundry.utils.flattenObject(data), docs, preset.documentName, applyType);
     if (!suppressNotif)
       ui.notifications.info(
         localFormat('clipboard.paste', {
