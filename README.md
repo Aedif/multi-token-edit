@@ -3,7 +3,7 @@
 ![GitHub All Releases](https://img.shields.io/github/downloads/Aedif/multi-token-edit/multi-token-edit.zip)
 [![Forge Installs](https://img.shields.io/badge/dynamic/json?label=Forge%20Installs&query=package.installs&suffix=%25&url=https%3A%2F%2Fforge-vtt.com%2Fapi%2Fbazaar%2Fpackage%2Fmulti-token-edit)](https://forge-vtt.com/bazaar#package=multi-token-edit)
 
-# Baileywiki Mass Edit
+# Mass Edit
 
 FoundryVTT module for searching and editing multiple placeables at the same time and storing them as presets to be re-used.
 
