@@ -4,8 +4,6 @@
  * mode can be used outside this macro.
  */
 
-import { MODULE_ID } from '../multi-token-edit/scripts/utils.js';
-
 const data = {
   'Colors->': 16746496,
   '<-Colors': 16711854,
@@ -175,7 +173,7 @@ const CUSTOM_CONTROLS = {
   },
 };
 
-game.modules.get(MODULE_ID).api.showGenericForm(data, 'VISION_MODE', {
+MassEdit.showGenericForm(data, 'VISION_MODE', {
   customControls: CUSTOM_CONTROLS,
   callback: async (obj) => displayWorldScript(),
   inputChangeCallback: (selected) => {

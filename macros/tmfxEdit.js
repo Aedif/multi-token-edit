@@ -3,8 +3,6 @@
  * Edited filters can be saved as a new preset.
  */
 
-import { MODULE_ID } from '../multi-token-edit/scripts/utils.js';
-
 const controlled = TokenMagic.getControlledPlaceables();
 if (!controlled.length) return;
 
@@ -107,7 +105,7 @@ async function configureParam() {
   let param = params[i];
 
   if (param)
-    game.modules.get(MODULE_ID).api.showGenericForm(param, param.filterType ?? 'TMFX', {
+    MassEdit.showGenericForm(param, param.filterType ?? 'TMFX', {
       callback: async (obj) => configureParam(),
       inputChangeCallback: (selected) => {
         foundry.utils.mergeObject(param, selected, { inplace: true });

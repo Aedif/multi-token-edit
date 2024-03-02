@@ -1,22 +1,22 @@
 {{#if items}}
 <nav class="sheet-tabs tabs" data-group="{{dataGroup}}" aria-role="Form Tab Navigation">
-    {{#each items}}
-    <a class="item" data-tab="{{dataTab}}">{{label}}</a>
-    {{/each}}
+  {{#each items}}
+  <a class="item" data-tab="{{dataTab}}">{{label}}</a>
+  {{/each}}
 </nav>
 {{/if}}
 
 {{#each tabs}}
 <div class="tab" data-group="{{../dataGroup}}" data-tab="{{dataTab}}">
-    {{#if nav}}
-    {{~>modules/multi-token-edit/templates/generic/navHeaderPartial.html nav}}
+  {{#if nav}}
+    {{~>me-navHeaderPartial nav}}
     {{/if}}
     {{#each groups}}
-    {{~>modules/multi-token-edit/templates/generic/form-group.html this}}
+    {{~>me-form-group this}}
     {{/each}}
 </div>
 {{/each}}
 
 {{#each groups}}
-{{~>modules/multi-token-edit/templates/generic/form-group.html this}}
+{{~>me-form-group this}}
 {{/each}}

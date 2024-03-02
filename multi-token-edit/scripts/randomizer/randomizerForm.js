@@ -2,11 +2,12 @@ import { SPECIES_GENERATORS } from '../generator/fantasticSpeciesGenerator.js';
 import { GROUP_GENERATORS } from '../generator/groupNamesGenerator.js';
 import { NAME_GENERATOR } from '../generator/nameGenerator.js';
 import { TAVERN_GENERATOR } from '../generator/tavernGenerator.js';
-import { MODULE_ID, Picker, isImage, isVideo, recursiveTraverse } from '../utils.js';
+import { Picker } from '../picker.js';
+import { MODULE_ID, isImage, isVideo, recursiveTraverse } from '../utils.js';
 import { deselectField, nearestStep, selectField } from './randomizerUtils.js';
 import { ColorSlider } from './slider.js';
 
-export const IS_PRIVATE = false;
+export const IS_PRIVATE = true;
 
 export default class RandomizerForm extends FormApplication {
   constructor(title, control, configApp, options) {

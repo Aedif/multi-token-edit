@@ -1,10 +1,10 @@
 import { Brush } from '../scripts/brush.js';
 import { importPresetFromJSONDialog } from '../scripts/dialogs.js';
 import { SortingHelpersFixed } from '../scripts/fixedSort.js';
+import { Picker } from '../scripts/picker.js';
 import { applyRandomization } from '../scripts/randomizer/randomizerUtils.js';
 import {
   MODULE_ID,
-  Picker,
   SUPPORTED_PLACEABLES,
   UI_DOCS,
   applyPresetToScene,
@@ -77,6 +77,11 @@ export class Preset {
     this.attached = data.attached;
     this.spawnRandom = data.spawnRandom;
     this._visible = true;
+    this._render = true;
+  }
+
+  get visible() {
+    return this._visible && this._render;
   }
 
   get icon() {
@@ -593,14 +598,13 @@ export class PresetCollection {
       const metaDoc = await this._initMetaDocument(pack);
       const metaUpdate = {};
 
+      const deleteIds = [];
       for (const preset of sorted[pack]) {
-        if (compendium.index.get(preset.id)) {
-          const document = await compendium.getDocument(preset.id);
-          await document.delete();
-        }
+        deleteIds.push(preset.id);
         metaUpdate['-=' + preset.id] = null;
       }
 
+      await JournalEntry.deleteDocuments(deleteIds, { pack });
       metaDoc.setFlag(MODULE_ID, 'index', metaUpdate);
     }
   }
@@ -728,6 +732,35 @@ export class PresetAPI {
         return { name: p.name, folder: p._folderName };
       });
     return presets;
+  }
+
+  /**
+   * Create a Token preset from the provided Actor
+   */
+  static async createPresetFromActor(actor, options) {
+    if (!actor || actor.documentName !== 'Actor') return;
+
+    const presetData = {
+      name: actor.name,
+      documentName: 'Token',
+      img: actor.img,
+      data: [actor.prototypeToken.toJSON()],
+      folder: options.folder,
+    };
+
+    presetData.gridSize = canvas.scene.grid.size;
+    foundry.utils.mergeObject(presetData, options, { inplace: true });
+
+    const preset = new Preset(presetData);
+    await PresetCollection.set(preset);
+    return preset;
+  }
+
+  static async createPresetFromActorUuid(uuid, options) {
+    const actor = await fromUuid(uuid);
+    if (!actor.documentName === 'Actor') return;
+
+    return await this.createPresetFromActor(actor, options);
   }
 
   /**
@@ -1158,7 +1191,7 @@ export class MassEditPresets extends FormApplication {
       classes: ['sheet'],
       template: `modules/${MODULE_ID}/templates/preset/presets.html`,
       resizable: true,
-      minimizable: false,
+      minimizable: true,
       width: 350,
       height: 900,
       scrollY: ['ol.item-list'],
@@ -1174,13 +1207,12 @@ export class MassEditPresets extends FormApplication {
 
   async getData(options) {
     const data = super.getData(options);
-
     // If we're re-rendering deactivate the brush
     if (this._activeBrush) Brush.deactivate();
 
     // Cache partials
-    await getTemplate(`modules/${MODULE_ID}/templates/preset/preset.html`);
-    await getTemplate(`modules/${MODULE_ID}/templates/preset/presetFolder.html`);
+    await getTemplate(`modules/${MODULE_ID}/templates/preset/preset.html`, 'me-preset');
+    await getTemplate(`modules/${MODULE_ID}/templates/preset/presetFolder.html`, 'me-preset-folder');
 
     const displayExtCompendiums = game.settings.get(MODULE_ID, 'presetExtComp');
 
@@ -1400,6 +1432,7 @@ export class MassEditPresets extends FormApplication {
     });
 
     html.on('drop', '.folder.editable header', (event) => {
+      if (this._foundryDrop(event)) return;
       const targetFolder = $(event.target).closest('.folder');
 
       if (this.dragType === 'folder') {
@@ -1452,6 +1485,7 @@ export class MassEditPresets extends FormApplication {
     });
 
     html.on('drop', '.top-level-preset-items', (event) => {
+      if (this._foundryDrop(event)) return;
       if (this.dragType === 'folder') {
         // Move HTML Elements
         const target = html.find('.top-level-folder-items');
@@ -1479,16 +1513,16 @@ export class MassEditPresets extends FormApplication {
     // End of Folder Listeners
     // ================
 
-    html.find('.toggle-sort').on('click', this._onToggleSort.bind(this));
-    html.find('.toggle-search-mode').on('click', this._onToggleSearch.bind(this));
-    html.find('.toggle-doc-lock').on('click', this._onToggleLock.bind(this));
-    html.find('.toggle-ext-comp').on('click', this._onToggleExtComp.bind(this));
-    html.find('.toggle-scaling').on('click', this._onToggleScaling.bind(this));
-    html.find('.toggle-layer-switch').on('click', this._onToggleLayerSwitch.bind(this));
-    html.find('.document-select').on('click', this._onDocumentChange.bind(this));
-    html.find('.item').on('contextmenu', this._onRightClickPreset.bind(this));
-    html.find('.item').on('dblclick', this._onDoubleClickPreset.bind(this));
-    html.find('.create-folder').on('click', this._onCreateFolder.bind(this));
+    html.on('click', '.toggle-sort', this._onToggleSort.bind(this));
+    html.on('click', '.toggle-search-mode', this._onToggleSearch.bind(this));
+    html.on('click', '.toggle-doc-lock', this._onToggleLock.bind(this));
+    html.on('click', '.toggle-ext-comp', this._onToggleExtComp.bind(this));
+    html.on('click', '.toggle-scaling', this._onToggleScaling.bind(this));
+    html.on('click', '.toggle-layer-switch', this._onToggleLayerSwitch.bind(this));
+    html.on('click', '.document-select', this._onDocumentChange.bind(this));
+    html.on('contextmenu', '.item', this._onRightClickPreset.bind(this));
+    html.on('dblclick', '.item', this._onDoubleClickPreset.bind(this));
+    html.on('click', '.create-folder', this._onCreateFolder.bind(this));
     html.on('click', '.preset-create', this._onPresetCreate.bind(this));
     html.on('click', '.preset-update a', this._onPresetUpdate.bind(this));
     html.on('click', '.preset-brush', this._toggleBrush.bind(this));
@@ -1502,6 +1536,57 @@ export class MassEditPresets extends FormApplication {
 
     // Activate context menu
     this._contextMenu(html.find('.item-list'));
+  }
+
+  /**
+   * Process drag and drop of an Actor or Folder of actors
+   * @param {*} event
+   * @returns
+   */
+  _foundryDrop(event) {
+    const data = TextEditor.getDragEventData(event.originalEvent);
+    if (!isEmpty(data)) {
+      if (data.type === 'Folder') {
+        const folder = fromUuidSync(data.uuid);
+        if (folder.type !== 'Actor') return false;
+        this._importActorFolder(folder);
+        return true;
+      } else if (data.type === 'Actor') {
+        PresetAPI.createPresetFromActorUuid(data.uuid).then((preset) => {
+          if (preset) this.render(true);
+        });
+        return true;
+      }
+
+      return false;
+    }
+    return false;
+  }
+
+  async _importActorFolder(folder, parentFolder = null) {
+    let nFolder = new Folder.implementation(
+      {
+        name: folder.name,
+        type: 'JournalEntry',
+        sorting: folder.sorting,
+        folder: parentFolder,
+        color: folder.color ?? '#000000',
+        flags: { [MODULE_ID]: { types: ['ALL', 'Token'] } },
+      },
+      { pack: PresetCollection.workingPack }
+    );
+
+    nFolder = await Folder.create(nFolder, { pack: nFolder.pack });
+
+    for (const child of folder.children) {
+      await this._importActorFolder(child.folder, nFolder.id);
+    }
+
+    for (const actor of folder.contents) {
+      await PresetAPI.createPresetFromActorUuid(actor.uuid, { folder: nFolder.id });
+    }
+
+    this.render(true);
   }
 
   async _onDoubleClickPreset(event) {
@@ -1605,10 +1690,20 @@ export class MassEditPresets extends FormApplication {
         callback: (header) => this._onExportFolder(header.closest('.folder').data('uuid')),
       },
       {
-        name: 'Delete',
+        name: localize('FOLDER.Remove', false),
         icon: '<i class="fas fa-trash fa-fw"></i>',
         condition: (header) => header.closest('.folder').hasClass('editable'),
         callback: (header) => this._onFolderDelete(header.closest('.folder').data('uuid')),
+      },
+      {
+        name: localize('FOLDER.Delete', false),
+        icon: '<i class="fas fa-dumpster"></i>',
+        condition: (header) => header.closest('.folder').hasClass('editable'),
+        callback: (header) =>
+          this._onFolderDelete(header.closest('.folder').data('uuid'), {
+            deleteContents: true,
+            deleteSubfolders: true,
+          }),
       },
     ];
   }
@@ -1680,11 +1775,9 @@ export class MassEditPresets extends FormApplication {
     if (selected.length) copyToClipboard(selected[0]);
   }
 
-  async _getSelectedPresets({ editableOnly = false } = {}) {
+  async _getSelectedPresets({ editableOnly = false, full = true } = {}) {
     const uuids = [];
-    const items = $(this.form)
-      .find('.item-list')
-      .find('.item.selected' + (editableOnly ? '.editable' : ''));
+    const items = this.element.find('.item-list').find('.item.selected' + (editableOnly ? '.editable' : ''));
     items.each(function () {
       const uuid = $(this).data('uuid');
       uuids.push(uuid);
@@ -1692,7 +1785,7 @@ export class MassEditPresets extends FormApplication {
 
     const selected = [];
     for (const uuid of uuids) {
-      const preset = await PresetCollection.get(uuid);
+      const preset = await PresetCollection.get(uuid, { full });
       if (preset) selected.push(preset);
     }
     return [selected, items];
@@ -1715,7 +1808,7 @@ export class MassEditPresets extends FormApplication {
   }
 
   async _onDeleteSelectedPresets(item) {
-    const [selected, items] = await this._getSelectedPresets({ editableOnly: true });
+    const [selected, items] = await this._getSelectedPresets({ editableOnly: true, full: false });
     if (selected.length) {
       const confirm =
         selected.length === 0
@@ -1799,17 +1892,29 @@ export class MassEditPresets extends FormApplication {
     }).then(() => this.render(true));
   }
 
-  async _onFolderDelete(uuid, render = true) {
+  async _onFolderDelete(uuid, { render = true, deleteSubfolders = false, deleteContents = false } = {}) {
     const folder = this.tree.allFolders.get(uuid);
     if (folder) {
-      const confirm = await Dialog.confirm({
-        title: `${localize('FOLDER.Remove', false)}: ${folder.name}`,
-        content: `<h4>${localize('AreYouSure', false)}</h4><p>${localize('FOLDER.RemoveWarning', false)}</p>`,
-      });
+      let confirm;
+
+      if (deleteSubfolders || deleteContents) {
+        confirm = await Dialog.confirm({
+          title: `${localize('FOLDER.Delete', false)}: ${folder.name}`,
+          content: `<div style="color:red;"><h4>${localize('AreYouSure', false)}</h4><p>${localize(
+            'FOLDER.DeleteWarning',
+            false
+          )}</p></div>`,
+        });
+      } else {
+        confirm = await Dialog.confirm({
+          title: `${localize('FOLDER.Remove', false)}: ${folder.name}`,
+          content: `<h4>${localize('AreYouSure', false)}</h4><p>${localize('FOLDER.RemoveWarning', false)}</p>`,
+        });
+      }
 
       if (confirm) {
         const folderDoc = await fromUuid(uuid);
-        await folderDoc.delete({ deleteSubfolders: false, deleteContents: false });
+        await folderDoc.delete({ deleteSubfolders, deleteContents });
 
         if (render) this.render(true);
       }
@@ -2152,12 +2257,95 @@ export class MassEditPresets extends FormApplication {
     this._activeBrush = false;
   }
 
-  setPosition(options) {
-    super.setPosition(options);
+  /**
+   * @override
+   * Application.setPosition(...) has been modified to use css transform for window translation across the screen
+   * instead of top/left css properties which force full-window style recomputation
+   */
+  setPosition({ left, top, width, height, scale } = {}) {
+    if (!this.popOut && !this.options.resizable) return; // Only configure position for popout or resizable apps.
+    const el = this.element[0];
+    const currentPosition = this.position;
+    const pop = this.popOut;
+    const styles = window.getComputedStyle(el);
+    if (scale === null) scale = 1;
+    scale = scale ?? currentPosition.scale ?? 1;
+
+    // If Height is "auto" unset current preference
+    if (height === 'auto' || this.options.height === 'auto') {
+      el.style.height = '';
+      height = null;
+    }
+
+    // Update width if an explicit value is passed, or if no width value is set on the element
+    if (!el.style.width || width) {
+      const tarW = width || el.offsetWidth;
+      const minW = parseInt(styles.minWidth) || (pop ? MIN_WINDOW_WIDTH : 0);
+      const maxW = el.style.maxWidth || window.innerWidth / scale;
+      currentPosition.width = width = Math.clamped(tarW, minW, maxW);
+      el.style.width = `${width}px`;
+      if (width * scale + currentPosition.left > window.innerWidth) left = currentPosition.left;
+    }
+    width = el.offsetWidth;
+
+    // Update height if an explicit value is passed, or if no height value is set on the element
+    if (!el.style.height || height) {
+      const tarH = height || el.offsetHeight + 1;
+      const minH = parseInt(styles.minHeight) || (pop ? MIN_WINDOW_HEIGHT : 0);
+      const maxH = el.style.maxHeight || window.innerHeight / scale;
+      currentPosition.height = height = Math.clamped(tarH, minH, maxH);
+      el.style.height = `${height}px`;
+      if (height * scale + currentPosition.top > window.innerHeight + 1) top = currentPosition.top - 1;
+    }
+    height = el.offsetHeight;
+
+    let leftT, topT;
+    // Update Left
+    if ((pop && !this.posSet) || Number.isFinite(left)) {
+      const scaledWidth = width * scale;
+      const tarL = Number.isFinite(left) ? left : (window.innerWidth - scaledWidth) / 2;
+      const maxL = Math.max(window.innerWidth - scaledWidth, 0);
+      currentPosition.left = left = Math.clamped(tarL, 0, maxL);
+      leftT = left;
+    }
+
+    // Update Top
+    if ((pop && !this.posSet) || Number.isFinite(top)) {
+      const scaledHeight = height * scale;
+      const tarT = Number.isFinite(top) ? top : (window.innerHeight - scaledHeight) / 2;
+      const maxT = Math.max(window.innerHeight - scaledHeight, 0);
+      currentPosition.top = Math.clamped(tarT, 0, maxT);
+
+      topT = currentPosition.top;
+    }
+
+    let transform = '';
+
+    // Update Scale
+    if (scale) {
+      currentPosition.scale = Math.max(scale, 0);
+
+      if (scale === 1) transform += ``;
+      else transform += `scale(${scale})`;
+    }
+
+    if (leftT || topT) {
+      this.posSet = true;
+      transform += 'translate(' + leftT + 'px,' + topT + 'px)';
+    }
+
+    if (transform) {
+      el.style.transform = transform;
+    }
+
+    // Track position post window close
     if (!this.options.preventPositionOverride) {
       MassEditPresets.lastPositionLeft = this.position.left;
       MassEditPresets.lastPositionTop = this.position.top;
     }
+
+    // Return the updated position object
+    return currentPosition;
   }
 
   async close(options = {}) {
@@ -2216,7 +2404,7 @@ export class MassEditPresets extends FormApplication {
   }
 
   /**
-   * Create a preset from placeables dragged and dropped ont he form
+   * Create a preset from placeables dragged and dropped on the form
    * @param {Array[Placeable]} placeables
    * @param {Event} event
    */
@@ -2233,6 +2421,10 @@ export class MassEditPresets extends FormApplication {
 
     this._editPresets(presets, options, event);
     this.render(true);
+  }
+
+  async actorToPreset(actor) {
+    const presets = await PresetAPI.createPreset(placeables);
   }
 
   _getActiveEffectFields() {
