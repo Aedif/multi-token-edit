@@ -1,3 +1,11 @@
+# 1.60.0
+
+**Presets**
+
+- Performance improvements when handling extremely large compendiums
+- Added the 'Delete ALL' option for folders
+- Actors and Actor folders can now be dragged into the window to generate Token folders and presets from them
+
 # 1.59.2
 
 - Fixed Scale to Grid skewing positions of spawned placeables when as part of a group or as an attached element within a preset

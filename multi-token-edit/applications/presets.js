@@ -16,6 +16,7 @@ import {
 import { TokenDataAdapter } from './dataAdapters.js';
 import { copyToClipboard, pasteDataUpdate } from './forms.js';
 import { showGenericForm, showMassEdit } from './multiConfig.js';
+import { trackProgress } from './progressDialog.js';
 
 const META_INDEX_FIELDS = ['id', 'img', 'documentName'];
 const META_INDEX_ID = 'MassEditMetaData';
@@ -759,7 +760,7 @@ export class PresetAPI {
     return preset;
   }
 
-  static async createPresetFromActorUuid(uuid, options) {
+  static async createPresetFromActorUuid(uuid, options = {}) {
     const actor = await fromUuid(uuid);
     if (!actor.documentName === 'Actor') return;
 
@@ -1580,7 +1581,27 @@ export class MassEditPresets extends FormApplication {
       if (data.type === 'Folder') {
         const folder = fromUuidSync(data.uuid);
         if (folder.type !== 'Actor') return false;
-        this._importActorFolder(folder);
+
+        const countActors = function (folder) {
+          return (
+            folder.contents.length +
+            folder.children.reduce(function (sum, c) {
+              return sum + countActors(c.folder);
+            }, 0)
+          );
+        };
+
+        const total = countActors(folder);
+        trackProgress({
+          title: 'Converting Actors',
+          total,
+          cancelCallback: () => (this._convertingActors = false),
+        }).then(async (tracker) => {
+          this._convertingActors = true;
+          await this._importActorFolder(folder, null, tracker);
+          this._convertingActors = false;
+          tracker.close(true);
+        });
         return true;
       } else if (data.type === 'Actor') {
         PresetAPI.createPresetFromActorUuid(data.uuid).then((preset) => {
@@ -1594,7 +1615,7 @@ export class MassEditPresets extends FormApplication {
     return false;
   }
 
-  async _importActorFolder(folder, parentFolder = null) {
+  async _importActorFolder(folder, parentFolder = null, tracker) {
     let nFolder = new Folder.implementation(
       {
         name: folder.name,
@@ -1610,11 +1631,14 @@ export class MassEditPresets extends FormApplication {
     nFolder = await Folder.create(nFolder, { pack: nFolder.pack });
 
     for (const child of folder.children) {
-      await this._importActorFolder(child.folder, nFolder.id);
+      if (!this._convertingActors) break;
+      await this._importActorFolder(child.folder, nFolder.id, tracker);
     }
 
     for (const actor of folder.contents) {
+      if (!this._convertingActors) break;
       await PresetAPI.createPresetFromActorUuid(actor.uuid, { folder: nFolder.id });
+      tracker.incrementCount();
     }
 
     this.render(true);
@@ -1982,23 +2006,24 @@ export class MassEditPresets extends FormApplication {
     this._renderContent();
   }
 
-  _searchFolder(filter, folder) {
+  _searchFolder(filter, folder, forceRender = false) {
     let match = folder.name.toLowerCase().includes(filter);
 
     let childFolderMatch = false;
     for (const f of folder.children) {
-      if (this._searchFolder(filter, f)) childFolderMatch = true;
+      if (this._searchFolder(filter, f, match || forceRender)) childFolderMatch = true;
     }
 
     let presetMatch = false;
     for (const p of folder.presets) {
-      if (this._searchPreset(filter, p, match)) presetMatch = true;
+      if (this._searchPreset(filter, p, match || forceRender)) presetMatch = true;
     }
 
+    const containsMatch = match || childFolderMatch || presetMatch;
     folder.expanded = childFolderMatch || presetMatch;
-    folder.render = match || childFolderMatch || presetMatch;
+    folder.render = containsMatch || forceRender;
 
-    return folder.render;
+    return containsMatch;
   }
 
   _searchPreset(filter, preset, forceRender = false) {
@@ -2070,6 +2095,7 @@ export class MassEditPresets extends FormApplication {
       });
       await Folder.updateDocuments(updates, { pack: PresetCollection.workingPack });
     }
+    this.render(true);
   }
 
   async _onItemSort(sourceUuids, targetUuid, { before = true, folderUuid = null } = {}) {
@@ -2107,7 +2133,7 @@ export class MassEditPresets extends FormApplication {
       await PresetCollection.updatePresets(updates);
     }
 
-    // this.render(true);
+    this.render(true);
   }
 
   async _onToggleSort(event) {
