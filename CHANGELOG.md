@@ -1,3 +1,8 @@
+# 1.60.1
+
+- Actors and Actor folders dragged into the form will now merge/update based on Actor ID instead of always generating new copies
+- Fixed Preset right-click not auto-selecting the preset
+
 # 1.60.0
 
 **Presets**

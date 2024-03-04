@@ -741,19 +741,19 @@ export class PresetAPI {
   /**
    * Create a Token preset from the provided Actor
    */
-  static async createPresetFromActor(actor, options) {
+  static async createPresetFromActor(actor, { keepId = false, folder } = {}) {
     if (!actor || actor.documentName !== 'Actor') return;
 
     const presetData = {
+      id: keepId ? actor.id : null,
       name: actor.name,
       documentName: 'Token',
       img: actor.img,
       data: [actor.prototypeToken.toJSON()],
-      folder: options.folder,
+      folder: folder,
     };
 
     presetData.gridSize = canvas.scene.grid.size;
-    foundry.utils.mergeObject(presetData, options, { inplace: true });
 
     const preset = new Preset(presetData);
     await PresetCollection.set(preset);
@@ -1511,7 +1511,6 @@ export class MassEditPresets extends FormApplication {
     html.on('click', '.toggle-scaling', this._onToggleScaling.bind(this));
     html.on('click', '.toggle-layer-switch', this._onToggleLayerSwitch.bind(this));
     html.on('click', '.document-select', this._onDocumentChange.bind(this));
-    html.on('contextmenu', '.item', this._onRightClickPreset.bind(this));
     html.on('dblclick', '.item', this._onDoubleClickPreset.bind(this));
     html.on('click', '.create-folder', this._onCreateFolder.bind(this));
     html.on('click', '.preset-create', this._onPresetCreate.bind(this));
@@ -1598,13 +1597,13 @@ export class MassEditPresets extends FormApplication {
           cancelCallback: () => (this._convertingActors = false),
         }).then(async (tracker) => {
           this._convertingActors = true;
-          await this._importActorFolder(folder, null, tracker);
+          await this._importActorFolder(folder, null, tracker, { keepId: true });
           this._convertingActors = false;
           tracker.close(true);
         });
         return true;
       } else if (data.type === 'Actor') {
-        PresetAPI.createPresetFromActorUuid(data.uuid).then((preset) => {
+        PresetAPI.createPresetFromActorUuid(data.uuid, { keepId: true }).then((preset) => {
           if (preset) this.render(true);
         });
         return true;
@@ -1615,9 +1614,10 @@ export class MassEditPresets extends FormApplication {
     return false;
   }
 
-  async _importActorFolder(folder, parentFolder = null, tracker) {
+  async _importActorFolder(folder, parentFolder = null, tracker, options = {}) {
     let nFolder = new Folder.implementation(
       {
+        _id: options.keepId ? folder.id : null,
         name: folder.name,
         type: 'JournalEntry',
         sorting: folder.sorting,
@@ -1628,16 +1628,16 @@ export class MassEditPresets extends FormApplication {
       { pack: PresetCollection.workingPack }
     );
 
-    nFolder = await Folder.create(nFolder, { pack: nFolder.pack });
+    nFolder = await Folder.create(nFolder, { pack: nFolder.pack, keepId: options.keepId });
 
     for (const child of folder.children) {
       if (!this._convertingActors) break;
-      await this._importActorFolder(child.folder, nFolder.id, tracker);
+      await this._importActorFolder(child.folder, nFolder.id, tracker, options);
     }
 
     for (const actor of folder.contents) {
       if (!this._convertingActors) break;
-      await PresetAPI.createPresetFromActorUuid(actor.uuid, { folder: nFolder.id });
+      await PresetAPI.createPresetFromActorUuid(actor.uuid, { folder: nFolder.id, keepId: options.keepId });
       tracker.incrementCount();
     }
 
@@ -1673,6 +1673,7 @@ export class MassEditPresets extends FormApplication {
     if (html.find('.item').length)
       ContextMenu.create(this, html, '.item', this._getItemContextOptions(), {
         hookName: 'MassEditPresetContext',
+        onOpen: this._onRightClickPreset.bind(this),
       });
     ContextMenu.create(this, html, '.folder header', this._getFolderContextOptions(), {
       hookName: 'MassEditFolderContext',
@@ -2217,8 +2218,8 @@ export class MassEditPresets extends FormApplication {
     }
   }
 
-  async _onRightClickPreset(event) {
-    const item = $(event.target).closest('.item');
+  async _onRightClickPreset(eventTarget) {
+    const item = $(eventTarget).closest('.item');
 
     // If right-clicked item is not selected, de-select the others and select it
     if (!item.hasClass('selected')) {
