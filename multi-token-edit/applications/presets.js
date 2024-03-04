@@ -22,6 +22,7 @@ const META_INDEX_ID = 'MassEditMetaData';
 export const DEFAULT_PACK = 'world.mass-edit-presets-main';
 
 const DOCUMENT_FIELDS = ['id', 'name', 'sort', 'folder'];
+const SEARCH_MIN_CHAR = 2;
 
 // const FLAG_DATA = {
 //   documentName: null,
@@ -339,6 +340,7 @@ export class PresetCollection {
             expanded: FolderState.expanded(p.collection),
             folder: null,
             visible: true,
+            render: true,
           };
 
           staticFolders.push(topFolder);
@@ -378,6 +380,7 @@ export class PresetCollection {
         expanded: FolderState.expanded(f.uuid),
         folder: f.folder?.uuid,
         visible: type ? (f.flags[MODULE_ID]?.types || ['ALL']).includes(type) : true,
+        render: true,
       });
       topLevelFolders.set(f.uuid, folders.get(f.uuid));
     }
@@ -1213,6 +1216,7 @@ export class MassEditPresets extends FormApplication {
     // Cache partials
     await getTemplate(`modules/${MODULE_ID}/templates/preset/preset.html`, 'me-preset');
     await getTemplate(`modules/${MODULE_ID}/templates/preset/presetFolder.html`, 'me-preset-folder');
+    await getTemplate(`modules/${MODULE_ID}/templates/preset/presetsContent.html`, 'me-presets-content');
 
     const displayExtCompendiums = game.settings.get(MODULE_ID, 'presetExtComp');
 
@@ -1374,21 +1378,7 @@ export class MassEditPresets extends FormApplication {
 
     // ================
     // Folder Listeners
-    html.on('click', '.folder > header', (event) => {
-      const folder = $(event.target).closest('.folder');
-      const uuid = folder.data('uuid');
-      const icon = folder.find('header h3 i').first();
-
-      if (!FolderState.expanded(uuid)) {
-        FolderState.setExpanded(uuid, true);
-        folder.removeClass('collapsed');
-        icon.removeClass('fa-folder-closed').addClass('fa-folder-open');
-      } else {
-        FolderState.setExpanded(uuid, false);
-        folder.addClass('collapsed');
-        icon.removeClass('fa-folder-open').addClass('fa-folder-closed');
-      }
-    });
+    html.on('click', '.folder > header', (event) => this._folderToggle($(event.target).closest('.folder')));
 
     html.on('dragstart', '.folder.editable', (event) => {
       if (this.dragType == 'item') return;
@@ -1529,13 +1519,54 @@ export class MassEditPresets extends FormApplication {
     html.on('click', '.preset-callback', this._onApplyPreset.bind(this));
 
     const headerSearch = html.find('.header-search input');
-    const items = html.find('.item');
-    const folders = html.find('.folder');
-    headerSearch.on('input', (event) => this._onSearchInput(event, items, folders));
-    if (MassEditPresets.lastSearch) headerSearch.trigger('input');
+    headerSearch.on('input', (event) => this._onSearchInput(event));
+    if ((MassEditPresets.lastSearch?.length ?? 0) >= SEARCH_MIN_CHAR) headerSearch.trigger('input');
 
     // Activate context menu
     this._contextMenu(html.find('.item-list'));
+  }
+
+  _folderToggle(folderElement) {
+    const uuid = folderElement.data('uuid');
+
+    let folder = this.tree.allFolders.get(uuid);
+    let editable = true;
+    if (!folder) {
+      folder = this.tree.staticFolders.get(uuid);
+      editable = false;
+    }
+
+    if (folder.expanded) {
+      this._folderCollapse(folderElement, folder);
+    } else {
+      this._folderExpand(folderElement, folder, editable);
+    }
+  }
+
+  async _folderExpand(folderElement, folder, editable) {
+    FolderState.setExpanded(folder.uuid, true);
+    folder.expanded = true;
+
+    if (folderElement.find('.folder-items').length) {
+      folderElement.removeClass('collapsed');
+      folderElement.find('header h3 i').first().removeClass('fa-folder-closed').addClass('fa-folder-open');
+    } else {
+      let content = await renderTemplate(`modules/${MODULE_ID}/templates/preset/presetFolder.html`, {
+        folder,
+        createEnabled: Boolean(this.configApp),
+        callback: Boolean(this.callback),
+        editable,
+      });
+      folderElement.replaceWith(content);
+    }
+  }
+
+  _folderCollapse(folderElement, folder) {
+    folderElement.addClass('collapsed');
+    folderElement.find('header h3 i').first().removeClass('fa-folder-open').addClass('fa-folder-closed');
+
+    FolderState.setExpanded(folder.uuid, false);
+    folder.expanded = false;
   }
 
   /**
@@ -1921,69 +1952,91 @@ export class MassEditPresets extends FormApplication {
     }
   }
 
-  _onSearchInput(event, items, folder) {
-    MassEditPresets.lastSearch = event.target.value;
+  // Throttle input and perform preset search
+  _onSearchInput(event) {
+    clearTimeout(this._searchTimer);
+    this._searchTimer = setTimeout(() => this._onSearch(event), 250);
+  }
 
-    if (!MassEditPresets.lastSearch) {
-      this.render(true);
+  async _onSearch(event) {
+    let newSearch = event.target.value;
+    let previousSearch = MassEditPresets.lastSearch || '';
+    MassEditPresets.lastSearch = newSearch;
+
+    if (previousSearch.length >= SEARCH_MIN_CHAR && newSearch.length < SEARCH_MIN_CHAR) {
+      $(event.target).removeClass('active');
+      this._resetSearchState();
+      this._renderContent();
       return;
     }
 
-    const matchedFolderUuids = new Set();
+    if (newSearch.length < SEARCH_MIN_CHAR) return;
+
     const filter = event.target.value.trim().toLowerCase();
     $(event.target).addClass('active');
 
-    // First hide/show items
-    const app = this;
-    items.each(function () {
-      const item = $(this);
-      if (item.attr('name').toLowerCase().includes(filter)) {
-        item.show();
-        let folderUuid = item.closest('.folder').data('uuid');
-        while (folderUuid) {
-          matchedFolderUuids.add(folderUuid);
-          const folder = app.tree.allFolders.get(folderUuid);
-          if (folder.folder) folderUuid = folder.folder;
-          else folderUuid = null;
-        }
-      } else {
-        item.hide();
-      }
-    });
+    this.tree.folders.forEach((f) => this._searchFolder(filter, f));
+    this.tree.staticFolders.forEach((f) => this._searchFolder(filter, f));
+    this.tree.presets.forEach((p) => this._searchPreset(filter, p));
 
-    const parentMatchedFolderUuids = new Set();
-    // Next hide/show folders depending on whether they contained matched items
-    folder.each(function () {
-      const folder = $(this);
-      const uuid = folder.data('uuid');
+    this._renderContent();
+  }
 
-      if (matchedFolderUuids.has(uuid)) {
-        folder.removeClass('collapsed');
-        folder.show();
-      } else if (
-        game.settings.get(MODULE_ID, 'presetSearchMode') === 'pf' &&
-        folder.data('name').toLowerCase().includes(filter)
-      ) {
-        folder.show();
-        if (!FolderState.expanded(uuid)) folder.addClass('collapsed');
-        folder.find('.item').show();
-        folder.find('.folder').each(function () {
-          const folder = $(this);
-          const uuid = folder.data('uuid');
-          parentMatchedFolderUuids.add(uuid);
-          folder.show();
-          if (!matchedFolderUuids.has(uuid) && !FolderState.expanded(uuid)) folder.addClass('collapsed');
-        });
-        let parent = folder.parent().closest('.folder');
-        while (parent.length) {
-          parent.show();
-          parent.removeClass('collapsed');
-          parent = parent.parent().closest('.folder');
-        }
-      } else if (!parentMatchedFolderUuids.has(uuid)) {
-        folder.hide();
-      }
+  _searchFolder(filter, folder) {
+    let match = folder.name.toLowerCase().includes(filter);
+
+    let childFolderMatch = false;
+    for (const f of folder.children) {
+      if (this._searchFolder(filter, f)) childFolderMatch = true;
+    }
+
+    let presetMatch = false;
+    for (const p of folder.presets) {
+      if (this._searchPreset(filter, p, match)) presetMatch = true;
+    }
+
+    folder.expanded = childFolderMatch || presetMatch;
+    folder.render = match || childFolderMatch || presetMatch;
+
+    return folder.render;
+  }
+
+  _searchPreset(filter, preset, forceRender = false) {
+    if (preset.name.toLowerCase().includes(filter)) {
+      preset._render = true;
+      return true;
+    } else {
+      preset._render = false || forceRender;
+      return false;
+    }
+  }
+
+  _resetSearchState() {
+    this.tree.folders.forEach((f) => this._resetSearchStateFolder(f));
+    this.tree.staticFolders.forEach((f) => this._resetSearchStateFolder(f));
+    this.tree.presets.forEach((p) => this._resetSearchStatePreset(p));
+  }
+
+  _resetSearchStateFolder(folder) {
+    folder.expanded = FolderState.expanded(folder.uuid);
+    folder.render = true;
+    folder.children.forEach((f) => this._resetSearchStateFolder(f));
+    folder.presets.forEach((p) => this._resetSearchStatePreset(p));
+  }
+
+  _resetSearchStatePreset(preset) {
+    preset._render = true;
+  }
+
+  async _renderContent() {
+    const content = await renderTemplate(`modules/${MODULE_ID}/templates/preset/presetsContent.html`, {
+      callback: Boolean(this.callback),
+      presets: this.tree.presets,
+      folders: this.tree.folders,
+      createEnabled: Boolean(this.configApp),
+      staticFolders: this.tree.staticFolders.length ? this.tree.staticFolders : null,
     });
+    this.element.find('.item-list').html(content);
   }
 
   async _onFolderSort(sourceUuid, targetUuid, { inside = true, folderUuid = null } = {}) {

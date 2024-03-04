@@ -1,17 +1,21 @@
 <li class="folder {{#unless folder.expanded}}collapsed{{/unless}} {{#if editable}}editable{{/if}}" data-id="{{folder.id}}" data-uuid="{{folder.uuid}}" data-name="{{folder.name}}" style="border-color: {{folder.color}};" {{#if draggable}}draggable="true"{{/if}}>
     <header class="handle flexrow" style="background-color: {{folder.color}};"><h3><i class="fas fa-folder-{{#if folder.expanded}}open{{else}}closed{{/if}} fa-fw"></i>{{folder.name}}</h3></header>
+    {{#if folder.expanded}}
     <ol class="folder-items">
-        {{#each children as |child|}}
+        {{#each folder.children as |child|}}
             {{#if child.visible}}
-                 {{>me-preset-folder folder=child refreshEnabled=../refreshEnabled createEnabled=../createEnabled callback=../callback editable=../editable}}
+            {{#if child.render}}
+                 {{>me-preset-folder folder=child createEnabled=../createEnabled callback=../callback editable=../editable}}
+            {{/if}}
             {{/if}}
         {{/each}}
     </ol>
     <ol class="preset-items">
-        {{#each presets as |preset|}}
+        {{#each folder.presets as |preset|}}
             {{#if preset.visible}}
-                {{>me-preset preset=preset refreshEnabled=../refreshEnabled createEnabled=../createEnabled callback=../callback editable=../editable}}
+                {{>me-preset preset=preset createEnabled=../createEnabled callback=../callback editable=../editable}}
             {{/if}}
         {{/each}}
     </ol>
+    {{/if}}
 </li>

@@ -1,0 +1,30 @@
+<ol class="folder-items top-level-folder-items">
+    {{#each folders as |folder|}}
+        {{#if folder.visible}}
+        {{#if folder.render}}
+            {{>me-preset-folder folder=folder createEnabled=../createEnabled callback=../callback editable=true}}
+        {{/if}}
+        {{/if}}
+    {{/each}}
+</ol>
+
+<ol class="preset-items top-level-preset-items">
+    {{#each presets as |preset|}}
+    {{#if preset.visible}}
+        {{>me-preset preset=preset createEnabled=../createEnabled callback=../callback editable=true}}
+    {{/if}}
+    {{/each}}
+</ol>
+
+{{#if staticFolders}}
+<label class="static-label">EXTERNAL COMPENDIUMS</label>
+<ol class="folder-items static">
+    {{#each staticFolders as |folder|}}
+        {{#if folder.visible}}
+        {{#if folder.render}}
+            {{>me-preset-folder folder=folder createEnabled=../createEnabled callback=../callback}}
+        {{/if}}
+        {{/if}}
+    {{/each}}
+</ol>
+{{/if}}
