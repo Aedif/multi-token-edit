@@ -41,6 +41,7 @@ import { GeneralDataAdapter } from './applications/dataAdapters.js';
 import { applyRandomization } from './scripts/randomizer/randomizerUtils.js';
 import { IS_PRIVATE } from './scripts/randomizer/randomizerForm.js';
 import { libWrapper } from './scripts/shim/shim.js';
+import { enableUniversalSelectTool } from './scripts/selectTool.js';
 
 export const HISTORY = {};
 
@@ -526,6 +527,9 @@ Hooks.once('init', () => {
       resolveCreateDocumentRequest(args);
     }
   });
+
+  // Enable select tool for all layers
+  enableUniversalSelectTool();
 
   globalThis.MassEdit = {
     GeneralDataAdapter,
