@@ -1,9 +1,9 @@
 import { HISTORY } from '../multi-token-edit.mjs';
+import { Preset } from '../scripts/presets/preset.js';
 import { MODULE_ID, localize } from '../scripts/utils.js';
 import { GeneralDataAdapter } from './dataAdapters.js';
 import { copyToClipboard } from './forms.js';
 import { LAYER_MAPPINGS } from './multiConfig.js';
-import { Preset } from './presets.js';
 
 export default class MassEditHistory extends FormApplication {
   constructor(docName, callback) {

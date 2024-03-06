@@ -1,5 +1,5 @@
 import { pasteDataUpdate } from '../applications/forms.js';
-import { Preset } from '../applications/presets.js';
+import { Preset } from './presets/preset.js';
 import { MODULE_ID } from './utils.js';
 
 export class Brush {

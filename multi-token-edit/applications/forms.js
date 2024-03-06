@@ -1,5 +1,7 @@
 import { Brush } from '../scripts/brush.js';
 import { injectFlagTab, injectVisibility } from '../scripts/fieldInjector.js';
+import { MassEditPresets } from '../scripts/presets/forms.js';
+import { Preset } from '../scripts/presets/preset.js';
 import { IS_PRIVATE, showRandomizeDialog } from '../scripts/randomizer/randomizerForm.js';
 import { applyRandomization, selectRandomizerFields } from '../scripts/randomizer/randomizerUtils.js';
 import { applyDDTint, applyTMFXPreset, getDDTint } from '../scripts/tmfx.js';
@@ -26,7 +28,6 @@ import { GeneralDataAdapter, TokenDataAdapter } from './dataAdapters.js';
 import MassEditHistory from './history.js';
 import MacroForm from './macro.js';
 import { SCENE_DOC_MAPPINGS, showMassActorForm, showMassEdit } from './multiConfig.js';
-import { MassEditPresets, Preset } from './presets.js';
 
 // ==================================
 // ========= Applications ===========

@@ -7,15 +7,7 @@ import {
   showGenericForm,
 } from './applications/multiConfig.js';
 import CSSEdit, { STYLES } from './applications/cssEdit.js';
-import {
-  DEFAULT_PACK,
-  FolderState,
-  MassEditPresets,
-  Preset,
-  PresetAPI,
-  PresetCollection,
-  PresetConfig,
-} from './applications/presets.js';
+
 import {
   checkApplySpecialFields,
   deleteFromClipboard,
@@ -42,6 +34,10 @@ import { applyRandomization } from './scripts/randomizer/randomizerUtils.js';
 import { IS_PRIVATE } from './scripts/randomizer/randomizerForm.js';
 import { libWrapper } from './scripts/shim/shim.js';
 import { enableUniversalSelectTool } from './scripts/selectTool.js';
+import { Preset } from './scripts/presets/preset.js';
+import { DEFAULT_PACK, PresetAPI, PresetCollection } from './scripts/presets/collection.js';
+import { FolderState } from './scripts/presets/utils.js';
+import { MassEditPresets, PresetConfig } from './scripts/presets/forms.js';
 
 export const HISTORY = {};
 

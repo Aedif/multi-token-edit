@@ -1,5 +1,5 @@
 import { GeneralDataAdapter } from '../applications/dataAdapters.js';
-import { MassEditPresets } from '../applications/presets.js';
+import { MassEditPresets } from './presets/forms.js';
 import { applyRandomization } from './randomizer/randomizerUtils.js';
 
 export const SUPPORTED_PLACEABLES = [
