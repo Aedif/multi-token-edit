@@ -1,3 +1,16 @@
+# 1.61.0
+
+- Select Tool is enabled for AmbientLight, AmbientSound, MeasuredTemplate, and Note layers
+- Added JournalEntry ID button to `Preset Config` form title bar.
+- When exporting preset folders a progress tracker will now be displayed
+
+Fixes
+
+- MetaIndex entries will now be re-generated for missing presets
+- Fixed MetaIndex not clearing out indexes when presets are batch deleted as part of folder delete
+- Fixed context menu's not opening under certain conditions
+- Fixed edit related context menu options being shown for external compendiums
+
 # 1.60.1
 
 - Actors and Actor folders dragged into the form will now merge/update based on Actor ID instead of always generating new copies

@@ -1,7 +1,7 @@
 import { TokenDataAdapter } from '../../applications/dataAdapters.js';
 import { copyToClipboard, pasteDataUpdate } from '../../applications/forms.js';
 import { showMassEdit } from '../../applications/multiConfig.js';
-import { trackProgress } from '../../applications/progressDialog.js';
+import { countFolderItems, trackProgress } from '../../applications/progressDialog.js';
 import { Brush } from '../brush.js';
 import { importPresetFromJSONDialog } from '../dialogs.js';
 import { SortingHelpersFixed } from '../fixedSort.js';
@@ -444,7 +444,7 @@ export class MassEditPresets extends FormApplication {
         folder,
         createEnabled: Boolean(this.configApp),
         callback: Boolean(this.callback),
-        editable,
+        editable: fromUuidSync(folder.uuid)?.pack === PresetCollection.workingPack,
       });
       folderElement.replaceWith(content);
     }
@@ -469,26 +469,15 @@ export class MassEditPresets extends FormApplication {
       if (data.type === 'Folder') {
         const folder = fromUuidSync(data.uuid);
         if (folder.type !== 'Actor') return false;
+        if (this._importTracker?.active) return false;
 
-        const countActors = function (folder) {
-          return (
-            folder.contents.length +
-            folder.children.reduce(function (sum, c) {
-              return sum + countActors(c.folder);
-            }, 0)
-          );
-        };
-
-        const total = countActors(folder);
         trackProgress({
           title: 'Converting Actors',
-          total,
-          cancelCallback: () => (this._convertingActors = false),
+          total: countFolderItems(folder),
         }).then(async (tracker) => {
-          this._convertingActors = true;
-          await this._importActorFolder(folder, null, tracker, { keepId: true });
-          this._convertingActors = false;
-          tracker.close(true);
+          this._importTracker = tracker;
+          await this._importActorFolder(folder, null, { keepId: true });
+          this._importTracker?.stop();
         });
         return true;
       } else if (data.type === 'Actor') {
@@ -503,7 +492,7 @@ export class MassEditPresets extends FormApplication {
     return false;
   }
 
-  async _importActorFolder(folder, parentFolder = null, tracker, options = {}) {
+  async _importActorFolder(folder, parentFolder = null, options = {}) {
     let nFolder = new Folder.implementation(
       {
         _id: options.keepId ? folder.id : null,
@@ -520,14 +509,14 @@ export class MassEditPresets extends FormApplication {
     nFolder = await Folder.create(nFolder, { pack: nFolder.pack, keepId: options.keepId });
 
     for (const child of folder.children) {
-      if (!this._convertingActors) break;
-      await this._importActorFolder(child.folder, nFolder.id, tracker, options);
+      if (!this._importTracker?.active) break;
+      await this._importActorFolder(child.folder, nFolder.id, options);
     }
 
     for (const actor of folder.contents) {
-      if (!this._convertingActors) break;
+      if (!this._importTracker?.active) break;
       await PresetAPI.createPresetFromActorUuid(actor.uuid, { folder: nFolder.id, keepId: options.keepId });
-      tracker.incrementCount();
+      this._importTracker.incrementCount();
     }
 
     this.render(true);
@@ -559,11 +548,10 @@ export class MassEditPresets extends FormApplication {
   }
 
   _contextMenu(html) {
-    if (html.find('.item').length)
-      ContextMenu.create(this, html, '.item', this._getItemContextOptions(), {
-        hookName: 'MassEditPresetContext',
-        onOpen: this._onRightClickPreset.bind(this),
-      });
+    ContextMenu.create(this, html, '.item', this._getItemContextOptions(), {
+      hookName: 'MassEditPresetContext',
+      onOpen: this._onRightClickPreset.bind(this),
+    });
     ContextMenu.create(this, html, '.folder header', this._getFolderContextOptions(), {
       hookName: 'MassEditFolderContext',
     });
@@ -656,7 +644,17 @@ export class MassEditPresets extends FormApplication {
     let { pack, keepId } = await new Promise((resolve) =>
       getCompendiumDialog(resolve, { exportTo: true, keepIdSelect: true })
     );
-    if (pack) this._onCopyFolder(uuid, null, pack, true, keepId);
+    if (pack && !this._importTracker?.active) {
+      const folderDoc = await fromUuid(uuid);
+      if (folderDoc) {
+        this._importTracker = await trackProgress({
+          title: 'Exporting Folder',
+          total: countFolderItems(this.tree.allFolders.get(uuid)),
+        });
+        await this._onCopyFolder(uuid, null, pack, true, keepId);
+        this._importTracker?.stop();
+      }
+    }
   }
 
   async _onCopyFolder(uuid, parentId = null, pack, render = true, keepId = true) {
@@ -671,6 +669,7 @@ export class MassEditPresets extends FormApplication {
       else types = ['ALL'];
 
       const data = {
+        _id: keepId ? folder.id : null,
         name: folder.name,
         color: folder.color,
         sorting: folder.sorting,
@@ -678,17 +677,19 @@ export class MassEditPresets extends FormApplication {
         flags: { [MODULE_ID]: { types } },
         type: 'JournalEntry',
       };
-
-      const nFolder = await Folder.create(data, { pack });
+      const nFolder = await Folder.create(data, { pack, keepId });
 
       for (const preset of folder.presets) {
+        if (!this._importTracker?.active) break;
         const p = (await preset.load()).clone();
         p.folder = nFolder.id;
         if (!keepId) p.id = foundry.utils.randomID();
         await PresetCollection.set(p, pack);
+        this._importTracker?.incrementCount();
       }
 
       for (const child of folder.children) {
+        if (!this._importTracker?.active) break;
         await this._onCopyFolder(child.uuid, nFolder.id, pack, false, keepId);
       }
 
@@ -842,7 +843,6 @@ export class MassEditPresets extends FormApplication {
       let confirm;
 
       if (deleteAll) {
-        console.log(folder);
         confirm = await Dialog.confirm({
           title: `${localize('FOLDER.Delete', false)}: ${folder.name}`,
           content: `<div style="color:red;"><h4>${localize('AreYouSure', false)}</h4><p>${localize(
@@ -2144,9 +2144,9 @@ function getCompendiumDialog(resolve, { excludePack, exportTo = false, keepIdSel
   if (keepIdSelect) {
     content += `
 <div class="form-group">
-    <label>${localize('presets.keep-preset-ids')}</label>
-    <input type="checkbox" name="keepId">
-    <p style="font-size: smaller;">${localize('presets.keep-preset-ids-hint')}</p>
+    <label>${localize('presets.keep-ids')}</label>
+    <input type="checkbox" name="keepId" checked>
+    <p style="font-size: smaller;">${localize('presets.keep-ids-hint')}</p>
 </div>`;
   }
 
