@@ -1,3 +1,7 @@
+# 1.61.2
+
+- Sort static preset folders by name
+
 # 1.61.1
 
 - `Spotlight Omnisearch`

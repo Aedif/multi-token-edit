@@ -63,7 +63,7 @@ export class PresetCollection {
       }
     }
 
-    mainTree.staticFolders = staticFolders;
+    mainTree.staticFolders = staticFolders.sort((f1, f2) => f1.name.localeCompare(f2.name));
 
     return mainTree;
   }
@@ -446,14 +446,16 @@ export class PresetCollection {
     const SearchTerm = CONFIG.SpotlightOmniseach.SearchTerm;
 
     const onClick = async function () {
-      ui.spotlightOmnisearch?.setDraggingState(true);
-      await PresetAPI.spawnPreset({
-        preset: this.data,
-        coordPicker: true,
-        taPreview: 'ALL',
-        scaleToGrid: game.settings.get(MODULE_ID, 'presetScaling'),
-      });
-      ui.spotlightOmnisearch?.setDraggingState(false);
+      if (SUPPORTED_PLACEABLES.includes(this.data.documentName)) {
+        ui.spotlightOmnisearch?.setDraggingState(true);
+        await PresetAPI.spawnPreset({
+          preset: this.data,
+          coordPicker: true,
+          taPreview: 'ALL',
+          scaleToGrid: game.settings.get(MODULE_ID, 'presetScaling'),
+        });
+        ui.spotlightOmnisearch?.setDraggingState(false);
+      }
     };
 
     const onDragEnd = function (event) {
