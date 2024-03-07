@@ -123,6 +123,11 @@
   padding-right: 1px;
 }
 
+#mass-edit-presets.inactive {
+  opacity: 10%;
+  pointer-events: none;
+}
+
 .mass-edit-preset-form .item-list {
   flex: 1;
   list-style: none;

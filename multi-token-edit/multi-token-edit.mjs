@@ -35,7 +35,7 @@ import { IS_PRIVATE } from './scripts/randomizer/randomizerForm.js';
 import { libWrapper } from './scripts/shim/shim.js';
 import { enableUniversalSelectTool } from './scripts/selectTool.js';
 import { Preset } from './scripts/presets/preset.js';
-import { DEFAULT_PACK, PresetAPI, PresetCollection } from './scripts/presets/collection.js';
+import { DEFAULT_PACK, META_INDEX_ID, PresetAPI, PresetCollection } from './scripts/presets/collection.js';
 import { FolderState } from './scripts/presets/utils.js';
 import { MassEditPresets, PresetConfig } from './scripts/presets/forms.js';
 
@@ -529,6 +529,14 @@ Hooks.once('init', () => {
 
   // 'Spotlight Omnisearch' support
   Hooks.on('spotlightOmnisearch.indexBuilt', (index) => {
+    // First turn-off preset compendium from being included in omnisearch indexing
+    const old = game.settings.get('spotlight-omnisearch', 'compendiumConfig');
+    game.packs
+      .filter((p) => p.documentName === 'JournalEntry' && p.index.get(META_INDEX_ID))
+      .forEach((p) => (old[p.collection] = false));
+    game.settings.set('spotlight-omnisearch', 'compendiumConfig', old);
+
+    // Insert preset index
     PresetCollection.buildSpotlightOmnisearchIndex(index);
   });
 

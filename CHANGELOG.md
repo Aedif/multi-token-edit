@@ -1,3 +1,10 @@
+# 1.61.1
+
+- `Spotlight Omnisearch`
+  - Mass Edit presets are now available via this module's search feature
+- Preset window will now hide itself when spawning a preset with preview via double-click
+- Misc. bug fixes
+
 # 1.61.0
 
 - Select Tool is enabled for AmbientLight, AmbientSound, MeasuredTemplate, and Note layers

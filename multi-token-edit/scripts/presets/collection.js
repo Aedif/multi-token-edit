@@ -445,7 +445,7 @@ export class PresetCollection {
 
     const SearchTerm = CONFIG.SpotlightOmniseach.SearchTerm;
 
-    const onClick = async function (event) {
+    const onClick = async function () {
       ui.spotlightOmnisearch?.setDraggingState(true);
       await PresetAPI.spawnPreset({
         preset: this.data,
@@ -477,7 +477,6 @@ export class PresetCollection {
         onDragEnd,
         data: preset,
         description: 'Mass Edit: Preset',
-        dragData: preset.data,
       });
 
       const actions = [

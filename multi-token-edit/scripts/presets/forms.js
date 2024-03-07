@@ -538,13 +538,25 @@ export class MassEditPresets extends FormApplication {
     if (!SUPPORTED_PLACEABLES.includes(preset.documentName)) return;
 
     ui.notifications.info(`Mass Edit: ${localize('presets.spawning')} [${preset.name}]`);
-    PresetAPI.spawnPreset({
+
+    this._setInteractivityState(false);
+    await PresetAPI.spawnPreset({
       preset,
       coordPicker: true,
       taPreview: 'ALL',
       layerSwitch: game.settings.get(MODULE_ID, 'presetLayerSwitch'),
       scaleToGrid: game.settings.get(MODULE_ID, 'presetScaling'),
     });
+    this._setInteractivityState(true);
+  }
+
+  /**
+   * Sets the window app as translucent and inactive to mouse pointer events
+   * @param {Boolean} state true = active, false = inactive
+   */
+  _setInteractivityState(state) {
+    if (state) this.element.removeClass('inactive');
+    else this.element.addClass('inactive');
   }
 
   _contextMenu(html) {
