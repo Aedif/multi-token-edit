@@ -7,7 +7,7 @@ import { importPresetFromJSONDialog } from '../dialogs.js';
 import { SortingHelpersFixed } from '../fixedSort.js';
 import { MODULE_ID, SUPPORTED_PLACEABLES, UI_DOCS, applyPresetToScene, localFormat, localize } from '../utils.js';
 import { PresetAPI, PresetCollection } from './collection.js';
-import { DOC_ICONS } from './preset.js';
+import { DOC_ICONS, Preset } from './preset.js';
 import { FolderState, mergePresetDataToDefaultDoc, placeableToData } from './utils.js';
 
 const SEARCH_MIN_CHAR = 2;
@@ -1494,7 +1494,7 @@ export class PresetConfig extends FormApplication {
   /**
    * @param {Array[Preset]} presets
    */
-  constructor(presets, options) {
+  constructor(presets, options = {}) {
     super({}, options);
     this.presets = presets;
     this.callback = options.callback;

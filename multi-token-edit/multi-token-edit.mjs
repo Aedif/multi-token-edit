@@ -527,6 +527,11 @@ Hooks.once('init', () => {
   // Enable select tool for all layers
   enableUniversalSelectTool();
 
+  // 'Spotlight Omnisearch' support
+  Hooks.on('spotlightOmnisearch.indexBuilt', (index) => {
+    PresetCollection.buildSpotlightOmnisearchIndex(index);
+  });
+
   globalThis.MassEdit = {
     GeneralDataAdapter,
     MassEditGenericForm,

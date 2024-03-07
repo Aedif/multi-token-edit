@@ -1,8 +1,15 @@
+import { Brush } from '../brush.js';
 import { Picker } from '../picker.js';
 import { applyRandomization } from '../randomizer/randomizerUtils.js';
-import { MODULE_ID, UI_DOCS, createDocuments, executeScript } from '../utils.js';
+import { MODULE_ID, SUPPORTED_PLACEABLES, UI_DOCS, createDocuments, executeScript, localize } from '../utils.js';
 import { Preset } from './preset.js';
-import { FolderState, mergePresetDataToDefaultDoc, modifySpawnData, scaleDataToGrid } from './utils.js';
+import {
+  FolderState,
+  mergePresetDataToDefaultDoc,
+  modifySpawnData,
+  placeableToData,
+  scaleDataToGrid,
+} from './utils.js';
 
 export const DEFAULT_PACK = 'world.mass-edit-presets-main';
 export const META_INDEX_ID = 'MassEditMetaData';
@@ -427,6 +434,84 @@ export class PresetCollection {
         presets.push(preset);
       }
     }
+  }
+
+  /**
+   * Build preset index for 'Spotlight Omnisearch' module
+   * @param {Array[CONFIG.SpotlightOmniseach.SearchTerm]} soIndex
+   */
+  static async buildSpotlightOmnisearchIndex(soIndex) {
+    const tree = await PresetCollection.getTree();
+
+    const SearchTerm = CONFIG.SpotlightOmniseach.SearchTerm;
+
+    const onClick = async function (event) {
+      ui.spotlightOmnisearch?.setDraggingState(true);
+      await PresetAPI.spawnPreset({
+        preset: this.data,
+        coordPicker: true,
+        taPreview: 'ALL',
+        scaleToGrid: game.settings.get(MODULE_ID, 'presetScaling'),
+      });
+      ui.spotlightOmnisearch?.setDraggingState(false);
+    };
+
+    const onDragEnd = function (event) {
+      const { x, y } = canvas.canvasCoordinatesFromClient({ x: event.clientX, y: event.clientY });
+      PresetAPI.spawnPreset({ preset: this.data, x, y, scaleToGrid: game.settings.get(MODULE_ID, 'presetScaling') });
+    };
+
+    const deactivateCallback = function () {
+      ui.spotlightOmnisearch?.setDraggingState(false);
+    };
+
+    const buildTerm = function (preset) {
+      const isPlaceable = SUPPORTED_PLACEABLES.includes(preset.documentName);
+
+      const term = new SearchTerm({
+        name: preset.name,
+        type: isPlaceable ? preset.documentName : 'preset',
+        img: preset.img,
+        icon: ['fa-solid fa-books', preset.icon],
+        onClick,
+        onDragEnd,
+        data: preset,
+        description: 'Mass Edit: Preset',
+        dragData: preset.data,
+      });
+
+      const actions = [
+        {
+          name: 'MassEdit.presets.open-journal',
+          icon: '<i class="fas fa-book-open fa-fw"></i>',
+          preset,
+          callback: function () {
+            this.preset.openJournal();
+          },
+        },
+      ];
+      if (isPlaceable) {
+        actions.push({
+          name: `MassEdit.presets.controls.activate-brush`,
+          icon: '<i class="fas fa-paint-brush"></i>',
+          preset,
+          callback: async function () {
+            if (SUPPORTED_PLACEABLES.includes(this.preset.documentName)) {
+              canvas.getLayerByEmbeddedName(preset.documentName)?.activate();
+            }
+            if (Brush.activate({ preset: await this.preset.load(), deactivateCallback })) {
+              ui.spotlightOmnisearch.setDraggingState(true);
+            }
+          },
+        });
+      }
+
+      term.actions = actions;
+      soIndex.push(term);
+    };
+
+    tree.presets.forEach(buildTerm);
+    tree.allFolders.forEach((f) => f.presets.forEach(buildTerm));
   }
 }
 
