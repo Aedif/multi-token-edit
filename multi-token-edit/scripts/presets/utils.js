@@ -3,31 +3,15 @@ import { SUPPORTED_PLACEABLES } from '../utils';
 import { Preset } from './preset.js';
 
 /**
- * Tracking of folder open/close state as a persistent setting
+ * Tracking of folder open/close state
  */
 export class FolderState {
-  static scope = 'world';
-  static setting = 'expandedFolders';
-
-  static init() {
-    game.settings.register(this.scope, this.setting, {
-      scope: 'world',
-      config: false,
-      type: Object,
-      default: {},
-    });
-    this.states = game.settings.get(this.scope, this.setting) ?? {};
-  }
-
   static expanded(uuid) {
-    return this.states[uuid];
+    return game.folders._expanded[uuid];
   }
 
   static setExpanded(uuid, state) {
-    if (Boolean(this.states[uuid]) !== state) {
-      this.states[uuid] = state;
-      game.settings.set(this.scope, this.setting, this.states);
-    }
+    game.folders._expanded[uuid] = state;
   }
 }
 

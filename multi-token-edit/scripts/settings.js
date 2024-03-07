@@ -9,7 +9,6 @@ import {
 } from '../applications/multiConfig.js';
 import { PresetCollection } from './presets/collection.js';
 import { MassEditPresets } from './presets/forms.js';
-import { FolderState } from './presets/utils.js';
 import {
   MODULE_ID,
   SUPPORTED_COLLECTIONS,
@@ -21,8 +20,6 @@ import {
 
 export function registerSettings() {
   // Register Settings
-  FolderState.init();
-
   game.settings.register(MODULE_ID, 'cssStyle', {
     scope: 'world',
     config: false,
