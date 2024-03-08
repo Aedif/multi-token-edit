@@ -4,6 +4,13 @@
 
   <div class="item-name flexrow">
     <label title="{{preset.title}}" name="{{preset.name}}">{{preset.name}} </label>
+    {{#if preset.tags.length}}
+    <div class="tags">
+      {{#each tags}}
+      <span>{{this}}</span>
+      {{/each}}
+    </div>
+    {{/if}}
   </div>
 
   <div class="item-controls flexrow">

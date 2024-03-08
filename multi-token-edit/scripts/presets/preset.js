@@ -21,6 +21,7 @@ const PRESET_FIELDS = [
   'postSpawnScript',
   'spawnRandom',
   'attached',
+  'tags',
 ];
 
 export const DOC_ICONS = {
@@ -47,6 +48,7 @@ export class Preset {
     this.name = data.name ?? 'Mass Edit Preset';
     this.documentName = data.documentName;
     this.sort = data.sort ?? 0;
+    this.tags = data.tags ?? [];
     this.addSubtract =
       data.addSubtract instanceof Array
         ? Object.fromEntries(data.addSubtract)
@@ -127,6 +129,7 @@ export class Preset {
         this.postSpawnScript = preset.postSpawnScript;
         this.attached = preset.attached;
         this.spawnRandom = preset.spawnRandom;
+        this.tags = preset.tags ?? [];
       }
     }
     return this;

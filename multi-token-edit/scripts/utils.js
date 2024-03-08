@@ -483,6 +483,7 @@ export function localFormat(path, insert, moduleLocalization = true) {
 
 export async function applyPresetToScene(preset) {
   if (preset && canvas.scene) {
+    await preset.load();
     const data = foundry.utils.flattenObject(preset.data[0]);
 
     const randomizer = preset.randomize;
@@ -584,5 +585,79 @@ export class SeededRandom {
       c = (c + t) | 0;
       return (t >>> 0) / 4294967296;
     };
+  }
+}
+
+export class TagInput {
+  static registerHandlebarsHelper() {
+    Handlebars.registerHelper('tagInput', (options) => {
+      const name = options.hash.name;
+
+      let tags = options.hash.tags;
+      if (!Handlebars.Utils.isArray(tags)) tags = [];
+
+      // Construct the HTML
+      let tagHtml = '';
+      tags.forEach((tag) => {
+        tagHtml += this._tagField(tag);
+      });
+
+      return new Handlebars.SafeString(`
+      <fieldset>
+        <legend>Tags</legend>
+        <div class="form-group me-tags">
+            <input type="text" class="tag-input">  
+            <input type="text" class="tag-hidden-input" name="${name}" value="${tags.join(',')}" hidden>
+            <button type="button" class="add-tag"><i class="fas fa-save"></i></button>
+            <div class="tag-container">${tagHtml}</div>
+        </div>
+      </fieldset>
+    `);
+    });
+  }
+
+  static _tagField(tag) {
+    return `<div class="tag"><span>${tag}</span> <a class="delete-tag"><i class="fa-solid fa-x"></i></a></div>`;
+  }
+
+  static activateListeners(html, resize) {
+    html.find('.me-tags .add-tag').on('click', (event) => {
+      const meTags = $(event.target).closest('.me-tags');
+      const input = meTags.find('.tag-input');
+      const tag = input
+        .val()
+        .trim()
+        .replace(/[^0-9a-zA-Z_\- ]/gi, '')
+        .toLowerCase();
+      if (tag) {
+        input.val('');
+        const hiddenInput = meTags.find('.tag-hidden-input');
+        const currentTags = hiddenInput.val().split(',').filter(Boolean);
+        if (!currentTags.includes(tag)) {
+          hiddenInput.attr('value', [...currentTags, tag].join(','));
+          meTags.find('.tag-container').append(this._tagField(tag));
+          if (resize) resize();
+        }
+      }
+    });
+
+    html.find('.me-tags .delete-tag').on('click', (event) => {
+      const tag = $(event.target).closest('.tag');
+
+      // Remove tag from hidden input
+      const tagValue = tag.find('span').text();
+      const hiddenInput = tag.closest('.me-tags').find('.tag-hidden-input');
+      const newTags = hiddenInput
+        .val()
+        .split(',')
+        .filter((t) => t !== tagValue)
+        .join(',');
+      hiddenInput.attr('value', newTags);
+
+      // Remove the tag element itself
+      tag.remove();
+
+      if (resize) resize();
+    });
   }
 }

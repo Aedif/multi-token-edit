@@ -5,8 +5,16 @@ import { countFolderItems, trackProgress } from '../../applications/progressDial
 import { Brush } from '../brush.js';
 import { importPresetFromJSONDialog } from '../dialogs.js';
 import { SortingHelpersFixed } from '../fixedSort.js';
-import { MODULE_ID, SUPPORTED_PLACEABLES, UI_DOCS, applyPresetToScene, localFormat, localize } from '../utils.js';
-import { PresetAPI, PresetCollection, PresetPackFolder, PresetVirtualFolder } from './collection.js';
+import {
+  MODULE_ID,
+  SUPPORTED_PLACEABLES,
+  TagInput,
+  UI_DOCS,
+  applyPresetToScene,
+  localFormat,
+  localize,
+} from '../utils.js';
+import { META_INDEX_ID, PresetAPI, PresetCollection, PresetPackFolder, PresetVirtualFolder } from './collection.js';
 import { DOC_ICONS, Preset } from './preset.js';
 import { FolderState, mergePresetDataToDefaultDoc, placeableToData } from './utils.js';
 
@@ -54,9 +62,9 @@ export class MassEditPresets extends FormApplication {
   static lastSearch;
 
   constructor(configApp, callback, docName, options = {}) {
-    if (!options.preventPositionOverride && MassEditPresets.lastPositionLeft) {
-      options.left = MassEditPresets.lastPositionLeft;
-      options.top = MassEditPresets.lastPositionTop;
+    // Restore position and dimensions the previously closed window
+    if (!options.preventPositionOverride && MassEditPresets.previousPosition) {
+      options = { ...options, ...MassEditPresets.previousPosition };
     }
 
     super({}, options);
@@ -419,12 +427,8 @@ export class MassEditPresets extends FormApplication {
     const uuid = folderElement.data('uuid');
 
     const folder = this.tree.allFolders.get(uuid);
-    console.log('toggle', folder);
-    if (folder.expanded) {
-      this._folderCollapse(folderElement, folder);
-    } else {
-      this._folderExpand(folderElement, folder);
-    }
+    if (folder.expanded) this._folderCollapse(folderElement, folder);
+    else this._folderExpand(folderElement, folder);
   }
 
   async _folderExpand(folderElement, folder) {
@@ -943,7 +947,7 @@ export class MassEditPresets extends FormApplication {
   }
 
   _searchPreset(filter, preset, forceRender = false) {
-    if (preset.name.toLowerCase().includes(filter)) {
+    if (preset.name.toLowerCase().includes(filter) || preset.tags.includes(filter)) {
       preset._render = true;
       return true;
     } else {
@@ -1335,8 +1339,8 @@ export class MassEditPresets extends FormApplication {
 
     // Track position post window close
     if (!this.options.preventPositionOverride) {
-      MassEditPresets.lastPositionLeft = this.position.left;
-      MassEditPresets.lastPositionTop = this.position.top;
+      const { left, top, width, height } = this.position;
+      MassEditPresets.previousPosition = { left, top, width, height };
     }
 
     // Return the updated position object
@@ -1448,6 +1452,20 @@ export class MassEditPresets extends FormApplication {
       onclick: (ev) => this._onImport(ev),
     });
 
+    if (CONFIG.debug.massedit) {
+      buttons.unshift({
+        label: 'Debug',
+        class: 'mass-edit-debug',
+        icon: 'fas fa-bug',
+        onclick: (ev) => {
+          console.log({
+            index: game.packs.get(PresetCollection.workingPack).get(META_INDEX_ID)?.flags[MODULE_ID]?.index,
+            tree: this.tree,
+          });
+        },
+      });
+    }
+
     return buttons;
   }
 
@@ -1527,6 +1545,7 @@ export class PresetConfig extends FormApplication {
     this.presets = presets;
     this.callback = options.callback;
     this.isCreate = options.isCreate;
+    console.log(presets);
   }
 
   /** @inheritdoc */
@@ -1679,6 +1698,9 @@ export class PresetConfig extends FormApplication {
         hoverOverlay.hide();
         PresetConfig.objectHover = false;
       });
+
+    //Tags
+    TagInput.activateListeners(html, () => this.setPosition({ height: 'auto' }));
   }
 
   /**
@@ -1780,6 +1802,10 @@ export class PresetConfig extends FormApplication {
     formData.preSpawnScript = formData.preSpawnScript?.trim();
     formData.postSpawnScript = formData.postSpawnScript?.trim();
 
+    console.log(formData.tags);
+    formData.tags = formData.tags ? formData.tags.split(',') : [];
+    console.log(formData.tags);
+
     for (const preset of this.presets) {
       let update;
       if (this.isCreate) {
@@ -1803,6 +1829,14 @@ export class PresetConfig extends FormApplication {
       if (formData.preSpawnScript != null) update.preSpawnScript = formData.preSpawnScript;
       if (formData.postSpawnScript != null) update.postSpawnScript = formData.postSpawnScript;
       if (formData.spawnRandom != null) update.spawnRandom = formData.spawnRandom;
+
+      // If this is a single preset config, we override all tags
+      // If not we merge
+      if (this.presets.length === 1) {
+        update.tags = formData.tags;
+      } else if (formData.tags.length) {
+        update.tags = Array.from(new Set((preset.tags ?? []).concat(formData.tags)));
+      }
 
       await preset.update(update);
     }

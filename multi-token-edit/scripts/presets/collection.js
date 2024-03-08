@@ -6,6 +6,7 @@ import {
   SUPPORTED_PLACEABLES,
   SeededRandom,
   UI_DOCS,
+  applyPresetToScene,
   createDocuments,
   executeScript,
   localize,
@@ -21,7 +22,7 @@ import {
 
 export const DEFAULT_PACK = 'world.mass-edit-presets-main';
 export const META_INDEX_ID = 'MassEditMetaData';
-export const META_INDEX_FIELDS = ['id', 'img', 'documentName'];
+export const META_INDEX_FIELDS = ['id', 'img', 'documentName', 'tags'];
 
 export class PresetCollection {
   static presets;
@@ -250,13 +251,13 @@ export class PresetCollection {
 
     const metaDoc = await this._initMetaDocument(this.workingPack);
     const update = {};
-    update[preset.id] = {
-      id: preset.id,
-      img: preset.img,
-      documentName: preset.documentName,
-    };
+    META_INDEX_FIELDS.forEach((f) => {
+      update[f] = preset[f];
+    });
 
-    await metaDoc.setFlag(MODULE_ID, 'index', update);
+    console.log(update);
+
+    await metaDoc.setFlag(MODULE_ID, 'index', { [preset.id]: update });
   }
 
   /**
@@ -308,13 +309,12 @@ export class PresetCollection {
 
     const metaDoc = await this._initMetaDocument(pack);
     const update = {};
-    update[preset.id] = {
-      id: preset.id,
-      img: preset.img,
-      documentName: preset.documentName,
-    };
 
-    await metaDoc.setFlag(MODULE_ID, 'index', update);
+    META_INDEX_FIELDS.forEach((f) => {
+      update[f] = preset[f];
+    });
+
+    await metaDoc.setFlag(MODULE_ID, 'index', { [preset.id]: update });
   }
 
   static async get(uuid, { full = true } = {}) {
@@ -480,56 +480,63 @@ export class PresetCollection {
     };
 
     const onDragEnd = function (event) {
-      const { x, y } = canvas.canvasCoordinatesFromClient({ x: event.clientX, y: event.clientY });
-      PresetAPI.spawnPreset({ preset: this.data, x, y, scaleToGrid: game.settings.get(MODULE_ID, 'presetScaling') });
+      if (SUPPORTED_PLACEABLES.includes(this.data.documentName)) {
+        const { x, y } = canvas.canvasCoordinatesFromClient({ x: event.clientX, y: event.clientY });
+        PresetAPI.spawnPreset({
+          preset: this.data,
+          x,
+          y,
+          scaleToGrid: game.settings.get(MODULE_ID, 'presetScaling'),
+        });
+      } else if (this.data.documentName === 'Scene') {
+        applyPresetToScene(this.data);
+      }
     };
 
     const deactivateCallback = function () {
       ui.spotlightOmnisearch?.setDraggingState(false);
     };
 
-    const buildTerm = function (preset) {
-      const isPlaceable = SUPPORTED_PLACEABLES.includes(preset.documentName);
-
-      const term = new SearchTerm({
-        name: preset.name,
-        type: isPlaceable ? preset.documentName : 'preset',
-        img: preset.img,
-        icon: ['fa-solid fa-books', preset.icon],
-        onClick,
-        onDragEnd,
-        data: preset,
-        description: 'Mass Edit: Preset',
-      });
-
+    const getActions = function () {
       const actions = [
         {
           name: 'MassEdit.presets.open-journal',
           icon: '<i class="fas fa-book-open fa-fw"></i>',
-          preset,
-          callback: function () {
-            this.preset.openJournal();
+          callback: () => {
+            this.data.openJournal();
           },
         },
       ];
-      if (isPlaceable) {
+      if (SUPPORTED_PLACEABLES.includes(this.data.documentName)) {
         actions.push({
           name: `MassEdit.presets.controls.activate-brush`,
           icon: '<i class="fas fa-paint-brush"></i>',
-          preset,
-          callback: async function () {
-            if (SUPPORTED_PLACEABLES.includes(this.preset.documentName)) {
-              canvas.getLayerByEmbeddedName(preset.documentName)?.activate();
-            }
-            if (Brush.activate({ preset: await this.preset.load(), deactivateCallback })) {
+          callback: async () => {
+            canvas.getLayerByEmbeddedName(this.data.documentName)?.activate();
+            if (Brush.activate({ preset: await this.data.load(), deactivateCallback })) {
               ui.spotlightOmnisearch.setDraggingState(true);
             }
           },
         });
       }
+      return actions;
+    };
 
-      term.actions = actions;
-      soIndex.push(term);
+    const buildTerm = function (preset) {
+      soIndex.push(
+        new SearchTerm({
+          name: preset.name,
+          description: 'Mass Edit: Preset',
+          type: preset.documentName + ' preset',
+          img: preset.img,
+          icon: ['fa-solid fa-books', preset.icon],
+          keywords: preset.tags,
+          onClick,
+          onDragEnd,
+          data: preset,
+          actions: getActions,
+        })
+      );
     };
 
     tree.presets.forEach(buildTerm);

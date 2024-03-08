@@ -17,6 +17,7 @@ import {
   resolveCreateDocumentRequest,
   SUPPORTED_HISTORY_DOCS,
   SUPPORTED_PLACEABLES,
+  TagInput,
 } from './scripts/utils.js';
 import { GeneralDataAdapter } from './applications/dataAdapters.js';
 import { applyRandomization } from './scripts/randomizer/randomizerUtils.js';
@@ -31,6 +32,8 @@ export const HISTORY = {};
 
 // Initialize module
 Hooks.once('init', () => {
+  TagInput.registerHandlebarsHelper();
+
   registerSettings();
   registerKeybinds();
   enableUniversalSelectTool(); // Enable select tool for all layers

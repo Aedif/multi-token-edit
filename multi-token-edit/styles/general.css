@@ -348,6 +348,21 @@
   line-break: anywhere;
 }
 
+.mass-edit-preset-form .item .item-name .tags {
+  flex: 0 0 100%;
+  line-height: 5px;
+  margin-bottom: 6px;
+  font-size: 0.9em;
+  margin-top: 7px;
+}
+
+.mass-edit-preset-form .item .item-name .tags span {
+  color: gold;
+  border: 1px gold solid;
+  border-radius: 3px;
+  padding: 0px 2px 0px 4px;
+}
+
 .mass-edit-preset-form .item .item-controls {
   flex: 0 0 50px;
   margin-right: 5px;
@@ -492,4 +507,27 @@ nav > a[data-tab='me-pinned'] {
 .mass-edit-generic-form .tva-jsonArray {
   height: 100px;
   white-space: pre-wrap;
+}
+
+/* ================= 
+   === Tag Input ===
+   ================= */
+
+.me-tags .tag-container {
+  flex: 0 0 100%;
+  margin-top: 8px;
+}
+
+.me-tags .tag-container .tag {
+  border: 1px gray solid;
+  border-radius: 5px;
+  padding: 3px;
+  margin: 2px;
+  background: floralwhite;
+  display: inline-block;
+}
+
+.me-tags .add-tag {
+  flex: 0;
+  margin-left: 0.5em;
 }
