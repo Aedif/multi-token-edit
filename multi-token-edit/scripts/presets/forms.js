@@ -6,7 +6,7 @@ import { Brush } from '../brush.js';
 import { importPresetFromJSONDialog } from '../dialogs.js';
 import { SortingHelpersFixed } from '../fixedSort.js';
 import { MODULE_ID, SUPPORTED_PLACEABLES, UI_DOCS, applyPresetToScene, localFormat, localize } from '../utils.js';
-import { PresetAPI, PresetCollection } from './collection.js';
+import { PresetAPI, PresetCollection, PresetPackFolder, PresetVirtualFolder } from './collection.js';
 import { DOC_ICONS, Preset } from './preset.js';
 import { FolderState, mergePresetDataToDefaultDoc, placeableToData } from './utils.js';
 
@@ -418,21 +418,16 @@ export class MassEditPresets extends FormApplication {
   _folderToggle(folderElement) {
     const uuid = folderElement.data('uuid');
 
-    let folder = this.tree.allFolders.get(uuid);
-    let editable = true;
-    if (!folder) {
-      folder = this.tree.staticFolders.get(uuid);
-      editable = false;
-    }
-
+    const folder = this.tree.allFolders.get(uuid);
+    console.log('toggle', folder);
     if (folder.expanded) {
       this._folderCollapse(folderElement, folder);
     } else {
-      this._folderExpand(folderElement, folder, editable);
+      this._folderExpand(folderElement, folder);
     }
   }
 
-  async _folderExpand(folderElement, folder, editable) {
+  async _folderExpand(folderElement, folder) {
     FolderState.setExpanded(folder.uuid, true);
     folder.expanded = true;
 
@@ -626,7 +621,10 @@ export class MassEditPresets extends FormApplication {
       {
         name: 'Edit',
         icon: '<i class="fas fa-edit"></i>',
-        condition: (header) => header.closest('.folder').hasClass('editable'),
+        condition: (header) => {
+          const folder = this.tree.allFolders.get(header.closest('.folder').data('uuid'));
+          return !(folder instanceof PresetVirtualFolder) || folder instanceof PresetPackFolder;
+        },
         callback: (header) => this._onFolderEdit(header),
       },
       {
@@ -657,8 +655,8 @@ export class MassEditPresets extends FormApplication {
       getCompendiumDialog(resolve, { exportTo: true, keepIdSelect: true })
     );
     if (pack && !this._importTracker?.active) {
-      const folderDoc = await fromUuid(uuid);
-      if (folderDoc) {
+      const folder = this.tree.allFolders.get(uuid);
+      if (folder) {
         this._importTracker = await trackProgress({
           title: 'Exporting Folder',
           total: countFolderItems(this.tree.allFolders.get(uuid)),
@@ -839,10 +837,28 @@ export class MassEditPresets extends FormApplication {
   }
 
   async _onFolderEdit(header) {
-    const folder = await fromUuid($(header).closest('.folder').data('uuid'));
+    const uuid = $(header).closest('.folder').data('uuid');
+    const pFolder = this.tree.allFolders.get(uuid);
+
+    let folder;
+    if (pFolder instanceof PresetPackFolder) {
+      // This is a virtual pack folder
+      folder = new Folder.implementation(
+        {
+          _id: pFolder.id,
+          name: pFolder.name,
+          type: 'JournalEntry',
+          color: pFolder.color,
+          sorting: pFolder.sorting,
+        },
+        { pack: pFolder.uuid }
+      );
+    } else {
+      folder = await fromUuid($(header).closest('.folder').data('uuid'));
+    }
 
     new Promise((resolve) => {
-      const options = { resolve, ...header.offset() };
+      const options = { resolve, ...header.offset(), folder: pFolder };
       options.top += header.height();
 
       new PresetFolderConfig(folder, options).render(true);
@@ -2053,10 +2069,15 @@ class PresetFolderConfig extends FolderConfig {
     let folderDocs = folder.flags[MODULE_ID]?.types ?? ['ALL'];
 
     let docs;
+
     // This is a non-placeable folder type, so we will not display controls to change types
-    if (folderDocs.length === 1 && !UI_DOCS.includes(folderDocs[0])) {
-      this.nonPlaceable = true;
+    if (
+      this.options.folder instanceof PresetPackFolder ||
+      (folderDocs.length === 1 && !UI_DOCS.includes(folderDocs[0]))
+    ) {
+      this.displayTypes = false;
     } else {
+      this.displayTypes = true;
       docs = [];
       UI_DOCS.forEach((type) => {
         docs.push({ name: type, icon: DOC_ICONS[type], active: folderDocs.includes(type) });
@@ -2071,6 +2092,8 @@ class PresetFolderConfig extends FolderConfig {
       sortingModes: { a: 'FOLDER.SortAlphabetical', m: 'FOLDER.SortManual' },
       submitText: localize(folder._id ? 'FOLDER.Update' : 'FOLDER.Create', false),
       docs,
+      virtualPackFolder: this.options.folder instanceof PresetPackFolder,
+      group: this.options.folder.group,
     };
   }
 
@@ -2078,7 +2101,7 @@ class PresetFolderConfig extends FolderConfig {
 
   /** @override */
   async _updateObject(event, formData) {
-    if (!this.nonPlaceable) {
+    if (this.displayTypes) {
       let visibleTypes = [];
       $(this.form)
         .find('.document-select.active')
@@ -2090,15 +2113,29 @@ class PresetFolderConfig extends FolderConfig {
       formData[`flags.${MODULE_ID}.types`] = visibleTypes;
     }
 
-    let doc = this.object;
-    if (!formData.name?.trim()) formData.name = Folder.implementation.defaultName();
-    if (this.object.id) await this.object.update(formData);
-    else {
-      this.object.updateSource(formData);
-      doc = await Folder.create(this.object, { pack: this.object.pack });
+    let document = this.object;
+    if (this.options.folder instanceof PresetPackFolder) {
+      // This is a virtual folder used to store Compendium contents within
+      // Update using the provided interface
+      let update = {};
+      ['name', 'color', 'group'].forEach((k) => {
+        if (!formData[k]?.trim()) update['-=' + k] = null;
+        else update[k] = formData[k].trim();
+      });
+
+      await this.options.folder.update(update);
+    } else {
+      // This is a real folder, update/create it
+      if (!formData.name?.trim()) formData.name = Folder.implementation.defaultName();
+      if (this.object.id) await this.object.update(formData);
+      else {
+        this.object.updateSource(formData);
+        document = await Folder.create(this.object, { pack: this.object.pack });
+      }
     }
-    this.options.resolve?.(doc);
-    return doc;
+
+    this.options.resolve?.(document);
+    return document;
   }
 }
 

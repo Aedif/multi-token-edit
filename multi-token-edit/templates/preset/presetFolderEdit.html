@@ -16,12 +16,23 @@
         </div>
     </div>
 
+    {{#if virtualPackFolder}}
+    <div class="form-group">
+        <label>Group</label>
+        <div class="form-fields">
+            <input type="text" name="group" placeholder="" value="{{group}}">
+        </div>
+    </div>
+    {{/if}}
+
+    {{#unless virtualPackFolder}}
     <div class="form-group">
         <label>{{localize "FOLDER.SortMode"}}</label>
         <div class="form-fields">
             {{radioBoxes "sorting" sortingModes checked=folder.sorting localize=true}}
         </div>
     </div>
+    {{/unless}}
 
     {{#if docs}}
     <div class="form-group">

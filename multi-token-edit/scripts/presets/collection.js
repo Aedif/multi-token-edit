@@ -1,7 +1,15 @@
 import { Brush } from '../brush.js';
 import { Picker } from '../picker.js';
 import { applyRandomization } from '../randomizer/randomizerUtils.js';
-import { MODULE_ID, SUPPORTED_PLACEABLES, UI_DOCS, createDocuments, executeScript, localize } from '../utils.js';
+import {
+  MODULE_ID,
+  SUPPORTED_PLACEABLES,
+  SeededRandom,
+  UI_DOCS,
+  createDocuments,
+  executeScript,
+  localize,
+} from '../utils.js';
 import { Preset } from './preset.js';
 import {
   FolderState,
@@ -27,31 +35,12 @@ export class PresetCollection {
     const staticFolders = [];
 
     if (!mainOnly) {
-      let sort = 0;
       for (const p of game.packs) {
         if (p.collection !== this.workingPack && p.index.get(META_INDEX_ID)) {
           const tree = await this.packToTree(p, type);
           if (!tree.hasVisible) continue;
 
-          const topFolder = {
-            id: p.collection,
-            uuid: p.collection,
-            name: p.title,
-            sorting: 'm',
-            color: '#000000',
-            sort: sort++,
-            children: tree.folders.map((f) => {
-              f.folder = p.collection;
-              return f;
-            }),
-            presets: tree.presets,
-            draggable: false,
-            expanded: FolderState.expanded(p.collection),
-            folder: null,
-            visible: true,
-            render: true,
-          };
-
+          const topFolder = new PresetPackFolder({ pack: p, tree });
           staticFolders.push(topFolder);
 
           // Collate all folders with the main tree
@@ -63,9 +52,43 @@ export class PresetCollection {
       }
     }
 
-    mainTree.staticFolders = staticFolders.sort((f1, f2) => f1.name.localeCompare(f2.name));
+    mainTree.staticFolders = this._groupStaticFolders(staticFolders, mainTree.allFolders);
 
     return mainTree;
+  }
+
+  static _groupStaticFolders(folders, allFolders) {
+    folders = folders.sort((f1, f2) => f1.name.localeCompare(f2.name));
+
+    const groups = {};
+    const lonely = [];
+    folders.forEach((f) => {
+      if (f.group) {
+        if (!(f.group in groups)) groups[f.group] = [];
+        groups[f.group].push(f);
+      } else {
+        lonely.push(f);
+      }
+    });
+
+    const newStaticFolders = [];
+    for (const [group, folders] of Object.entries(groups)) {
+      const id = SeededRandom.randomID(group); // For export operation a real ID is needed. Lets keep it consistent by seeding
+      const uuid = 'virtual.' + group; // faux uuid
+
+      const groupFolder = new PresetVirtualFolder({
+        id,
+        uuid,
+        name: group,
+        children: folders,
+        draggable: false,
+      });
+
+      allFolders.set(uuid, groupFolder);
+      newStaticFolders.push(groupFolder);
+    }
+
+    return newStaticFolders.concat(lonely).sort((f1, f2) => f1.name.localeCompare(f2.name));
   }
 
   static async packToTree(pack, type) {
@@ -76,22 +99,19 @@ export class PresetCollection {
     const topLevelFolders = new Map();
     const folderContents = pack.folders.contents;
     for (const f of folderContents) {
-      folders.set(f.uuid, {
+      const folder = new PresetFolder({
         id: f._id,
         uuid: f.uuid,
         name: f.name,
         sorting: f.sorting,
         color: f.color,
         sort: f.sort,
-        children: [],
-        presets: [],
         draggable: f.pack === this.workingPack,
-        expanded: FolderState.expanded(f.uuid),
         folder: f.folder?.uuid,
         visible: type ? (f.flags[MODULE_ID]?.types || ['ALL']).includes(type) : true,
-        render: true,
       });
-      topLevelFolders.set(f.uuid, folders.get(f.uuid));
+      folders.set(folder.uuid, folder);
+      topLevelFolders.set(f.uuid, folder);
     }
 
     // If folders have parent folders add them as children and remove them as a top level folder
@@ -166,6 +186,7 @@ export class PresetCollection {
       allPresets,
       allFolders: folders,
       hasVisible,
+      metaDoc,
     };
   }
 
@@ -915,5 +936,77 @@ export class PresetAPI {
     }
 
     return allDocuments;
+  }
+}
+
+class PresetFolder {
+  constructor({
+    id,
+    uuid,
+    name,
+    sorting = 'm',
+    color = '#000000',
+    sort = 0,
+    children = [],
+    presets = [],
+    draggable = true,
+    folder = null,
+    visible = true,
+    render = true,
+  } = {}) {
+    this.id = id;
+    this.uuid = uuid;
+    this.name = name;
+    this.sorting = sorting;
+    this.color = color;
+    this.sort = sort;
+    this.children = children;
+    this.children.forEach((c) => {
+      c.folder = this.id;
+    });
+    this.presets = presets;
+    this.draggable = draggable;
+    this.folder = folder;
+    this.visible = visible;
+    this.render = render;
+    this.expanded = FolderState.expanded(this.uuid);
+  }
+}
+
+export class PresetVirtualFolder extends PresetFolder {
+  constructor(options) {
+    super(options);
+    this.virtual = true;
+  }
+}
+
+export class PresetPackFolder extends PresetVirtualFolder {
+  constructor(options) {
+    const tree = options.tree;
+    const pack = options.pack;
+    const packFolderData = tree.metaDoc.getFlag(MODULE_ID, 'folder') ?? {};
+    const uuid = pack.collection;
+    super({
+      uuid,
+      id: SeededRandom.randomID(uuid),
+      name: packFolderData.name ?? pack.title,
+      children: tree.folders,
+      presets: tree.presets,
+      draggable: false,
+      color: packFolderData.color ?? '#000000',
+    });
+    this.group = packFolderData.group;
+  }
+
+  get pack() {
+    return this.uuid;
+  }
+
+  async update(data = {}) {
+    if (data.hasOwnProperty('name') && data.name === game.packs.get(this.pack).title) delete data.name;
+    if (foundry.utils.isEmpty(data)) return;
+
+    const metaDoc = await PresetCollection._initMetaDocument(this.pack);
+    await metaDoc.setFlag(MODULE_ID, 'folder', data);
   }
 }
