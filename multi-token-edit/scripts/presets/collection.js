@@ -33,7 +33,7 @@ export class PresetCollection {
     const pack = await this._initCompendium(this.workingPack);
     const mainTree = await this.packToTree(pack, type);
 
-    const staticFolders = [];
+    const extFolders = [];
 
     if (!mainOnly) {
       for (const p of game.packs) {
@@ -42,7 +42,7 @@ export class PresetCollection {
           if (!tree.hasVisible) continue;
 
           const topFolder = new PresetPackFolder({ pack: p, tree });
-          staticFolders.push(topFolder);
+          extFolders.push(topFolder);
 
           // Collate all folders with the main tree
           mainTree.allFolders.set(topFolder.uuid, topFolder);
@@ -53,43 +53,9 @@ export class PresetCollection {
       }
     }
 
-    mainTree.staticFolders = this._groupStaticFolders(staticFolders, mainTree.allFolders);
+    mainTree.extFolders = this._groupExtFolders(extFolders, mainTree.allFolders);
 
     return mainTree;
-  }
-
-  static _groupStaticFolders(folders, allFolders) {
-    folders = folders.sort((f1, f2) => f1.name.localeCompare(f2.name));
-
-    const groups = {};
-    const lonely = [];
-    folders.forEach((f) => {
-      if (f.group) {
-        if (!(f.group in groups)) groups[f.group] = [];
-        groups[f.group].push(f);
-      } else {
-        lonely.push(f);
-      }
-    });
-
-    const newStaticFolders = [];
-    for (const [group, folders] of Object.entries(groups)) {
-      const id = SeededRandom.randomID(group); // For export operation a real ID is needed. Lets keep it consistent by seeding
-      const uuid = 'virtual.' + group; // faux uuid
-
-      const groupFolder = new PresetVirtualFolder({
-        id,
-        uuid,
-        name: group,
-        children: folders,
-        draggable: false,
-      });
-
-      allFolders.set(uuid, groupFolder);
-      newStaticFolders.push(groupFolder);
-    }
-
-    return newStaticFolders.concat(lonely).sort((f1, f2) => f1.name.localeCompare(f2.name));
   }
 
   static async packToTree(pack, type) {
@@ -189,6 +155,40 @@ export class PresetCollection {
       hasVisible,
       metaDoc,
     };
+  }
+
+  static _groupExtFolders(folders, allFolders) {
+    folders = folders.sort((f1, f2) => f1.name.localeCompare(f2.name));
+
+    const groups = {};
+    const groupless = [];
+    folders.forEach((f) => {
+      if (f.group) {
+        if (!(f.group in groups)) groups[f.group] = [];
+        groups[f.group].push(f);
+      } else {
+        groupless.push(f);
+      }
+    });
+
+    const newExtFolders = [];
+    for (const [group, folders] of Object.entries(groups)) {
+      const id = SeededRandom.randomID(group); // For export operation a real ID is needed. Lets keep it consistent by seeding
+      const uuid = 'virtual.' + group; // faux uuid
+
+      const groupFolder = new PresetVirtualFolder({
+        id,
+        uuid,
+        name: group,
+        children: folders,
+        draggable: false,
+      });
+
+      allFolders.set(uuid, groupFolder);
+      newExtFolders.push(groupFolder);
+    }
+
+    return newExtFolders.concat(groupless).sort((f1, f2) => f1.name.localeCompare(f2.name));
   }
 
   // Fixing meta index by removing loose indexes
@@ -976,6 +976,11 @@ class PresetFolder {
     this.render = render;
     this.expanded = FolderState.expanded(this.uuid);
   }
+
+  async update(data) {
+    const doc = await fromUuid(this.uuid);
+    if (doc) await doc.update(data);
+  }
 }
 
 export class PresetVirtualFolder extends PresetFolder {
@@ -983,6 +988,8 @@ export class PresetVirtualFolder extends PresetFolder {
     super(options);
     this.virtual = true;
   }
+
+  async update(data) {}
 }
 
 export class PresetPackFolder extends PresetVirtualFolder {
@@ -1008,7 +1015,9 @@ export class PresetPackFolder extends PresetVirtualFolder {
   }
 
   async update(data = {}) {
-    if (data.hasOwnProperty('name') && data.name === game.packs.get(this.pack).title) delete data.name;
+    const pack = game.packs.get(this.pack);
+    if (pack.locked) return;
+    if (data.hasOwnProperty('name') && data.name === pack.title) delete data.name;
     if (foundry.utils.isEmpty(data)) return;
 
     const metaDoc = await PresetCollection._initMetaDocument(this.pack);

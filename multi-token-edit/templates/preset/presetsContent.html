@@ -16,10 +16,10 @@
     {{/each}}
 </ol>
 
-{{#if staticFolders}}
+{{#if extFolders}}
 <label class="static-label">EXTERNAL COMPENDIUMS</label>
 <ol class="folder-items static">
-    {{#each staticFolders as |folder|}}
+    {{#each extFolders as |folder|}}
         {{#if folder.visible}}
         {{#if folder.render}}
             {{>me-preset-folder folder=folder createEnabled=../createEnabled callback=../callback}}

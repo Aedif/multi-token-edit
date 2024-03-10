@@ -367,13 +367,12 @@ export default class RandomizerForm extends FormApplication {
         method: 'random',
       };
     } else if (this.configuration.colorForm) {
-      let colors = foundry.utils.deepClone(this.colorSlider.colors).sort((a, b) => a.offset - b.offset);
       this.configApp.randomizeFields[fieldName] = {
         type: 'color',
         method: formData.method,
         space: formData.space,
         hue: formData.hue,
-        colors,
+        colors: this.colorSlider.getColors(),
       };
     } else if (this.configuration.imageForm) {
       if (formData.method === 'findAndReplace' || formData.method === 'findAndReplaceRegex') {

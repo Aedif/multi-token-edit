@@ -16,7 +16,7 @@ import {
 } from '../utils.js';
 import { META_INDEX_ID, PresetAPI, PresetCollection, PresetPackFolder, PresetVirtualFolder } from './collection.js';
 import { DOC_ICONS, Preset } from './preset.js';
-import { FolderState, mergePresetDataToDefaultDoc, placeableToData } from './utils.js';
+import { FolderState, mergePresetDataToDefaultDoc, placeableToData, randomizeChildrenFolderColors } from './utils.js';
 
 const SEARCH_MIN_CHAR = 2;
 
@@ -121,7 +121,7 @@ export class MassEditPresets extends FormApplication {
     this.tree = await PresetCollection.getTree(this.docName, !displayExtCompendiums);
     data.presets = this.tree.presets;
     data.folders = this.tree.folders;
-    data.staticFolders = this.tree.staticFolders.length ? this.tree.staticFolders : null;
+    data.extFolders = this.tree.extFolders.length ? this.tree.extFolders : null;
 
     data.createEnabled = Boolean(this.configApp);
     data.isPlaceable = SUPPORTED_PLACEABLES.includes(this.docName) || this.docName === 'ALL';
@@ -661,6 +661,13 @@ export class MassEditPresets extends FormApplication {
             deleteAll: true,
           }),
       },
+      {
+        name: 'Randomize Child Folder Colors',
+        icon: '<i class="fas fa-dice"></i>',
+        condition: () => CONFIG.debug.MassEdit,
+        callback: (header) =>
+          randomizeChildrenFolderColors(header.closest('.folder').data('uuid'), this.tree, () => this.render(true)),
+      },
     ];
   }
 
@@ -930,7 +937,7 @@ export class MassEditPresets extends FormApplication {
     $(event.target).addClass('active');
 
     this.tree.folders.forEach((f) => this._searchFolder(filter, f));
-    this.tree.staticFolders.forEach((f) => this._searchFolder(filter, f));
+    this.tree.extFolders.forEach((f) => this._searchFolder(filter, f));
     this.tree.presets.forEach((p) => this._searchPreset(filter, p));
 
     this._renderContent();
@@ -968,7 +975,7 @@ export class MassEditPresets extends FormApplication {
 
   _resetSearchState() {
     this.tree.folders.forEach((f) => this._resetSearchStateFolder(f));
-    this.tree.staticFolders.forEach((f) => this._resetSearchStateFolder(f));
+    this.tree.extFolders.forEach((f) => this._resetSearchStateFolder(f));
     this.tree.presets.forEach((p) => this._resetSearchStatePreset(p));
   }
 
@@ -989,7 +996,7 @@ export class MassEditPresets extends FormApplication {
       presets: this.tree.presets,
       folders: this.tree.folders,
       createEnabled: Boolean(this.configApp),
-      staticFolders: this.tree.staticFolders.length ? this.tree.staticFolders : null,
+      extFolders: this.tree.extFolders.length ? this.tree.extFolders : null,
     });
     this.element.find('.item-list').html(content);
   }
@@ -1462,7 +1469,7 @@ export class MassEditPresets extends FormApplication {
       onclick: (ev) => this._onImport(ev),
     });
 
-    if (CONFIG.debug.massedit) {
+    if (CONFIG.debug.MassEdit) {
       buttons.unshift({
         label: 'Debug',
         class: 'mass-edit-debug',
@@ -2112,7 +2119,7 @@ class PresetFolderConfig extends FolderConfig {
 
     // This is a non-placeable folder type, so we will not display controls to change types
     if (
-      this.options.folder instanceof PresetPackFolder ||
+      this.options?.folder instanceof PresetPackFolder ||
       (folderDocs.length === 1 && !UI_DOCS.includes(folderDocs[0]))
     ) {
       this.displayTypes = false;
@@ -2133,7 +2140,7 @@ class PresetFolderConfig extends FolderConfig {
       submitText: localize(folder._id ? 'FOLDER.Update' : 'FOLDER.Create', false),
       docs,
       virtualPackFolder: this.options.folder instanceof PresetPackFolder,
-      group: this.options.folder.group,
+      group: this.options.folder?.group,
     };
   }
 

@@ -162,6 +162,10 @@ export class ColorSlider {
     return this.colors.some((c) => c.offset === percent);
   }
 
+  getColors() {
+    return foundry.utils.deepClone(this.colors).sort((a, b) => a.offset - b.offset);
+  }
+
   _createSlider = () => {
     if (this.slider.slider('instance')) this.slider.slider('destroy');
     this.slider.slider({

@@ -1,5 +1,7 @@
-import { showGenericForm } from '../../applications/multiConfig';
-import { SUPPORTED_PLACEABLES } from '../utils';
+import { showGenericForm } from '../../applications/multiConfig.js';
+import { applyRandomization } from '../randomizer/randomizerUtils.js';
+import { ColorSlider } from '../randomizer/slider.js';
+import { MODULE_ID, SUPPORTED_PLACEABLES } from '../utils.js';
 import { Preset } from './preset.js';
 
 /**
@@ -175,4 +177,62 @@ export function mergePresetDataToDefaultDoc(preset, presetData) {
   }
 
   return foundry.utils.mergeObject(data, presetData);
+}
+
+export async function randomizeChildrenFolderColors(uuid, tree, callback) {
+  const folder = tree.allFolders.get(uuid);
+
+  const children = folder.children;
+  if (!children.length) return;
+
+  const colorTemp = await renderTemplate(`modules/${MODULE_ID}/templates/randomizer/color.html`, {
+    method: 'interpolateReverse',
+    space: 'srgb',
+    hue: 'longer',
+  });
+
+  let colorSlider;
+
+  const applyColors = async function (method, space, hue) {
+    const updates = children.map((c) => {
+      return {
+        color: '#000000',
+      };
+    });
+    const randObj = { color: { type: 'color', method, space, hue, colors: colorSlider.getColors() } };
+
+    await applyRandomization(updates, children, randObj);
+
+    for (let i = 0; i < children.length; i++) {
+      await children[i].update(updates[i]);
+    }
+
+    callback?.();
+  };
+
+  let dialog = new Dialog({
+    title: `Pick Range`,
+    content: `<form>${colorTemp}</form>`,
+    buttons: {
+      save: {
+        label: 'Apply',
+        callback: async (html) => {
+          applyColors(
+            html.find('[name="method"]').val(),
+            html.find('[name="space"]').val(),
+            html.find('[name="hue"]').val()
+          );
+        },
+      },
+    },
+    render: (html) => {
+      colorSlider = new ColorSlider(html, [
+        { hex: '#663600', offset: 0 },
+        { hex: '#944f00', offset: 100 },
+      ]);
+      setTimeout(() => dialog.setPosition({ height: 'auto' }), 100);
+    },
+  });
+
+  dialog.render(true);
 }
