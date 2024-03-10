@@ -1640,6 +1640,8 @@ export class PresetConfig extends FormApplication {
           };
         });
       }
+    } else {
+      data.multiEdit = true;
     }
 
     data.minlength = this.presets.length > 1 ? 0 : 1;
@@ -1818,6 +1820,9 @@ export class PresetConfig extends FormApplication {
     formData.preSpawnScript = formData.preSpawnScript?.trim();
     formData.postSpawnScript = formData.postSpawnScript?.trim();
     formData.tags = formData.tags ? formData.tags.split(',') : [];
+    formData.addTags = formData.addTags ? formData.addTags.split(',') : [];
+    formData.removeTags = formData.removeTags ? formData.removeTags.split(',') : [];
+    console.log(formData);
 
     for (const preset of this.presets) {
       let update;
@@ -1847,8 +1852,11 @@ export class PresetConfig extends FormApplication {
       // If not we merge
       if (this.presets.length === 1) {
         update.tags = formData.tags;
-      } else if (formData.tags.length) {
-        update.tags = Array.from(new Set((preset.tags ?? []).concat(formData.tags)));
+      } else if (formData.addTags.length || formData.removeTags.length) {
+        let tags = preset.tags ?? [];
+        if (formData.addTags.length) tags = Array.from(new Set(tags.concat(formData.addTags)));
+        if (formData.removeTags.length) tags = tags.filter((t) => !formData.removeTags.includes(t));
+        update.tags = tags;
       }
 
       await preset.update(update);

@@ -55,11 +55,10 @@
     </fieldset>
 
     <hr>
-
+    {{#if displayFieldModify}}
     <details {{#if advancedOpen}}open{{/if}}>
         <summary>{{localize "TOKEN.SightHeaderAdvanced"}}</summary> <br>
 
-        {{#if displayFieldModify}}
         <fieldset>
             <legend>{{localize "MassEdit.presets.spawning"}}</legend>
         
@@ -110,13 +109,18 @@
                 <textarea style="height: 120px" name="postSpawnScript">{{preset.postSpawnScript}}</textarea>
             </div>
         </fieldset>
-        {{/if}}
 
     </details>
     {{/if}}
+    {{/if}}
 
     <br>
-    {{tagInput tags=preset.tags name="tags"}}
+    {{#if multiEdit}}
+        {{tagInput name="addTags" label="Add Tags"}}
+        {{tagInput name="removeTags" label="Remove Tags"}}
+    {{else}}
+        {{tagInput tags=preset.tags name="tags"}}
+    {{/if}}
 
     <button type="submit" data-action="apply"><i class="fas fa-check"></i> {{localize "MassEdit.common.apply"}}</button>
 </form>

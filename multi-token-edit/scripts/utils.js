@@ -592,6 +592,7 @@ export class TagInput {
   static registerHandlebarsHelper() {
     Handlebars.registerHelper('tagInput', (options) => {
       const name = options.hash.name;
+      const label = options.hash.label ?? 'Tags';
 
       let tags = options.hash.tags;
       if (!Handlebars.Utils.isArray(tags)) tags = [];
@@ -604,7 +605,7 @@ export class TagInput {
 
       return new Handlebars.SafeString(`
       <fieldset>
-        <legend>Tags</legend>
+        <legend>${label}</legend>
         <div class="form-group me-tags">
             <input type="text" class="tag-input">  
             <input type="text" class="tag-hidden-input" name="${name}" value="${tags.join(',')}" hidden>
