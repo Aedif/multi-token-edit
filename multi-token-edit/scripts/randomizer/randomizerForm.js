@@ -70,7 +70,7 @@ export default class RandomizerForm extends FormApplication {
     return foundry.utils.mergeObject(super.defaultOptions, {
       id: 'mass-edit-randomizer-form',
       classes: ['sheet'],
-      template: `modules/${MODULE_ID}/templates/randomizerForm.html`,
+      template: `modules/${MODULE_ID}/templates/randomizer/inputForm.html`,
       resizable: true,
       minimizable: false,
     });
@@ -83,6 +83,9 @@ export default class RandomizerForm extends FormApplication {
   async getData(options) {
     const data = super.getData(options);
     foundry.utils.mergeObject(data, this.configuration);
+
+    // Cache partials
+    await getTemplate(`modules/${MODULE_ID}/templates/randomizer/color.html`, 'me-color');
 
     if (data.step != null) {
       if (data.step === 'any' || data.step === '') {
@@ -277,19 +280,7 @@ export default class RandomizerForm extends FormApplication {
     }
 
     if (this.configuration.colorForm) {
-      const hue = html.find('[name="hue"]');
-      const space = html.find('[name="space"]');
-      const method = html.find('[name="method"]');
-      const colorSlider = new ColorSlider(html.find('.slide'), this.configuration.colors, {
-        hue,
-        space,
-      });
-
-      hue.on('input', colorSlider.update.bind(colorSlider));
-      space.on('input', colorSlider.update.bind(colorSlider));
-      method.on('input', colorSlider.update.bind(colorSlider));
-
-      this.colorSlider = colorSlider;
+      this.colorSlider = new ColorSlider(html, this.configuration.colors);
     }
   }
 

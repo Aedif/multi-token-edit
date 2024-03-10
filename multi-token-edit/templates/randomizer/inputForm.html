@@ -63,44 +63,7 @@
     {{/if}}
 
     {{#if colorForm}}
-    <h3>{{localize "MassEdit.randomizer.pickRange"}}:</h3>
-    <div class="form-group">
-        <label>{{localize "MassEdit.common.method"}}</label>
-        <select name="method" data-dtype="string">
-            <option value="random" {{#if (eq method "random")}}selected="selected"{{/if}}>{{localize "MassEdit.common.random"}}</option>
-            <option value="interpolate" {{#if (eq method "interpolate")}}selected="selected"{{/if}}>{{localize "MassEdit.randomizer.interpolate"}}</option>
-            <option value="interpolateReverse" {{#if (eq method "interpolateReverse")}}selected="selected"{{/if}}>{{localize "MassEdit.randomizer.interpolateReverse"}}</option>
-        </select>
-    </div>
-    <div class="form-group">
-        <label>Space</label>
-        <select name="space" data-dtype="string">
-            <option value="hsl" {{#if (eq space "hsl")}}selected="selected"{{/if}}>HSL</option>
-            <option value="lch" {{#if (eq space "lch")}}selected="selected"{{/if}}>LCH</option>
-            <option value="srgb" {{#if (eq space "srgb")}}selected="selected"{{/if}}>sRGB</option>
-            <option value="srgb-linear" {{#if (eq space "srgb-linear")}}selected="selected"{{/if}}>sRGB Linear</option>
-            <option value="hwb" {{#if (eq space "hwb")}}selected="selected"{{/if}}>HWB</option>
-            <option value="discrete" {{#if (eq space "discrete")}}selected="selected"{{/if}}>Discrete</option>
-        </select>
-    </div>
-    <div class="form-group">
-        <label>Hue</label>
-        <select name="hue" data-dtype="string">
-            <option value="longer" {{#if (eq hue "longer")}}selected="selected"{{/if}}>Longer</option>
-            <option value="shorter" {{#if (eq hue "shorter")}}selected="selected"{{/if}}>Shorter</option>
-            <option value="increasing" {{#if (eq hue "increasing")}}selected="selected"{{/if}}>Decreasing</option>
-            <option value="raw" {{#if (eq hue "raw")}}selected="selected"{{/if}}>Raw</option>
-        </select>
-    </div>
-    <div class="slide"></div>
-    <hr>
-    <div class="form-group">
-        <p class="notes">
-            <b>Double-click</b> handles to change color.<br>
-            <b>Right-click</b> handles to remove them.<br>
-            <b>Right-click</b> on an empty slider spot to insert new handles.
-        </p>
-    </div>
+    {{>me-color}}
     {{/if}}
 
     {{#if imageForm}}

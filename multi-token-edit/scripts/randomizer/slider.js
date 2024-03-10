@@ -1,14 +1,23 @@
 import Color from '../color/color.js';
 
 export class ColorSlider {
-  constructor(slider, colors, { space = null, hue = null } = {}) {
-    this.slider = slider;
+  constructor(html, colors) {
+    this.slider = html.find('.slide');
     this.colors = colors;
-    this.space = space;
-    this.hue = hue;
     this.min = 0;
     this.max = 100;
     this._init();
+    this._activateListeners(html);
+  }
+
+  _activateListeners(html) {
+    this.hue = html.find('[name="hue"]');
+    this.space = html.find('[name="space"]');
+    const method = html.find('[name="method"]');
+
+    this.hue.on('input', this.update.bind(this));
+    this.space.on('input', this.update.bind(this));
+    method.on('input', this.update.bind(this));
   }
 
   _init() {

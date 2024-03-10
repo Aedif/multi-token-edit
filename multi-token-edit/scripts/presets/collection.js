@@ -255,8 +255,6 @@ export class PresetCollection {
       update[f] = preset[f];
     });
 
-    console.log(update);
-
     await metaDoc.setFlag(MODULE_ID, 'index', { [preset.id]: update });
   }
 

@@ -339,21 +339,37 @@
 
 .mass-edit-preset-form .item .item-name {
   margin: 0 0 0 8px;
+  display: flex;
+  align-items: center;
 }
 
 .mass-edit-preset-form .item .item-name label {
+  flex: 0 0 100%;
   line-height: 1.5;
-  display: flex;
-  align-items: center;
   line-break: anywhere;
 }
 
 .mass-edit-preset-form .item .item-name .tags {
-  flex: 0 0 100%;
-  line-height: 5px;
-  margin-bottom: 6px;
-  font-size: 0.9em;
+  line-height: 18px;
+  margin-bottom: 2px;
   margin-top: 7px;
+  font-size: 0.9em;
+  opacity: 60%;
+  white-space: nowrap;
+  width: 50px;
+  overflow: hidden;
+  text-overflow: clip;
+  transition: flex 1s ease;
+  flex: 0;
+}
+
+.mass-edit-preset-form .item .item-name .tags.show {
+  transition: all 1s ease;
+  transition-delay: 1.5s;
+  flex: 0 0 100%;
+}
+
+.mass-edit-preset-form .item .item-name .tags.show {
 }
 
 .mass-edit-preset-form .item .item-name .tags span {

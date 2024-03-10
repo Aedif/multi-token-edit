@@ -617,7 +617,7 @@ export class TagInput {
   }
 
   static _tagField(tag) {
-    return `<div class="tag"><span>${tag}</span> <a class="delete-tag"><i class="fa-solid fa-x"></i></a></div>`;
+    return `<div class="tag"><span>${tag}</span> <a class="delete-tag"><i class="fa-solid fa-x fa-xs"></i></a></div>`;
   }
 
   static activateListeners(html, resize) {
@@ -641,7 +641,7 @@ export class TagInput {
       }
     });
 
-    html.find('.me-tags .delete-tag').on('click', (event) => {
+    html.find('.me-tags').on('click', '.delete-tag', (event) => {
       const tag = $(event.target).closest('.tag');
 
       // Remove tag from hidden input

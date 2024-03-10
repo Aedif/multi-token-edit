@@ -1,0 +1,44 @@
+<h3>{{localize "MassEdit.randomizer.pickRange"}}:</h3>
+<div class="form-group">
+    <label>{{localize "MassEdit.common.method"}}</label>
+    <select name="method" data-dtype="string">
+        {{#select method}}
+        <option value="random">{{localize "MassEdit.common.random"}}</option>
+        <option value="interpolate">{{localize "MassEdit.randomizer.interpolate"}}</option>
+        <option value="interpolateReverse">{{localize "MassEdit.randomizer.interpolateReverse"}}</option>
+        {{/select}}
+    </select>
+</div>
+<div class="form-group">
+    <label>Space</label>
+    <select name="space" data-dtype="string">
+        {{#select space}}
+        <option value="hsl">HSL</option>
+        <option value="lch">LCH</option>
+        <option value="srgb">sRGB</option>
+        <option value="srgb-linear">sRGB Linear</option>
+        <option value="hwb">HWB</option>
+        <option value="discrete">Discrete</option>
+        {{/select}}
+    </select>
+</div>
+<div class="form-group">
+    <label>Hue</label>
+    <select name="hue" data-dtype="string">
+        {{#select hue}}
+        <option value="longer">Longer</option>
+        <option value="shorter">Shorter</option>
+        <option value="increasing">Decreasing</option>
+        <option value="raw">Raw</option>
+        {{/select}}
+    </select>
+</div>
+<div class="slide"></div>
+<hr>
+<div class="form-group">
+    <p class="notes">
+        <b>Double-click</b> handles to change color.<br>
+        <b>Right-click</b> handles to remove them.<br>
+        <b>Right-click</b> on an empty slider spot to insert new handles.
+    </p>
+</div>

@@ -192,6 +192,16 @@ export class MassEditPresets extends FormApplication {
       itemSelect(event, itemList);
       if (this._activeBrush) this._toggleBrush(event);
     });
+
+    // Hide/Show preset tags
+    html.on('mouseenter', '.item', (event) => {
+      $(event.currentTarget).find('.tags').addClass('show');
+    });
+
+    html.on('mouseleave', '.item', (event) => {
+      $(event.currentTarget).find('.tags').removeClass('show');
+    });
+
     html.on('dragstart', '.item', (event) => {
       this.dragType = 'item';
 
@@ -1545,7 +1555,6 @@ export class PresetConfig extends FormApplication {
     this.presets = presets;
     this.callback = options.callback;
     this.isCreate = options.isCreate;
-    console.log(presets);
   }
 
   /** @inheritdoc */
@@ -1801,10 +1810,7 @@ export class PresetConfig extends FormApplication {
     formData.img = formData.img.trim() || null;
     formData.preSpawnScript = formData.preSpawnScript?.trim();
     formData.postSpawnScript = formData.postSpawnScript?.trim();
-
-    console.log(formData.tags);
     formData.tags = formData.tags ? formData.tags.split(',') : [];
-    console.log(formData.tags);
 
     for (const preset of this.presets) {
       let update;
