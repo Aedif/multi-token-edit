@@ -1,3 +1,19 @@
+# 1.62.0
+
+- Preset tagging
+
+  - Select `Edit` within the preset context menu to add tags
+  - With multiple presets selected you'll have the option to `Add Tags` and `Remove Tags` from all selected presets
+  - Tagged presets will be included in the matching searches
+  - Hover over a preset to see its tags
+
+- External compendium folder editing
+
+  - Assign color, name, and group
+  - Folders with the same group name will be displayed together under one folder
+
+- Compatibility fixes for `Spotlight Omnisearch` module
+
 # 1.61.2
 
 - Sort static preset folders by name

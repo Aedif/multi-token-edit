@@ -1822,7 +1822,6 @@ export class PresetConfig extends FormApplication {
     formData.tags = formData.tags ? formData.tags.split(',') : [];
     formData.addTags = formData.addTags ? formData.addTags.split(',') : [];
     formData.removeTags = formData.removeTags ? formData.removeTags.split(',') : [];
-    console.log(formData);
 
     for (const preset of this.presets) {
       let update;
