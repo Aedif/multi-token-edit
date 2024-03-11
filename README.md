@@ -9,6 +9,8 @@ FoundryVTT module for searching and editing multiple placeables at the same time
 
 Mass Edit is now Baileywiki Mass Edit! See the announcement in the video below. As part of the transition to the Baileywiki family of content, Mass Edit will be converting to entirely for free. Enjoy!
 
+[![Baileywiki Mass Edit](https://img.youtube.com/vi/aUpYVoymwpc/0.jpg)](https://www.youtube.com/watch?v=aUpYVoymwpc)
+
 Support the continuing development of the module by subscribing to Baileywiki over at [Patreon](https://www.patreon.com/baileywiki).
 
 _Note that all keybinding referenced bellow can be changed via 'Configure Controls'_
