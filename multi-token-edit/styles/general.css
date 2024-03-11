@@ -354,7 +354,6 @@
   margin-bottom: 2px;
   margin-top: 7px;
   font-size: 0.9em;
-  opacity: 60%;
   white-space: nowrap;
   width: 50px;
   overflow: hidden;
@@ -386,11 +385,15 @@
 }
 
 .mass-edit-preset-form .item.item-s.selected {
-  background: linear-gradient(#f005, #f005), linear-gradient(#01bb0155, #0f05);
+  background: linear-gradient(#ffa50055, #ffa50055), linear-gradient(#bb5f0155, #ffb10055);
 }
 
 .mass-edit-preset-form .folder.item-s.selected {
   border-color: orange;
+}
+
+.mass-edit-preset-form .fa-folder-open {
+  color: orange;
 }
 
 .drag-drop-overlay {

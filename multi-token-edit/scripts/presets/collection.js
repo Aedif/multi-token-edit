@@ -440,18 +440,17 @@ export class PresetCollection {
     this._searchPresetList(folder.presets, presets, options, folder.name);
   }
 
-  static _searchPresetList(toSearch, presets, { name = null, type = null } = {}, folderName) {
+  static _searchPresetList(toSearch, presets, { name, type, tags } = {}, folderName) {
     for (const preset of toSearch) {
-      preset._folderName = folderName;
-      if (name && type) {
-        if (name === preset.name && type === preset.documentName) presets.push(preset);
-      } else if (name) {
-        if (name === preset.name) presets.push(preset);
-      } else if (type) {
-        if (type === preset.documentName) presets.push(preset);
-      } else {
-        presets.push(preset);
+      let match = true;
+      if (name && name !== preset.name) match = false;
+      if (type && type !== preset.documentName) match = false;
+      if (match && tags) {
+        if (tags.matchAny) match = tags.tags.some((t) => preset.tags.includes(t));
+        else match = tags.tags.every((t) => preset.tags.includes(t));
       }
+
+      if (match) presets.push(preset);
     }
   }
 
@@ -548,20 +547,29 @@ export class PresetAPI {
   /**
    * Retrieve preset
    * @param {object} [options={}]
-   * @param {String} [options.uuid]    Preset UUID
-   * @param {String} [options.name]    Preset name
-   * @param {String} [options.type]    Preset type ("Token", "Tile", etc)
+   * @param {String} [options.uuid]                      Preset UUID
+   * @param {String} [options.name]                      Preset name
+   * @param {String} [options.type]                      Preset type ("Token", "Tile", etc)
+   * @param {String|Array[String]|Object} [options.tags] Tags to match a preset against. Can be provided as an object containing 'tags' array and 'match' any flag.
+   *                                                     Comma separated string, or a list of strings. In the latter 2 case 'matchAny' is assumed true
    * @param {String} [options.folder]  Folder name
    * @returns {Preset}
    */
-  static async getPreset({ uuid, name, type, folder } = {}) {
+  static async getPreset({ uuid, name, type, folder, tags } = {}) {
     if (uuid) return await PresetCollection.get(uuid);
-    else if (!name && !type && !folder) throw Error('UUID, Name, Type, and/or Folder required to retrieve a Preset.');
+    else if (!name && !type && !folder && !tags)
+      throw Error('UUID, Name, Type, and/or Folder required to retrieve a Preset.');
+
+    if (tags) {
+      if (Array.isArray(tags)) tags = { tags, matchAny: true };
+      else if (typeof tags === 'string') tags = { tags: tags.split(','), matchAny: true };
+    }
 
     const presets = PresetCollection._searchPresetTree(await PresetCollection.getTree(), {
       name,
       type,
       folder,
+      tags,
     });
 
     const preset = presets[Math.floor(Math.random() * presets.length)];
@@ -571,21 +579,29 @@ export class PresetAPI {
   /**
    * Retrieve presets
    * @param {object} [options={}]
-   * @param {String} [options.uuid]    Preset UUID
-   * @param {String} [options.name]    Preset name
-   * @param {String} [options.type]    Preset type ("Token", "Tile", etc)
-   * @param {String} [options.folder]  Folder name
-   * @param {String} [options.format]  The form to return placeables in ('preset', 'name', 'nameAndFolder')
+   * @param {String} [options.uuid]                      Preset UUID
+   * @param {String} [options.name]                      Preset name
+   * @param {String} [options.type]                      Preset type ("Token", "Tile", etc)
+   * @param {String} [options.folder]                    Folder name
+   * @param {String|Array[String]|Object} [options.tags] See PresetAPI.getPreset
+   * @param {String} [options.format]                    The form to return placeables in ('preset', 'name', 'nameAndFolder')
    * @returns {Array[Preset]|Array[String]|Array[Object]}
    */
-  static async getPresets({ uuid, name, type, folder, format = 'preset' } = {}) {
+  static async getPresets({ uuid, name, type, folder, format = 'preset', tags } = {}) {
     if (uuid) return await PresetCollection.get(uuid);
-    else if (!name && !type && !folder) throw Error('UUID, Name, Type, and/or Folder required to retrieve a Preset.');
+    else if (!name && !type && !folder && !tags)
+      throw Error('UUID, Name, Type, Folder and/or Tags required to retrieve a Preset.');
+
+    if (tags) {
+      if (Array.isArray(tags)) tags = { tags, matchAny: true };
+      else if (typeof tags === 'string') tags = { tags: tags.split(','), matchAny: true };
+    }
 
     const presets = PresetCollection._searchPresetTree(await PresetCollection.getTree(), {
       name,
       type,
       folder,
+      tags,
     });
 
     if (format === 'name') return presets.map((p) => p.name);
@@ -708,23 +724,24 @@ export class PresetAPI {
    * Spawn a preset on the scene (uuid, name or preset itself are required).
    * By default the current mouse position is used.
    * @param {object} [options={}]
-   * @param {Preset} [options.preset]             Preset
-   * @param {String} [options.uuid]               Preset UUID
-   * @param {String} [options.name]               Preset name
-   * @param {String} [options.type]               Preset type ("Token", "Tile", etc)
-   * @param {Number} [options.x]                  Spawn canvas x coordinate (mouse position used if x or y are null)
-   * @param {Number} [options.y]                  Spawn canvas y coordinate (mouse position used if x or y are null)
-   * @param {Number} [options.z]                  Spawn canvas z coordinate (3D Canvas)
-   * @param {Boolean} [options.snapToGrid]        If 'true' snaps spawn position to the grid.
-   * @param {Boolean} [options.hidden]            If 'true' preset will be spawned hidden.
-   * @param {Boolean} [options.layerSwitch]       If 'true' the layer of the spawned preset will be activated.
-   * @param {Boolean} [options.scaleToGrid]       If 'true' Tiles, Drawings, and Walls will be scaled relative to grid size.
-   * @param {Boolean} [options.modifyPrompt]      If 'true' a field modification prompt will be shown if configured via `Preset Edit > Modify` form
-   * @param {Boolean} [options.coordPicker]       If 'true' a crosshair and preview will be enabled allowing spawn position to be picked
-   * @param {String} [options.pickerLabel]          Label displayed above crosshair when `coordPicker` is enabled
-   * @param {String} [options.taPreview]            Designates the preview placeable when spawning a `Token Attacher` prefab.
-   *                                                Accepted values are "ALL" (for all elements) and document name optionally followed by an index number
-   *                                                 e.g. "ALL", "Tile", "AmbientLight.1"
+   * @param {Preset} [options.preset]                    Preset
+   * @param {String} [options.uuid]                      Preset UUID
+   * @param {String} [options.name]                      Preset name
+   * @param {String} [options.type]                      Preset type ("Token", "Tile", etc)
+   * @param {String|Array[String]|Object} [options.tags] Preset tags, See PresetAPI.getPreset
+   * @param {Number} [options.x]                         Spawn canvas x coordinate (mouse position used if x or y are null)
+   * @param {Number} [options.y]                         Spawn canvas y coordinate (mouse position used if x or y are null)
+   * @param {Number} [options.z]                         Spawn canvas z coordinate (3D Canvas)
+   * @param {Boolean} [options.snapToGrid]               If 'true' snaps spawn position to the grid.
+   * @param {Boolean} [options.hidden]                   If 'true' preset will be spawned hidden.
+   * @param {Boolean} [options.layerSwitch]              If 'true' the layer of the spawned preset will be activated.
+   * @param {Boolean} [options.scaleToGrid]              If 'true' Tiles, Drawings, and Walls will be scaled relative to grid size.
+   * @param {Boolean} [options.modifyPrompt]             If 'true' a field modification prompt will be shown if configured via `Preset Edit > Modify` form
+   * @param {Boolean} [options.coordPicker]              If 'true' a crosshair and preview will be enabled allowing spawn position to be picked
+   * @param {String} [options.pickerLabel]               Label displayed above crosshair when `coordPicker` is enabled
+   * @param {String} [options.taPreview]                 Designates the preview placeable when spawning a `Token Attacher` prefab.
+   *                                                      Accepted values are "ALL" (for all elements) and document name optionally followed by an index number
+   *                                                      e.g. "ALL", "Tile", "AmbientLight.1"
    * @returns {Array[Document]}
    */
   static async spawnPreset({
@@ -733,6 +750,7 @@ export class PresetAPI {
     name,
     type,
     folder,
+    tags,
     x,
     y,
     z,
@@ -746,12 +764,13 @@ export class PresetAPI {
     modifyPrompt = true,
   } = {}) {
     if (!canvas.ready) throw Error("Canvas need to be 'ready' for a preset to be spawned.");
-    if (!(uuid || preset || name || type || folder)) throw Error('ID, Name, Folder, or Preset is needed to spawn it.');
+    if (!(uuid || preset || name || type || folder || tags))
+      throw Error('ID, Name, Folder, Tags, or Preset is needed to spawn it.');
     if (!coordPicker && ((x == null && y != null) || (x != null && y == null)))
       throw Error('Need both X and Y coordinates to spawn a preset.');
 
     if (preset) await preset.load();
-    preset = preset ?? (await PresetAPI.getPreset({ uuid, name, type, folder }));
+    preset = preset ?? (await PresetAPI.getPreset({ uuid, name, type, folder, tags }));
     if (!preset) throw Error(`No preset could be found matching: { uuid: "${uuid}", name: "${name}", type: "${type}"}`);
 
     let presetData = deepClone(preset.data);

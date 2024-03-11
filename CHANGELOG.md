@@ -1,3 +1,8 @@
+# 1.62.1
+
+- Mass Edit is now **Baileywiki Mass Edit**
+- API's now support tags
+
 # 1.62.0
 
 - Preset tagging

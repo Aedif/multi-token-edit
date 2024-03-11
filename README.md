@@ -3,18 +3,18 @@
 ![GitHub All Releases](https://img.shields.io/github/downloads/Aedif/multi-token-edit/multi-token-edit.zip)
 [![Forge Installs](https://img.shields.io/badge/dynamic/json?label=Forge%20Installs&query=package.installs&suffix=%25&url=https%3A%2F%2Fforge-vtt.com%2Fapi%2Fbazaar%2Fpackage%2Fmulti-token-edit)](https://forge-vtt.com/bazaar#package=multi-token-edit)
 
-# Mass Edit
+# Baileywiki Mass Edit
 
 FoundryVTT module for searching and editing multiple placeables at the same time and storing them as presets to be re-used.
 
-Version that supports field [Randomization](#randomization) will soon become available via support of Baileywiki on [Patreon](https://www.patreon.com/baileywiki).
+Mass Edit is now Baileywiki Mass Edit! See the announcement in the video below. As part of the transition to the Baileywiki family of content, Mass Edit will be converting to entirely for free. Enjoy!
+
+Support the continuing development of the module by subscribing to Baileywiki over at [Patreon](https://www.patreon.com/baileywiki).
 
 _Note that all keybinding referenced bellow can be changed via 'Configure Controls'_
 
 #### Recommended modules:
 
-- Select Tool Everywhere (https://foundryvtt.com/packages/select-tool-everywhere)
-  - Will allow to select normally un-selectable placeables such as lights and templates
 - Multiple Document Selection (https://foundryvtt.com/packages/multiple-document-selection)
   - Will enable selection of multiple documents in the sidebar
   - Mass Edit will recognise these selections for Actors, Scenes, and Journals
@@ -232,8 +232,10 @@ https://user-images.githubusercontent.com/7693704/179762435-e0f11294-35ed-4cd2-b
 
 ## Randomization
 
-At the moment a Patreon exclusive feature.
-
 Randomize any numerical, color, text, image, drop-down, or coordinate values.
 
 https://user-images.githubusercontent.com/7693704/196006020-9d308238-1888-4b98-b452-e7ce88a643ac.mp4
+
+## Select Tool
+
+Select Tool is added for AmbientLight, AmbientSound, MeasuredTemplate, and Note layers.
