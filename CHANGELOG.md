@@ -1,3 +1,9 @@
+# 1.62.2
+
+- Fixed bad meta document initialization preventing Preset form from opening
+  - Added an additional fail-safe to revert back to the default compendium
+- Spotlight Omnisearch should now populate with "PRESET" type
+
 # 1.62.1
 
 - Mass Edit is now **Baileywiki Mass Edit**

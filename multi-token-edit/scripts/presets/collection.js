@@ -30,8 +30,21 @@ export class PresetCollection {
   static workingPack;
 
   static async getTree(type, mainOnly = false) {
-    const pack = await this._initCompendium(this.workingPack);
-    const mainTree = await this.packToTree(pack, type);
+    let pack;
+    let mainTree;
+    try {
+      pack = await this._initCompendium(this.workingPack);
+      mainTree = await this.packToTree(pack, type);
+    } catch (e) {
+      // Fail-safe. Return back to DEFAULT_PACK
+      console.log(e);
+      console.log(`FAILED TO LOAD WORKING COMPENDIUM {${this.workingPack}}`);
+      console.log('RETURNING TO DEFAULT');
+      await game.settings.set(MODULE_ID, 'workingPack', DEFAULT_PACK);
+      this.workingPack = DEFAULT_PACK;
+      pack = await this._initCompendium(this.workingPack);
+      mainTree = await this.packToTree(pack, type);
+    }
 
     const extFolders = [];
 
@@ -378,7 +391,7 @@ export class PresetCollection {
         packageType: 'world',
       });
 
-      await this._initMetaDocument(DEFAULT_PACK);
+      await this._initMetaDocument(pack);
     }
 
     return compendium;

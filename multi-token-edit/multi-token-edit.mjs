@@ -152,7 +152,7 @@ Hooks.once('init', () => {
   });
 
   // 'Spotlight Omnisearch' support
-  Hooks.on('spotlightOmnisearch.indexBuilt', (index) => {
+  Hooks.on('spotlightOmnisearch.indexBuilt', (INDEX, promises) => {
     // First turn-off preset compendium from being included in omnisearch indexing
     const old = game.settings.get('spotlight-omnisearch', 'compendiumConfig');
     game.packs
@@ -161,7 +161,8 @@ Hooks.once('init', () => {
     game.settings.set('spotlight-omnisearch', 'compendiumConfig', old);
 
     // Insert preset index
-    PresetCollection.buildSpotlightOmnisearchIndex(index);
+    const promise = PresetCollection.buildSpotlightOmnisearchIndex(INDEX);
+    promises.push(promise);
   });
 
   globalThis.MassEdit = {
