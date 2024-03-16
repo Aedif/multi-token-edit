@@ -1,3 +1,10 @@
+# 1.62.3
+
+- MassEdit API
+  - **getPreset** and **spawnPreset** can now be provided a 'random' flag
+    - if true a random preset will be chosen from the matched list if a unique one could not be found
+    - otherwise the first found preset will be returned
+
 # 1.62.2
 
 - Fixed bad meta document initialization preventing Preset form from opening
