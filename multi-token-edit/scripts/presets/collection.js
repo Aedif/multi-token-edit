@@ -469,12 +469,12 @@ export class PresetCollection {
 
   /**
    * Build preset index for 'Spotlight Omnisearch' module
-   * @param {Array[CONFIG.SpotlightOmniseach.SearchTerm]} soIndex
+   * @param {Array[CONFIG.SpotlightOmnisearch.SearchTerm]} soIndex
    */
   static async buildSpotlightOmnisearchIndex(soIndex) {
     const tree = await PresetCollection.getTree();
 
-    const SearchTerm = CONFIG.SpotlightOmniseach.SearchTerm;
+    const SearchTerm = CONFIG.SpotlightOmnisearch.SearchTerm;
 
     const onClick = async function () {
       if (SUPPORTED_PLACEABLES.includes(this.data.documentName)) {
@@ -565,10 +565,11 @@ export class PresetAPI {
    * @param {String} [options.type]                      Preset type ("Token", "Tile", etc)
    * @param {String|Array[String]|Object} [options.tags] Tags to match a preset against. Can be provided as an object containing 'tags' array and 'match' any flag.
    *                                                     Comma separated string, or a list of strings. In the latter 2 case 'matchAny' is assumed true
-   * @param {String} [options.folder]  Folder name
+   * @param {String} [options.folder]                    Folder name
+   * @param {Boolean} [options.random]                   If multiple presets are found a random one will be chosen
    * @returns {Preset}
    */
-  static async getPreset({ uuid, name, type, folder, tags } = {}) {
+  static async getPreset({ uuid, name, type, folder, tags, random = false } = {}) {
     if (uuid) return await PresetCollection.get(uuid);
     else if (!name && !type && !folder && !tags)
       throw Error('UUID, Name, Type, and/or Folder required to retrieve a Preset.');
@@ -585,7 +586,7 @@ export class PresetAPI {
       tags,
     });
 
-    const preset = presets[Math.floor(Math.random() * presets.length)];
+    const preset = random ? presets[Math.floor(Math.random() * presets.length)] : presets[0];
     return preset?.clone().load();
   }
 
@@ -742,6 +743,7 @@ export class PresetAPI {
    * @param {String} [options.name]                      Preset name
    * @param {String} [options.type]                      Preset type ("Token", "Tile", etc)
    * @param {String|Array[String]|Object} [options.tags] Preset tags, See PresetAPI.getPreset
+   * @param {Boolean} [options.random]                   If a unique preset could not be found, a random one will be chosen from the matched list
    * @param {Number} [options.x]                         Spawn canvas x coordinate (mouse position used if x or y are null)
    * @param {Number} [options.y]                         Spawn canvas y coordinate (mouse position used if x or y are null)
    * @param {Number} [options.z]                         Spawn canvas z coordinate (3D Canvas)
@@ -764,6 +766,7 @@ export class PresetAPI {
     type,
     folder,
     tags,
+    random = false,
     x,
     y,
     z,
@@ -783,7 +786,7 @@ export class PresetAPI {
       throw Error('Need both X and Y coordinates to spawn a preset.');
 
     if (preset) await preset.load();
-    preset = preset ?? (await PresetAPI.getPreset({ uuid, name, type, folder, tags }));
+    preset = preset ?? (await PresetAPI.getPreset({ uuid, name, type, folder, tags, random }));
     if (!preset) throw Error(`No preset could be found matching: { uuid: "${uuid}", name: "${name}", type: "${type}"}`);
 
     let presetData = deepClone(preset.data);

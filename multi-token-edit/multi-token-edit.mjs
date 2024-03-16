@@ -153,6 +153,7 @@ Hooks.once('init', () => {
 
   // 'Spotlight Omnisearch' support
   Hooks.on('spotlightOmnisearch.indexBuilt', (INDEX, promises) => {
+    if (!game.user.isGM) return;
     // First turn-off preset compendium from being included in omnisearch indexing
     const old = game.settings.get('spotlight-omnisearch', 'compendiumConfig');
     game.packs
