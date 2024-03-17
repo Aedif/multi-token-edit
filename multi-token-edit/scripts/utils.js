@@ -625,20 +625,30 @@ export class TagInput {
     html.find('.me-tags .add-tag').on('click', (event) => {
       const meTags = $(event.target).closest('.me-tags');
       const input = meTags.find('.tag-input');
-      const tag = input
+
+      const newTags = input
         .val()
-        .trim()
-        .replace(/[^0-9a-zA-Z_\- ]/gi, '')
-        .toLowerCase();
-      if (tag) {
+        .split(',')
+        .map((t) =>
+          t
+            .trim()
+            .replace(/[^0-9a-zA-Z_\- ]/gi, '')
+            .toLowerCase()
+        )
+        .filter(Boolean);
+
+      if (newTags.length) {
         input.val('');
         const hiddenInput = meTags.find('.tag-hidden-input');
         const currentTags = hiddenInput.val().split(',').filter(Boolean);
-        if (!currentTags.includes(tag)) {
-          hiddenInput.attr('value', [...currentTags, tag].join(','));
-          meTags.find('.tag-container').append(this._tagField(tag));
-          if (resize) resize();
+        for (const tag of newTags) {
+          if (!currentTags.includes(tag)) {
+            currentTags.push(tag);
+            meTags.find('.tag-container').append(this._tagField(tag));
+          }
         }
+        hiddenInput.attr('value', currentTags.join(','));
+        if (resize) resize();
       }
     });
 

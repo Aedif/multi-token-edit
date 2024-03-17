@@ -1,3 +1,4 @@
+import { checkApplySpecialFields } from '../../applications/forms.js';
 import { Brush } from '../brush.js';
 import { Picker } from '../picker.js';
 import { applyRandomization } from '../randomizer/randomizerUtils.js';
@@ -807,15 +808,10 @@ export class PresetAPI {
     presetData = presetData.map((data) => {
       return mergePresetDataToDefaultDoc(preset, data);
     });
-
-    // Randomize data if needed
-    const randomizer = preset.randomize;
-    if (!foundry.utils.isEmpty(randomizer)) {
-      // Flat data required for randomizer
-      presetData = presetData.map((d) => foundry.utils.flattenObject(d));
-      await applyRandomization(presetData, null, randomizer);
-      presetData = presetData.map((d) => foundry.utils.expandObject(d));
-    }
+    presetData = presetData.map((d) => foundry.utils.flattenObject(d));
+    if (!foundry.utils.isEmpty(preset.randomize)) await applyRandomization(presetData, null, preset.randomize); // Randomize data if needed
+    await checkApplySpecialFields(preset.documentName, presetData, presetData); // Apply Special fields (TMFX)
+    presetData = presetData.map((d) => foundry.utils.expandObject(d));
 
     // Scale dimensions relative to grid size
     if (scaleToGrid) {

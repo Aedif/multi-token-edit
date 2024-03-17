@@ -1,16 +1,45 @@
 export async function applyDDTint(placeable, color) {
   placeable = placeable.object ?? placeable;
   color = _string2hex(color);
-  if (isNaN(color)) {
-    await TokenMagic.deleteFilters(placeable, 'DDTint');
+  if (placeable instanceof PlaceableObject) {
+    if (isNaN(color)) {
+      await TokenMagic.deleteFilters(placeable, 'DDTint');
+    } else {
+      await TokenMagic.addUpdateFilters(placeable, [
+        {
+          filterType: 'ddTint',
+          filterId: 'DDTint',
+          tint: PIXI.utils.hex2rgb(color),
+        },
+      ]);
+    }
   } else {
-    await TokenMagic.addUpdateFilters(placeable, [
-      {
-        filterType: 'ddTint',
-        filterId: 'DDTint',
-        tint: PIXI.utils.hex2rgb(color),
-      },
-    ]);
+    let filters = placeable['flags.tokenmagic.filters'];
+    if (isNaN(color)) {
+      if (filters) {
+        placeable['flags.tokenmagic.filters'] = filters.filter((f) => f.tmFilters.filterId !== 'DDTint');
+      }
+    } else {
+      filters = (filters ?? []).filter((f) => f.tmFilters.filterId !== 'DDTint');
+      filters.push({
+        tmFilters: {
+          tmFilterId: 'DDTint',
+          tmFilterInternalId: randomID(),
+          tmFilterType: 'ddTint',
+          filterOwner: game.data.userId,
+          tmParams: {
+            tmFilterType: 'ddTint',
+            filterId: 'DDTint',
+            tint: PIXI.utils.hex2rgb(color),
+            updateId: randomID(),
+            rank: 10000,
+            enabled: true,
+            filterOwner: game.data.userId,
+          },
+        },
+      });
+      placeable['flags.tokenmagic.filters'] = filters;
+    }
   }
 }
 

@@ -1,3 +1,8 @@
+# 1.63.0
+
+- Multiple presets tags can now be entered at the same time by separating them by commas
+- TMFX filter DDTint can now be randomized on Preset Edit forms
+
 # 1.62.3
 
 - MassEdit API
