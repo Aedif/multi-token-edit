@@ -1,6 +1,6 @@
 multi-token-edit/multi-token-edit.zip
 .vscode/settings.json
-patreon-manifest/module.json
 multi-token-edit/packs/*
-multi-token-edit/bundle.*
-multi-token-edit/jquery-ui.*
+multi-token-edit/*bundle.js*
+node_modules/*
+package-lock.json

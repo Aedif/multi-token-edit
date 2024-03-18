@@ -1,4 +1,5 @@
 import Color from '../color/color.js';
+import '../jquery-ui/jquery-ui.js';
 
 export class ColorSlider {
   constructor(html, colors) {
@@ -21,14 +22,7 @@ export class ColorSlider {
   }
 
   _init() {
-    import('../jquery-ui/jquery-ui.js').then((imp) => {
-      this._createSlider();
-      // // Respond better to DF Architect Color Picker
-      // html.on('focusout', '.df-arch-colourpicker', (e) => {
-      //   clearTimeout(inputTimer);
-      //   inputTimer = setTimeout(() => this.update(), 500);
-      // });
-    });
+    this._createSlider();
   }
 
   update() {

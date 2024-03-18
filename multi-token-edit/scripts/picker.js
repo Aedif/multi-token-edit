@@ -1,3 +1,5 @@
+import { getPresetDataBounds } from './presets/utils.js';
+
 /**
  * Cross-hair and optional preview image/label that can be activated to allow the user to select
  * an area on the screen.
@@ -25,6 +27,8 @@ export class Picker {
 
     const pickerOverlay = new PIXI.Container();
     this.callback = callback;
+    Picker.offsetX = 0;
+    Picker.offsetY = 0;
 
     if (preview) {
       let label;
@@ -35,6 +39,14 @@ export class Picker {
       }
 
       const { previews, layer, previewDocuments } = await this._genPreviews(preview);
+
+      // TODO improve
+      // Set preview to be centered on the mouse positio
+      if (preview.center) {
+        const bounds = getPresetDataBounds(preview.previewData);
+        Picker.offsetX = bounds.width / 2;
+        Picker.offsetY = bounds.height / 2;
+      }
 
       const setPositions = function (pos) {
         if (!pos) return;
@@ -81,7 +93,7 @@ export class Picker {
       };
 
       pickerOverlay.on('pointermove', (event) => {
-        setPositions(event.data.getLocalPosition(pickerOverlay));
+        setPositions(this.getPos(event, pickerOverlay));
       });
       setPositions(canvas.mousePosition);
     }
@@ -92,9 +104,11 @@ export class Picker {
     pickerOverlay.zIndex = Infinity;
     pickerOverlay.on('remove', () => pickerOverlay.off('pick'));
     pickerOverlay.on('mousedown', (event) => {
-      Picker.boundStart = event.data.getLocalPosition(pickerOverlay);
+      Picker.boundStart = this.getPos(event, pickerOverlay);
     });
-    pickerOverlay.on('mouseup', (event) => (Picker.boundEnd = event.data.getLocalPosition(pickerOverlay)));
+    pickerOverlay.on('mouseup', (event) => {
+      Picker.boundEnd = this.getPos(event, pickerOverlay);
+    });
     pickerOverlay.on('click', (event) => {
       if (event.nativeEvent.which == 2) {
         this.callback?.(null);
@@ -110,6 +124,13 @@ export class Picker {
     this.pickerOverlay = pickerOverlay;
 
     canvas.stage.addChild(this.pickerOverlay);
+  }
+
+  static getPos(event, pickerOverlay) {
+    const pos = event.data.getLocalPosition(pickerOverlay);
+    pos.x -= Picker.offsetX;
+    pos.y -= Picker.offsetY;
+    return pos;
   }
 
   static destroy() {

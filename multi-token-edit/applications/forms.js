@@ -2,7 +2,6 @@ import { Brush } from '../scripts/brush.js';
 import { injectFlagTab, injectVisibility } from '../scripts/fieldInjector.js';
 import { MassEditPresets } from '../scripts/presets/forms.js';
 import { Preset } from '../scripts/presets/preset.js';
-import { IS_PRIVATE, showRandomizeDialog } from '../scripts/randomizer/randomizerForm.js';
 import { applyRandomization, selectRandomizerFields } from '../scripts/randomizer/randomizerUtils.js';
 import { applyDDTint, applyTMFXPreset, getDDTint } from '../scripts/tmfx.js';
 import {
@@ -40,7 +39,7 @@ export const WithMassEditForm = (cls) => {
       this.meObjects = docs;
       this.documentName = options.documentName ?? doc.document?.documentName ?? doc.documentName ?? 'NONE';
       this.commonData = options.commonData || {};
-      this.randomizerEnabled = IS_PRIVATE && options.massEdit;
+      this.randomizerEnabled = options.massEdit;
       this.massFormButtons = [
         {
           title: localize(`common.apply`),
@@ -160,7 +159,9 @@ export const WithMassEditForm = (cls) => {
       // Register randomize listener if enabled
       if (this.randomizerEnabled) {
         $(html).on('contextmenu', '.mass-edit-checkbox', (event) => {
-          showRandomizeDialog($(event.target).closest('.form-group'), context);
+          import('../scripts/randomizer/randomizerForm.js').then((module) => {
+            module.showRandomizeDialog($(event.target).closest('.form-group'), context);
+          });
         });
       }
 
@@ -388,8 +389,7 @@ export const WithMassEditForm = (cls) => {
         $(html).find('[name="width"]').closest('.form-group').before(scaleInput);
         processFormGroup(scaleInput, 'meInsert');
 
-        if (IS_PRIVATE) {
-          scaleInput = $(`
+        scaleInput = $(`
           <div class="form-group slim">
             <label>${localize('TILE.Scale', false)} <span class="units">(${localize('common.ratio')})</span></label>
             <div class="form-fields">
@@ -397,9 +397,8 @@ export const WithMassEditForm = (cls) => {
               <input type="number" value="1" step="any" name="massedit.texture.scale" min="0">
             </div>
           </div>`);
-          $(html).find('[name="texture.scaleX"]').closest('.form-group').before(scaleInput);
-          processFormGroup(scaleInput, 'meInsert');
-        }
+        $(html).find('[name="texture.scaleX"]').closest('.form-group').before(scaleInput);
+        processFormGroup(scaleInput, 'meInsert');
       }
 
       // Resizes the window
@@ -1243,7 +1242,6 @@ export async function performMassUpdate(data, objects, docName, applyType) {
   if (this) await applyRandomization(updates, objects, this.randomizeFields);
   if (this) applyAddSubtract(updates, objects, docName, this.addSubtractFields);
 
-  // Special processing for some placeable types
   // Necessary when form data is not directly mappable to placeable
   for (let i = 0; i < total; i++) {
     GeneralDataAdapter.formToData(docName, objects[i], updates[i]);
@@ -1326,19 +1324,41 @@ export async function performMassUpdate(data, objects, docName, applyType) {
   }
 }
 
+/**
+ * Processes Mass Edit inserted custom fields
+ * @param {String} docName
+ * @param {*} updates
+ * @param {*} objects
+ */
 export async function checkApplySpecialFields(docName, updates, objects) {
-  // Token Magic FX specific processing
-  if (typeof TokenMagic !== 'undefined' && (docName === 'Token' || docName === 'Tile')) {
-    for (let i = 0; i < updates.length; i++) {
-      if ('tokenmagic.ddTint' in updates[i]) {
-        await applyDDTint(objects[i], updates[i]['tokenmagic.ddTint']);
+  for (let i = 0; i < updates.length; i++) {
+    const update = updates[i];
+    const object = objects[i];
+
+    // Token Magic FX specific processing
+    if (update.hasOwnProperty('tokenmagic.ddTint') && typeof TokenMagic !== 'undefined') {
+      await applyDDTint(object, update['tokenmagic.ddTint']);
+    }
+    if (update.hasOwnProperty('tokenmagic.preset') && typeof TokenMagic !== 'undefined') {
+      await applyTMFXPreset(
+        object,
+        update['tokenmagic.preset'],
+        this?.addSubtractFields?.['tokenmagic.preset']?.method === 'subtract'
+      );
+    }
+
+    // Mass Edit inserted fields
+    if (docName === 'Tile') {
+      if (update.hasOwnProperty('massedit.scale')) {
+        update.width = object.width * update['massedit.scale'];
+        update.height = object.height * update['massedit.scale'];
+        delete update['massedit.scale'];
       }
-      if ('tokenmagic.preset' in updates[i]) {
-        await applyTMFXPreset(
-          objects[i],
-          updates[i]['tokenmagic.preset'],
-          this?.addSubtractFields?.['tokenmagic.preset']?.method === 'subtract'
-        );
+
+      if (update.hasOwnProperty('massedit.texture.scale')) {
+        update['texture.scaleX'] = update['massedit.texture.scale'];
+        update['texture.scaleY'] = update['massedit.texture.scale'];
+        delete update['massedit.texture.scale'];
       }
     }
   }

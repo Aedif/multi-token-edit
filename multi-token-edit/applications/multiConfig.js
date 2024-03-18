@@ -1,6 +1,5 @@
 import { showPlaceableTypeSelectDialog } from '../scripts/dialogs.js';
 import { PresetAPI } from '../scripts/presets/collection.js';
-import { IS_PRIVATE } from '../scripts/randomizer/randomizerForm.js';
 import { getData, getDocumentName, MODULE_ID, SUPPORT_SHEET_CONFIGS, SUPPORTED_COLLECTIONS } from '../scripts/utils.js';
 import { getClipboardData, pasteDataUpdate, WithMassConfig } from './forms.js';
 import { MassEditGenericForm } from './generic/genericForm.js';
@@ -214,7 +213,7 @@ export function pasteData() {
   if (!selected) selected = getHover();
 
   if (selected) return pasteDataUpdate(selected);
-  else if (IS_PRIVATE) {
+  else {
     let docName = canvas.activeLayer.constructor.documentName;
     const preset = getClipboardData(docName);
     if (preset) {

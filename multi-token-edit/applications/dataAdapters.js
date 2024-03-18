@@ -18,21 +18,6 @@ class PlaylistSoundDataAdapter {
   }
 }
 
-class TileDataAdapter {
-  static formToData(tile, formData) {
-    if ('massedit.scale' in formData) {
-      formData.width = (tile.document ?? tile).width * formData['massedit.scale'];
-      formData.height = (tile.document ?? tile).height * formData['massedit.scale'];
-      delete formData['massedit.scale'];
-    }
-    if ('massedit.texture.scale' in formData) {
-      formData['texture.scaleX'] = formData['massedit.texture.scale'];
-      formData['texture.scaleY'] = formData['massedit.texture.scale'];
-      delete formData['massedit.texture.scale'];
-    }
-  }
-}
-
 class NoteDataAdapter {
   static formToData(obj, formData) {
     if ('icon.selected' in formData || 'icon.custom' in formData) {
@@ -226,7 +211,6 @@ const ADAPTERS = {
   Token: TokenDataAdapter,
   PlaylistSound: PlaylistSoundDataAdapter,
   Note: NoteDataAdapter,
-  Tile: TileDataAdapter,
 };
 
 export class GeneralDataAdapter {

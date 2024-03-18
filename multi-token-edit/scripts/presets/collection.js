@@ -15,6 +15,7 @@ import {
 import { Preset } from './preset.js';
 import {
   FolderState,
+  getPresetDataBounds,
   mergePresetDataToDefaultDoc,
   modifySpawnData,
   placeableToData,
@@ -779,6 +780,7 @@ export class PresetAPI {
     layerSwitch = false,
     scaleToGrid = false,
     modifyPrompt = true,
+    center = false,
   } = {}) {
     if (!canvas.ready) throw Error("Canvas need to be 'ready' for a preset to be spawned.");
     if (!(uuid || preset || name || type || folder || tags))
@@ -845,6 +847,7 @@ export class PresetAPI {
           snap: snapToGrid,
           label: pickerLabel,
           taPreview: taPreview,
+          center,
         });
       });
       if (coords == null) return [];
@@ -865,6 +868,12 @@ export class PresetAPI {
           y -= canvas.dimensions.size / 2;
         }
       }
+    }
+
+    if (center) {
+      const bounds = getPresetDataBounds(docToData);
+      x -= bounds.width / 2;
+      y -= bounds.height / 2;
     }
 
     let pos = { x, y };
@@ -967,7 +976,7 @@ export class PresetAPI {
     if (preset.postSpawnScript) {
       await executeScript(preset.postSpawnScript, {
         documents: allDocuments,
-        objects: documents.map((d) => d.object).filter(Boolean),
+        objects: allDocuments.map((d) => d.object).filter(Boolean),
       });
     }
 

@@ -425,6 +425,10 @@
   color: yellow;
 }
 
+.mass-edit-preset-form .preset-brush.active.spawner {
+  color: greenyellow;
+}
+
 .mass-edit-scene-control {
   color: cornflowerblue !important;
 }

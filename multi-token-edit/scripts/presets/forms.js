@@ -109,7 +109,10 @@ export class MassEditPresets extends FormApplication {
   async getData(options) {
     const data = super.getData(options);
     // If we're re-rendering deactivate the brush
-    if (this._activeBrush) Brush.deactivate();
+    if (this._activeBrush) {
+      Brush.deactivate();
+      this._onPresetBrushDeactivate();
+    }
 
     // Cache partials
     await getTemplate(`modules/${MODULE_ID}/templates/preset/preset.html`, 'me-preset');
@@ -532,6 +535,7 @@ export class MassEditPresets extends FormApplication {
   }
 
   async _onDoubleClickPreset(event) {
+    this._onPresetBrushDeactivate();
     if (this.canvas3dActive) return;
     const uuid = $(event.target).closest('.item').data('uuid');
     if (!uuid) return;
@@ -555,6 +559,7 @@ export class MassEditPresets extends FormApplication {
       taPreview: 'ALL',
       layerSwitch: game.settings.get(MODULE_ID, 'presetLayerSwitch'),
       scaleToGrid: game.settings.get(MODULE_ID, 'presetScaling'),
+      center: true,
     });
     this._setInteractivityState(true);
   }
@@ -933,7 +938,12 @@ export class MassEditPresets extends FormApplication {
 
     if (newSearch.length < SEARCH_MIN_CHAR) return;
 
-    const filter = event.target.value.trim().toLowerCase();
+    const filter = event.target.value
+      .trim()
+      .toLowerCase()
+      .split(' ')
+      .filter((w) => w.length >= SEARCH_MIN_CHAR);
+    if (!filter.length) return;
     $(event.target).addClass('active');
 
     this.tree.folders.forEach((f) => this._searchFolder(filter, f));
@@ -944,7 +954,8 @@ export class MassEditPresets extends FormApplication {
   }
 
   _searchFolder(filter, folder, forceRender = false) {
-    let match = folder.name.toLowerCase().includes(filter);
+    const folderName = folder.name.toLowerCase();
+    let match = filter.every((k) => folderName.includes(k));
 
     let childFolderMatch = false;
     for (const f of folder.children) {
@@ -964,7 +975,8 @@ export class MassEditPresets extends FormApplication {
   }
 
   _searchPreset(filter, preset, forceRender = false) {
-    if (preset.name.toLowerCase().includes(filter) || preset.tags.includes(filter)) {
+    const presetName = preset.name.toLowerCase();
+    if (filter.every((k) => presetName.includes(k)) || filter.every((k) => preset.tags.includes(k))) {
       preset._render = true;
       return true;
     } else {
@@ -1239,38 +1251,52 @@ export class MassEditPresets extends FormApplication {
   async _toggleBrush(event) {
     const item = $(event.target).closest('.item');
     const brushControl = item.find('.preset-brush');
+    let spawner = false;
 
-    if (brushControl.hasClass('active')) {
-      Brush.deactivate();
-      this._onPresetBrushDeactivate();
-    } else {
-      const uuid = item.data('uuid');
-      const preset = await PresetCollection.get(uuid);
-      if (!preset) {
-        Brush.deactivate();
-        this._onPresetBrushDeactivate();
-        return;
-      }
-
-      if (this._activeBrush) Brush.deactivate();
-
-      const activated = Brush.activate({
-        preset,
-        deactivateCallback: this._onPresetBrushDeactivate.bind(this),
-      });
-
-      if (activated) {
-        brushControl.addClass('active').addClass('fa-bounce');
-        this._activeBrush = true;
+    if (this._activeBrush) {
+      if (brushControl.is(this._activeBrush)) {
+        if (brushControl.hasClass('spawner')) {
+          Brush.deactivate();
+          this._onPresetBrushDeactivate();
+          return;
+        } else {
+          spawner = true;
+        }
       } else {
+        spawner = this._activeBrush.hasClass('spawner');
         this._onPresetBrushDeactivate();
       }
+    }
+    Brush.deactivate();
+
+    const uuid = item.data('uuid');
+    const preset = await PresetCollection.get(uuid);
+    if (!preset) {
+      this._onPresetBrushDeactivate();
+      return;
+    }
+
+    const activated = Brush.activate({
+      preset,
+      deactivateCallback: this._onPresetBrushDeactivate.bind(this),
+      spawner,
+    });
+
+    if (activated) {
+      if (spawner) brushControl.addClass('spawner');
+      brushControl.addClass('active').addClass('fa-bounce');
+      this._activeBrush = brushControl;
+    } else {
+      this._onPresetBrushDeactivate();
     }
   }
 
   _onPresetBrushDeactivate() {
-    $(this.form).find('.preset-brush').removeClass('active').removeClass('fa-bounce');
-    this._activeBrush = false;
+    if (this._activeBrush) {
+      Brush.deactivate();
+      this._activeBrush.removeClass('active').removeClass('fa-bounce').removeClass('spawner');
+    }
+    this._activeBrush = null;
   }
 
   /**
