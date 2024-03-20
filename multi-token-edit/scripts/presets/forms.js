@@ -1293,10 +1293,10 @@ export class MassEditPresets extends FormApplication {
 
   _onPresetBrushDeactivate() {
     if (this._activeBrush) {
-      Brush.deactivate();
       this._activeBrush.removeClass('active').removeClass('fa-bounce').removeClass('spawner');
+      this._activeBrush = null;
     }
-    this._activeBrush = null;
+    Brush.deactivate();
   }
 
   /**

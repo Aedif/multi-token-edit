@@ -142,13 +142,13 @@ export function mergePresetDataToDefaultDoc(preset, presetData) {
   // Set default values if needed
   switch (preset.documentName) {
     case 'Token':
-      data = { name: preset.name };
+      data = { name: preset.name, x: 0, y: 0 };
       break;
     case 'Tile':
-      data = { width: canvas.grid.w, height: canvas.grid.h };
+      data = { width: canvas.grid.w, height: canvas.grid.h, x: 0, y: 0 };
       break;
     case 'AmbientSound':
-      data = { radius: 20 };
+      data = { radius: 20, x: 0, y: 0 };
       break;
     case 'Drawing':
       data = {
@@ -158,21 +158,23 @@ export function mergePresetDataToDefaultDoc(preset, presetData) {
           strokeWidth: 8,
           strokeAlpha: 1.0,
         },
+        x: 0,
+        y: 0,
       };
       break;
     case 'MeasuredTemplate':
-      data = { distance: 10 };
+      data = { distance: 10, x: 0, y: 0 };
       break;
     case 'AmbientLight':
       if (presetData.config?.dim == null && presetData.config?.bright == null) {
-        data = { config: { dim: 20, bright: 20 } };
+        data = { config: { dim: 20, bright: 20 }, x: 0, y: 0 };
         break;
       }
     case 'Scene':
       data = { name: preset.name };
       break;
     default:
-      data = {};
+      data = { x: 0, y: 0 };
   }
 
   return foundry.utils.mergeObject(data, presetData);
@@ -239,6 +241,26 @@ export async function randomizeChildrenFolderColors(uuid, tree, callback) {
 }
 
 /**
+ * Calculates the necessary x and y offsets to place the mouse within the center of the preset data
+ * assuming the mouse is on the top-left corner of the first element
+ * @param {Map<String, Array[Object]>} docToData
+ * @returns
+ */
+export function getPresetDataCenterOffset(docToData) {
+  // TODO take into account Token Attacher prefabs
+  const b = getPresetDataBounds(docToData);
+  const center = { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+
+  const [name, data] = docToData.entries().next().value;
+  if (name === 'Wall') {
+    const c = data[0].c;
+    return { x: center.x - c[0], y: center.y - c[1] };
+  } else {
+    return { x: center.x - data[0].x, y: center.y - data[0].y };
+  }
+}
+
+/**
  * Calculates and returns the overall bounds of the preset data
  * @param {Map<String, Array[Object]>} docToData
  * @returns
@@ -271,9 +293,9 @@ function getDataBounds(docName, data) {
 
   if (docName === 'Wall') {
     x1 = Math.min(data.c[0], data.c[2]);
-    y1 = Math.min(data.c[1], data.c[4]);
+    y1 = Math.min(data.c[1], data.c[3]);
     x2 = Math.max(data.c[0], data.c[2]);
-    y2 = Math.max(data.c[1], data.c[4]);
+    y2 = Math.max(data.c[1], data.c[3]);
   } else {
     x1 = data.x || 0;
     y1 = data.y || 0;

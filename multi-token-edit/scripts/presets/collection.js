@@ -15,7 +15,7 @@ import {
 import { Preset } from './preset.js';
 import {
   FolderState,
-  getPresetDataBounds,
+  getPresetDataCenterOffset,
   mergePresetDataToDefaultDoc,
   modifySpawnData,
   placeableToData,
@@ -781,6 +781,7 @@ export class PresetAPI {
     scaleToGrid = false,
     modifyPrompt = true,
     center = false,
+    sceneId,
   } = {}) {
     if (!canvas.ready) throw Error("Canvas need to be 'ready' for a preset to be spawned.");
     if (!(uuid || preset || name || type || folder || tags))
@@ -871,9 +872,9 @@ export class PresetAPI {
     }
 
     if (center) {
-      const bounds = getPresetDataBounds(docToData);
-      x -= bounds.width / 2;
-      y -= bounds.height / 2;
+      const offset = getPresetDataCenterOffset(docToData);
+      x -= offset.x;
+      y -= offset.y;
     }
 
     let pos = { x, y };
@@ -892,57 +893,60 @@ export class PresetAPI {
     let diffX, diffY, diffZ;
     docToData.forEach((dataArr, documentName) => {
       for (const data of dataArr) {
-        // We need to establish the first found coordinate as the reference point
-        if (diffX == null || diffY == null) {
+        if (!coordPicker) {
+          // TODO cahnge these to use a version of applyTransform
+          // We need to establish the first found coordinate as the reference point
+          if (diffX == null || diffY == null) {
+            if (documentName === 'Wall') {
+              if (data.c) {
+                diffX = pos.x - data.c[0];
+                diffY = pos.y - data.c[1];
+              }
+            } else {
+              if (data.x != null && data.y != null) {
+                diffX = pos.x - data.x;
+                diffY = pos.y - data.y;
+              }
+            }
+
+            // 3D Canvas
+            if (z != null) {
+              const property = documentName === 'Token' ? 'elevation' : 'flags.levels.rangeBottom';
+              if (getProperty(data, property) != null) {
+                diffZ = z - getProperty(data, property);
+              }
+            }
+          }
+
+          // Assign relative position
           if (documentName === 'Wall') {
-            if (data.c) {
-              diffX = pos.x - data.c[0];
-              diffY = pos.y - data.c[1];
+            if (!data.c || diffX == null) data.c = [pos.x, pos.y, pos.x + canvas.grid.w * 2, pos.y];
+            else {
+              data.c[0] += diffX;
+              data.c[1] += diffY;
+              data.c[2] += diffX;
+              data.c[3] += diffY;
             }
           } else {
-            if (data.x != null && data.y != null) {
-              diffX = pos.x - data.x;
-              diffY = pos.y - data.y;
-            }
+            data.x = data.x == null || diffX == null ? pos.x : data.x + diffX;
+            data.y = data.y == null || diffY == null ? pos.y : data.y + diffY;
           }
 
           // 3D Canvas
           if (z != null) {
+            delete data.z;
+            let elevation;
+
             const property = documentName === 'Token' ? 'elevation' : 'flags.levels.rangeBottom';
-            if (getProperty(data, property) != null) {
-              diffZ = z - getProperty(data, property);
+
+            if (diffZ !== null && getProperty(data, property) != null) elevation = getProperty(data, property) + diffZ;
+            else elevation = z;
+
+            setProperty(data, property, elevation);
+
+            if (documentName !== 'Token') {
+              setProperty(data, 'flags.levels.rangeTop', elevation);
             }
-          }
-        }
-
-        // Assign relative position
-        if (documentName === 'Wall') {
-          if (!data.c || diffX == null) data.c = [pos.x, pos.y, pos.x + canvas.grid.w * 2, pos.y];
-          else {
-            data.c[0] += diffX;
-            data.c[1] += diffY;
-            data.c[2] += diffX;
-            data.c[3] += diffY;
-          }
-        } else {
-          data.x = data.x == null || diffX == null ? pos.x : data.x + diffX;
-          data.y = data.y == null || diffY == null ? pos.y : data.y + diffY;
-        }
-
-        // 3D Canvas
-        if (z != null) {
-          delete data.z;
-          let elevation;
-
-          const property = documentName === 'Token' ? 'elevation' : 'flags.levels.rangeBottom';
-
-          if (diffZ !== null && getProperty(data, property) != null) elevation = getProperty(data, property) + diffZ;
-          else elevation = z;
-
-          setProperty(data, property, elevation);
-
-          if (documentName !== 'Token') {
-            setProperty(data, 'flags.levels.rangeTop', elevation);
           }
         }
 
@@ -968,7 +972,7 @@ export class PresetAPI {
     const allDocuments = [];
 
     for (const [documentName, dataArr] of docToData.entries()) {
-      const documents = await createDocuments(documentName, dataArr, canvas.scene.id);
+      const documents = await createDocuments(documentName, dataArr, sceneId ?? canvas.scene.id);
       documents.forEach((d) => allDocuments.push(d));
     }
 
