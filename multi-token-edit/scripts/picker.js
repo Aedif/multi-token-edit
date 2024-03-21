@@ -10,6 +10,20 @@ export class Picker {
   static boundEnd;
   static callback;
 
+  static isActive() {
+    return Boolean(this.pickerOverlay);
+  }
+
+  static addRotation(rotation) {
+    this._rotation += rotation;
+    this.pickerOverlay?.setPositions?.(canvas.mousePosition);
+  }
+
+  static addScaling(scale) {
+    this._scale += scale;
+    this.pickerOverlay?.setPositions?.(canvas.mousePosition);
+  }
+
   /**
    * Activates the picker overlay.
    * @param {Function} callback callback function with coordinates returned as starting and ending bounds of a rectangles
@@ -37,7 +51,8 @@ export class Picker {
       }
 
       let { previews, layer, previewDocuments } = await this._genPreviews(preview);
-      this._lastPos = { x: 0, y: 0 };
+      this._rotation = 0;
+      this._scale = 1;
 
       // Position offset to center preview over the mouse
       let offset;
@@ -46,20 +61,26 @@ export class Picker {
 
       const setPositions = function (pos) {
         if (!pos) return;
-        const realPos = { x: pos.x, y: pos.y };
-        pos.x -= offset.x;
-        pos.y -= offset.y;
+        if (preview.center) offset = getPresetDataCenterOffset(preview.previewData);
         if (preview.snap && layer && !game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.SHIFT))
           pos = canvas.grid.getSnappedPosition(pos.x, pos.y, layer.gridPrecision);
 
         // calculate transform
-        //let transform = { x: pos.x - Picker._lastPos.x, y: pos.y - Picker._lastPos.y, rotation: 1 }; // TODO remove static roation
-        let transform = { x: pos.x - Picker._lastPos.x, y: pos.y - Picker._lastPos.y };
-        Picker._lastPos = pos;
+        const fpX = previews[0].document.documentName === 'Wall' ? previews[0].document.c[0] : previews[0].document.x;
+        const fpY = previews[0].document.documentName === 'Wall' ? previews[0].document.c[1] : previews[0].document.y;
+        let transform = { x: pos.x - fpX - offset.x, y: pos.y - fpY - offset.y };
+        if (Picker._rotation != 0) {
+          transform.rotation = Picker._rotation;
+          Picker._rotation = 0;
+        }
+        if (Picker._scale != 1) {
+          transform.scale = Picker._scale;
+          Picker._scale = 1;
+        }
 
         for (const preview of previews) {
           const doc = preview.document;
-          DataTransform.apply(doc.documentName, preview._pData ?? doc, realPos, transform, preview);
+          DataTransform.apply(doc.documentName, preview._pData ?? doc, pos, transform, preview);
 
           // Hacks
           preview.document.alpha = 0.4;
@@ -87,12 +108,19 @@ export class Picker {
         }
 
         pickerOverlay.previewDocuments = previewDocuments;
+
+        // Changing scaling offsets the center position
+        // Let's immediately reposition back to it
+        if (preview.center && transform.scale != null) {
+          setPositions(pos);
+        }
       };
 
       pickerOverlay.on('pointermove', (event) => {
         setPositions(event.data.getLocalPosition(pickerOverlay));
       });
       setPositions(canvas.mousePosition);
+      pickerOverlay.setPositions = setPositions;
     }
 
     pickerOverlay.hitArea = canvas.dimensions.rect;
@@ -229,7 +257,6 @@ export class Picker {
 
     for (const [name, dataList] of Object.entries(attachedData)) {
       for (let data of dataList) {
-        data = deepClone(data);
         if (['Token', 'Tile', 'Drawing'].includes(name)) {
           data.width *= ratio;
           data.height *= ratio;
@@ -257,6 +284,14 @@ export class Picker {
 }
 
 class DataTransform {
+  /**
+   * Transform placeable data and optionally an accompanying preview with the provided delta transform
+   * @param {String} docName
+   * @param {Object} data
+   * @param {Object} origin
+   * @param {Object} transform
+   * @param {PlaceableObject} preview
+   */
   static apply(docName, data, origin, transform, preview) {
     if (transform.rotation == null) transform.rotation = 0;
 
@@ -264,6 +299,18 @@ class DataTransform {
       this.transformWall(data, origin, transform, preview);
     } else if (docName === 'Tile') {
       this.transformTile(data, origin, transform, preview);
+    } else if (docName == 'Note') {
+      this.transformNote(data, origin, transform, preview);
+    } else if (docName === 'Token') {
+      this.transformToken(data, origin, transform, preview);
+    } else if (docName === 'MeasuredTemplate') {
+      this.transformMeasuredTemplate(data, origin, transform, preview);
+    } else if (docName === 'AmbientLight') {
+      this.transformAmbientLight(data, origin, transform, preview);
+    } else if (docName === 'AmbientSound') {
+      this.transformAmbientSound(data, origin, transform, preview);
+    } else if (docName === 'Drawing') {
+      this.transformDrawing(data, origin, transform, preview);
     } else {
       data.x += transform.x;
       data.y += transform.y;
@@ -274,40 +321,231 @@ class DataTransform {
     }
   }
 
+  static transformNote(data, origin, transform, preview) {
+    if (transform.scale != null) {
+      const scale = transform.scale;
+      data.x *= scale;
+      data.y *= scale;
+    }
+
+    data.x += transform.x;
+    data.y += transform.y;
+
+    if (transform.rotation != null) {
+      const dr = Math.toRadians(transform.rotation % 360);
+      [data.x, data.y] = this.rotatePoint(origin.x, origin.y, data.x, data.y, dr);
+    }
+
+    if (preview) {
+      preview.document.x = data.x;
+      preview.document.y = data.y;
+    }
+  }
+
+  static transformAmbientSound(data, origin, transform, preview) {
+    if (transform.scale != null) {
+      const scale = transform.scale;
+      data.x *= scale;
+      data.y *= scale;
+      data.radius *= scale;
+    }
+
+    data.x += transform.x;
+    data.y += transform.y;
+
+    if (transform.rotation != null) {
+      const dr = Math.toRadians(transform.rotation % 360);
+      [data.x, data.y] = this.rotatePoint(origin.x, origin.y, data.x, data.y, dr);
+    }
+
+    if (preview) {
+      const doc = preview.document;
+      doc.x = data.x;
+      doc.y = data.y;
+      doc.radius = data.radius;
+    }
+  }
+
   static transformWall(data, origin, transform, preview) {
     const c = deepClone(data.c);
+
+    if (transform.scale != null) {
+      const scale = transform.scale;
+      c[0] *= scale;
+      c[1] *= scale;
+      c[2] *= scale;
+      c[3] *= scale;
+    }
+
     c[0] += transform.x;
     c[1] += transform.y;
     c[2] += transform.x;
     c[3] += transform.y;
 
     if (transform.rotation != null) {
-      const dRotation = Math.toRadians(transform.rotation % 360);
-      [c[0], c[1]] = this.rotatePoint(origin.x, origin.y, c[0], c[1], dRotation);
-      [c[2], c[3]] = this.rotatePoint(origin.x, origin.y, c[2], c[3], dRotation);
+      const dr = Math.toRadians(transform.rotation % 360);
+      [c[0], c[1]] = this.rotatePoint(origin.x, origin.y, c[0], c[1], dr);
+      [c[2], c[3]] = this.rotatePoint(origin.x, origin.y, c[2], c[3], dr);
     }
 
     data.c = c;
     if (preview) preview.document.c = c;
   }
 
-  static transformTile(data, origin, transform, preview) {
+  static transformMeasuredTemplate(data, origin, transform, preview) {
+    if (transform.scale != null) {
+      const scale = transform.scale;
+      data.x *= scale;
+      data.y *= scale;
+      data.distance *= scale;
+      if (data.width) data.width *= scale;
+    }
+
     data.x += transform.x;
     data.y += transform.y;
 
     if (transform.rotation != null) {
-      const dRotation = Math.toRadians(transform.rotation % 360);
-      let rectCenter = { x: data.x + data.width / 2, y: data.y + data.height / 2 };
-      [rectCenter.x, rectCenter.y] = this.rotatePoint(origin.x, origin.y, rectCenter.x, rectCenter.y, dRotation);
-      data.x = rectCenter.x - data.width / 2;
-      data.y = rectCenter.y - data.height / 2;
-      data.rotation += Math.toDegrees(dRotation);
+      const dr = Math.toRadians(transform.rotation % 360);
+      [data.x, data.y] = this.rotatePoint(origin.x, origin.y, data.x, data.y, dr);
+      data.direction += Math.toDegrees(dr);
     }
 
     if (preview) {
-      preview.document.x = data.x;
-      preview.document.y = data.y;
-      preview.document.rotation = data.rotation;
+      const doc = preview.document;
+      doc.x = data.x;
+      doc.y = data.y;
+      doc.direction = data.direction;
+      doc.distance = data.distance;
+      doc.width = data.width;
+    }
+  }
+
+  static transformAmbientLight(data, origin, transform, preview) {
+    if (transform.scale != null) {
+      const scale = transform.scale;
+      data.x *= scale;
+      data.y *= scale;
+      data.config.dim *= scale;
+      data.config.bright *= scale;
+    }
+
+    data.x += transform.x;
+    data.y += transform.y;
+
+    if (transform.rotation != null) {
+      const dr = Math.toRadians(transform.rotation % 360);
+      [data.x, data.y] = this.rotatePoint(origin.x, origin.y, data.x, data.y, dr);
+      data.rotation += Math.toDegrees(dr);
+    }
+
+    if (preview) {
+      const doc = preview.document;
+      doc.x = data.x;
+      doc.y = data.y;
+      doc.rotation = data.rotation;
+      doc.config.dim = data.config.dim;
+      doc.config.bright = data.config.bright;
+    }
+  }
+
+  static transformTile(data, origin, transform, preview) {
+    if (transform.scale != null) {
+      const scale = transform.scale;
+      data.x *= scale;
+      data.y *= scale;
+      data.width *= scale;
+      data.height *= scale;
+    }
+
+    data.x += transform.x;
+    data.y += transform.y;
+
+    if (transform.rotation != null) {
+      const dr = Math.toRadians(transform.rotation % 360);
+      let rectCenter = { x: data.x + data.width / 2, y: data.y + data.height / 2 };
+      [rectCenter.x, rectCenter.y] = this.rotatePoint(origin.x, origin.y, rectCenter.x, rectCenter.y, dr);
+      data.x = rectCenter.x - data.width / 2;
+      data.y = rectCenter.y - data.height / 2;
+      data.rotation += Math.toDegrees(dr);
+    }
+
+    if (preview) {
+      const doc = preview.document;
+      doc.x = data.x;
+      doc.y = data.y;
+      doc.width = data.width;
+      doc.height = data.height;
+      doc.rotation = data.rotation;
+    }
+  }
+
+  static transformDrawing(data, origin, transform, preview) {
+    if (transform.scale != null) {
+      const scale = transform.scale;
+      data.x *= scale;
+      data.y *= scale;
+      data.shape.width *= scale;
+      data.shape.height *= scale;
+      if (data.shape.points) {
+        const points = data.shape.points;
+        for (let i = 0; i < points.length; i++) {
+          points[i] *= scale;
+        }
+      }
+    }
+
+    data.x += transform.x;
+    data.y += transform.y;
+
+    if (transform.rotation != null) {
+      const dr = Math.toRadians(transform.rotation % 360);
+      let rectCenter = { x: data.x + data.shape.width / 2, y: data.y + data.shape.height / 2 };
+      [rectCenter.x, rectCenter.y] = this.rotatePoint(origin.x, origin.y, rectCenter.x, rectCenter.y, dr);
+      data.x = rectCenter.x - data.shape.width / 2;
+      data.y = rectCenter.y - data.shape.height / 2;
+      data.rotation += Math.toDegrees(dr);
+    }
+
+    if (preview) {
+      const doc = preview.document;
+      doc.x = data.x;
+      doc.y = data.y;
+      doc.shape.width = data.shape.width;
+      doc.shape.height = data.shape.height;
+      doc.shape.points = data.shape.points;
+      doc.rotation = data.rotation;
+    }
+  }
+
+  static transformToken(data, origin, transform, preview) {
+    if (transform.scale != null) {
+      const scale = transform.scale;
+      data.x *= scale;
+      data.y *= scale;
+      data.width *= scale;
+      data.height *= scale;
+    }
+
+    data.x += transform.x;
+    data.y += transform.y;
+
+    const grid = canvas.grid;
+    if (transform.rotation != null) {
+      const dr = Math.toRadians(transform.rotation % 360);
+      let rectCenter = { x: data.x + (data.width * grid.w) / 2, y: data.y + (data.height * grid.h) / 2 };
+      [rectCenter.x, rectCenter.y] = this.rotatePoint(origin.x, origin.y, rectCenter.x, rectCenter.y, dr);
+      data.x = rectCenter.x - (data.width * grid.w) / 2;
+      data.y = rectCenter.y - (data.height * grid.h) / 2;
+      data.rotation = (data.rotation + Math.toDegrees(dr)) % 360;
+    }
+
+    if (preview) {
+      const doc = preview.document;
+      doc.x = data.x;
+      doc.y = data.y;
+      doc.rotation = data.rotation;
+      doc.width = data.width;
+      doc.height = data.height;
     }
   }
 
