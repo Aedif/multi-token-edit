@@ -19,7 +19,7 @@ export class Brush {
   static hitTest;
 
   static registered3dListener = false;
-  // Truck to keep consistent signatures for bound 3d brush callbacks
+  // Trick to keep consistent signatures for bound 3d brush callbacks
   // Required to be able to remove these function once the 3d brush is deactivated
   static {
     this._boundOn3DBrushClick = this._on3DBrushClick.bind(this);
@@ -36,8 +36,7 @@ export class Brush {
     const now = new Date().getTime();
     if (!this.lastSpawnTime || now - this.lastSpawnTime > 100) {
       this.lastSpawnTime = now;
-      if (pos) this._animateCrossTranslate(pos.x, pos.y);
-      PresetAPI.spawnPreset({ preset: this.preset, x: pos.x, y: pos.y, center: true });
+      PresetAPI.spawnPreset({ preset: this.preset, ...pos, center: true });
     }
   }
 
@@ -127,8 +126,10 @@ export class Brush {
   static _on3DBrushClick(event) {
     if (this.brush3d) {
       if (this.spawner) {
-        // TODO implement 3d brush spawning
-        //this._performBrushDocumentCreate(event.data.getLocalPosition(this.brushOverlay));
+        if (this.brush3d?.position) {
+          const posVec = game.Levels3DPreview.ruler.constructor.pos3DToCanvas(this.brush3d.position);
+          this._performBrushDocumentCreate({ x: posVec.x, y: posVec.y, z: posVec.z });
+        }
       } else {
         const p = game.Levels3DPreview.interactionManager.currentHover?.placeable;
         if (p && p.document.documentName === this.documentName) {
@@ -180,6 +181,7 @@ export class Brush {
     const interaction = canvas.app.renderer.events;
     if (!interaction.cursorStyles['brush']) {
       interaction.cursorStyles['brush'] = `url('modules/${MODULE_ID}/images/brush_icon.png'), auto`;
+      interaction.cursorStyles['brush_spawn'] = `url('modules/${MODULE_ID}/images/brush_icon_spawn.png'), auto`;
     }
 
     this.active = true;
@@ -216,7 +218,7 @@ export class Brush {
     // Create the brush overlay
     this.brushOverlay = new PIXI.Container();
     this.brushOverlay.hitArea = canvas.dimensions.rect;
-    this.brushOverlay.cursor = 'brush';
+    this.brushOverlay.cursor = spawner ? 'brush_spawn' : 'brush';
     this.brushOverlay.interactive = true;
     this.brushOverlay.zIndex = Infinity;
 
@@ -359,4 +361,23 @@ export class Brush {
       this.brushOverlay.removeChild(cross).destroy();
     }
   }
+}
+
+/**
+ * API method to activate the brush.
+ * @param {Object} options See MassEdit.getPreset(...)
+ * @param {String} mode update|spawn
+ */
+export async function activateBrush(options, mode = 'spawn') {
+  const preset = await PresetAPI.getPreset(options);
+  if (preset) {
+    Brush.activate({ preset, spawner: mode === 'spawner' });
+  }
+}
+
+/**
+ * API method to de-activate the brush.
+ */
+export function deactivateBush() {
+  Brush.deactivate();
 }

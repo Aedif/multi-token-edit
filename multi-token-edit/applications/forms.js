@@ -1352,7 +1352,10 @@ export async function checkApplySpecialFields(docName, updates, objects) {
       if (update.hasOwnProperty('massedit.scale')) {
         update.width = object.width * update['massedit.scale'];
         update.height = object.height * update['massedit.scale'];
-        delete update['massedit.scale'];
+
+        // 3D Support
+        if (update['flags.levels-3d-preview.depth'] != null)
+          update['flags.levels-3d-preview.depth'] *= update['massedit.scale'];
       }
 
       if (update.hasOwnProperty('massedit.texture.scale')) {

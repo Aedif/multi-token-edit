@@ -283,7 +283,7 @@ export class Picker {
   }
 }
 
-class DataTransform {
+export class DataTransform {
   /**
    * Transform placeable data and optionally an accompanying preview with the provided delta transform
    * @param {String} docName
@@ -293,7 +293,8 @@ class DataTransform {
    * @param {PlaceableObject} preview
    */
   static apply(docName, data, origin, transform, preview) {
-    if (transform.rotation == null) transform.rotation = 0;
+    if (transform.x == null) transform.x = 0;
+    if (transform.y == null) transform.y = 0;
 
     if (docName === 'Wall') {
       this.transformWall(data, origin, transform, preview);
@@ -449,16 +450,32 @@ class DataTransform {
   }
 
   static transformTile(data, origin, transform, preview) {
+    // 3D support
+    const depth = data.flags?.['levels-3d-preview']?.depth;
+    const bottom = data.flags?.levels?.rangeBottom;
+
     if (transform.scale != null) {
       const scale = transform.scale;
       data.x *= scale;
       data.y *= scale;
       data.width *= scale;
       data.height *= scale;
+      if (depth != null && depth != '') data.flags['levels-3d-preview'].depth *= scale;
+      if (bottom != null && bottom != '') {
+        data.flags.levels.rangeBottom *= scale;
+        data.flags.levels.rangeTop *= scale;
+      }
     }
 
     data.x += transform.x;
     data.y += transform.y;
+    if (transform.z != null) {
+      if (depth != null && depth != '') data.flags['levels-3d-preview'].depth += transform.z;
+      if (bottom != null && bottom != '') {
+        data.flags.levels.rangeBottom += transform.z;
+        data.flags.levels.rangeTop = data.flags.levels.rangeBottom;
+      }
+    }
 
     if (transform.rotation != null) {
       const dr = Math.toRadians(transform.rotation % 360);
@@ -524,10 +541,12 @@ class DataTransform {
       data.y *= scale;
       data.width *= scale;
       data.height *= scale;
+      data.elevation *= scale;
     }
 
     data.x += transform.x;
     data.y += transform.y;
+    data.elevation += transform.z ?? 0;
 
     const grid = canvas.grid;
     if (transform.rotation != null) {
@@ -543,6 +562,7 @@ class DataTransform {
       const doc = preview.document;
       doc.x = data.x;
       doc.y = data.y;
+      doc.elevation = data.elevation;
       doc.rotation = data.rotation;
       doc.width = data.width;
       doc.height = data.height;

@@ -1,6 +1,6 @@
 import { checkApplySpecialFields } from '../../applications/forms.js';
 import { Brush } from '../brush.js';
-import { Picker } from '../picker.js';
+import { DataTransform, Picker } from '../picker.js';
 import { applyRandomization } from '../randomizer/randomizerUtils.js';
 import {
   MODULE_ID,
@@ -16,10 +16,10 @@ import { Preset } from './preset.js';
 import {
   FolderState,
   getPresetDataCenterOffset,
+  getTransformToOrigin,
   mergePresetDataToDefaultDoc,
   modifySpawnData,
   placeableToData,
-  scaleDataToGrid,
 } from './utils.js';
 
 export const DEFAULT_PACK = 'world.mass-edit-presets-main';
@@ -816,11 +816,6 @@ export class PresetAPI {
     await checkApplySpecialFields(preset.documentName, presetData, presetData); // Apply Special fields (TMFX)
     presetData = presetData.map((d) => foundry.utils.expandObject(d));
 
-    // Scale dimensions relative to grid size
-    if (scaleToGrid) {
-      scaleDataToGrid(presetData, preset.documentName, preset.gridSize);
-    }
-
     if (preset.preSpawnScript) {
       await executeScript(preset.preSpawnScript, { data: presetData });
     }
@@ -833,9 +828,16 @@ export class PresetAPI {
       for (const attached of preset.attached) {
         if (!docToData.get(attached.documentName)) docToData.set(attached.documentName, []);
         const data = deepClone(attached.data);
-        if (scaleToGrid) scaleDataToGrid([data], attached.documentName, preset.gridSize);
         docToData.get(attached.documentName).push(data);
       }
+    }
+
+    // Scale data relative to grid size
+    if (scaleToGrid) {
+      const scale = canvas.grid.size / (preset.gridSize || 100);
+      docToData.forEach((dataArr, documentName) => {
+        dataArr.forEach((data) => DataTransform.apply(documentName, data, { x: 0, y: 0 }, { scale }));
+      });
     }
 
     // ==================
@@ -886,69 +888,23 @@ export class PresetAPI {
         canvas.getLayerByEmbeddedName(preset.documentName).gridPrecision
       );
     }
+    pos.z = z;
     // ==================
 
     // ==================
     // Set positions taking into account relative distances between each object
-    let diffX, diffY, diffZ;
+
+    const transform = getTransformToOrigin(docToData);
+    transform.x += pos.x;
+    transform.y += pos.y;
+
+    // 3D Support
+    if (pos.z == null) transform.z = 0;
+    else transform.z += pos.z;
+
     docToData.forEach((dataArr, documentName) => {
-      for (const data of dataArr) {
-        if (!coordPicker) {
-          // TODO cahnge these to use a version of applyTransform
-          // We need to establish the first found coordinate as the reference point
-          if (diffX == null || diffY == null) {
-            if (documentName === 'Wall') {
-              if (data.c) {
-                diffX = pos.x - data.c[0];
-                diffY = pos.y - data.c[1];
-              }
-            } else {
-              if (data.x != null && data.y != null) {
-                diffX = pos.x - data.x;
-                diffY = pos.y - data.y;
-              }
-            }
-
-            // 3D Canvas
-            if (z != null) {
-              const property = documentName === 'Token' ? 'elevation' : 'flags.levels.rangeBottom';
-              if (getProperty(data, property) != null) {
-                diffZ = z - getProperty(data, property);
-              }
-            }
-          }
-
-          // Assign relative position
-          if (documentName === 'Wall') {
-            if (!data.c || diffX == null) data.c = [pos.x, pos.y, pos.x + canvas.grid.w * 2, pos.y];
-            else {
-              data.c[0] += diffX;
-              data.c[1] += diffY;
-              data.c[2] += diffX;
-              data.c[3] += diffY;
-            }
-          } else {
-            data.x = data.x == null || diffX == null ? pos.x : data.x + diffX;
-            data.y = data.y == null || diffY == null ? pos.y : data.y + diffY;
-          }
-
-          // 3D Canvas
-          if (z != null) {
-            delete data.z;
-            let elevation;
-
-            const property = documentName === 'Token' ? 'elevation' : 'flags.levels.rangeBottom';
-
-            if (diffZ !== null && getProperty(data, property) != null) elevation = getProperty(data, property) + diffZ;
-            else elevation = z;
-
-            setProperty(data, property, elevation);
-
-            if (documentName !== 'Token') {
-              setProperty(data, 'flags.levels.rangeTop', elevation);
-            }
-          }
-        }
+      dataArr.forEach((data) => {
+        DataTransform.apply(documentName, data, { x: 0, y: 0 }, transform);
 
         // Assign ownership for Drawings and MeasuredTemplates
         if (['Drawing', 'MeasuredTemplate'].includes(documentName)) {
@@ -958,7 +914,7 @@ export class PresetAPI {
 
         // Hide
         if (hidden || game.keyboard.downKeys.has('AltLeft')) data.hidden = true;
-      }
+      });
     });
 
     // ==================

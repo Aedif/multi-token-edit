@@ -82,8 +82,6 @@ export class MassEditPresets extends FormApplication {
       this.configApp = configApp;
       this.docName = docName || this.configApp.documentName;
     }
-
-    this.canvas3dActive = Boolean(game.Levels3DPreview?._active);
   }
 
   static get defaultOptions() {
@@ -136,7 +134,7 @@ export class MassEditPresets extends FormApplication {
     data.sortMode = SORT_MODES[game.settings.get(MODULE_ID, 'presetSortMode')];
     data.searchMode = SEARCH_MODES[game.settings.get(MODULE_ID, 'presetSearchMode')];
     data.displayDragDropMessage = data.allowDocumentSwap && !(this.tree.presets.length || this.tree.folders.length);
-    data.canvas3dActive = this.canvas3dActive;
+    data.canvas3dActive = Boolean(game.Levels3DPreview?._active);
 
     data.lastSearch = MassEditPresets.lastSearch;
 
@@ -536,7 +534,7 @@ export class MassEditPresets extends FormApplication {
 
   async _onDoubleClickPreset(event) {
     this._onPresetBrushDeactivate();
-    if (this.canvas3dActive) return;
+    if (game.Levels3DPreview?._active) return;
     const uuid = $(event.target).closest('.item').data('uuid');
     if (!uuid) return;
 
@@ -1218,7 +1216,7 @@ export class MassEditPresets extends FormApplication {
     let mouseY;
     let mouseZ;
 
-    if (this.canvas3dActive) {
+    if (game.Levels3DPreview?._active) {
       game.Levels3DPreview.interactionManager._onMouseMove(event, true);
       const { x, y, z } = game.Levels3DPreview.interactionManager.canvas2dMousePosition;
       mouseX = x;
