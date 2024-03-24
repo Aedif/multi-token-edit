@@ -344,15 +344,30 @@ export class DataTransform {
   }
 
   static transformAmbientSound(data, origin, transform, preview) {
+    // 3D support
+    const bottom = data.flags?.levels?.rangeBottom;
+
     if (transform.scale != null) {
       const scale = transform.scale;
       data.x *= scale;
       data.y *= scale;
       data.radius *= scale;
+
+      // 3D Support
+      if (bottom != null && bottom != '') {
+        data.flags.levels.rangeBottom *= scale;
+        data.flags.levels.rangeTop *= scale;
+      }
     }
 
     data.x += transform.x;
     data.y += transform.y;
+
+    // 3D Support
+    if (transform.z != null) {
+      setProperty(data, 'flags.levels.rangeBottom', (bottom ?? 0) + transform.z);
+      setProperty(data, 'flags.levels.rangeTop', (bottom ?? 0) + transform.z);
+    }
 
     if (transform.rotation != null) {
       const dr = Math.toRadians(transform.rotation % 360);
@@ -422,16 +437,31 @@ export class DataTransform {
   }
 
   static transformAmbientLight(data, origin, transform, preview) {
+    // 3D support
+    const bottom = data.flags?.levels?.rangeBottom;
+
     if (transform.scale != null) {
       const scale = transform.scale;
       data.x *= scale;
       data.y *= scale;
       data.config.dim *= scale;
       data.config.bright *= scale;
+
+      // 3D Support
+      if (bottom != null && bottom != '') {
+        data.flags.levels.rangeBottom *= scale;
+        data.flags.levels.rangeTop *= scale;
+      }
     }
 
     data.x += transform.x;
     data.y += transform.y;
+
+    // 3D Support
+    if (transform.z != null) {
+      setProperty(data, 'flags.levels.rangeBottom', (bottom ?? 0) + transform.z);
+      setProperty(data, 'flags.levels.rangeTop', (bottom ?? 0) + transform.z);
+    }
 
     if (transform.rotation != null) {
       const dr = Math.toRadians(transform.rotation % 360);
@@ -460,6 +490,8 @@ export class DataTransform {
       data.y *= scale;
       data.width *= scale;
       data.height *= scale;
+
+      // 3D Support
       if (depth != null && depth != '') data.flags['levels-3d-preview'].depth *= scale;
       if (bottom != null && bottom != '') {
         data.flags.levels.rangeBottom *= scale;
@@ -469,12 +501,11 @@ export class DataTransform {
 
     data.x += transform.x;
     data.y += transform.y;
+
+    // 3D Support
     if (transform.z != null) {
-      if (depth != null && depth != '') data.flags['levels-3d-preview'].depth += transform.z;
-      if (bottom != null && bottom != '') {
-        data.flags.levels.rangeBottom += transform.z;
-        data.flags.levels.rangeTop = data.flags.levels.rangeBottom;
-      }
+      setProperty(data, 'flags.levels.rangeBottom', (bottom ?? 0) + transform.z);
+      setProperty(data, 'flags.levels.rangeTop', (bottom ?? 0) + transform.z);
     }
 
     if (transform.rotation != null) {

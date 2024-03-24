@@ -382,7 +382,9 @@ export const WithMassEditForm = (cls) => {
         <div class="form-group slim">
           <label>${localize('Scale', false)} <span class="units">(${localize('common.ratio')})</span></label>
           <div class="form-fields">
-            <label>${localize('Width', false)} | ${localize('Height', false)}</label>
+            <label>${localize('Width', false)} | ${localize('Height', false)} ${
+          game.Levels3DPreview?._active ? '| Depth' : ''
+        }</label>
             <input type="number" value="1" step="any" name="massedit.scale" min="0">
           </div>
         </div>`);
@@ -1350,12 +1352,16 @@ export async function checkApplySpecialFields(docName, updates, objects) {
     // Mass Edit inserted fields
     if (docName === 'Tile') {
       if (update.hasOwnProperty('massedit.scale')) {
-        update.width = object.width * update['massedit.scale'];
-        update.height = object.height * update['massedit.scale'];
+        const scale = update['massedit.scale'];
+        update.width = object.width * scale;
+        update.height = object.height * scale;
 
         // 3D Support
-        if (update['flags.levels-3d-preview.depth'] != null)
-          update['flags.levels-3d-preview.depth'] *= update['massedit.scale'];
+        if (object.flags?.['levels-3d-preview']?.depth != null) {
+          update['flags.levels-3d-preview.depth'] = object.flags['levels-3d-preview'].depth *= scale;
+        } else if (object['flags.levels-3d-preview.depth'] != null) {
+          update['flags.levels-3d-preview.depth'] = object['flags.levels-3d-preview.depth'] * scale;
+        }
       }
 
       if (update.hasOwnProperty('massedit.texture.scale')) {
