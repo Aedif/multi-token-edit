@@ -82,7 +82,8 @@ Hooks.once('init', () => {
     'MouseManager.prototype._onWheel',
     function (wrapped, ...args) {
       const event = args[0];
-      if (Picker.isActive() && (event.ctrlKey || event.shiftKey || event.metaKey)) {
+
+      if (Picker.isActive() && (event.ctrlKey || event.shiftKey || event.metaKey || event.altKey)) {
         // Prevent zooming the entire browser window
         if (event.ctrlKey) event.preventDefault();
 
@@ -92,9 +93,9 @@ Hooks.once('init', () => {
         }
         if (dy === 0) return;
 
-        if ((event.ctrlKey || event.metaKey) && event.shiftKey) Picker.addScaling(event.delta < 0 ? 0.05 : -0.05);
-        else if (event.ctrlKey || event.metaKey) Picker.addRotation(event.delta < 0 ? 15 : -15);
-        else if (event.shiftKey) Picker.addRotation(event.delta < 0 ? 45 : -45);
+        if (event.altKey) Picker.addScaling(event.delta < 0 ? 0.05 : -0.05);
+        else if (event.ctrlKey || event.metaKey) Picker.addRotation(event.delta < 0 ? 2.5 : -2.5);
+        else if (event.shiftKey) Picker.addRotation(event.delta < 0 ? 15 : -15);
         return;
       }
 

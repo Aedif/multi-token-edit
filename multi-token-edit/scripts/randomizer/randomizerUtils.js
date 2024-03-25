@@ -44,8 +44,8 @@ export async function applyRandomization(updates, objects, randomizeFields) {
         if (obj.type === 'select') {
           update[field] = obj.selection[Math.floor(Math.random() * obj.selection.length)];
         } else if (obj.type === 'number') {
-          if (obj.step === 'any') obj.step = 1; // default to integer 1 just to avoid very large decimals
-          else obj.step = Number(obj.step);
+          obj.step = obj.step === 'any' ? 1 : Number(obj.step);
+          if (Number.isNaN(obj.step)) obj.step = 1;
 
           if (obj.method === 'interpolate') {
             const stepsInRange = (obj.max - obj.min) / obj.step + 1;

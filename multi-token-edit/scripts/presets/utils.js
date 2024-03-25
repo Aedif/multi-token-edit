@@ -107,7 +107,7 @@ export function mergePresetDataToDefaultDoc(preset, presetData) {
   // Set default values if needed
   switch (preset.documentName) {
     case 'Token':
-      data = { name: preset.name, x: 0, y: 0 };
+      data = { name: preset.name, elevation: 0, x: 0, y: 0 };
       break;
     case 'Tile':
       data = { width: canvas.grid.w, height: canvas.grid.h, x: 0, y: 0 };

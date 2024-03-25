@@ -1,3 +1,29 @@
+# 1.64.0
+
+**Presets**
+
+- Previews (preset double-click) can now be rotated and scaled before being placed on the canvas
+  - Hold SHIFT or CTRL and use the mouse wheel to rotate the preview
+  - Hold ALT and use the mouse wheel to scale the preview
+- Search will now split the search term into separate keywords to allow for out of order word searches
+  - e.g. "table orc", will match "Table Orcish", and "Orcish Yellow Table"
+- Brush can now be toggled between update/spawn modes
+  - Update (yellow) will apply preset data to hovered over placeable
+  - Spawn (green) will spawn preset on the position of the brush
+- Fixed Post-Spawn script error
+
+**API**
+
+- MassEdit.spawnPreset(...)
+  - New options: **center**
+    - Chosen spawn position will be treated as the overall center point of all the placeables contained within the preset
+
+**Misc.**
+
+- Selected placeables can now be manipulate in groups using `Shift+D` keybinding allowing you to move, scale, and rotate all of them at once
+  - If none are selected a select tool will be activated allowing you to initiate editing of placeables across all layers within the selected range
+- Improved load speed
+
 # 1.63.0
 
 - Multiple presets tags can now be entered at the same time by separating them by commas

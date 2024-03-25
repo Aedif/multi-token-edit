@@ -7,6 +7,7 @@ import {
   showMassEdit,
   showMassSelect,
 } from '../applications/multiConfig.js';
+import { editPreviewPlaceables } from './picker.js';
 import { PresetCollection } from './presets/collection.js';
 import { MassEditPresets } from './presets/forms.js';
 import {
@@ -238,6 +239,20 @@ export function registerSettings() {
 }
 
 export function registerKeybinds() {
+  game.keybindings.register(MODULE_ID, 'placeablePreviewEdit', {
+    name: 'Select Edit Placeables',
+    hint: '',
+    editable: [
+      {
+        key: 'KeyD',
+        modifiers: ['Shift'],
+      },
+    ],
+    onDown: editPreviewPlaceables,
+    restricted: true,
+    precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
+  });
+
   game.keybindings.register(MODULE_ID, 'editKey', {
     name: localize('keybindings.editKey.name'),
     hint: localize('keybindings.editKey.hint'),

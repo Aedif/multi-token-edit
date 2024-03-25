@@ -1,4 +1,5 @@
 import { getPresetDataCenterOffset } from './presets/utils.js';
+import { SUPPORTED_PLACEABLES } from './utils.js';
 
 /**
  * Cross-hair and optional preview image/label that can be activated to allow the user to select
@@ -82,10 +83,16 @@ export class Picker {
           const doc = preview.document;
           DataTransform.apply(doc.documentName, preview._pData ?? doc, pos, transform, preview);
 
+          // =====
           // Hacks
+          // =====
           preview.document.alpha = 0.4;
           preview.renderFlags.set({ refresh: true });
           preview.visible = true;
+
+          // Tile z order, to make sure previews are rendered on-top
+          if (!preview.z) preview.z = preview.document.z;
+          if (preview.z) preview.document.z = preview.z + 9999999;
 
           if (preview.controlIcon && !preview.controlIcon._meVInsert) {
             preview.controlIcon.alpha = 0.4;
@@ -100,6 +107,7 @@ export class Picker {
             });
             preview.controlIcon._meVInsert = true;
           }
+          // End of Hacks
         }
 
         if (label) {
@@ -138,9 +146,14 @@ export class Picker {
       if (event.nativeEvent.which == 2) {
         this.callback?.(null);
       } else {
-        this.callback?.({ start: this.boundStart, end: this.boundEnd });
+        const minX = Math.min(this.boundStart.x, this.boundEnd.x);
+        const maxX = Math.max(this.boundStart.x, this.boundEnd.x);
+        const minY = Math.min(this.boundStart.y, this.boundEnd.y);
+        const maxY = Math.max(this.boundStart.y, this.boundEnd.y);
+
+        this.callback?.({ start: { x: minX, y: minY }, end: { x: maxX, y: maxY } });
       }
-      pickerOverlay.parent.removeChild(pickerOverlay);
+      pickerOverlay.parent?.removeChild(pickerOverlay);
       if (pickerOverlay.previewDocuments)
         pickerOverlay.previewDocuments.forEach((name) => canvas.getLayerByEmbeddedName(name)?.clearPreviewContainer());
       this.destroy();
@@ -614,4 +627,110 @@ export class DataTransform {
       dy = y2 - y;
     return [x + Math.cos(rot) * dx - Math.sin(rot) * dy, y + Math.sin(rot) * dx + Math.cos(rot) * dy];
   }
+}
+
+export async function editPreviewPlaceables() {
+  const docToPlaceables = new Map();
+
+  SUPPORTED_PLACEABLES.forEach((docName) => {
+    const controlled = canvas.getLayerByEmbeddedName(docName).controlled;
+    if (controlled.length) {
+      docToPlaceables.set(
+        docName,
+        controlled.map((p) => p)
+      );
+    }
+  });
+
+  if (!docToPlaceables.size) {
+    // Activate picker to define select box
+    const coords = await new Promise(async (resolve) => {
+      Picker.activate(resolve);
+    });
+    if (!coords) return;
+
+    // Selects placeables within the bounding box
+    const selectionRect = new PIXI.Rectangle(
+      coords.start.x,
+      coords.start.y,
+      coords.end.x - coords.start.x,
+      coords.end.y - coords.start.y
+    );
+
+    SUPPORTED_PLACEABLES.forEach((docName) => {
+      let insideRect = [];
+      canvas.getLayerByEmbeddedName(docName).placeables.forEach((p) => {
+        const c = p.center;
+        if (selectionRect.contains(c.x, c.y)) insideRect.push(p);
+      });
+      if (insideRect.length) docToPlaceables.set(docName, insideRect);
+    });
+  }
+
+  if (!docToPlaceables.size) return;
+
+  // Generate data from the selected placeables and pass them to Picker to create previews
+  const docToData = new Map();
+  const originalDocTolData = new Map();
+
+  let mainDocName;
+  docToPlaceables.forEach((placeables, documentName) => {
+    if (SUPPORTED_PLACEABLES.includes(documentName)) {
+      let data = placeables.map((p) => p.document.toCompendium(null, { keepId: true }));
+
+      if (
+        documentName === 'Token' &&
+        game.modules.get('token-attacher')?.active &&
+        tokenAttacher?.generatePrototypeAttached
+      ) {
+        for (const d of data) {
+          const attached = d.flags?.['token-attacher']?.attached || {};
+          if (!foundry.utils.isEmpty(attached)) {
+            const prototypeAttached = tokenAttacher.generatePrototypeAttached(d, attached);
+            setProperty(d, 'flags.token-attacher.attached', null);
+            setProperty(d, 'flags.token-attacher.prototypeAttached', prototypeAttached);
+            setProperty(d, 'flags.token-attacher.grid', {
+              size: canvas.grid.size,
+              w: canvas.grid.w,
+              h: canvas.grid.h,
+            });
+          }
+        }
+      }
+
+      docToData.set(documentName, data);
+      originalDocTolData.set(documentName, deepClone(data));
+      if (!mainDocName) mainDocName = documentName;
+    }
+  });
+
+  if (!docToData.size) return;
+
+  Picker.activate(
+    async (coords) => {
+      if (coords == null) return;
+
+      docToData.forEach((data, documentName) => {
+        let updates = [];
+
+        const originalData = originalDocTolData.get(documentName);
+        for (let i = 0; i < originalData.length; i++) {
+          const diff = foundry.utils.diffObject(originalData[i], data[i]);
+          if (!foundry.utils.isEmpty(diff)) {
+            diff._id = originalData[i]._id;
+            delete diff.flags;
+            updates.push(diff);
+          }
+        }
+        if (updates.length) canvas.scene.updateEmbeddedDocuments(documentName, updates);
+      });
+    },
+    {
+      documentName: mainDocName,
+      previewData: docToData,
+      snap: true,
+      taPreview: 'ALL',
+      center: true,
+    }
+  );
 }
