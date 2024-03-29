@@ -223,7 +223,7 @@ export class Preset {
     });
 
     json.randomize = Object.entries(json.randomize ?? {});
-    json.addSubtract = Object.entries(json.addSubtract ?? []);
+    json.addSubtract = Object.entries(json.addSubtract ?? {});
     const pages = this.pages;
     if (pages) json.pages = pages;
 

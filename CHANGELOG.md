@@ -1,3 +1,8 @@
+# 1.64.1
+
+- Fixed Token Attacher prefabs dropped from the preset window being scaled twice
+- Fixed 'Preset Edit' form fields resetting after certain actions have been performed on it
+
 # 1.64.0
 
 **Presets**

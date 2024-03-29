@@ -836,7 +836,7 @@ export class PresetAPI {
     if (scaleToGrid) {
       const scale = canvas.grid.size / (preset.gridSize || 100);
       docToData.forEach((dataArr, documentName) => {
-        dataArr.forEach((data) => DataTransform.apply(documentName, data, { x: 0, y: 0 }, { scale }));
+        dataArr.forEach((data) => DataTransform.apply(documentName, data, { x: 0, y: 0 }, { scale, gridScale: true }));
       });
     }
 

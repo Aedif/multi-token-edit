@@ -13,7 +13,7 @@ Mass Edit is now Baileywiki Mass Edit! See the announcement in the video below. 
 
 Support the continuing development of the module by subscribing to Baileywiki over at [Patreon](https://www.patreon.com/baileywiki).
 
-_Note that all keybinding referenced bellow can be changed via 'Configure Controls'_
+_Note that all keybindings referenced bellow can be changed via 'Configure Controls'_
 
 #### Recommended modules:
 

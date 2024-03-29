@@ -1649,7 +1649,7 @@ export class PresetConfig extends FormApplication {
 
     data.preset = {};
     if (this.presets.length === 1) {
-      data.preset = this.presets[0];
+      data.preset = deepClone(this.presets[0].toJSON());
       data.displayFieldDelete = true;
       data.displayFieldModify = true;
 
@@ -1666,6 +1666,12 @@ export class PresetConfig extends FormApplication {
       }
     } else {
       data.multiEdit = true;
+      data.preset = {};
+    }
+
+    // Form data stored if re-render was required
+    if (this._submitData) {
+      foundry.utils.mergeObject(data.preset, this._submitData);
     }
 
     data.minlength = this.presets.length > 1 ? 0 : 1;
@@ -1743,6 +1749,25 @@ export class PresetConfig extends FormApplication {
 
     //Tags
     TagInput.activateListeners(html, () => this.setPosition({ height: 'auto' }));
+  }
+
+  _getSubmitData(updateData = {}) {
+    const data = super._getSubmitData(updateData);
+
+    data.name = data.name.trim();
+    data.img = data.img.trim() || null;
+    data.preSpawnScript = data.preSpawnScript?.trim();
+    data.postSpawnScript = data.postSpawnScript?.trim();
+    data.tags = data.tags ? data.tags.split(',') : [];
+    data.addTags = data.addTags ? data.addTags.split(',') : [];
+    data.removeTags = data.removeTags ? data.removeTags.split(',') : [];
+
+    return data;
+  }
+
+  async render(force = false) {
+    if (this.form) this._submitData = this._getSubmitData();
+    return await super.render(force);
   }
 
   /**
@@ -1839,14 +1864,6 @@ export class PresetConfig extends FormApplication {
   }
 
   async _updatePresets(formData) {
-    formData.name = formData.name.trim();
-    formData.img = formData.img.trim() || null;
-    formData.preSpawnScript = formData.preSpawnScript?.trim();
-    formData.postSpawnScript = formData.postSpawnScript?.trim();
-    formData.tags = formData.tags ? formData.tags.split(',') : [];
-    formData.addTags = formData.addTags ? formData.addTags.split(',') : [];
-    formData.removeTags = formData.removeTags ? formData.removeTags.split(',') : [];
-
     for (const preset of this.presets) {
       let update;
       if (this.isCreate) {

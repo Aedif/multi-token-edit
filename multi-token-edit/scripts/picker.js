@@ -128,6 +128,7 @@ export class Picker {
         setPositions(event.data.getLocalPosition(pickerOverlay));
       });
       setPositions(canvas.mousePosition);
+      setPositions(canvas.mousePosition);
       pickerOverlay.setPositions = setPositions;
     }
 
@@ -364,8 +365,9 @@ export class DataTransform {
       const scale = transform.scale;
       data.x *= scale;
       data.y *= scale;
-      data.radius *= scale;
-
+      if (!transform.gridScale) {
+        data.radius *= scale;
+      }
       // 3D Support
       if (bottom != null && bottom != '') {
         data.flags.levels.rangeBottom *= scale;
@@ -426,8 +428,10 @@ export class DataTransform {
       const scale = transform.scale;
       data.x *= scale;
       data.y *= scale;
-      data.distance *= scale;
-      if (data.width) data.width *= scale;
+      if (!transform.gridScale) {
+        data.distance *= scale;
+        if (data.width) data.width *= scale;
+      }
     }
 
     data.x += transform.x;
@@ -457,9 +461,10 @@ export class DataTransform {
       const scale = transform.scale;
       data.x *= scale;
       data.y *= scale;
-      data.config.dim *= scale;
-      data.config.bright *= scale;
-
+      if (!transform.gridScale) {
+        data.config.dim *= scale;
+        data.config.bright *= scale;
+      }
       // 3D Support
       if (bottom != null && bottom != '') {
         data.flags.levels.rangeBottom *= scale;
@@ -583,9 +588,11 @@ export class DataTransform {
       const scale = transform.scale;
       data.x *= scale;
       data.y *= scale;
-      data.width *= scale;
-      data.height *= scale;
-      data.elevation *= scale;
+      if (!transform.gridScale) {
+        data.width *= scale;
+        data.height *= scale;
+        data.elevation *= scale;
+      }
     }
 
     data.x += transform.x;
