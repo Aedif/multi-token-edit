@@ -332,9 +332,9 @@
 
 .mass-edit-preset-form .item .icon {
   position: absolute;
-  top: 34px;
-  left: 0;
+  left: 2px;
   color: white;
+  bottom: 2px;
 }
 
 .mass-edit-preset-form .item .item-name {
@@ -368,9 +368,6 @@
   flex: 0 0 100%;
 }
 
-.mass-edit-preset-form .item .item-name .tags.show {
-}
-
 .mass-edit-preset-form .item .item-name .tags span {
   color: gold;
   border: 1px gold solid;
@@ -379,9 +376,9 @@
 }
 
 .mass-edit-preset-form .item .item-controls {
-  flex: 0 0 50px;
-  margin-right: 5px;
   text-align: right;
+  position: absolute;
+  right: 9px;
 }
 
 .mass-edit-preset-form .item.item-s.selected {
@@ -466,6 +463,43 @@ input.me-subtract {
 
 #mass-edit-preset-edit .form-group.disabled {
   opacity: 0.5;
+}
+
+.mass-edit-preset-form .item .preset-favorite {
+  display: none;
+}
+
+.mass-edit-preset-form .item .preset-favorite.show {
+  display: block;
+}
+
+@container (min-width: 620px) {
+  .mass-edit-preset-form .preset-items {
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    display: grid;
+  }
+
+  .mass-edit-preset-form .item-list .item {
+    width: 100%;
+    height: 100%;
+    aspect-ratio: 1;
+    border: 1px solid gray;
+  }
+
+  .mass-edit-preset-form .item .item-name {
+    display: none;
+  }
+
+  .mass-edit-preset-form .item .item-controls {
+    position: absolute;
+  }
+
+  .mass-edit-preset-form .item .thumbnail {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    margin: auto;
+  }
 }
 
 /* ===================== 
@@ -553,4 +587,18 @@ nav > a[data-tab='me-pinned'] {
 .me-tags .add-tag {
   flex: 0;
   margin-left: 0.5em;
+}
+
+/* ================== 
+   === Brush Menu ===
+   ================== */
+
+.mass-edit-brush-menu .preset {
+  border: 1px solid black;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-radius: 6px;
+  padding: 2px;
+  margin-top: 2px;
 }

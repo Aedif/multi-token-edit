@@ -2,7 +2,7 @@ import { TokenDataAdapter } from '../../applications/dataAdapters.js';
 import { copyToClipboard, pasteDataUpdate } from '../../applications/forms.js';
 import { showMassEdit } from '../../applications/multiConfig.js';
 import { countFolderItems, trackProgress } from '../../applications/progressDialog.js';
-import { Brush } from '../brush.js';
+import { Brush, BrushMenu } from '../brush.js';
 import { importPresetFromJSONDialog } from '../dialogs.js';
 import { SortingHelpersFixed } from '../fixedSort.js';
 import {
@@ -106,11 +106,6 @@ export class MassEditPresets extends FormApplication {
 
   async getData(options) {
     const data = super.getData(options);
-    // If we're re-rendering deactivate the brush
-    if (this._activeBrush) {
-      Brush.deactivate();
-      this._onPresetBrushDeactivate();
-    }
 
     // Cache partials
     await getTemplate(`modules/${MODULE_ID}/templates/preset/preset.html`, 'me-preset');
@@ -125,7 +120,8 @@ export class MassEditPresets extends FormApplication {
     data.extFolders = this.tree.extFolders.length ? this.tree.extFolders : null;
 
     data.createEnabled = Boolean(this.configApp);
-    data.isPlaceable = SUPPORTED_PLACEABLES.includes(this.docName) || this.docName === 'ALL';
+    data.isPlaceable =
+      SUPPORTED_PLACEABLES.includes(this.docName) || this.docName === 'ALL' || this.docName === 'FAVORITES';
     data.allowDocumentSwap = UI_DOCS.includes(this.docName) && !this.configApp;
     data.docLockActive = game.settings.get(MODULE_ID, 'presetDocLock') === this.docName;
     data.layerSwitchActive = game.settings.get(MODULE_ID, 'presetLayerSwitch');
@@ -194,13 +190,13 @@ export class MassEditPresets extends FormApplication {
       if (this._activeBrush) this._toggleBrush(event);
     });
 
-    // Hide/Show preset tags
+    // Hide/Show preset tags and favorite control
     html.on('mouseenter', '.item', (event) => {
-      $(event.currentTarget).find('.tags').addClass('show');
+      $(event.currentTarget).find('.tags, .preset-favorite').addClass('show');
     });
 
     html.on('mouseleave', '.item', (event) => {
-      $(event.currentTarget).find('.tags').removeClass('show');
+      $(event.currentTarget).find('.tags, .preset-favorite').removeClass('show');
     });
 
     html.on('dragstart', '.item', (event) => {
@@ -423,7 +419,7 @@ export class MassEditPresets extends FormApplication {
     html.on('click', '.create-folder', this._onCreateFolder.bind(this));
     html.on('click', '.preset-create', this._onPresetCreate.bind(this));
     html.on('click', '.preset-update a', this._onPresetUpdate.bind(this));
-    html.on('click', '.preset-brush', this._toggleBrush.bind(this));
+    html.on('click', '.preset-favorite', this._onToggleFavorite.bind(this));
     html.on('click', '.preset-callback', this._onApplyPreset.bind(this));
 
     const headerSearch = html.find('.header-search input');
@@ -533,7 +529,7 @@ export class MassEditPresets extends FormApplication {
   }
 
   async _onDoubleClickPreset(event) {
-    this._onPresetBrushDeactivate();
+    BrushMenu.close();
     if (game.Levels3DPreview?._active) return;
     const uuid = $(event.target).closest('.item').data('uuid');
     if (!uuid) return;
@@ -588,6 +584,12 @@ export class MassEditPresets extends FormApplication {
         icon: '<i class="fas fa-edit"></i>',
         condition: (item) => item.hasClass('editable'),
         callback: (item) => this._onEditSelectedPresets(item),
+      },
+      {
+        name: 'Brush',
+        icon: '<i class="fas fa-arrow-circle-right"></i>',
+        condition: (item) => SUPPORTED_PLACEABLES.includes(item.data('doc-name')),
+        callback: (item) => this._onActivateBrush(item),
       },
       {
         name: localize('presets.open-journal'),
@@ -1155,10 +1157,8 @@ export class MassEditPresets extends FormApplication {
     if (newDocName != this.docName) {
       this.docName = newDocName;
 
-      if (this.docName !== 'ALL') {
-        if (game.settings.get(MODULE_ID, 'presetLayerSwitch'))
-          canvas.getLayerByEmbeddedName(this.docName === 'Actor' ? 'Token' : this.docName)?.activate();
-      }
+      if (game.settings.get(MODULE_ID, 'presetLayerSwitch'))
+        canvas.getLayerByEmbeddedName(this.docName === 'Actor' ? 'Token' : this.docName)?.activate();
 
       this.render(true);
     }
@@ -1246,55 +1246,28 @@ export class MassEditPresets extends FormApplication {
     });
   }
 
-  async _toggleBrush(event) {
+  async _onToggleFavorite(event) {
     const item = $(event.target).closest('.item');
-    const brushControl = item.find('.preset-brush');
-    let spawner = false;
-
-    if (this._activeBrush) {
-      if (brushControl.is(this._activeBrush)) {
-        if (brushControl.hasClass('spawner')) {
-          Brush.deactivate();
-          this._onPresetBrushDeactivate();
-          return;
-        } else {
-          spawner = true;
-        }
-      } else {
-        spawner = this._activeBrush.hasClass('spawner');
-        this._onPresetBrushDeactivate();
-      }
-    }
-    Brush.deactivate();
-
     const uuid = item.data('uuid');
-    const preset = await PresetCollection.get(uuid);
-    if (!preset) {
-      this._onPresetBrushDeactivate();
-      return;
-    }
+    const starControl = item.find('.preset-favorite i');
 
-    const activated = Brush.activate({
-      preset,
-      deactivateCallback: this._onPresetBrushDeactivate.bind(this),
-      spawner,
-    });
-
-    if (activated) {
-      if (spawner) brushControl.addClass('spawner');
-      brushControl.addClass('active').addClass('fa-bounce');
-      this._activeBrush = brushControl;
-    } else {
-      this._onPresetBrushDeactivate();
+    if (uuid) {
+      const favorites = game.settings.get(MODULE_ID, 'presetFavorites');
+      if (starControl.hasClass('fa-regular')) {
+        starControl.removeClass('fa-regular').addClass('fa-solid');
+        favorites[uuid] = true;
+      } else {
+        starControl.removeClass('fa-solid').addClass('fa-regular');
+        delete favorites[uuid];
+      }
+      game.settings.set(MODULE_ID, 'presetFavorites', favorites);
+      Preset.favorites = favorites;
     }
   }
 
-  _onPresetBrushDeactivate() {
-    if (this._activeBrush) {
-      this._activeBrush.removeClass('active').removeClass('fa-bounce').removeClass('spawner');
-      this._activeBrush = null;
-    }
-    Brush.deactivate();
+  async _onActivateBrush(item) {
+    const [selected, _] = await this._getSelectedPresets({ editableOnly: false });
+    BrushMenu.addPresets(selected);
   }
 
   /**
@@ -1417,8 +1390,6 @@ export class MassEditPresets extends FormApplication {
     preset.update({ data: selectedFields, randomize, addSubtract });
 
     ui.notifications.info(`Preset "${preset.name}" updated`);
-
-    this.render(true);
   }
 
   async _onPresetCreate(event) {

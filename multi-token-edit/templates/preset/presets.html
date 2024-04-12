@@ -1,5 +1,5 @@
 <div class="drag-drop-overlay"><p class="label">{{localize 'MassEdit.presets.drag-over-message'}}</p></div>
-<form class="mass-edit-preset-form" style="display: flex; flex-direction: column; overflow: hidden;">
+<form class="mass-edit-preset-form" style="display: flex; flex-direction: column; overflow: hidden; container-type: inline-size;">
 
     <header class="preset-header flexcol">
         {{#if allowDocumentSwap}}
@@ -38,7 +38,7 @@
     <h2 style="text-align: center; margin-top: 100px; border: none;">{{localize 'MassEdit.presets.drag-placeable-message'}}</h2>
     {{/if}}
 
-    <div class="item-list preset-items folder-items" >
+    <div class="item-list folder-items" >
         {{>me-presets-content folders=folders extFolders=extFolders createEnabled=../createEnabled callback=../callback presets=presets}}
     </div>
 

@@ -1,4 +1,4 @@
-<li class="item item-s flexrow {{#if editable}}editable{{/if}}" data-uuid="{{preset.uuid}}" name="{{preset.name}}" draggable="true" data-doc-name="{{preset.documentName}}">
+<li class="item item-s flexrow {{#if editable}}editable{{/if}}" data-uuid="{{preset.uuid}}" name="{{preset.name}}" draggable="true" data-doc-name="{{preset.documentName}}" data-tooltip="{{preset.name}}">
     
     <img loading="lazy" class="thumbnail" src="{{preset.thumbnail}}">
 
@@ -19,8 +19,8 @@
     &nbsp;
     {{/if}}
     {{#if preset.isPlaceable}}
-    <div class="item-control preset-brush">
-      <a title="{{localize 'MassEdit.presets.controls.activate-brush'}}"><i class="fas fa-paint-brush"></i></a>
+    <div class="item-control preset-favorite">
+      <a title="Favorite"><i class="{{#if preset.isFavorite}}fa-solid{{else}}fa-regular{{/if}} fa-star"></i></a>
     </div>
     {{/if}}
     {{#if callback}}

@@ -13,7 +13,7 @@ export const SUPPORTED_PLACEABLES = [
   'Note',
 ];
 
-export const UI_DOCS = ['ALL', ...SUPPORTED_PLACEABLES];
+export const UI_DOCS = ['FAVORITES', 'ALL', ...SUPPORTED_PLACEABLES];
 
 export const SUPPORT_SHEET_CONFIGS = [...SUPPORTED_PLACEABLES, 'Actor', 'PlaylistSound', 'Scene'];
 

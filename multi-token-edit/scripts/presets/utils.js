@@ -131,10 +131,8 @@ export function mergePresetDataToDefaultDoc(preset, presetData) {
       data = { distance: 10, x: 0, y: 0 };
       break;
     case 'AmbientLight':
-      if (presetData.config?.dim == null && presetData.config?.bright == null) {
-        data = { config: { dim: 20, bright: 20 }, x: 0, y: 0 };
-        break;
-      }
+      data = { config: { dim: 20, bright: 20 }, x: 0, y: 0 };
+      break;
     case 'Scene':
       data = { name: preset.name };
       break;

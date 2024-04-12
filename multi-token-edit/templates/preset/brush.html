@@ -1,0 +1,28 @@
+<form>
+    <div class="mass-edit-brush-menu">
+        <div class="controls">
+            <fieldset>
+                <legend>Controls</legend>
+                <div class="form-group slim">
+                    <label>Rotation</label>
+                    <div class="form-fields">
+                        <input type="range" name="rotation" value="0" min="-180" max="180" step="1">
+                        <span class="range-value">0</span>
+                    </div>
+                </div>
+                <div class="form-group slim">
+                    <label>Scale</label>
+                    <div class="form-fields">
+                        <input type="range" name="scale" value="1" min="0.1" max="4" step="0.01">
+                        <span class="range-value">1</span>
+                    </div>
+                </div>
+            </fieldset>
+        </div>
+        {{#each presets as |preset|}}
+        <div class="preset">
+            <label>{{preset.name}}</label>
+        </div>
+        {{/each}}
+    </div>
+</form>

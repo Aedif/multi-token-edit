@@ -121,6 +121,8 @@ export class PresetCollection {
 
     // Remove after sufficient enough time has passed to have reasonable confidence that All/Most users have executed this ^
 
+    const FAVORITES = game.settings.get(MODULE_ID, 'presetFavorites') ?? {};
+
     for (const idx of index) {
       if (idx._id === META_INDEX_ID) continue;
       const mIndex = metaIndex[idx._id];
@@ -135,23 +137,26 @@ export class PresetCollection {
         if (!pack.locked) preset._updateIndex(preset); // Insert missing preset into metadata index
       }
 
+      if (type) {
+        if (type === 'ALL') {
+          if (!UI_DOCS.includes(preset.documentName)) preset._visible = false;
+        } else if (type === 'FAVORITES') {
+          if (!preset.isFavorite) preset._visible = false;
+        } else if (preset.documentName !== type) preset._visible = false;
+      }
+
       if (preset.folder) {
         let matched = false;
         for (const [uuid, folder] of folders) {
           if (folder.id === preset.folder) {
             folder.presets.push(preset);
             matched = true;
+            if (type === 'FAVORITES' && preset.isFavorite) this._setChildAndParentFoldersVisible(folder, folders);
             break;
           }
         }
         if (!matched) topLevelPresets.push(preset);
       } else topLevelPresets.push(preset);
-
-      if (type) {
-        if (type === 'ALL') {
-          if (!UI_DOCS.includes(preset.documentName)) preset._visible = false;
-        } else if (preset.documentName !== type) preset._visible = false;
-      }
 
       allPresets.push(preset);
       hasVisible |= preset._visible;
@@ -170,6 +175,11 @@ export class PresetCollection {
       hasVisible,
       metaDoc,
     };
+  }
+
+  static _setChildAndParentFoldersVisible(folder, folders) {
+    folder.visible = true;
+    if (folder.folder) this._setChildAndParentFoldersVisible(folders.get(folder.folder), folders);
   }
 
   static _groupExtFolders(folders, allFolders) {

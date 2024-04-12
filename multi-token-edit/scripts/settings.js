@@ -163,6 +163,13 @@ export function registerSettings() {
     },
   });
 
+  game.settings.register(MODULE_ID, 'presetFavorites', {
+    scope: 'world',
+    config: false,
+    type: Object,
+    default: {},
+  });
+
   // end of Preset Settings
   // ======================
 

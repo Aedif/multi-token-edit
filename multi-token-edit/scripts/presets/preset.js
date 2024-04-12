@@ -26,6 +26,7 @@ const PRESET_FIELDS = [
 
 export const DOC_ICONS = {
   ALL: 'fas fa-globe',
+  FAVORITES: 'fas fa-star',
   Token: 'fas fa-user-circle',
   MeasuredTemplate: 'fas fa-ruler-combined',
   Tile: 'fa-solid fa-cubes',
@@ -97,6 +98,11 @@ export class Preset {
 
   get isPlaceable() {
     return SUPPORTED_PLACEABLES.includes(this.documentName);
+  }
+
+  get isFavorite() {
+    if (!Preset.favorites) Preset.favorites = game.settings.get(MODULE_ID, 'presetFavorites');
+    return Boolean(Preset.favorites[this.uuid]);
   }
 
   get data() {

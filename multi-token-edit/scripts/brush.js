@@ -30,6 +30,7 @@ export class Brush {
     if (pos) this._animateCrossTranslate(pos.x, pos.y);
     pasteDataUpdate([placeable], this.preset, true, true);
     this.updatedPlaceables.set(placeable.id, placeable);
+    BrushMenu.iterate();
   }
 
   static _performBrushDocumentCreate(pos) {
@@ -37,6 +38,7 @@ export class Brush {
     if (!this.lastSpawnTime || now - this.lastSpawnTime > 100) {
       this.lastSpawnTime = now;
       PresetAPI.spawnPreset({ preset: this.preset, ...pos, center: true });
+      BrushMenu.iterate();
     }
   }
 
@@ -158,8 +160,15 @@ export class Brush {
    * @param {Preset} options.preset
    * @returns
    */
-  static activate({ app = null, preset = null, deactivateCallback = null, spawner = false } = {}) {
-    if (this.deactivate() || !canvas.ready) return false;
+  static activate({
+    app = null,
+    preset = null,
+    deactivateCallback = null,
+    spawner = false,
+    suppressCallback = false,
+  } = {}) {
+    this.deactivate(suppressCallback);
+    if (!canvas.ready) return false;
     if (!app && !preset) return false;
 
     if (this.brushOverlay) {
@@ -223,14 +232,20 @@ export class Brush {
     this.brushOverlay.zIndex = Infinity;
 
     this.brushOverlay.on('mousemove', (event) => {
+      if (!this.mDownWithinCanvas) return; // Fix to prevent mouse interaction within apps
       this._onBrushMove(event);
       if (event.buttons === 1) this._onBrushClickMove(event);
     });
     this.brushOverlay.on('mouseup', (event) => {
+      this.mDownWithinCanvas = false; // Fix to prevent mouse interaction within apps
       if (event.nativeEvent.which !== 2) {
         this._onBrushClickMove(event);
       }
       this.updatedPlaceables.clear();
+    });
+
+    this.brushOverlay.on('mousedown', (event) => {
+      this.mDownWithinCanvas = true; // Fix to prevent mouse interaction within apps
     });
 
     this.brushOverlay.on('click', (event) => {
@@ -318,7 +333,7 @@ export class Brush {
     return true;
   }
 
-  static deactivate() {
+  static deactivate(suppressCallback = false) {
     if (this.active) {
       canvas.mouseInteractionManager.permissions.clickLeft = true;
       //canvas.mouseInteractionManager.permissions.longPress = true;
@@ -332,7 +347,7 @@ export class Brush {
       this.updatedPlaceables.clear();
       this._clearHover(null, null, true);
       this.hoverTest = null;
-      this.deactivateCallback?.();
+      if (!suppressCallback) this.deactivateCallback?.();
       this.spawner = false;
       this.deactivateCallback = null;
       this.app = null;
@@ -360,6 +375,116 @@ export class Brush {
     if (completed) {
       this.brushOverlay.removeChild(cross).destroy();
     }
+  }
+}
+
+export class BrushMenu extends FormApplication {
+  static addPresets(presets = []) {
+    if (!this._instance) return this.render(presets);
+    else this._instance.addPresets(presets);
+  }
+
+  static removePreset(id) {
+    if (!this._instance) return;
+    this._instance.removePreset(id);
+  }
+
+  static iterate() {
+    if (!this._instance) return;
+    this._instance.iterate();
+  }
+
+  static render(presets) {
+    if (this._instance) this.addPresets(presets);
+    else {
+      this._instance = new BrushMenu(presets);
+      this._instance.render(true);
+    }
+  }
+
+  static close() {
+    this._instance?.close(true);
+  }
+
+  static get defaultOptions() {
+    return foundry.utils.mergeObject(super.defaultOptions, {
+      id: 'mass-edit-brush-menu',
+      template: `modules/${MODULE_ID}/templates/preset/brush.html`,
+      resizable: false,
+      minimizable: false,
+      width: 200,
+      height: 'auto',
+    });
+  }
+
+  constructor(presets) {
+    super({ left: 0, top: 0 });
+    this.presets = presets ?? [];
+    this.preset = this.presets[0];
+    this.iterator = { pIndex: 0, dIndex: 0 };
+    Brush.activate({ preset: this.preset, deactivateCallback: this._deactivateCallback.bind(this), spawner: true });
+  }
+
+  get title() {
+    return 'Brush';
+  }
+
+  async getData(options = {}) {
+    return { presets: this.presets };
+  }
+
+  addPresets(presets = []) {
+    for (const preset of presets) {
+      if (!this.presets.find((p) => p.id === preset.id)) this.presets.push(preset);
+    }
+    this.render(true);
+  }
+
+  removePreset(id) {
+    this.presets = this.presets.filter((p) => p.id !== id);
+    this.render(true);
+  }
+
+  iterate() {
+    const it = this.iterator;
+    it.dIndex++;
+
+    if (it.dIndex >= this.preset.data.length) {
+      it.pIndex++;
+      it.dIndex = 0;
+    }
+
+    if (it.pIndex >= this.presets.length) {
+      it.pIndex = 0;
+      it.dIndex = 0;
+    }
+
+    const p = this.presets[it.pIndex];
+    this.preset = new Preset({
+      id: p.id,
+      name: p.name,
+      img: p.thumbnail,
+      documentName: p.documentName,
+      data: [p.data[it.dIndex]],
+    });
+
+    Brush.activate({
+      preset: this.preset,
+      deactivateCallback: this._deactivateCallback.bind(this),
+      spawner: true,
+      suppressCallback: true,
+    });
+    this.render(true);
+  }
+
+  _deactivateCallback() {
+    this.close(true);
+  }
+
+  async close(options = {}) {
+    Brush.deactivate();
+    BrushMenu._instance = null;
+    return super.close(options);
   }
 }
 
