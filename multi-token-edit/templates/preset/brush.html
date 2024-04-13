@@ -20,7 +20,7 @@
             </fieldset>
         </div>
         {{#each presets as |preset|}}
-        <div class="preset">
+        <div class="preset {{#if (eq preset.id ../activePreset.id)}}active{{/if}}">
             <label>{{preset.name}}</label>
         </div>
         {{/each}}

@@ -410,6 +410,7 @@ export class BrushMenu extends FormApplication {
     return foundry.utils.mergeObject(super.defaultOptions, {
       id: 'mass-edit-brush-menu',
       template: `modules/${MODULE_ID}/templates/preset/brush.html`,
+      classes: ['mass-edit-dark-window'],
       resizable: false,
       minimizable: false,
       width: 200,
@@ -430,7 +431,7 @@ export class BrushMenu extends FormApplication {
   }
 
   async getData(options = {}) {
-    return { presets: this.presets };
+    return { presets: this.presets, activePreset: this.preset };
   }
 
   addPresets(presets = []) {
@@ -460,13 +461,8 @@ export class BrushMenu extends FormApplication {
     }
 
     const p = this.presets[it.pIndex];
-    this.preset = new Preset({
-      id: p.id,
-      name: p.name,
-      img: p.thumbnail,
-      documentName: p.documentName,
-      data: [p.data[it.dIndex]],
-    });
+    this.preset = p.clone();
+    this.preset.data = [this.preset.data[it.dIndex]];
 
     Brush.activate({
       preset: this.preset,

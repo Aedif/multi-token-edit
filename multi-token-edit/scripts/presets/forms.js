@@ -87,7 +87,7 @@ export class MassEditPresets extends FormApplication {
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
       id: 'mass-edit-presets',
-      classes: ['sheet'],
+      classes: ['sheet', 'mass-edit-dark-window'],
       template: `modules/${MODULE_ID}/templates/preset/presets.html`,
       resizable: true,
       minimizable: true,
@@ -1946,7 +1946,7 @@ class PresetFieldSelect extends FormApplication {
   /** @inheritdoc */
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
-      classes: ['sheet', 'preset-field-select'],
+      classes: ['sheet', 'preset-field-select', 'mass-edit-dark-window'],
       template: `modules/${MODULE_ID}/templates/preset/presetFieldSelect.html`,
       width: 600,
       resizable: false,

@@ -111,16 +111,11 @@
    ====== Presets ======
    ===================== */
 
-.mass-edit-preset-form {
-  /* overflow: hidden; */
-  color: rgba(255, 255, 240, 0.8);
-}
-
-#mass-edit-presets .window-content,
-.preset-field-select .window-content {
+.mass-edit-dark-window .window-content {
   background: rgba(50, 50, 50, 0.8);
   padding-left: 1px;
   padding-right: 1px;
+  color: rgba(255, 255, 240, 0.8);
 }
 
 #mass-edit-presets.inactive {
@@ -601,4 +596,10 @@ nav > a[data-tab='me-pinned'] {
   border-radius: 6px;
   padding: 2px;
   margin-top: 2px;
+}
+
+.mass-edit-brush-menu .preset.active {
+  background-color: darkorange;
+  color: black;
+  font-weight: 600;
 }
