@@ -600,6 +600,32 @@ nav > a[data-tab='me-pinned'] {
 
 .mass-edit-brush-menu .preset.active {
   background-color: darkorange;
-  color: black;
-  font-weight: 600;
+}
+
+.mass-edit-brush-menu .ui-slider-range {
+  background-color: darkorange;
+}
+
+.mass-edit-brush-menu .ui-slider {
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
+
+.mass-edit-brush-menu .sub-controls {
+  display: flex;
+  text-align: center;
+  margin-top: 14px;
+}
+
+.mass-edit-brush-menu .sub-controls a {
+  flex: 1;
+}
+
+.mass-edit-brush-menu .sub-controls a.active {
+  color: darkorange;
+}
+
+.mass-edit-brush-menu .presets {
+  max-height: 350px;
+  overflow-y: scroll;
 }

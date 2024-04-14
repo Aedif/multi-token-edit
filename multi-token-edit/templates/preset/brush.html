@@ -2,27 +2,27 @@
     <div class="mass-edit-brush-menu">
         <div class="controls">
             <fieldset>
-                <legend>Controls</legend>
-                <div class="form-group slim">
-                    <label>Rotation</label>
-                    <div class="form-fields">
-                        <input type="range" name="rotation" value="0" min="-180" max="180" step="1">
-                        <span class="range-value">0</span>
-                    </div>
-                </div>
-                <div class="form-group slim">
-                    <label>Scale</label>
-                    <div class="form-fields">
-                        <input type="range" name="scale" value="1" min="0.1" max="4" step="0.01">
-                        <span class="range-value">1</span>
-                    </div>
+                <legend>Controls <a class="reset" title="Reset to defaults."><i class="fas fa-undo-alt"></i></a></legend>
+                <label>Rotation</label><span class="rotation-range-label" style="color:darkorange; margin-left: 10px;" >{{rotation.[0]}}° - {{rotation.[1]}}°</span>
+                <div class="rotation-slider"></div>
+
+                <label>Scale</label><span class="scale-range-label" style="color:darkorange; margin-left: 10px;" >{{scale.[0]}} - {{scale.[1]}}</span>
+                <div class="scale-slider"></div>
+
+                <div class="sub-controls">
+                    <a class="toggle-button {{#if random}}active{{/if}}" data-name="random" title="Random."><i class="fa-solid fa-dice"></i></a>
+                    <a class="toggle-button {{#if group}}active{{/if}}" data-name="group" title="Spawn multi-placeable presets as a single group."><i class="fa-solid fa-object-group"></i></a>
+                    <a class="toggle-button {{#if spawner}}active{{/if}}" data-name="spawner" title="Spawner"><i class="fas fa-plus-circle"></i></a>
                 </div>
             </fieldset>
         </div>
-        {{#each presets as |preset|}}
-        <div class="preset {{#if (eq preset.id ../activePreset.id)}}active{{/if}}">
-            <label>{{preset.name}}</label>
+        <br>
+        <div class="presets">
+            {{#each presets as |preset|}}
+            <div class="preset {{#if (eq preset.id ../activePreset.id)}}active{{/if}}" data-index="{{@index}}">
+                <label>{{preset.name}}</label>
+            </div>
+            {{/each}}
         </div>
-        {{/each}}
     </div>
 </form>

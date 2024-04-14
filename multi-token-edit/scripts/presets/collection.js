@@ -791,6 +791,8 @@ export class PresetAPI {
     scaleToGrid = false,
     modifyPrompt = true,
     center = false,
+    transform = {},
+    previewOnly = false,
     sceneId,
   } = {}) {
     if (!canvas.ready) throw Error("Canvas need to be 'ready' for a preset to be spawned.");
@@ -861,11 +863,14 @@ export class PresetAPI {
           label: pickerLabel,
           taPreview: taPreview,
           center,
+          previewOnly,
+          ...transform,
         });
       });
       if (coords == null) return [];
       x = coords.end.x;
       y = coords.end.y;
+      if (coords.end.z != null) z = coords.end.z;
     } else if (x == null || y == null) {
       if (game.Levels3DPreview?._active) {
         const pos3d = game.Levels3DPreview.interactionManager.canvas2dMousePosition;
@@ -904,17 +909,17 @@ export class PresetAPI {
     // ==================
     // Set positions taking into account relative distances between each object
 
-    const transform = getTransformToOrigin(docToData);
-    transform.x += pos.x;
-    transform.y += pos.y;
+    const posTransform = getTransformToOrigin(docToData);
+    posTransform.x += pos.x;
+    posTransform.y += pos.y;
 
     // 3D Support
-    if (pos.z == null) transform.z = 0;
-    else transform.z += pos.z;
+    if (pos.z == null) posTransform.z = 0;
+    else posTransform.z += pos.z;
 
     docToData.forEach((dataArr, documentName) => {
       dataArr.forEach((data) => {
-        DataTransform.apply(documentName, data, { x: 0, y: 0 }, transform);
+        DataTransform.apply(documentName, data, { x: 0, y: 0 }, posTransform);
 
         // Assign ownership for Drawings and MeasuredTemplates
         if (['Drawing', 'MeasuredTemplate'].includes(documentName)) {

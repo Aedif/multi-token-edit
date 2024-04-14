@@ -1,5 +1,6 @@
 import { Brush } from '../scripts/brush.js';
 import { injectFlagTab, injectVisibility } from '../scripts/fieldInjector.js';
+import { DataTransform } from '../scripts/picker.js';
 import { MassEditPresets } from '../scripts/presets/forms.js';
 import { Preset } from '../scripts/presets/preset.js';
 import { applyRandomization, selectRandomizerFields } from '../scripts/randomizer/randomizerUtils.js';
@@ -1051,7 +1052,7 @@ export const WithMassConfig = (docName = 'NONE') => {
  * @param {boolean} suppressNotif
  * @returns
  */
-export function pasteDataUpdate(docs, preset, suppressNotif = false, excludePosition = false) {
+export function pasteDataUpdate(docs, preset, suppressNotif = false, excludePosition = false, transform = null) {
   if (!docs || !docs.length) return false;
 
   let docName = docs[0].document ? docs[0].document.documentName : docs[0].documentName;
@@ -1083,6 +1084,7 @@ export function pasteDataUpdate(docs, preset, suppressNotif = false, excludePosi
     if (!foundry.utils.isEmpty(preset.addSubtract)) context.addSubtractFields = preset.addSubtract;
 
     let data = foundry.utils.deepClone(preset.data[Math.floor(Math.random() * preset.data.length)]);
+    if (transform) DataTransform.apply(docName, data, { x: 0, y: 0 }, transform);
     if (excludePosition) {
       delete data.x;
       delete data.y;

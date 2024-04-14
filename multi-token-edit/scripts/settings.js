@@ -243,6 +243,13 @@ export function registerSettings() {
       default: true,
     });
   }
+
+  game.settings.register(MODULE_ID, 'brush', {
+    scope: 'world',
+    config: false,
+    type: Object,
+    default: { scale: [1, 1], rotation: [0, 0], random: true, group: false, spawner: true },
+  });
 }
 
 export function registerKeybinds() {

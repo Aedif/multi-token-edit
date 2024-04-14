@@ -1,4 +1,5 @@
 import { pasteDataUpdate } from '../applications/forms.js';
+import { Picker } from './picker.js';
 import { PresetAPI } from './presets/collection.js';
 import { Preset } from './presets/preset.js';
 import { MODULE_ID } from './utils.js';
@@ -28,7 +29,7 @@ export class Brush {
 
   static _performBrushDocumentUpdate(pos, placeable) {
     if (pos) this._animateCrossTranslate(pos.x, pos.y);
-    pasteDataUpdate([placeable], this.preset, true, true);
+    pasteDataUpdate([placeable], this.preset, true, true, this.transform);
     this.updatedPlaceables.set(placeable.id, placeable);
     BrushMenu.iterate();
   }
@@ -37,7 +38,8 @@ export class Brush {
     const now = new Date().getTime();
     if (!this.lastSpawnTime || now - this.lastSpawnTime > 100) {
       this.lastSpawnTime = now;
-      PresetAPI.spawnPreset({ preset: this.preset, ...pos, center: true });
+      if (pos.z == null) Picker.resolve(pos);
+      else PresetAPI.spawnPreset({ preset: this.preset, ...pos, center: true });
       BrushMenu.iterate();
     }
   }
@@ -154,6 +156,18 @@ export class Brush {
     }
   }
 
+  static async genPreview() {
+    if (!game.Levels3DPreview?._active)
+      PresetAPI.spawnPreset({
+        preset: this.preset,
+        coordPicker: true,
+        previewOnly: true,
+        center: true,
+        taPreview: 'ALL',
+        transform: this.transform,
+      });
+  }
+
   /**
    * @param {Object} options
    * @param {MassEditForm} options.app
@@ -166,6 +180,7 @@ export class Brush {
     deactivateCallback = null,
     spawner = false,
     suppressCallback = false,
+    transform = {},
   } = {}) {
     this.deactivate(suppressCallback);
     if (!canvas.ready) return false;
@@ -178,6 +193,7 @@ export class Brush {
     // Setup fields to be used for updates
     this.app = app;
     this.preset = preset;
+    this.transform = transform;
     this.deactivateCallback = deactivateCallback;
     this.spawner = spawner;
     if (this.app) {
@@ -203,6 +219,7 @@ export class Brush {
     // Determine hit test test function to be used for pointer hover detection
     if (this.spawner) {
       this.hitTest = () => false;
+      this.genPreview();
     } else {
       switch (this.documentName) {
         case 'Wall':
@@ -232,11 +249,13 @@ export class Brush {
     this.brushOverlay.zIndex = Infinity;
 
     this.brushOverlay.on('mousemove', (event) => {
-      if (!this.mDownWithinCanvas) return; // Fix to prevent mouse interaction within apps
+      Picker.feedPos(event.data.getLocalPosition(this.brushOverlay));
       this._onBrushMove(event);
+      if (!this.mDownWithinCanvas) return; // Fix to prevent mouse interaction within apps
       if (event.buttons === 1) this._onBrushClickMove(event);
     });
     this.brushOverlay.on('mouseup', (event) => {
+      console.log('mouseup', event);
       this.mDownWithinCanvas = false; // Fix to prevent mouse interaction within apps
       if (event.nativeEvent.which !== 2) {
         this._onBrushClickMove(event);
@@ -344,14 +363,19 @@ export class Brush {
         this.deactivate3DListeners();
       }
       this.active = false;
-      this.updatedPlaceables.clear();
-      this._clearHover(null, null, true);
+
+      if (!suppressCallback) {
+        this.updatedPlaceables.clear();
+        this._clearHover(null, null, true);
+      }
       this.hoverTest = null;
       if (!suppressCallback) this.deactivateCallback?.();
+      if (this.spawner) Picker.destroy();
       this.spawner = false;
       this.deactivateCallback = null;
       this.app = null;
       this.preset = null;
+      this.transform = null;
       return true;
     }
   }
@@ -378,6 +402,8 @@ export class Brush {
   }
 }
 
+// =================================================
+
 export class BrushMenu extends FormApplication {
   static addPresets(presets = []) {
     if (!this._instance) return this.render(presets);
@@ -389,9 +415,9 @@ export class BrushMenu extends FormApplication {
     this._instance.removePreset(id);
   }
 
-  static iterate() {
+  static iterate(forward = true) {
     if (!this._instance) return;
-    this._instance.iterate();
+    this._instance.iterate(forward);
   }
 
   static render(presets) {
@@ -415,15 +441,46 @@ export class BrushMenu extends FormApplication {
       minimizable: false,
       width: 200,
       height: 'auto',
+      scrollY: ['.presets'],
     });
   }
 
   constructor(presets) {
     super({ left: 0, top: 0 });
     this.presets = presets ?? [];
-    this.preset = this.presets[0];
-    this.iterator = { pIndex: 0, dIndex: 0 };
-    Brush.activate({ preset: this.preset, deactivateCallback: this._deactivateCallback.bind(this), spawner: true });
+    this.preset = this.presets[0].clone();
+    this.preset.data = this.preset.data[0];
+    this._settings = game.settings.get(MODULE_ID, 'brush');
+    this._it = 0;
+    this._createIndex();
+    this._activateBrush(false);
+  }
+
+  _createIndex() {
+    const index = [];
+    for (let pI = 0; pI < this.presets.length; pI++) {
+      const preset = this.presets[pI];
+      for (let dI = 0; dI < preset.data.length; dI++) {
+        index.push({ pI, dI });
+      }
+    }
+    this._index = index;
+    if (this._it >= this._index.length) this._it = this._index.length - 1;
+  }
+
+  _activateBrush(suppressCallback = true) {
+    const index = this._index[this._it];
+    const p = this.presets[index.pI];
+    this.preset = p.clone();
+    this.preset.data = [this.preset.data[index.dI]];
+
+    Brush.activate({
+      preset: this.preset,
+      deactivateCallback: this._deactivateCallback.bind(this),
+      spawner: this._settings.spawner,
+      transform: this._getTransform(),
+      suppressCallback,
+    });
   }
 
   get title() {
@@ -431,46 +488,125 @@ export class BrushMenu extends FormApplication {
   }
 
   async getData(options = {}) {
-    return { presets: this.presets, activePreset: this.preset };
+    return { presets: this.presets, activePreset: this.preset, ...this._settings };
+  }
+
+  activateListeners(html) {
+    super.activateListeners(html);
+
+    const settings = this._settings;
+    const app = this;
+
+    import('./jquery-ui/jquery-ui.js').then((module) => {
+      const rotationRangeLabel = html.find('.rotation-range-label');
+      html.find('.rotation-slider').slider({
+        range: true,
+        min: -180,
+        max: 180,
+        values: settings.rotation,
+        slide: function (event, ui) {
+          rotationRangeLabel.text(`${ui.values[0]}° - ${ui.values[1]}°`);
+        },
+        change: function (event, ui) {
+          app._updateBrushSettings({ rotation: ui.values });
+        },
+      });
+
+      const scaleRangeLabel = html.find('.scale-range-label');
+      html.find('.scale-slider').slider({
+        range: true,
+        min: 0.1,
+        max: 4,
+        step: 0.01,
+        values: settings.scale,
+        slide: function (event, ui) {
+          scaleRangeLabel.text(`${ui.values[0]} - ${ui.values[1]}`);
+        },
+        change: function (event, ui) {
+          app._updateBrushSettings({ scale: ui.values });
+        },
+      });
+
+      this.setPosition({ height: 'auto' });
+    });
+
+    html.find('.toggle-button').on('click', this._toggleSetting.bind(this));
+    html.find('.reset').on('click', this._resetToDefaults.bind(this));
+    html.on('click', '.preset', this._onClickPreset.bind(this));
+  }
+
+  async _onClickPreset(event) {
+    const presetIndex = $(event.currentTarget).data('index');
+    if (presetIndex != null) {
+      this._it = this._index.findIndex((i) => i.pI === presetIndex);
+      this._activateBrush();
+      this.render(true);
+    }
+  }
+
+  async _resetToDefaults() {
+    await this._updateBrushSettings({ scale: [1, 1], rotation: [0, 0] });
+    this.render(true);
+  }
+
+  async _toggleSetting(event) {
+    const control = $(event.target).closest('.toggle-button');
+    const update = { [control.data('name')]: !control.hasClass('active') };
+
+    if (update.spawner) update.delete = false;
+    if (update.delete) update.spawner = false;
+
+    await this._updateBrushSettings(update);
+    this.render(true);
+  }
+
+  async _updateBrushSettings(update) {
+    foundry.utils.mergeObject(this._settings, update);
+    await game.settings.set(MODULE_ID, 'brush', this._settings);
+    this._activateBrush();
   }
 
   addPresets(presets = []) {
     for (const preset of presets) {
       if (!this.presets.find((p) => p.id === preset.id)) this.presets.push(preset);
     }
+    this._createIndex();
     this.render(true);
   }
 
   removePreset(id) {
     this.presets = this.presets.filter((p) => p.id !== id);
+    this._createIndex();
     this.render(true);
   }
 
-  iterate() {
-    const it = this.iterator;
-    it.dIndex++;
-
-    if (it.dIndex >= this.preset.data.length) {
-      it.pIndex++;
-      it.dIndex = 0;
+  iterate(forward = true) {
+    if (this._settings.random) this._it = Math.floor(Math.random() * this._index.length);
+    else {
+      this._it += forward ? 1 : -1;
+      if (this._it < 0) this._it = this._index.length - 1;
+      else this._it %= this._index.length;
     }
 
-    if (it.pIndex >= this.presets.length) {
-      it.pIndex = 0;
-      it.dIndex = 0;
-    }
-
-    const p = this.presets[it.pIndex];
-    this.preset = p.clone();
-    this.preset.data = [this.preset.data[it.dIndex]];
-
-    Brush.activate({
-      preset: this.preset,
-      deactivateCallback: this._deactivateCallback.bind(this),
-      spawner: true,
-      suppressCallback: true,
-    });
+    this._activateBrush();
     this.render(true);
+  }
+
+  _getTransform() {
+    const settings = this._settings;
+    const transform = {};
+    if (settings.scale[0] === settings.scale[1]) transform.scale = settings.scale[0];
+    else {
+      const stepsInRange = (settings.scale[1] - settings.scale[0]) / 0.01;
+      transform.scale = Math.floor(Math.random() * stepsInRange) * 0.01 + settings.scale[0];
+    }
+
+    if (settings.rotation[0] === settings.rotation[1]) transform.rotation = settings.rotation[0];
+    else {
+      const stepsInRange = (settings.rotation[1] - settings.rotation[0] + 1) / 1;
+      transform.rotation = Math.floor(Math.random() * stepsInRange) * 1 + settings.rotation[0];
+    }
+    return transform;
   }
 
   _deactivateCallback() {
@@ -480,6 +616,7 @@ export class BrushMenu extends FormApplication {
   async close(options = {}) {
     Brush.deactivate();
     BrushMenu._instance = null;
+    Picker.destroy();
     return super.close(options);
   }
 }

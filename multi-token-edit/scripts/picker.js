@@ -52,8 +52,8 @@ export class Picker {
       }
 
       let { previews, layer, previewDocuments } = await this._genPreviews(preview);
-      this._rotation = 0;
-      this._scale = 1;
+      this._rotation = preview.rotation ?? 0;
+      this._scale = preview.scale ?? 1;
 
       // Position offset to center preview over the mouse
       let offset;
@@ -132,48 +132,62 @@ export class Picker {
       pickerOverlay.setPositions = setPositions;
     }
 
-    pickerOverlay.hitArea = canvas.dimensions.rect;
-    pickerOverlay.cursor = 'crosshair';
-    pickerOverlay.interactive = true;
-    pickerOverlay.zIndex = Infinity;
-    pickerOverlay.on('remove', () => pickerOverlay.off('pick'));
-    pickerOverlay.on('mousedown', (event) => {
-      Picker.boundStart = event.data.getLocalPosition(pickerOverlay);
-    });
-    pickerOverlay.on('mouseup', (event) => {
-      Picker.boundEnd = event.data.getLocalPosition(pickerOverlay);
-    });
-    pickerOverlay.on('click', (event) => {
-      if (event.nativeEvent.which == 2) {
-        this.callback?.(null);
-      } else {
-        const minX = Math.min(this.boundStart.x, this.boundEnd.x);
-        const maxX = Math.max(this.boundStart.x, this.boundEnd.x);
-        const minY = Math.min(this.boundStart.y, this.boundEnd.y);
-        const maxY = Math.max(this.boundStart.y, this.boundEnd.y);
+    if (!preview.previewOnly) {
+      pickerOverlay.hitArea = canvas.dimensions.rect;
+      pickerOverlay.cursor = 'crosshair';
+      pickerOverlay.interactive = true;
+      pickerOverlay.zIndex = 5;
+      pickerOverlay.on('remove', () => pickerOverlay.off('pick'));
+      pickerOverlay.on('mousedown', (event) => {
+        Picker.boundStart = event.data.getLocalPosition(pickerOverlay);
+      });
+      pickerOverlay.on('mouseup', (event) => {
+        Picker.boundEnd = event.data.getLocalPosition(pickerOverlay);
+      });
+      pickerOverlay.on('click', (event) => {
+        if (event.nativeEvent.which == 2) {
+          this.callback?.(null);
+        } else {
+          const minX = Math.min(this.boundStart.x, this.boundEnd.x);
+          const maxX = Math.max(this.boundStart.x, this.boundEnd.x);
+          const minY = Math.min(this.boundStart.y, this.boundEnd.y);
+          const maxY = Math.max(this.boundStart.y, this.boundEnd.y);
+          this.callback?.({ start: { x: minX, y: minY }, end: { x: maxX, y: maxY } });
+        }
+        this.destroy();
+      });
 
-        this.callback?.({ start: { x: minX, y: minY }, end: { x: maxX, y: maxY } });
-      }
-      pickerOverlay.parent?.removeChild(pickerOverlay);
-      if (pickerOverlay.previewDocuments)
-        pickerOverlay.previewDocuments.forEach((name) => canvas.getLayerByEmbeddedName(name)?.clearPreviewContainer());
-      this.destroy();
-    });
-
+      canvas.stage.addChild(pickerOverlay);
+    }
     this.pickerOverlay = pickerOverlay;
+  }
 
-    canvas.stage.addChild(this.pickerOverlay);
+  static feedPos(pos) {
+    this.pickerOverlay?.setPositions?.(pos);
+  }
+
+  static resolve(pos) {
+    if (this.callback) {
+      if (pos == null) this.callback(null);
+      else this.callback?.({ start: { x: pos.x, y: pos.y, z: pos.z }, end: { x: pos.x, y: pos.y, z: pos.z } });
+    }
+    this.destroy();
   }
 
   static destroy() {
     if (this.pickerOverlay) {
-      canvas.stage.removeChild(this.pickerOverlay);
+      this.pickerOverlay.parent?.removeChild(this.pickerOverlay);
+      if (this.pickerOverlay.previewDocuments)
+        this.pickerOverlay.previewDocuments.forEach((name) =>
+          canvas.getLayerByEmbeddedName(name)?.clearPreviewContainer()
+        );
+
       this.pickerOverlay.destroy(true);
       this.pickerOverlay.children?.forEach((c) => c.destroy(true));
       this.callback?.(null);
       this.pickerOverlay = null;
-      this.callback = null;
     }
+    this.callback = null;
   }
 
   // Modified Foundry _createPreview

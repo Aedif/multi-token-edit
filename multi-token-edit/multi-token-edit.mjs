@@ -28,7 +28,7 @@ import { DEFAULT_PACK, META_INDEX_ID, PresetAPI, PresetCollection } from './scri
 import { MassEditPresets, PresetConfig } from './scripts/presets/forms.js';
 import { registerKeybinds, registerSettings } from './scripts/settings.js';
 import { Picker } from './scripts/picker.js';
-import { activateBrush, deactivateBush } from './scripts/brush.js';
+import { BrushMenu, activateBrush, deactivateBush } from './scripts/brush.js';
 
 export const HISTORY = {};
 
@@ -94,6 +94,7 @@ Hooks.once('init', () => {
         if (dy === 0) return;
 
         if (event.altKey) Picker.addScaling(event.delta < 0 ? 0.05 : -0.05);
+        else if ((event.ctrlKey || event.metaKey) && event.shiftKey) BrushMenu.iterate(event.delta >= 0);
         else if (event.ctrlKey || event.metaKey) Picker.addRotation(event.delta < 0 ? 2.5 : -2.5);
         else if (event.shiftKey) Picker.addRotation(event.delta < 0 ? 15 : -15);
         return;
