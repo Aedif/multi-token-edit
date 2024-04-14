@@ -8,6 +8,7 @@ export class Brush {
   static app;
   static deactivateCallback;
   static spawner;
+  static eraser;
   static lastSpawnTime;
   // @type {Preset}
   static preset;
@@ -42,6 +43,11 @@ export class Brush {
       else PresetAPI.spawnPreset({ preset: this.preset, ...pos, center: true });
       BrushMenu.iterate();
     }
+  }
+
+  static _performBrushDocumentDelete(placeable) {
+    this.hoveredPlaceable = null;
+    placeable.document?.delete();
   }
 
   static _hitTestWall(point, wall) {
@@ -123,7 +129,8 @@ export class Brush {
       this.hoveredPlaceable.visible &&
       !this.updatedPlaceables.has(this.hoveredPlaceable.id)
     ) {
-      this._performBrushDocumentUpdate(event.data.getLocalPosition(this.brushOverlay), this.hoveredPlaceable);
+      if (this.eraser) this._performBrushDocumentDelete(this.hoveredPlaceable);
+      else this._performBrushDocumentUpdate(event.data.getLocalPosition(this.brushOverlay), this.hoveredPlaceable);
     }
   }
 
@@ -138,7 +145,8 @@ export class Brush {
         const p = game.Levels3DPreview.interactionManager.currentHover?.placeable;
         if (p && p.document.documentName === this.documentName) {
           game.Levels3DPreview.interactionManager._downCameraPosition.set(0, 0, 0);
-          this._performBrushDocumentUpdate(null, p);
+          if (this.eraser) this._performBrushDocumentDelete(p);
+          else this._performBrushDocumentUpdate(null, p);
         }
         this.updatedPlaceables.clear();
       }
@@ -179,10 +187,11 @@ export class Brush {
     preset = null,
     deactivateCallback = null,
     spawner = false,
-    suppressCallback = false,
+    eraser = false,
+    refresh = false,
     transform = {},
   } = {}) {
-    this.deactivate(suppressCallback);
+    this.deactivate(refresh);
     if (!canvas.ready) return false;
     if (!app && !preset) return false;
 
@@ -196,17 +205,19 @@ export class Brush {
     this.transform = transform;
     this.deactivateCallback = deactivateCallback;
     this.spawner = spawner;
+    this.eraser = eraser;
     if (this.app) {
       this.documentName = this.app.documentName;
     } else {
       this.documentName = this.preset.documentName;
     }
-    this.updatedPlaceables.clear();
+    if (!refresh) this.updatedPlaceables.clear();
 
     const interaction = canvas.app.renderer.events;
     if (!interaction.cursorStyles['brush']) {
       interaction.cursorStyles['brush'] = `url('modules/${MODULE_ID}/images/brush_icon.png'), auto`;
       interaction.cursorStyles['brush_spawn'] = `url('modules/${MODULE_ID}/images/brush_icon_spawn.png'), auto`;
+      interaction.cursorStyles['eraser'] = `url('modules/${MODULE_ID}/images/brush_icon_eraser.png'), auto`;
     }
 
     this.active = true;
@@ -244,7 +255,12 @@ export class Brush {
     // Create the brush overlay
     this.brushOverlay = new PIXI.Container();
     this.brushOverlay.hitArea = canvas.dimensions.rect;
-    this.brushOverlay.cursor = spawner ? 'brush_spawn' : 'brush';
+
+    let cursor = 'brush';
+    if (spawner) cursor = 'brush_spawn';
+    else if (eraser) cursor = 'eraser';
+    this.brushOverlay.cursor = cursor;
+
     this.brushOverlay.interactive = true;
     this.brushOverlay.zIndex = Infinity;
 
@@ -255,7 +271,6 @@ export class Brush {
       if (event.buttons === 1) this._onBrushClickMove(event);
     });
     this.brushOverlay.on('mouseup', (event) => {
-      console.log('mouseup', event);
       this.mDownWithinCanvas = false; // Fix to prevent mouse interaction within apps
       if (event.nativeEvent.which !== 2) {
         this._onBrushClickMove(event);
@@ -352,7 +367,7 @@ export class Brush {
     return true;
   }
 
-  static deactivate(suppressCallback = false) {
+  static deactivate(refresh = false) {
     if (this.active) {
       canvas.mouseInteractionManager.permissions.clickLeft = true;
       //canvas.mouseInteractionManager.permissions.longPress = true;
@@ -364,14 +379,15 @@ export class Brush {
       }
       this.active = false;
 
-      if (!suppressCallback) {
+      if (!refresh) {
         this.updatedPlaceables.clear();
         this._clearHover(null, null, true);
       }
       this.hoverTest = null;
-      if (!suppressCallback) this.deactivateCallback?.();
+      if (!refresh) this.deactivateCallback?.();
       if (this.spawner) Picker.destroy();
       this.spawner = false;
+      this.eraser = false;
       this.deactivateCallback = null;
       this.app = null;
       this.preset = null;
@@ -408,6 +424,10 @@ export class BrushMenu extends FormApplication {
   static addPresets(presets = []) {
     if (!this._instance) return this.render(presets);
     else this._instance.addPresets(presets);
+  }
+
+  static isActive() {
+    return Boolean(this._instance);
   }
 
   static removePreset(id) {
@@ -468,7 +488,7 @@ export class BrushMenu extends FormApplication {
     if (this._it >= this._index.length) this._it = this._index.length - 1;
   }
 
-  _activateBrush(suppressCallback = true) {
+  _activateBrush(refresh = true) {
     const index = this._index[this._it];
     const p = this.presets[index.pI];
     this.preset = p.clone();
@@ -478,8 +498,9 @@ export class BrushMenu extends FormApplication {
       preset: this.preset,
       deactivateCallback: this._deactivateCallback.bind(this),
       spawner: this._settings.spawner,
+      eraser: this._settings.eraser,
       transform: this._getTransform(),
-      suppressCallback,
+      refresh,
     });
   }
 
@@ -553,8 +574,8 @@ export class BrushMenu extends FormApplication {
     const control = $(event.target).closest('.toggle-button');
     const update = { [control.data('name')]: !control.hasClass('active') };
 
-    if (update.spawner) update.delete = false;
-    if (update.delete) update.spawner = false;
+    if (update.spawner) update.eraser = false;
+    if (update.eraser) update.spawner = false;
 
     await this._updateBrushSettings(update);
     this.render(true);
@@ -626,7 +647,7 @@ export class BrushMenu extends FormApplication {
  * @param {Object} options See MassEdit.getPreset(...)
  * @param {String} mode update|spawn
  */
-export async function activateBrush(options, mode = 'spawn') {
+export async function activateBrush(options, mode = 'spawner') {
   const preset = await PresetAPI.getPreset(options);
   if (preset) {
     Brush.activate({ preset, spawner: mode === 'spawner' });

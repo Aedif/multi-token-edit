@@ -83,7 +83,10 @@ Hooks.once('init', () => {
     function (wrapped, ...args) {
       const event = args[0];
 
-      if (Picker.isActive() && (event.ctrlKey || event.shiftKey || event.metaKey || event.altKey)) {
+      if (
+        (Picker.isActive() || BrushMenu.isActive()) &&
+        (event.ctrlKey || event.shiftKey || event.metaKey || event.altKey)
+      ) {
         // Prevent zooming the entire browser window
         if (event.ctrlKey) event.preventDefault();
 

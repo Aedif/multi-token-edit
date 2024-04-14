@@ -1362,7 +1362,6 @@ export class MassEditPresets extends FormApplication {
   }
 
   async close(options = {}) {
-    if (!Boolean(this.configApp)) Brush.deactivate();
     MassEditPresets.objectHover = false;
     return super.close(options);
   }
