@@ -93,7 +93,7 @@ export class MassEditPresets extends FormApplication {
       minimizable: true,
       width: 350,
       height: 900,
-      scrollY: ['ol.item-list'],
+      scrollY: ['.item-list'],
     });
   }
 

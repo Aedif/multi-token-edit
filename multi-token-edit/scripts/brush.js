@@ -40,7 +40,7 @@ export class Brush {
     if (!this.lastSpawnTime || now - this.lastSpawnTime > 100) {
       this.lastSpawnTime = now;
       if (pos.z == null) Picker.resolve(pos);
-      else PresetAPI.spawnPreset({ preset: this.preset, ...pos, center: true });
+      else PresetAPI.spawnPreset({ preset: this.preset, ...pos, center: true, snapToGrid: this.snap });
       BrushMenu.iterate();
     }
   }
@@ -173,6 +173,7 @@ export class Brush {
         center: true,
         taPreview: 'ALL',
         transform: this.transform,
+        snapToGrid: this.snap,
       });
   }
 
@@ -190,6 +191,7 @@ export class Brush {
     eraser = false,
     refresh = false,
     transform = {},
+    snap = true,
   } = {}) {
     this.deactivate(refresh);
     if (!canvas.ready) return false;
@@ -206,6 +208,7 @@ export class Brush {
     this.deactivateCallback = deactivateCallback;
     this.spawner = spawner;
     this.eraser = eraser;
+    this.snap = snap;
     if (this.app) {
       this.documentName = this.app.documentName;
     } else {
@@ -508,6 +511,7 @@ export class BrushMenu extends FormApplication {
       eraser: this._settings.eraser,
       transform: this._getTransform(),
       refresh,
+      snap: this._settings.snap,
     });
   }
 

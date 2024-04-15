@@ -248,7 +248,16 @@ export function registerSettings() {
     scope: 'world',
     config: false,
     type: Object,
-    default: { scale: [1, 1], rotation: [0, 0], random: true, group: false, spawner: true, eraser: false, lock: false },
+    default: {
+      scale: [1, 1],
+      rotation: [0, 0],
+      random: true,
+      group: false,
+      spawner: true,
+      eraser: false,
+      lock: false,
+      snap: true,
+    },
   });
 }
 
