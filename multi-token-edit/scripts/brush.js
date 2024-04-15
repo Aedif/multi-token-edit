@@ -1,6 +1,6 @@
 import { pasteDataUpdate } from '../applications/forms.js';
 import { Picker } from './picker.js';
-import { PresetAPI } from './presets/collection.js';
+import { PresetAPI, PresetCollection } from './presets/collection.js';
 import { Preset } from './presets/preset.js';
 import { MODULE_ID } from './utils.js';
 
@@ -440,16 +440,16 @@ export class BrushMenu extends FormApplication {
     this._instance.iterate(forward);
   }
 
-  static render(presets) {
+  static render(presets, settings = {}) {
     if (this._instance) this.addPresets(presets);
     else {
-      this._instance = new BrushMenu(presets);
+      this._instance = new BrushMenu(presets, settings);
       this._instance.render(true);
     }
   }
 
-  static close() {
-    this._instance?.close(true);
+  static async close() {
+    return this._instance?.close(true);
   }
 
   static get defaultOptions() {
@@ -465,23 +465,30 @@ export class BrushMenu extends FormApplication {
     });
   }
 
-  constructor(presets) {
-    super({ left: 0, top: 0 });
+  constructor(presets, settings = {}) {
+    super({}, { left: 10, top: window.innerHeight / 2 });
     this.presets = presets ?? [];
     this.preset = this.presets[0].clone();
     this.preset.data = this.preset.data[0];
-    this._settings = game.settings.get(MODULE_ID, 'brush');
-    this._it = 0;
+    this._settings = foundry.utils.mergeObject(game.settings.get(MODULE_ID, 'brush'), settings);
+    this._it = -1;
     this._createIndex();
-    this._activateBrush(false);
+    this.iterate();
   }
 
   _createIndex() {
     const index = [];
-    for (let pI = 0; pI < this.presets.length; pI++) {
-      const preset = this.presets[pI];
-      for (let dI = 0; dI < preset.data.length; dI++) {
-        index.push({ pI, dI });
+
+    if (this._settings.group) {
+      for (let pI = 0; pI < this.presets.length; pI++) {
+        index.push({ pI });
+      }
+    } else {
+      for (let pI = 0; pI < this.presets.length; pI++) {
+        const preset = this.presets[pI];
+        for (let dI = 0; dI < preset.data.length; dI++) {
+          index.push({ pI, dI });
+        }
       }
     }
     this._index = index;
@@ -492,7 +499,7 @@ export class BrushMenu extends FormApplication {
     const index = this._index[this._it];
     const p = this.presets[index.pI];
     this.preset = p.clone();
-    this.preset.data = [this.preset.data[index.dI]];
+    if (index.hasOwnProperty('dI')) this.preset.data = [this.preset.data[index.dI]];
 
     Brush.activate({
       preset: this.preset,
@@ -554,6 +561,7 @@ export class BrushMenu extends FormApplication {
     html.find('.toggle-button').on('click', this._toggleSetting.bind(this));
     html.find('.reset').on('click', this._resetToDefaults.bind(this));
     html.on('click', '.preset', this._onClickPreset.bind(this));
+    html.on('contextmenu', '.preset', this._onRightClickPreset.bind(this));
   }
 
   async _onClickPreset(event) {
@@ -563,6 +571,12 @@ export class BrushMenu extends FormApplication {
       this._activateBrush();
       this.render(true);
     }
+  }
+
+  async _onRightClickPreset(event) {
+    const presetIndex = $(event.currentTarget).data('index');
+    const preset = this.presets[presetIndex];
+    if (preset) this.removePreset(preset.id);
   }
 
   async _resetToDefaults() {
@@ -578,12 +592,16 @@ export class BrushMenu extends FormApplication {
     if (update.eraser) update.spawner = false;
 
     await this._updateBrushSettings(update);
-    this.render(true);
+
+    if (update.random) this.iterate();
+    else this.render(true);
   }
 
   async _updateBrushSettings(update) {
     foundry.utils.mergeObject(this._settings, update);
     await game.settings.set(MODULE_ID, 'brush', this._settings);
+
+    if (update.hasOwnProperty('group')) this._createIndex();
     this._activateBrush();
   }
 
@@ -596,17 +614,30 @@ export class BrushMenu extends FormApplication {
   }
 
   removePreset(id) {
+    const presetIndex = this.presets.findIndex((p) => p.id === id);
+    if (presetIndex === -1) return;
+
+    const wasActivePreset = this._index[this._it]?.pI === presetIndex;
+
     this.presets = this.presets.filter((p) => p.id !== id);
+    if (this.presets.length === 0) return this.close(true);
+
     this._createIndex();
-    this.render(true);
+
+    if (wasActivePreset) this.iterate();
+    else this.render(true);
   }
 
   iterate(forward = true) {
-    if (this._settings.random) this._it = Math.floor(Math.random() * this._index.length);
-    else {
-      this._it += forward ? 1 : -1;
-      if (this._it < 0) this._it = this._index.length - 1;
-      else this._it %= this._index.length;
+    if (!this._settings.lock) {
+      if (this._settings.random) this._it = Math.floor(Math.random() * this._index.length);
+      else {
+        this._it += forward ? 1 : -1;
+        if (this._it < 0) this._it = this._index.length - 1;
+        else this._it %= this._index.length;
+      }
+    } else {
+      if (this._it === -1) this._it = 0;
     }
 
     this._activateBrush();
@@ -634,6 +665,38 @@ export class BrushMenu extends FormApplication {
     this.close(true);
   }
 
+  _getHeaderButtons() {
+    const buttons = super._getHeaderButtons();
+
+    buttons.unshift({
+      label: '',
+      class: 'mass-edit-brush-macro',
+      icon: 'fa-solid fa-code',
+      onclick: this._generateBrushMacro.bind(this),
+    });
+
+    return buttons;
+  }
+
+  async _generateBrushMacro() {
+    const uuids = this.presets.map((p) => p.uuid).filter(Boolean);
+    if (!uuids.length) return;
+
+    const command = `MassEdit.openBrushMenu(
+${JSON.stringify(uuids, null, 2)},
+${JSON.stringify(this._settings, null, 2)}
+);`;
+
+    const macro = await Macro.create({
+      name: 'Brush Macro',
+      type: 'script',
+      scope: 'global',
+      command,
+      img: `modules/${MODULE_ID}/images/brush_icon.png`,
+    });
+    macro.sheet.render(true);
+  }
+
   async close(options = {}) {
     Brush.deactivate();
     BrushMenu._instance = null;
@@ -659,4 +722,18 @@ export async function activateBrush(options, mode = 'spawner') {
  */
 export function deactivateBush() {
   Brush.deactivate();
+}
+
+export async function openBrushMenu(presetUUIDs, settings = {}) {
+  if (!presetUUIDs || !presetUUIDs.length) return;
+
+  const presets = [];
+  for (const uuid of presetUUIDs) {
+    const preset = await PresetAPI.getPreset({ uuid });
+    if (preset) presets.push(preset);
+  }
+  if (!presets.length) return;
+
+  await BrushMenu.close();
+  BrushMenu.render(presets, settings);
 }

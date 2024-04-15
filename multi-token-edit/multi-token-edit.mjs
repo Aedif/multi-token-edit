@@ -28,7 +28,7 @@ import { DEFAULT_PACK, META_INDEX_ID, PresetAPI, PresetCollection } from './scri
 import { MassEditPresets, PresetConfig } from './scripts/presets/forms.js';
 import { registerKeybinds, registerSettings } from './scripts/settings.js';
 import { Picker } from './scripts/picker.js';
-import { BrushMenu, activateBrush, deactivateBush } from './scripts/brush.js';
+import { BrushMenu, activateBrush, deactivateBush, openBrushMenu } from './scripts/brush.js';
 
 export const HISTORY = {};
 
@@ -214,6 +214,7 @@ Hooks.once('init', () => {
     spawnPreset: PresetAPI.spawnPreset,
     activateBrush: activateBrush,
     deactivateBrush: deactivateBush,
+    openBrushMenu: openBrushMenu,
   };
 
   game.modules.get(MODULE_ID).api = {

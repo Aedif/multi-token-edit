@@ -2,7 +2,7 @@ import { TokenDataAdapter } from '../../applications/dataAdapters.js';
 import { copyToClipboard, pasteDataUpdate } from '../../applications/forms.js';
 import { showMassEdit } from '../../applications/multiConfig.js';
 import { countFolderItems, trackProgress } from '../../applications/progressDialog.js';
-import { Brush, BrushMenu } from '../brush.js';
+import { BrushMenu } from '../brush.js';
 import { importPresetFromJSONDialog } from '../dialogs.js';
 import { SortingHelpersFixed } from '../fixedSort.js';
 import {
@@ -587,7 +587,7 @@ export class MassEditPresets extends FormApplication {
       },
       {
         name: 'Brush',
-        icon: '<i class="fas fa-arrow-circle-right"></i>',
+        icon: '<i class="fa-solid fa-paintbrush"></i>',
         condition: (item) => SUPPORTED_PLACEABLES.includes(item.data('doc-name')),
         callback: (item) => this._onActivateBrush(item),
       },
