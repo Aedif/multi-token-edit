@@ -76,6 +76,8 @@ export class PresetCollection {
   static async packToTree(pack, type) {
     if (!pack) return null;
 
+    if (CONFIG.debug.MassEdit) console.time(pack.title);
+
     // Setup folders ready for parent/children processing
     const folders = new Map();
     const topLevelFolders = new Map();
@@ -118,10 +120,7 @@ export class PresetCollection {
     // Due to poor implementation of Folder+Folder Content delete, there are likely to be some indexes which were not removed
     // Lets clean them up here for now
     PresetCollection._cleanIndex(pack, metaDoc, metaIndex);
-
     // Remove after sufficient enough time has passed to have reasonable confidence that All/Most users have executed this ^
-
-    const FAVORITES = game.settings.get(MODULE_ID, 'presetFavorites') ?? {};
 
     for (const idx of index) {
       if (idx._id === META_INDEX_ID) continue;
@@ -166,6 +165,8 @@ export class PresetCollection {
     const sorting = game.settings.get(MODULE_ID, 'presetSortMode') === 'manual' ? 'm' : 'a';
     const sortedFolders = this._sortFolders(Array.from(topLevelFolders.values()), sorting);
     const sortedPresets = this._sortPresets(topLevelPresets, sorting);
+
+    if (CONFIG.debug.MassEdit) console.timeEnd(pack.title);
 
     return {
       folders: sortedFolders,
@@ -605,7 +606,7 @@ export class PresetAPI {
   /**
    * Retrieve presets
    * @param {object} [options={}]
-   * @param {String} [options.uuid]                      Preset UUID
+   * @param {String|Array[String]} [options.uuid]        Preset UUID/s
    * @param {String} [options.name]                      Preset name
    * @param {String} [options.type]                      Preset type ("Token", "Tile", etc)
    * @param {String} [options.folder]                    Folder name
@@ -614,21 +615,29 @@ export class PresetAPI {
    * @returns {Array[Preset]|Array[String]|Array[Object]}
    */
   static async getPresets({ uuid, name, type, folder, format = 'preset', tags } = {}) {
-    if (uuid) return await PresetCollection.get(uuid);
-    else if (!name && !type && !folder && !tags)
+    let presets;
+    if (uuid) {
+      presets = [];
+      const uuids = Array.isArray(uuid) ? uuid : [uuid];
+      for (const uuid of uuids) {
+        const preset = await PresetCollection.get(uuid);
+        if (preset) presets.push(preset);
+      }
+    } else if (!name && !type && !folder && !tags) {
       throw Error('UUID, Name, Type, Folder and/or Tags required to retrieve a Preset.');
+    } else {
+      if (tags) {
+        if (Array.isArray(tags)) tags = { tags, matchAny: true };
+        else if (typeof tags === 'string') tags = { tags: tags.split(','), matchAny: true };
+      }
 
-    if (tags) {
-      if (Array.isArray(tags)) tags = { tags, matchAny: true };
-      else if (typeof tags === 'string') tags = { tags: tags.split(','), matchAny: true };
+      presets = PresetCollection._searchPresetTree(await PresetCollection.getTree(), {
+        name,
+        type,
+        folder,
+        tags,
+      });
     }
-
-    const presets = PresetCollection._searchPresetTree(await PresetCollection.getTree(), {
-      name,
-      type,
-      folder,
-      tags,
-    });
 
     if (format === 'name') return presets.map((p) => p.name);
     else if (format === 'nameAndFolder')
@@ -914,8 +923,11 @@ export class PresetAPI {
     posTransform.y += pos.y;
 
     // 3D Support
-    if (pos.z == null) posTransform.z = 0;
-    else posTransform.z += pos.z;
+
+    if (game.Levels3DPreview?._active) {
+      if (pos.z == null) posTransform.z = 0;
+      else posTransform.z += pos.z;
+    }
 
     docToData.forEach((dataArr, documentName) => {
       dataArr.forEach((data) => {

@@ -256,7 +256,7 @@ export function registerSettings() {
       spawner: true,
       eraser: false,
       lock: false,
-      snap: true,
+      snap: false,
     },
   });
 }

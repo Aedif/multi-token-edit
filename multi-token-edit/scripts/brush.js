@@ -2,6 +2,7 @@ import { pasteDataUpdate } from '../applications/forms.js';
 import { Picker } from './picker.js';
 import { PresetAPI, PresetCollection } from './presets/collection.js';
 import { Preset } from './presets/preset.js';
+import { applyRandomization } from './randomizer/randomizerUtils.js';
 import { MODULE_ID } from './utils.js';
 
 export class Brush {
@@ -498,11 +499,14 @@ export class BrushMenu extends FormApplication {
     if (this._it >= this._index.length) this._it = this._index.length - 1;
   }
 
-  _activateBrush(refresh = true) {
+  async _activateBrush(refresh = true) {
     const index = this._index[this._it];
     const p = this.presets[index.pI];
     this.preset = p.clone();
     if (index.hasOwnProperty('dI')) this.preset.data = [this.preset.data[index.dI]];
+
+    // Apply Color
+    await this._applyColor();
 
     Brush.activate({
       preset: this.preset,
@@ -515,12 +519,79 @@ export class BrushMenu extends FormApplication {
     });
   }
 
+  async _applyColor() {
+    if (this._settings.randomColor || this._settings.color) {
+      let pPath;
+      const docName = this.preset.documentName;
+      if (docName === 'Token' || docName === 'Tile') pPath = 'texture.tint';
+      else if (docName === 'AmbientLight') pPath = 'config.color';
+
+      if (pPath) {
+        if (this._settings.randomColor) {
+          const updates = this.preset.data.map(() => {
+            return { color: '' };
+          });
+          await applyRandomization(updates, null, { color: { type: 'color', ...this._settings.randomColor } });
+
+          this.preset.data.forEach((d, i) => {
+            if (this._settings.ddTint) this._applyDDTint(d, updates[i].color);
+            else foundry.utils.setProperty(d, pPath, updates[i].color);
+          });
+        } else {
+          this.preset.data.forEach((d) => {
+            if (this._settings.ddTint) this._applyDDTint(d, this._settings.color);
+            else foundry.utils.setProperty(d, pPath, this._settings.color);
+          });
+        }
+      }
+    }
+  }
+
+  _applyDDTint(data, color) {
+    let filters = foundry.utils.getProperty(data, 'flags.tokenmagic.filters');
+
+    if (!color) {
+      if (filters) {
+        foundry.utils.setProperty(
+          data,
+          'flags.tokenmagic.filters',
+          filters.filter((f) => f.tmFilters.filterId !== 'DDTint')
+        );
+      }
+    } else {
+      filters = (filters ?? []).filter((f) => f.tmFilters.filterId !== 'DDTint');
+      filters.push({
+        tmFilters: {
+          tmFilterId: 'DDTint',
+          tmFilterInternalId: randomID(),
+          tmFilterType: 'ddTint',
+          filterOwner: game.data.userId,
+          tmParams: {
+            tmFilterType: 'ddTint',
+            filterId: 'DDTint',
+            tint: PIXI.utils.hex2rgb(color),
+            updateId: randomID(),
+            rank: 10000,
+            enabled: true,
+            filterOwner: game.data.userId,
+          },
+        },
+      });
+      foundry.utils.setProperty(data, 'flags.tokenmagic.filters', filters);
+    }
+  }
+
   get title() {
     return 'Brush';
   }
 
   async getData(options = {}) {
-    return { presets: this.presets, activePreset: this.preset, ...this._settings };
+    return {
+      presets: this.presets,
+      activePreset: this.preset,
+      ...this._settings,
+      tmfx: game.modules.get('tokenmagic')?.active,
+    };
   }
 
   activateListeners(html) {
@@ -566,15 +637,82 @@ export class BrushMenu extends FormApplication {
     html.find('.reset').on('click', this._resetToDefaults.bind(this));
     html.on('click', '.preset', this._onClickPreset.bind(this));
     html.on('contextmenu', '.preset', this._onRightClickPreset.bind(this));
+    html.find('.randomize-color').on('click', this._onRandomizeColor.bind(this));
+    html.find('input[type="color"]').on('change', this._onColorChange.bind(this));
+    html.find('.color').on('input paste', this._onColorChange.bind(this));
+  }
+
+  async _onColorChange(event) {
+    let cString = $(event.currentTarget).val();
+    if (!cString) this._updateBrushSettings({ color: '' });
+    else {
+      let color = Color.fromString(cString);
+      if (!Number.isNaN(color.valueOf())) this._updateBrushSettings({ color: cString });
+    }
   }
 
   async _onClickPreset(event) {
     const presetIndex = $(event.currentTarget).data('index');
     if (presetIndex != null) {
       this._it = this._index.findIndex((i) => i.pI === presetIndex);
-      this._activateBrush();
+      await this._activateBrush();
       this.render(true);
     }
+  }
+
+  async _onRandomizeColor() {
+    const randomColor = this._settings.randomColor ?? {};
+    const colorTemp = await renderTemplate(`modules/${MODULE_ID}/templates/randomizer/color.html`, {
+      method: 'random',
+      lockMethod: true,
+      space: randomColor.space,
+      hue: randomColor.hue,
+    });
+
+    let colorSlider;
+    let dialog = new Dialog({
+      title: `Pick Range`,
+      content: `<form>${colorTemp}</form>`,
+      buttons: {
+        save: {
+          label: 'Apply',
+          callback: async (html) => {
+            await this._updateBrushSettings({
+              randomColor: {
+                method: 'random',
+                space: html.find('[name="space"]').val(),
+                hue: html.find('[name="hue"]').val(),
+                colors: colorSlider.getColors(),
+              },
+            });
+            this.render(true);
+          },
+        },
+        remove: {
+          label: 'Remove',
+          callback: async (html) => {
+            await this._updateBrushSettings({
+              randomColor: null,
+            });
+            this.render(true);
+          },
+        },
+      },
+      render: (html) => {
+        import('./randomizer/slider.js').then((module) => {
+          colorSlider = new module.ColorSlider(
+            html,
+            randomColor.colors ?? [
+              { hex: '#ff0000', offset: 0 },
+              { hex: '#ff0000', offset: 100 },
+            ]
+          );
+          setTimeout(() => dialog.setPosition({ height: 'auto' }), 100);
+        });
+      },
+    });
+
+    dialog.render(true);
   }
 
   async _onRightClickPreset(event) {
@@ -597,7 +735,7 @@ export class BrushMenu extends FormApplication {
 
     await this._updateBrushSettings(update);
 
-    if (update.random) this.iterate();
+    if (update.random) await this.iterate();
     else this.render(true);
   }
 
@@ -606,7 +744,7 @@ export class BrushMenu extends FormApplication {
     await game.settings.set(MODULE_ID, 'brush', this._settings);
 
     if (update.hasOwnProperty('group')) this._createIndex();
-    this._activateBrush();
+    await this._activateBrush();
   }
 
   addPresets(presets = []) {
@@ -632,7 +770,7 @@ export class BrushMenu extends FormApplication {
     else this.render(true);
   }
 
-  iterate(forward = true) {
+  async iterate(forward = true) {
     if (!this._settings.lock) {
       if (this._settings.random) this._it = Math.floor(Math.random() * this._index.length);
       else {
@@ -644,7 +782,7 @@ export class BrushMenu extends FormApplication {
       if (this._it === -1) this._it = 0;
     }
 
-    this._activateBrush();
+    await this._activateBrush();
     this.render(true);
   }
 
@@ -686,8 +824,9 @@ export class BrushMenu extends FormApplication {
     const uuids = this.presets.map((p) => p.uuid).filter(Boolean);
     if (!uuids.length) return;
 
-    const command = `MassEdit.openBrushMenu(
-${JSON.stringify(uuids, null, 2)},
+    const command = `MassEdit.openBrushMenu({ 
+  uuid: ${JSON.stringify(uuids, null, 4)}
+},
 ${JSON.stringify(this._settings, null, 2)}
 );`;
 
@@ -728,16 +867,15 @@ export function deactivateBush() {
   Brush.deactivate();
 }
 
-export async function openBrushMenu(presetUUIDs, settings = {}) {
-  if (!presetUUIDs || !presetUUIDs.length) return;
-
-  const presets = [];
-  for (const uuid of presetUUIDs) {
-    const preset = await PresetAPI.getPreset({ uuid });
-    if (preset) presets.push(preset);
-  }
-  if (!presets.length) return;
-
+/**
+ * Open Brush Menu using the provided presets
+ * @param {Object} options See MassEdit.getPresets(...)
+ * @param {Object} settings Brush Menu control settings
+ */
+export async function openBrushMenu(options, settings = {}) {
+  const presets = await PresetAPI.getPresets(options);
+  if (!presets?.length) return;
+  for (const preset of presets) await preset.load();
   await BrushMenu.close();
   BrushMenu.render(presets, settings);
 }

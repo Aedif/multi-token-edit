@@ -468,16 +468,16 @@ input.me-subtract {
   display: block;
 }
 
-@container (min-width: 620px) {
+@container (min-width: 450px) {
   .mass-edit-preset-form .preset-items {
     grid-template-columns: 1fr 1fr 1fr 1fr;
     display: grid;
   }
 
   .mass-edit-preset-form .item-list .item {
-    width: 100%;
-    height: 100%;
     aspect-ratio: 1;
+    margin-left: -1px;
+    margin-top: -1px;
     border: 1px solid gray;
   }
 
@@ -621,11 +621,15 @@ nav > a[data-tab='me-pinned'] {
   flex: 1;
 }
 
-.mass-edit-brush-menu .sub-controls a.active {
+.mass-edit-brush-menu a.active {
   color: darkorange;
 }
 
 .mass-edit-brush-menu .presets {
   max-height: 350px;
   overflow-y: scroll;
+}
+
+.mass-edit-brush-menu input[type='text'] {
+  color: wheat;
 }

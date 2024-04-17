@@ -231,8 +231,10 @@ export function getTransformToOrigin(docToData) {
   } else {
     transform.x = -data[0].x;
     transform.y = -data[0].y;
-    const height = data[0].elevation ?? data[0].flags?.levels?.rangeBottom ?? 0;
-    transform.z = -height;
+    if (game.Levels3DPreview?._active) {
+      const height = data[0].elevation ?? data[0].flags?.levels?.rangeBottom ?? 0;
+      transform.z = -height;
+    }
   }
   return transform;
 }

@@ -1,7 +1,7 @@
 <h3>{{localize "MassEdit.randomizer.pickRange"}}:</h3>
 <div class="form-group">
     <label>{{localize "MassEdit.common.method"}}</label>
-    <select name="method" data-dtype="string">
+    <select name="method" data-dtype="string" {{#if lockMethod}}disabled{{/if}}>
         {{#select method}}
         <option value="random">{{localize "MassEdit.common.random"}}</option>
         <option value="interpolate">{{localize "MassEdit.randomizer.interpolate"}}</option>
