@@ -1,3 +1,35 @@
+# 1.65.0
+
+**Presets**
+
+- New **Favorite** category has been added to the placeable Preset browser
+- If the preset browser is expanded enough display will switch to thumbnail grid view
+- Preset browser will now retain scroll position when re-rendered
+- Fixed rangeTop/rangeBottom flags being manipulated while 3D canvas is not active
+
+**Brush**
+
+- Fixed active brush interacting with placeables while dragging application windows
+- Brushes activated via the Preset browser will now open up a new menu:
+
+  - The menu contains controls to manage how selected presets will be applied on the canvas
+  - **Rotation**: Applies a random rotation within the selected range
+  - **Scale**: Applies a random scale within the selected range
+  - **Spawner**: Toggles between spawning new placeables and updating already existing placeables on the canvas
+  - **Random**: Toggles preset iteration between sequential and random order
+  - **Eraser**: When enabled the brush will turn into an eraser deleting clicked placeables
+  - **Lock**: When enabled presets will no longer be iterated through
+  - **Group**: When disabled presets containing multiple placeables will spawn them individually instead of a whole group
+  - **Snap**: When enabled preview/spawned placeables will be snapped to the grid
+  - **Macro**: When clicked control settings and all selected presets will be made into a macro to allow re-opening of the menu in the current state
+  - **Colorize**: Select a color to apply to Tiles, Tokens, and AmbientLights
+    - **FX**: When enabled the selected color will be applied as a DDTint filter
+
+**API**
+
+- MassEdit.openBrushMenu(options, settings = {})
+  - Opens a brush menu using the provided preset search options (see `MassEdit.getPresets`)
+
 # 1.64.1
 
 - Fixed Token Attacher prefabs dropped from the preset window being scaled twice
