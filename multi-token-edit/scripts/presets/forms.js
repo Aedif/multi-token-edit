@@ -114,7 +114,10 @@ export class MassEditPresets extends FormApplication {
 
     const displayExtCompendiums = game.settings.get(MODULE_ID, 'presetExtComp');
 
-    this.tree = await PresetCollection.getTree(this.docName, !displayExtCompendiums);
+    this.tree = await PresetCollection.getTree(this.docName, {
+      mainOnly: !displayExtCompendiums,
+      setFormVisibility: true,
+    });
     data.presets = this.tree.presets;
     data.folders = this.tree.folders;
     data.extFolders = this.tree.extFolders.length ? this.tree.extFolders : null;
@@ -1077,6 +1080,14 @@ export class MassEditPresets extends FormApplication {
         update.folder = this.tree.allFolders.get(folderUuid)?.id ?? null;
         updates.push(update);
 
+        // update preset object itself
+        // TODO: improve, this is done so that preset/pack does not need to get reloaded
+        const p = presets.find((p) => p.id === update._id);
+        if (p) {
+          p.folder = update.folder;
+          p.sort = update.sort;
+        }
+
         ctrl.target.sort = update.sort;
       });
       await PresetCollection.updatePresets(updates);
@@ -1489,7 +1500,7 @@ export class MassEditPresets extends FormApplication {
   }
 
   async _onExport() {
-    const tree = await PresetCollection.getTree(null, true);
+    const tree = await PresetCollection.getTree(null, { mainOnly: true });
     exportPresets(tree.allPresets);
   }
 
@@ -2145,7 +2156,7 @@ class PresetFolderConfig extends FolderConfig {
       this.displayTypes = true;
       docs = [];
       UI_DOCS.forEach((type) => {
-        docs.push({ name: type, icon: DOC_ICONS[type], active: folderDocs.includes(type) });
+        if (type != 'FAVORITES') docs.push({ name: type, icon: DOC_ICONS[type], active: folderDocs.includes(type) });
       });
     }
 

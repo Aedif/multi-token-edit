@@ -132,7 +132,7 @@ export class Picker {
       pickerOverlay.setPositions = setPositions;
     }
 
-    if (!preview.previewOnly) {
+    if (!preview?.previewOnly) {
       pickerOverlay.hitArea = canvas.dimensions.rect;
       pickerOverlay.cursor = 'crosshair';
       pickerOverlay.interactive = true;

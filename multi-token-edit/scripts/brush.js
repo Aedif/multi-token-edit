@@ -507,6 +507,7 @@ export class BrushMenu extends FormApplication {
 
     // Apply Color
     await this._applyColor();
+    if (this._settings.tmfxPreset) this._applyTmfxPreset(this.preset, this._settings.tmfxPreset);
 
     Brush.activate({
       preset: this.preset,
@@ -581,6 +582,38 @@ export class BrushMenu extends FormApplication {
     }
   }
 
+  _applyTmfxPreset(preset, tmfxPreset = 'fire') {
+    if (!game.modules.get('tokenmagic')?.active) return;
+    if (!['Token', 'Tile', 'Drawing', 'MeasuredTemplate'].includes(preset.documentName)) return;
+
+    const pFilters = TokenMagic.getPreset(tmfxPreset);
+    if (!pFilters) return;
+
+    for (const data of preset.data) {
+      let filters = foundry.utils.getProperty(data, 'flags.tokenmagic.filters') ?? [];
+      console.log(filters);
+      filters = filters.filter((f) => !pFilters.find((pf) => pf.filterId === f.tmFilters.tmFilterId));
+
+      for (const pf of pFilters) {
+        const filter = foundry.utils.deepClone(pf);
+        filter.filterOwner = game.data.userId;
+        filter.updateId = randomID();
+        filter.enabled = true;
+        filters.push({
+          tmFilters: {
+            tmFilterId: filter.filterId,
+            tmFilterInternalId: randomID(),
+            tmFilterType: filter.filterType,
+            filterOwner: game.data.userId,
+            tmParams: filter,
+          },
+        });
+      }
+
+      foundry.utils.setProperty(data, 'flags.tokenmagic.filters', filters);
+    }
+  }
+
   get title() {
     return 'Brush';
   }
@@ -590,7 +623,7 @@ export class BrushMenu extends FormApplication {
       presets: this.presets,
       activePreset: this.preset,
       ...this._settings,
-      tmfx: game.modules.get('tokenmagic')?.active,
+      tmfxPresets: game.modules.get('tokenmagic')?.active ? TokenMagic.getPresets() : null,
     };
   }
 
@@ -640,6 +673,16 @@ export class BrushMenu extends FormApplication {
     html.find('.randomize-color').on('click', this._onRandomizeColor.bind(this));
     html.find('input[type="color"]').on('change', this._onColorChange.bind(this));
     html.find('.color').on('input paste', this._onColorChange.bind(this));
+    html.find('.tmfxPreset').on('change, input', this._onTmfxPresetChange.bind(this));
+  }
+
+  _onTmfxPresetChange(event) {
+    clearTimeout(this._tmfxPresetChangeTO);
+    let preset = $(event.currentTarget).val();
+    console.log(preset);
+    this._tmfxPresetChangeTO = setTimeout(() => {
+      this._updateBrushSettings({ tmfxPreset: preset });
+    }, 500);
   }
 
   async _onColorChange(event) {
@@ -722,7 +765,13 @@ export class BrushMenu extends FormApplication {
   }
 
   async _resetToDefaults() {
-    await this._updateBrushSettings({ scale: [1, 1], rotation: [0, 0] });
+    await this._updateBrushSettings({
+      scale: [1, 1],
+      rotation: [0, 0],
+      color: null,
+      randomColor: null,
+      tmfxPreset: null,
+    });
     this.render(true);
   }
 
@@ -821,23 +870,58 @@ export class BrushMenu extends FormApplication {
   }
 
   async _generateBrushMacro() {
-    const uuids = this.presets.map((p) => p.uuid).filter(Boolean);
-    if (!uuids.length) return;
+    const genMacro = async function (command) {
+      const macro = await Macro.create({
+        name: 'Brush Macro',
+        type: 'script',
+        scope: 'global',
+        command,
+        img: `modules/${MODULE_ID}/images/brush_icon.png`,
+      });
+      macro.sheet.render(true);
+    };
 
-    const command = `MassEdit.openBrushMenu({ 
-  uuid: ${JSON.stringify(uuids, null, 4)}
-},
-${JSON.stringify(this._settings, null, 2)}
-);`;
+    const genUUIDS = function () {
+      const uuids = this.presets.map((p) => p.uuid).filter(Boolean);
+      if (!uuids.length) return;
 
-    const macro = await Macro.create({
-      name: 'Brush Macro',
-      type: 'script',
-      scope: 'global',
-      command,
-      img: `modules/${MODULE_ID}/images/brush_icon.png`,
+      const command = `MassEdit.openBrushMenu({ 
+    uuid: ${JSON.stringify(uuids, null, 4)}
+  },
+  ${JSON.stringify(this._settings, null, 2)}
+  );`;
+      genMacro(command);
+    };
+
+    const genNames = function () {
+      const opts = this.presets.map((p) => {
+        return { name: p.name, type: p.documentName };
+      });
+
+      const command = `MassEdit.openBrushMenu(
+    ${JSON.stringify(opts, null, 4)}
+  ,
+  ${JSON.stringify(this._settings, null, 2)}
+  );`;
+      genMacro(command);
+    };
+
+    let dialog = new Dialog({
+      title: `Generate Macro`,
+      content: ``,
+      buttons: {
+        uuids: {
+          label: 'UUIDs',
+          callback: genUUIDS.bind(this),
+        },
+        name: {
+          label: 'Names',
+          callback: genNames.bind(this),
+        },
+      },
     });
-    macro.sheet.render(true);
+
+    dialog.render(true);
   }
 
   async close(options = {}) {
@@ -873,9 +957,20 @@ export function deactivateBush() {
  * @param {Object} settings Brush Menu control settings
  */
 export async function openBrushMenu(options, settings = {}) {
-  const presets = await PresetAPI.getPresets(options);
+  if (BrushMenu.isActive()) return BrushMenu.close();
+
+  let presets = [];
+
+  if (Array.isArray(options)) {
+    for (const opts of options) {
+      let preset = await PresetAPI.getPreset(opts);
+      if (preset) presets.push(preset);
+    }
+  } else {
+    presets = await PresetAPI.getPresets(options);
+  }
+
   if (!presets?.length) return;
   for (const preset of presets) await preset.load();
-  await BrushMenu.close();
   BrushMenu.render(presets, settings);
 }

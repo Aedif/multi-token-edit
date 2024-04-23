@@ -31,12 +31,14 @@ export class PresetCollection {
 
   static workingPack;
 
-  static async getTree(type, mainOnly = false) {
+  static async getTree(type, { mainOnly = false, setFormVisibility = false } = {}) {
+    if (CONFIG.debug.MassEdit) console.time('getTree');
+
     let pack;
     let mainTree;
     try {
       pack = await this._initCompendium(this.workingPack);
-      mainTree = await this.packToTree(pack, type);
+      mainTree = await PresetTree.init(pack, type, { forceLoad: true, setFormVisibility });
     } catch (e) {
       // Fail-safe. Return back to DEFAULT_PACK
       console.log(e);
@@ -45,7 +47,7 @@ export class PresetCollection {
       await game.settings.set(MODULE_ID, 'workingPack', DEFAULT_PACK);
       this.workingPack = DEFAULT_PACK;
       pack = await this._initCompendium(this.workingPack);
-      mainTree = await this.packToTree(pack, type);
+      mainTree = await PresetTree.init(pack, type, { forceLoad: true, setFormVisibility });
     }
 
     const extFolders = [];
@@ -53,7 +55,7 @@ export class PresetCollection {
     if (!mainOnly) {
       for (const p of game.packs) {
         if (p.collection !== this.workingPack && p.index.get(META_INDEX_ID)) {
-          const tree = await this.packToTree(p, type);
+          const tree = await PresetTree.init(p, type, { setFormVisibility });
           if (!tree.hasVisible) continue;
 
           const topFolder = new PresetPackFolder({ pack: p, tree });
@@ -70,117 +72,8 @@ export class PresetCollection {
 
     mainTree.extFolders = this._groupExtFolders(extFolders, mainTree.allFolders);
 
+    if (CONFIG.debug.MassEdit) console.timeEnd('getTree');
     return mainTree;
-  }
-
-  static async packToTree(pack, type) {
-    if (!pack) return null;
-
-    if (CONFIG.debug.MassEdit) console.time(pack.title);
-
-    // Setup folders ready for parent/children processing
-    const folders = new Map();
-    const topLevelFolders = new Map();
-    const folderContents = pack.folders.contents;
-    for (const f of folderContents) {
-      const folder = new PresetFolder({
-        id: f._id,
-        uuid: f.uuid,
-        name: f.name,
-        sorting: f.sorting,
-        color: f.color,
-        sort: f.sort,
-        draggable: f.pack === this.workingPack,
-        folder: f.folder?.uuid,
-        visible: type ? (f.flags[MODULE_ID]?.types || ['ALL']).includes(type) : true,
-      });
-      folders.set(folder.uuid, folder);
-      topLevelFolders.set(f.uuid, folder);
-    }
-
-    // If folders have parent folders add them as children and remove them as a top level folder
-    for (const f of folderContents) {
-      if (f.folder) {
-        const parent = folders.get(f.folder.uuid);
-        parent.children.push(folders.get(f.uuid));
-        topLevelFolders.delete(f.uuid);
-      }
-    }
-
-    // Process presets
-    const allPresets = [];
-    const topLevelPresets = [];
-    let hasVisible = false; // tracks whether there exists at least one visible preset within this tree
-    const metaDoc = await pack.getDocument(META_INDEX_ID);
-    let metaIndex = metaDoc?.getFlag(MODULE_ID, 'index');
-
-    const index = pack.index.contents;
-
-    // TEMP - 06/03/2024
-    // Due to poor implementation of Folder+Folder Content delete, there are likely to be some indexes which were not removed
-    // Lets clean them up here for now
-    PresetCollection._cleanIndex(pack, metaDoc, metaIndex);
-    // Remove after sufficient enough time has passed to have reasonable confidence that All/Most users have executed this ^
-
-    for (const idx of index) {
-      if (idx._id === META_INDEX_ID) continue;
-      const mIndex = metaIndex[idx._id];
-      const preset = new Preset({ ...idx, ...mIndex, pack: pack.collection });
-
-      // If no document name is available (missing metadata) attempt to load the preset to retrieve it
-      // If still no name is found, skip it
-      if (!preset.documentName) {
-        console.log(`Missing MetaData. Attempting document load: ${preset.id} | ${preset.name}`);
-        await preset.load();
-        if (!preset.documentName) continue;
-        if (!pack.locked) preset._updateIndex(preset); // Insert missing preset into metadata index
-      }
-
-      if (type) {
-        if (type === 'ALL') {
-          if (!UI_DOCS.includes(preset.documentName)) preset._visible = false;
-        } else if (type === 'FAVORITES') {
-          if (!preset.isFavorite) preset._visible = false;
-        } else if (preset.documentName !== type) preset._visible = false;
-      }
-
-      if (preset.folder) {
-        let matched = false;
-        for (const [uuid, folder] of folders) {
-          if (folder.id === preset.folder) {
-            folder.presets.push(preset);
-            matched = true;
-            if (type === 'FAVORITES' && preset.isFavorite) this._setChildAndParentFoldersVisible(folder, folders);
-            break;
-          }
-        }
-        if (!matched) topLevelPresets.push(preset);
-      } else topLevelPresets.push(preset);
-
-      allPresets.push(preset);
-      hasVisible |= preset._visible;
-    }
-
-    // Sort folders
-    const sorting = game.settings.get(MODULE_ID, 'presetSortMode') === 'manual' ? 'm' : 'a';
-    const sortedFolders = this._sortFolders(Array.from(topLevelFolders.values()), sorting);
-    const sortedPresets = this._sortPresets(topLevelPresets, sorting);
-
-    if (CONFIG.debug.MassEdit) console.timeEnd(pack.title);
-
-    return {
-      folders: sortedFolders,
-      presets: sortedPresets,
-      allPresets,
-      allFolders: folders,
-      hasVisible,
-      metaDoc,
-    };
-  }
-
-  static _setChildAndParentFoldersVisible(folder, folders) {
-    folder.visible = true;
-    if (folder.folder) this._setChildAndParentFoldersVisible(folders.get(folder.folder), folders);
   }
 
   static _groupExtFolders(folders, allFolders) {
@@ -339,6 +232,7 @@ export class PresetCollection {
     });
 
     await metaDoc.setFlag(MODULE_ID, 'index', { [preset.id]: update });
+    delete PresetTree._packTrees[pack];
   }
 
   static async get(uuid, { full = true } = {}) {
@@ -985,6 +879,7 @@ class PresetFolder {
     folder = null,
     visible = true,
     render = true,
+    types = [],
   } = {}) {
     this.id = id;
     this.uuid = uuid;
@@ -1002,11 +897,15 @@ class PresetFolder {
     this.visible = visible;
     this.render = render;
     this.expanded = FolderState.expanded(this.uuid);
+    this.types = types;
   }
 
   async update(data) {
     const doc = await fromUuid(this.uuid);
-    if (doc) await doc.update(data);
+    if (doc) {
+      foundry.utils.mergeObject(this, data);
+      await doc.update(data);
+    }
   }
 }
 
@@ -1049,5 +948,172 @@ export class PresetPackFolder extends PresetVirtualFolder {
 
     const metaDoc = await PresetCollection._initMetaDocument(this.pack);
     await metaDoc.setFlag(MODULE_ID, 'folder', data);
+  }
+}
+
+class PresetTree {
+  static _packTrees = {};
+
+  static async init(pack, type, { forceLoad = false, setFormVisibility = false } = {}) {
+    if (!pack) return null;
+
+    if (CONFIG.debug.MassEdit) console.time(pack.title);
+
+    // TODO: Save tree, instead of reconstructing
+    if (!forceLoad && PresetTree._packTrees[pack.metadata.name]) {
+      const tree = PresetTree._packTrees[pack.metadata.name];
+      if (setFormVisibility) tree.setVisibility(type);
+      if (CONFIG.debug.MassEdit) console.timeEnd(pack.title);
+      return tree;
+    }
+
+    // Setup folders ready for parent/children processing
+    const folders = new Map();
+    const topLevelFolders = new Map();
+    const folderContents = pack.folders.contents;
+    for (const f of folderContents) {
+      const folder = new PresetFolder({
+        id: f._id,
+        uuid: f.uuid,
+        name: f.name,
+        sorting: f.sorting,
+        color: f.color,
+        sort: f.sort,
+        draggable: f.pack === this.workingPack,
+        folder: f.folder?.uuid,
+        types: f.flags[MODULE_ID]?.types || ['ALL'],
+      });
+
+      folders.set(folder.uuid, folder);
+      topLevelFolders.set(f.uuid, folder);
+    }
+
+    // If folders have parent folders add them as children and remove them as a top level folder
+    for (const f of folderContents) {
+      if (f.folder) {
+        const parent = folders.get(f.folder.uuid);
+        parent.children.push(folders.get(f.uuid));
+        topLevelFolders.delete(f.uuid);
+      }
+    }
+
+    // Process presets
+    const allPresets = [];
+    const topLevelPresets = [];
+    let hasVisible = false; // tracks whether there exists at least one visible preset within this tree
+    const metaDoc = await pack.getDocument(META_INDEX_ID);
+    let metaIndex = metaDoc?.getFlag(MODULE_ID, 'index');
+
+    const index = pack.index.contents;
+
+    // TEMP - 06/03/2024
+    // Due to poor implementation of Folder+Folder Content delete, there are likely to be some indexes which were not removed
+    // Lets clean them up here for now
+    PresetCollection._cleanIndex(pack, metaDoc, metaIndex);
+    // Remove after sufficient enough time has passed to have reasonable confidence that All/Most users have executed this ^
+
+    for (const idx of index) {
+      if (idx._id === META_INDEX_ID) continue;
+      const mIndex = metaIndex[idx._id];
+      const preset = new Preset({ ...idx, ...mIndex, pack: pack.collection });
+
+      // If no document name is available (missing metadata) attempt to load the preset to retrieve it
+      // If still no name is found, skip it
+      if (!preset.documentName) {
+        console.log(`Missing MetaData. Attempting document load: ${preset.id} | ${preset.name}`);
+        await preset.load();
+        if (!preset.documentName) continue;
+        if (!pack.locked) preset._updateIndex(preset); // Insert missing preset into metadata index
+      }
+
+      if (preset.folder) {
+        let matched = false;
+        for (const [uuid, folder] of folders) {
+          if (folder.id === preset.folder) {
+            folder.presets.push(preset);
+            matched = true;
+            break;
+          }
+        }
+        if (!matched) topLevelPresets.push(preset);
+      } else topLevelPresets.push(preset);
+
+      allPresets.push(preset);
+      hasVisible |= preset._visible;
+    }
+
+    // Sort folders
+    const sorting = game.settings.get(MODULE_ID, 'presetSortMode') === 'manual' ? 'm' : 'a';
+    const sortedFolders = PresetCollection._sortFolders(Array.from(topLevelFolders.values()), sorting);
+    const sortedPresets = PresetCollection._sortPresets(topLevelPresets, sorting);
+
+    if (CONFIG.debug.MassEdit) console.timeEnd(pack.title);
+
+    const tree = new PresetTree({
+      folders: sortedFolders,
+      presets: sortedPresets,
+      allPresets,
+      allFolders: folders,
+      hasVisible,
+      metaDoc,
+      pack,
+    });
+
+    if (setFormVisibility) tree.setVisibility(type);
+    PresetTree._packTrees[pack.metadata.name] = tree;
+
+    return tree;
+  }
+
+  constructor({ folders, presets, allPresets, allFolders, hasVisible, metaDoc, pack } = {}) {
+    this.folders = folders;
+    this.presets = presets;
+    this.allPresets = allPresets;
+    this.allFolders = allFolders;
+    this.hasVisible = hasVisible;
+    this.metaDoc = metaDoc;
+    this.pack = pack;
+  }
+
+  setVisibility(type) {
+    this.allFolders.forEach((f) => {
+      f.render = true;
+      f.draggable = f.pack === this.workingPack;
+      f.visible = type ? f.types.includes(type) : true;
+    });
+
+    this.hasVisible = false;
+
+    for (const preset of this.allPresets) {
+      preset._visible = true;
+      preset._render = true;
+      if (type) {
+        if (type === 'ALL') {
+          if (!UI_DOCS.includes(preset.documentName)) preset._visible = false;
+        } else if (type === 'FAVORITES') {
+          if (!preset.isFavorite) preset._visible = false;
+        } else if (preset.documentName !== type) preset._visible = false;
+      }
+
+      if (preset.folder && type === 'FAVORITES') {
+        for (const [uuid, folder] of this.allFolders) {
+          if (folder.id === preset.folder) {
+            if (preset.isFavorite) this._setChildAndParentFoldersVisible(folder);
+            break;
+          }
+        }
+      }
+
+      this.hasVisible |= preset._visible;
+    }
+  }
+
+  _setChildAndParentFoldersVisible(folder) {
+    folder.visible = true;
+    if (folder.folder) {
+      for (const f of this.allFolders.entries()) {
+        if (f.id === folder.folder) return this._setChildAndParentFoldersVisible(f);
+      }
+    }
   }
 }

@@ -17,15 +17,25 @@
                     <a class="toggle-button {{#if spawner}}active{{/if}}" data-name="spawner" title="Spawner"><i class="fas fa-plus-circle"></i></a>
                     <a class="toggle-button {{#if eraser}}active{{/if}}" data-name="eraser" title="Eraser"><i class="fas fa-eraser"></i></a>
                 </div>
-                <div style="display: flex; margin-top: 10px;">
+                <div style="display: flex; margin-top: 10px; margin-bottom: 5px;">
                     {{colorPicker name="color" value=color}}
                     <div class="color-controls" style="display: flex; flex-direction: column; margin-top: -5px; margin-left: 6px;">
-                        {{#if tmfx}}
+                        {{#if tmfxPresets}}
                         <a class="toggle-button {{#if ddTint}}active{{/if}}" data-name="ddTint" title="TokenMagicFX DDTint"><i class="fa-solid fa-f fa-sm"></i><i class="fa-solid fa-x fa-sm"></i></a>
                         {{/if}}
                         <a class="randomize-color {{#if randomColor}}active{{/if}}"><i class="fa-solid fa-dice"></i></a>
                     </div>
                 </div>
+                {{#if tmfxPresets}}
+                <div style="display: flex;">
+                    <datalist id="tmfxPresets">
+                        {{#each tmfxPresets as |preset|}}
+                        <option value="{{preset.name}}">
+                        {{/each}}
+                    </datalist>
+                    <input class="tmfxPreset" list="tmfxPresets" name="tmfxPreset" value="{{tmfxPreset}}" style="width: 100px; height: 18px;"><label style="margin-left: 8px;">FX Filter</label>
+                </div>
+                {{/if}}
             </fieldset>
         </div>
         <br>
