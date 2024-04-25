@@ -533,6 +533,7 @@ export class MassEditPresets extends FormApplication {
 
   async _onDoubleClickPreset(event) {
     BrushMenu.close();
+    // TODO: 3D Preview
     if (game.Levels3DPreview?._active) return;
     const uuid = $(event.target).closest('.item').data('uuid');
     if (!uuid) return;

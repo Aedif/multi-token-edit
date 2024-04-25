@@ -1,3 +1,13 @@
+# 1.66.0
+
+- Brush Menu
+  - Added 'Token Magic FX' filter presets control
+  - Added 'Scale To Grid' control
+  - Brush macros can now be generated using either Preset UUIDs or Names
+- Presets
+  - Preset browser optimization
+  - Spawn preview now automatically disables on scene change
+
 # 1.65.0
 
 **Presets**

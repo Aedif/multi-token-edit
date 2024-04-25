@@ -257,6 +257,7 @@ export function registerSettings() {
       eraser: false,
       lock: false,
       snap: false,
+      scaleToGrid: true,
     },
   });
 }

@@ -10,10 +10,11 @@
                 <div class="scale-slider"></div>
 
                 <div class="sub-controls">
-                    <a class="toggle-button {{#if random}}active{{/if}}" data-name="random" title="Random."><i class="fa-solid fa-dice"></i></a>
+                    <a class="toggle-button {{#if random}}active{{/if}}" data-name="random" title="{{localize 'MassEdit.common.randomize'}}"><i class="fa-solid fa-dice"></i></a>
                     <a class="toggle-button {{#if lock}}active{{/if}}" data-name="lock" title="Lock to current preset."><i class="fas fa-lock"></i></a>
                     <a class="toggle-button {{#if group}}active{{/if}}" data-name="group" title="Spawn multi-placeable presets as a group."><i class="fa-solid fa-object-group"></i></a>
-                    <a class="toggle-button {{#if snap}}active{{/if}}" data-name="snap" title="Snap to grid."><i class="fas fa-th"></i></a>
+                    <a class="toggle-button {{#if snap}}active{{/if}}" data-name="snap" title="{{localize 'MassEdit.randomizer.snapToGrid'}}"><i class="fas fa-th"></i></a>
+                    <a class="toggle-button {{#if scaleToGrid}}active{{/if}}" data-name="scaleToGrid" title="{{localize 'MassEdit.presets.controls.scale-to-grid'}}"><i class="fa-solid fa-arrow-down-big-small"></i></a>
                     <a class="toggle-button {{#if spawner}}active{{/if}}" data-name="spawner" title="Spawner"><i class="fas fa-plus-circle"></i></a>
                     <a class="toggle-button {{#if eraser}}active{{/if}}" data-name="eraser" title="Eraser"><i class="fas fa-eraser"></i></a>
                 </div>

@@ -83,6 +83,34 @@ export class Picker {
           const doc = preview.document;
           DataTransform.apply(doc.documentName, preview._pData ?? doc, pos, transform, preview);
 
+          // TODO: 3D Preview
+          // if (preview._l3dPreview) {
+          //   try {
+          //     preview._l3dPreview.collision = false;
+          //     const mPos = game.Levels3DPreview.interactionManager.canvas3dMousePosition;
+          //     const cPos = game.Levels3DPreview.interactionManager.camera.position;
+
+          //     const intersects = game.Levels3DPreview.interactionManager.computeSightCollisionFrom3DPositions(
+          //       cPos,
+          //       mPos,
+          //       'collision',
+          //       false,
+          //       false,
+          //       false,
+          //       true
+          //     );
+
+          //     if (intersects[0]) {
+          //       const mesh = preview._l3dPreview.mesh;
+          //       mesh.position.x = intersects[0].point.x;
+          //       mesh.position.y = intersects[0].point.y;
+          //       mesh.position.z = intersects[0].point.z;
+          //     }
+          //   } catch (e) {
+          //     console.log(e);
+          //   }
+          // }
+
           // =====
           // Hacks
           // =====
@@ -177,10 +205,20 @@ export class Picker {
   static destroy() {
     if (this.pickerOverlay) {
       this.pickerOverlay.parent?.removeChild(this.pickerOverlay);
-      if (this.pickerOverlay.previewDocuments)
-        this.pickerOverlay.previewDocuments.forEach((name) =>
-          canvas.getLayerByEmbeddedName(name)?.clearPreviewContainer()
-        );
+      if (this.pickerOverlay.previewDocuments) {
+        this.pickerOverlay.previewDocuments.forEach((name) => {
+          const layer = canvas.getLayerByEmbeddedName(name);
+          if (layer) {
+            // TODO: 3D Preview
+            // if (game.Levels3DPreview?._active) {
+            //   layer.preview.children.forEach((c) => {
+            //     c._l3dPreview?.destroy();
+            //   });
+            // }
+            layer.clearPreviewContainer();
+          }
+        });
+      }
 
       this.pickerOverlay.destroy(true);
       this.pickerOverlay.children?.forEach((c) => c.destroy(true));
@@ -201,6 +239,15 @@ export class Picker {
     const object = new CONFIG[documentName].objectClass(document);
     this.preview.addChild(object);
     await object.draw();
+
+    // TODO: 3D Preview
+    // if (game.Levels3DPreview._active) {
+    //   if (documentName === 'Tile') {
+    //     game.Levels3DPreview.createTile(object);
+    //     object._l3dPreview = game.Levels3DPreview.tiles[object.id];
+    //     console.log(object._l3dPreview);
+    //   }
+    // }
 
     return object;
   }

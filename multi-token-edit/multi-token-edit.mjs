@@ -225,6 +225,13 @@ Hooks.once('init', () => {
   };
 });
 
+// Deactivate brush/picker on scene change
+
+Hooks.on('canvasReady', () => {
+  if (BrushMenu.isActive()) BrushMenu.close();
+  else if (Picker.isActive()) Picker.destroy();
+});
+
 // Preset Scene Control
 Hooks.on('renderSceneControls', (sceneControls, html, options) => {
   if (!game.user.isGM) return;

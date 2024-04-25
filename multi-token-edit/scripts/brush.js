@@ -41,7 +41,14 @@ export class Brush {
     if (!this.lastSpawnTime || now - this.lastSpawnTime > 100) {
       this.lastSpawnTime = now;
       if (pos.z == null) Picker.resolve(pos);
-      else PresetAPI.spawnPreset({ preset: this.preset, ...pos, center: true, snapToGrid: this.snap });
+      else
+        PresetAPI.spawnPreset({
+          preset: this.preset,
+          ...pos,
+          center: true,
+          snapToGrid: this.snap,
+          scaleToGrid: this.scaleToGrid,
+        });
       BrushMenu.iterate();
     }
   }
@@ -166,6 +173,7 @@ export class Brush {
   }
 
   static async genPreview() {
+    // TODO: 3D Preview
     if (!game.Levels3DPreview?._active)
       PresetAPI.spawnPreset({
         preset: this.preset,
@@ -175,6 +183,7 @@ export class Brush {
         taPreview: 'ALL',
         transform: this.transform,
         snapToGrid: this.snap,
+        scaleToGrid: this.scaleToGrid,
       });
   }
 
@@ -193,6 +202,7 @@ export class Brush {
     refresh = false,
     transform = {},
     snap = true,
+    scaleToGrid = true,
   } = {}) {
     this.deactivate(refresh);
     if (!canvas.ready) return false;
@@ -210,6 +220,7 @@ export class Brush {
     this.spawner = spawner;
     this.eraser = eraser;
     this.snap = snap;
+    this.scaleToGrid = scaleToGrid;
     if (this.app) {
       this.documentName = this.app.documentName;
     } else {
@@ -324,6 +335,9 @@ export class Brush {
       if (intersects[0]) {
         const intersect = intersects[0];
         brush.brush3d.position.set(intersect.point.x, intersect.point.y, intersect.point.z);
+        // TODO: 3D Preview
+        // const posVec = game.Levels3DPreview.ruler.constructor.pos3DToCanvas(brush.brush3d.position);
+        // Picker.feedPos({ x: posVec.x, y: posVec.y, z: posVec.z });
       }
       brush.brush3dDelayMoveTimer = null;
     }, 100); // Will do the ajax stuff after 1000 ms, or 1 s
@@ -363,6 +377,7 @@ export class Brush {
       this.brush3d.position.set(mPos.x, mPos.y, mPos.z);
 
       game.Levels3DPreview.scene.add(this.brush3d);
+      if (this.spawner) this.genPreview();
     }
 
     // Activate listeners
@@ -517,6 +532,7 @@ export class BrushMenu extends FormApplication {
       transform: this._getTransform(),
       refresh,
       snap: this._settings.snap,
+      scaleToGrid: this._settings.scaleToGrid,
     });
   }
 

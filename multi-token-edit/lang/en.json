@@ -116,7 +116,7 @@
       "listOfStrings": "List of strings to be used during randomization",
       "allowDuplicates": "Allow Duplicates",
       "stepSize": "Step size",
-      "snapToGrid": "Snap to grid"
+      "snapToGrid": "Snap To Grid"
     },
     "presets": {
       "drag-placeable-message": "Drag in placeables to create a preset.",

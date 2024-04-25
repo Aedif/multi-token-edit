@@ -948,6 +948,8 @@ export class PresetPackFolder extends PresetVirtualFolder {
 
     const metaDoc = await PresetCollection._initMetaDocument(this.pack);
     await metaDoc.setFlag(MODULE_ID, 'folder', data);
+
+    foundry.utils.mergeObject(this, data);
   }
 }
 
@@ -959,7 +961,7 @@ class PresetTree {
 
     if (CONFIG.debug.MassEdit) console.time(pack.title);
 
-    // TODO: Save tree, instead of reconstructing
+    // Re-use tree if already parsed
     if (!forceLoad && PresetTree._packTrees[pack.metadata.name]) {
       const tree = PresetTree._packTrees[pack.metadata.name];
       if (setFormVisibility) tree.setVisibility(type);
