@@ -111,11 +111,26 @@
    ====== Presets ======
    ===================== */
 
-.mass-edit-dark-window .window-content {
+.mass-edit-dark-window .window-content,
+.mass-edit-dark-window .tag {
   background: rgba(50, 50, 50, 0.8);
+  color: rgba(255, 255, 240, 0.8);
+}
+
+.mass-edit-dark-window button {
+  background: black;
+  color: rgba(255, 255, 240, 0.8);
+}
+
+.mass-edit-dark-window input,
+.mass-edit-dark-window p.notes,
+.mass-edit-dark-window textarea {
+  color: var(--color-text-light-4);
+}
+
+.mass-edit-window-fill .window-content {
   padding-left: 1px;
   padding-right: 1px;
-  color: rgba(255, 255, 240, 0.8);
 }
 
 #mass-edit-presets.inactive {
@@ -575,13 +590,13 @@ nav > a[data-tab='me-pinned'] {
   border-radius: 5px;
   padding: 3px;
   margin: 2px;
-  background: floralwhite;
   display: inline-block;
 }
 
 .me-tags .add-tag {
   flex: 0;
   margin-left: 0.5em;
+  line-height: inherit;
 }
 
 /* ================== 
@@ -604,6 +619,11 @@ nav > a[data-tab='me-pinned'] {
 
 .mass-edit-brush-menu .ui-slider-range {
   background-color: darkorange;
+}
+
+.mass-edit-brush-menu .ui-slider-handle {
+  background-color: darkorange;
+  border-color: black;
 }
 
 .mass-edit-brush-menu .ui-slider {

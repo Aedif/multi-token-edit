@@ -9,6 +9,9 @@
                 <label>Scale</label><span class="scale-range-label" style="color:darkorange; margin-left: 10px;" >{{scale.[0]}} - {{scale.[1]}}</span>
                 <div class="scale-slider"></div>
 
+                <label>Density</label><span class="density-range-label" style="color:darkorange; margin-left: 10px;" >{{density}}</span>
+                <div class="density-slider"></div>
+
                 <div class="sub-controls">
                     <a class="toggle-button {{#if random}}active{{/if}}" data-name="random" title="{{localize 'MassEdit.common.randomize'}}"><i class="fa-solid fa-dice"></i></a>
                     <a class="toggle-button {{#if lock}}active{{/if}}" data-name="lock" title="Lock to current preset."><i class="fas fa-lock"></i></a>
@@ -18,25 +21,22 @@
                     <a class="toggle-button {{#if spawner}}active{{/if}}" data-name="spawner" title="Spawner"><i class="fas fa-plus-circle"></i></a>
                     <a class="toggle-button {{#if eraser}}active{{/if}}" data-name="eraser" title="Eraser"><i class="fas fa-eraser"></i></a>
                 </div>
+
+                <div class="sub-controls">
+                    <a class="tmfxPresetControl {{#if tmfxPreset}}active{{/if}}" title="TokenMagicFX"><i class="fa-solid fa-t fa-sm"></i><i class="fa-solid fa-m fa-sm"></i><i class="fa-solid fa-f fa-sm"></i><i class="fa-solid fa-x fa-sm"></i></a>
+                </div>
+
+                <div class="sub-menu"></div>
+
                 <div style="display: flex; margin-top: 10px; margin-bottom: 5px;">
                     {{colorPicker name="color" value=color}}
                     <div class="color-controls" style="display: flex; flex-direction: column; margin-top: -5px; margin-left: 6px;">
-                        {{#if tmfxPresets}}
+                        {{#if tmfxActive}}
                         <a class="toggle-button {{#if ddTint}}active{{/if}}" data-name="ddTint" title="TokenMagicFX DDTint"><i class="fa-solid fa-f fa-sm"></i><i class="fa-solid fa-x fa-sm"></i></a>
                         {{/if}}
                         <a class="randomize-color {{#if randomColor}}active{{/if}}"><i class="fa-solid fa-dice"></i></a>
                     </div>
                 </div>
-                {{#if tmfxPresets}}
-                <div style="display: flex;">
-                    <datalist id="tmfxPresets">
-                        {{#each tmfxPresets as |preset|}}
-                        <option value="{{preset.name}}">
-                        {{/each}}
-                    </datalist>
-                    <input class="tmfxPreset" list="tmfxPresets" name="tmfxPreset" value="{{tmfxPreset}}" style="width: 100px; height: 18px;"><label style="margin-left: 8px;">FX Filter</label>
-                </div>
-                {{/if}}
             </fieldset>
         </div>
         <br>

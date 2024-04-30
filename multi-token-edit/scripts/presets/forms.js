@@ -87,7 +87,7 @@ export class MassEditPresets extends FormApplication {
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
       id: 'mass-edit-presets',
-      classes: ['sheet', 'mass-edit-dark-window'],
+      classes: ['sheet', 'mass-edit-dark-window', 'mass-edit-window-fill'],
       template: `modules/${MODULE_ID}/templates/preset/presets.html`,
       resizable: true,
       minimizable: true,
@@ -1573,7 +1573,7 @@ export class PresetConfig extends FormApplication {
   /** @inheritdoc */
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
-      classes: ['sheet'],
+      classes: ['sheet', 'mass-edit-dark-window'],
       template: `modules/${MODULE_ID}/templates/preset/presetEdit.html`,
       width: 360,
     });
@@ -1659,7 +1659,7 @@ export class PresetConfig extends FormApplication {
     data.minlength = this.presets.length > 1 ? 0 : 1;
     data.tva = game.modules.get('token-variants')?.active;
 
-    if (this.data && !(this.data instanceof Array)) {
+    if ((this.data && !(this.data instanceof Array)) || (!this.data && this.presets[0].isEmpty)) {
       data.modifyDisabled = true;
       data.deleteDisabled = true;
     }
@@ -1730,7 +1730,7 @@ export class PresetConfig extends FormApplication {
       });
 
     //Tags
-    TagInput.activateListeners(html, () => this.setPosition({ height: 'auto' }));
+    TagInput.activateListeners(html, { change: () => this.setPosition({ height: 'auto' }) });
   }
 
   _getSubmitData(updateData = {}) {
@@ -1957,7 +1957,7 @@ class PresetFieldSelect extends FormApplication {
   /** @inheritdoc */
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
-      classes: ['sheet', 'preset-field-select', 'mass-edit-dark-window'],
+      classes: ['sheet', 'preset-field-select', 'mass-edit-dark-window', 'mass-edit-window-fill'],
       template: `modules/${MODULE_ID}/templates/preset/presetFieldSelect.html`,
       width: 600,
       resizable: false,

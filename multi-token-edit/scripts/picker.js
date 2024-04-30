@@ -371,6 +371,8 @@ export class DataTransform {
     if (transform.x == null) transform.x = 0;
     if (transform.y == null) transform.y = 0;
 
+    // TODO: Add checks for data with missing fields
+
     if (docName === 'Wall') {
       this.transformWall(data, origin, transform, preview);
     } else if (docName === 'Tile') {

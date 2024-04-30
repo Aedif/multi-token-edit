@@ -107,10 +107,10 @@ export function mergePresetDataToDefaultDoc(preset, presetData) {
   // Set default values if needed
   switch (preset.documentName) {
     case 'Token':
-      data = { name: preset.name, elevation: 0, x: 0, y: 0 };
+      data = { name: preset.name, elevation: 0, x: 0, y: 0, rotation: 0, width: 1, height: 1 };
       break;
     case 'Tile':
-      data = { width: canvas.grid.w, height: canvas.grid.h, x: 0, y: 0 };
+      data = { width: canvas.grid.w, height: canvas.grid.h, x: 0, y: 0, rotation: 0 };
       break;
     case 'AmbientSound':
       data = { radius: 20, x: 0, y: 0 };
@@ -125,6 +125,7 @@ export function mergePresetDataToDefaultDoc(preset, presetData) {
         },
         x: 0,
         y: 0,
+        rotation: 0,
       };
       break;
     case 'MeasuredTemplate':
@@ -135,6 +136,9 @@ export function mergePresetDataToDefaultDoc(preset, presetData) {
       break;
     case 'Scene':
       data = { name: preset.name };
+      break;
+    case 'Wall':
+      data = { c: [0, 0, canvas.grid.size, 0] };
       break;
     default:
       data = { x: 0, y: 0 };

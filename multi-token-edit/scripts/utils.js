@@ -593,6 +593,8 @@ export class TagInput {
     Handlebars.registerHelper('tagInput', (options) => {
       const name = options.hash.name;
       const label = options.hash.label ?? 'Tags';
+      const listId = options.hash.listId;
+      const listEntries = options.hash.listEntries;
 
       let tags = options.hash.tags;
       if (!Handlebars.Utils.isArray(tags)) tags = [];
@@ -603,13 +605,27 @@ export class TagInput {
         tagHtml += this._tagField(tag);
       });
 
+      // DataList
+      let listAttr = '';
+      let dataList = '';
+      if (listId && listEntries) {
+        listAttr = `list="${listId}"`;
+
+        dataList = `<datalist id="${listId}"><option value="DELETE ALL">`;
+        listEntries.forEach((le) => {
+          dataList += `<option value="${le}">`;
+        });
+        dataList += `</datalist>`;
+      }
+
       return new Handlebars.SafeString(`
+      ${dataList}
       <fieldset>
         <legend>${label}</legend>
         <div class="form-group me-tags">
-            <input type="text" class="tag-input">  
+            <input type="text" ${listAttr} class="tag-input">  
             <input type="text" class="tag-hidden-input" name="${name}" value="${tags.join(',')}" hidden>
-            <button type="button" class="add-tag"><i class="fas fa-save"></i></button>
+            <button type="button" class="add-tag"><i class="fas fa-save" style="margin: auto;"></i></button>
             <div class="tag-container">${tagHtml}</div>
         </div>
       </fieldset>
@@ -621,7 +637,7 @@ export class TagInput {
     return `<div class="tag"><span>${tag}</span> <a class="delete-tag"><i class="fa-solid fa-x fa-xs"></i></a></div>`;
   }
 
-  static activateListeners(html, resize) {
+  static activateListeners(html, { change, simplifyTags = true } = {}) {
     html.find('.me-tags .add-tag').on('click', (event) => {
       const meTags = $(event.target).closest('.me-tags');
       const input = meTags.find('.tag-input');
@@ -629,12 +645,11 @@ export class TagInput {
       const newTags = input
         .val()
         .split(',')
-        .map((t) =>
-          t
-            .trim()
-            .replace(/[^0-9a-zA-Z_\- ]/gi, '')
-            .toLowerCase()
-        )
+        .map((t) => {
+          t = t.trim();
+          if (simplifyTags) t = t.replace(/[^0-9a-zA-Z_\- ]/gi, '').toLowerCase();
+          return t;
+        })
         .filter(Boolean);
 
       if (newTags.length) {
@@ -648,7 +663,7 @@ export class TagInput {
           }
         }
         hiddenInput.attr('value', currentTags.join(','));
-        if (resize) resize();
+        change?.(currentTags);
       }
     });
 
@@ -661,14 +676,13 @@ export class TagInput {
       const newTags = hiddenInput
         .val()
         .split(',')
-        .filter((t) => t !== tagValue)
-        .join(',');
-      hiddenInput.attr('value', newTags);
+        .filter((t) => t !== tagValue);
+      hiddenInput.attr('value', newTags.join(','));
 
       // Remove the tag element itself
       tag.remove();
 
-      if (resize) resize();
+      change?.(newTags);
     });
   }
 }

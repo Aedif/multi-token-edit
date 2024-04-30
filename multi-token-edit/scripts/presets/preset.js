@@ -91,9 +91,13 @@ export class Preset {
   }
 
   set data(data) {
-    if (data instanceof Array) this._data = data;
-    else if (data == null) this._data = null;
+    if (data instanceof Array) this._data = data.length ? data : [{}];
+    else if (data == null) this._data = [{}];
     else this._data = [data];
+  }
+
+  get data() {
+    return this._data;
   }
 
   get isPlaceable() {
@@ -105,8 +109,8 @@ export class Preset {
     return Boolean(Preset.favorites[this.uuid]);
   }
 
-  get data() {
-    return this._data;
+  get isEmpty() {
+    return foundry.utils.isEmpty(this.data[0]);
   }
 
   /**
