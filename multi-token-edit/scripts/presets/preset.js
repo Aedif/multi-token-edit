@@ -113,35 +113,51 @@ export class Preset {
     return foundry.utils.isEmpty(this.data[0]);
   }
 
+  addPostSpawnHook(hook) {
+    if (!this._postSpawnHooks) this._postSpawnHooks = [];
+    this._postSpawnHooks.push(hook);
+  }
+
+  async callPostSpawnHooks(options) {
+    if (this._postSpawnHooks) {
+      for (const hook of this._postSpawnHooks) {
+        await hook(options);
+      }
+    }
+  }
+
   /**
    * Loads underlying JournalEntry document from the compendium
    * @returns this
    */
-  async load() {
+  async load(force = false) {
+    if (this.document && !force) return this;
     if (!this.document && this.uuid) {
       this.document = await fromUuid(this.uuid);
-      if (this.document) {
-        const preset = this.document.getFlag(MODULE_ID, 'preset') ?? {};
-        this.documentName = preset.documentName;
-        this.img = preset.img;
-        this.data = preset.data;
-        this.randomize =
-          foundry.utils.getType(preset.randomize) === 'Object'
-            ? preset.randomize
-            : Object.fromEntries(preset.randomize ?? []);
-        this.addSubtract =
-          foundry.utils.getType(preset.addSubtract) === 'Object'
-            ? preset.addSubtract
-            : Object.fromEntries(preset.addSubtract ?? []);
-        this.gridSize = preset.gridSize;
-        this.modifyOnSpawn = preset.modifyOnSpawn;
-        this.preSpawnScript = preset.preSpawnScript;
-        this.postSpawnScript = preset.postSpawnScript;
-        this.attached = preset.attached;
-        this.spawnRandom = preset.spawnRandom;
-        this.tags = preset.tags ?? [];
-      }
     }
+
+    if (this.document) {
+      const preset = this.document.getFlag(MODULE_ID, 'preset') ?? {};
+      this.documentName = preset.documentName;
+      this.img = preset.img;
+      this.data = preset.data;
+      this.randomize =
+        foundry.utils.getType(preset.randomize) === 'Object'
+          ? preset.randomize
+          : Object.fromEntries(preset.randomize ?? []);
+      this.addSubtract =
+        foundry.utils.getType(preset.addSubtract) === 'Object'
+          ? preset.addSubtract
+          : Object.fromEntries(preset.addSubtract ?? []);
+      this.gridSize = preset.gridSize;
+      this.modifyOnSpawn = preset.modifyOnSpawn;
+      this.preSpawnScript = preset.preSpawnScript;
+      this.postSpawnScript = preset.postSpawnScript;
+      this.attached = preset.attached;
+      this.spawnRandom = preset.spawnRandom;
+      this.tags = preset.tags ?? [];
+    }
+
     return this;
   }
 

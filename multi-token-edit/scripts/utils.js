@@ -611,7 +611,7 @@ export class TagInput {
       if (listId && listEntries) {
         listAttr = `list="${listId}"`;
 
-        dataList = `<datalist id="${listId}"><option value="DELETE ALL">`;
+        dataList = `<datalist id="${listId}"><option value="DELETE"><option value="DELETE ALL">`;
         listEntries.forEach((le) => {
           dataList += `<option value="${le}">`;
         });

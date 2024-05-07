@@ -36,7 +36,7 @@ export class Brush {
   }
 
   static _performBrushDocumentUpdate(placeable) {
-    this.preset.postSpawnFunction?.({ objects: [placeable], documents: [placeable.document] });
+    this.preset.callPostSpawnHooks({ objects: [placeable], documents: [placeable.document] });
     if (this.preset.isEmpty) pasteDataUpdate([placeable], this.preset, true, true, this.transform);
     this.updatedPlaceables.set(placeable.id, placeable);
     BrushMenu.iterate();
@@ -522,6 +522,9 @@ export class BrushMenu extends FormApplication {
     // Apply TMFX Filters
     this._applyTmfxPresets(this.preset, this._settings.tmfxPreset);
 
+    // Apply Tagger tags
+    this._applyTaggerTags(this.preset, this._settings.tagger);
+
     Brush.activate({
       preset: this.preset,
       deactivateCallback: this._deactivateCallback.bind(this),
@@ -597,18 +600,41 @@ export class BrushMenu extends FormApplication {
     }
   }
 
+  _applyTaggerTags(preset, tags) {
+    if (!tags || !tags.length) return;
+    if (!game.modules.get('tagger')?.active) return;
+
+    preset.addPostSpawnHook(({ objects } = {}) => {
+      Tagger.addTags(objects, tags);
+    });
+  }
+
   _applyTmfxPresets(preset, tmfxPreset) {
+    if (!tmfxPreset) return;
     if (!game.modules.get('tokenmagic')?.active) return;
     if (!['Token', 'Tile', 'Drawing', 'MeasuredTemplate'].includes(preset.documentName)) return;
 
     if (!Array.isArray(tmfxPreset)) tmfxPreset = [tmfxPreset];
 
+    if (tmfxPreset.includes('DELETE ALL')) {
+      this.preset.addPostSpawnHook(({ objects } = {}) => objects.forEach((o) => TokenMagic.deleteFilters(o)));
+      return;
+    } else if (tmfxPreset.includes('DELETE')) {
+      this.preset.addPostSpawnHook(({ objects } = {}) =>
+        objects.forEach(async (o) => {
+          for (const p of tmfxPreset) await TokenMagic.deleteFilters(o, p);
+        })
+      );
+      return;
+    }
+
     const filters = [];
     tmfxPreset.forEach((presetName) => TokenMagic.getPreset(presetName)?.forEach((filter) => filters.push(filter)));
 
     if (filters.length)
-      this.preset.postSpawnFunction = ({ objects } = {}) =>
-        objects.forEach((o) => TokenMagic.addUpdateFilters(o, filters));
+      this.preset.addPostSpawnHook(({ objects } = {}) =>
+        objects.forEach((o) => TokenMagic.addUpdateFilters(o, filters))
+      );
   }
 
   get title() {
@@ -621,6 +647,7 @@ export class BrushMenu extends FormApplication {
       activePreset: this.preset,
       ...this._settings,
       tmfxActive: game.modules.get('tokenmagic')?.active,
+      taggerActive: game.modules.get('tagger')?.active,
     };
   }
 
@@ -695,15 +722,23 @@ export class BrushMenu extends FormApplication {
         listEntries: TokenMagic.getPresets().map((p) => p.name),
       });
     });
+    html.find('.taggerControl').on('click', () => {
+      this._onEditTaglikeField({
+        label: 'Tagger',
+        name: 'tagger',
+        tags: this._settings.tagger,
+        simplifyTags: false,
+      });
+    });
   }
 
   async _onEditTaglikeField({ label, name, tags, simplifyTags = true, listId, listEntries } = {}) {
     const subMenu = this.element.find('.sub-menu');
-    if (subMenu.hasClass('.' + name)) {
-      subMenu.removeClass('.' + name).html('');
+    if (subMenu.attr('data-control') === name) {
+      subMenu.html('').attr('data-control', null);
       this.setPosition({ height: 'auto' });
       return;
-    } else subMenu.addClass('.' + name);
+    } else subMenu.attr('data-control', name);
 
     if (tags && !Array.isArray(tags)) tags = [tags];
     const template = Handlebars.compile(
@@ -816,6 +851,7 @@ export class BrushMenu extends FormApplication {
       color: null,
       randomColor: null,
       tmfxPreset: null,
+      tagger: null,
     });
     this.render(true);
   }

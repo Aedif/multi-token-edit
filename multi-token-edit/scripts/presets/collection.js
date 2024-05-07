@@ -860,12 +860,10 @@ export class PresetAPI {
         objects: allDocuments.map((d) => d.object).filter(Boolean),
       });
     }
-    if (preset.postSpawnFunction) {
-      await preset.postSpawnFunction({
-        documents: allDocuments,
-        objects: allDocuments.map((d) => d.object).filter(Boolean),
-      });
-    }
+    await preset.callPostSpawnHooks({
+      documents: allDocuments,
+      objects: allDocuments.map((d) => d.object).filter(Boolean),
+    });
 
     return allDocuments;
   }
@@ -1029,9 +1027,10 @@ class PresetTree {
       // If still no name is found, skip it
       if (!preset.documentName) {
         console.log(`Missing MetaData. Attempting document load: ${preset.id} | ${preset.name}`);
-        await preset.load();
+        await preset.load(true);
         if (!preset.documentName) continue;
-        if (!pack.locked) preset._updateIndex(preset); // Insert missing preset into metadata index
+        console.log(`MetaData. Found for: ${preset.id} | ${preset.name}`);
+        if (!pack.locked) await preset._updateIndex(preset); // Insert missing preset into metadata index
       }
 
       if (preset.folder) {
