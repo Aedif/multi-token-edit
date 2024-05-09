@@ -1,0 +1,9 @@
+<div style="display: flex; margin-top: 10px; margin-bottom: 5px;">
+    {{colorPicker name="color" value=color}}
+    <div class="color-controls" style="display: flex; flex-direction: column; margin-top: -5px; margin-left: 6px;">
+        {{#if tmfxActive}}
+        <a class="toggle-button {{#if ddTint}}active{{/if}}" data-name="ddTint" title="TokenMagicFX DDTint"><i class="fa-solid fa-f fa-sm"></i><i class="fa-solid fa-x fa-sm"></i></a>
+        {{/if}}
+        <a class="randomize-color {{#if randomColor}}active{{/if}}"><i class="fa-solid fa-dice"></i></a>
+    </div>
+</div>

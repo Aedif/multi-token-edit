@@ -65,7 +65,8 @@ export class Brush {
 
   static _performBrushDocumentDelete(placeable) {
     this.hoveredPlaceable = null;
-    placeable.document?.delete();
+    if (!placeable._brushDelete) placeable.document?.delete();
+    placeable._brushDelete = true;
   }
 
   static _hitTestWall(point, wall) {
@@ -470,7 +471,7 @@ export class BrushMenu extends FormApplication {
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
       id: 'mass-edit-brush-menu',
-      template: `modules/${MODULE_ID}/templates/preset/brush.html`,
+      template: `modules/${MODULE_ID}/templates/preset/brush/menu.html`,
       classes: ['mass-edit-dark-window', 'mass-edit-window-fill'],
       resizable: false,
       minimizable: false,
@@ -705,13 +706,17 @@ export class BrushMenu extends FormApplication {
       this.setPosition({ height: 'auto' });
     });
 
-    html.find('.toggle-button').on('click', this._toggleSetting.bind(this));
+    html.on('click', '.toggle-button', this._toggleSetting.bind(this));
     html.find('.reset').on('click', this._resetToDefaults.bind(this));
     html.on('click', '.preset', this._onClickPreset.bind(this));
     html.on('contextmenu', '.preset', this._onRightClickPreset.bind(this));
-    html.find('.randomize-color').on('click', this._onRandomizeColor.bind(this));
-    html.find('input[type="color"]').on('change', this._onColorChange.bind(this));
-    html.find('.color').on('input paste', this._onColorChange.bind(this));
+
+    // Colorize
+    html.on('click', '.randomize-color', this._onRandomizeColor.bind(this));
+    html.on('change', 'input[type="color"]', this._onColorChange.bind(this));
+    html.on('input paste', '.color', this._onColorChange.bind(this));
+    html.find('.colorizeControl').on('click', this._onColorMenu.bind(this));
+
     html.find('.tmfxPresetControl').on('click', () => {
       this._onEditTaglikeField({
         label: 'TMFX',
@@ -733,12 +738,8 @@ export class BrushMenu extends FormApplication {
   }
 
   async _onEditTaglikeField({ label, name, tags, simplifyTags = true, listId, listEntries } = {}) {
-    const subMenu = this.element.find('.sub-menu');
-    if (subMenu.attr('data-control') === name) {
-      subMenu.html('').attr('data-control', null);
-      this.setPosition({ height: 'auto' });
-      return;
-    } else subMenu.attr('data-control', name);
+    const subMenu = this._toggleSubMenu(name);
+    if (!subMenu) return;
 
     if (tags && !Array.isArray(tags)) tags = [tags];
     const template = Handlebars.compile(
@@ -762,6 +763,36 @@ export class BrushMenu extends FormApplication {
       },
       simplifyTags,
     });
+  }
+
+  /**
+   * Controls toggling of the sub-menu div container. The div is shared between many different controls, and behaviour
+   * depends on whether the same or different controls are being toggled
+   * @param {String} name a name of the control issuing a toggle
+   * @returns {Boolean} sub-menu element if sub-menu is to be rendered, null if sub-menu was emptied
+   */
+  _toggleSubMenu(name) {
+    const subMenu = this.element.find('.sub-menu');
+    if (subMenu.attr('data-control') === name) {
+      subMenu.html('').attr('data-control', null);
+      this.setPosition({ height: 'auto' });
+      return null;
+    } else subMenu.attr('data-control', name);
+    return subMenu;
+  }
+
+  async _onColorMenu(event) {
+    const subMenu = this._toggleSubMenu('colorize');
+    if (!subMenu) return;
+
+    const template = await getTemplate(`modules/${MODULE_ID}/templates/preset/brush/colorize.html`);
+    let content = template(await this.getData({}), {
+      allowProtoMethodsByDefault: true,
+      allowProtoPropertiesByDefault: true,
+    });
+
+    subMenu.html(content);
+    this.setPosition({ height: 'auto' });
   }
 
   async _onColorChange(event) {

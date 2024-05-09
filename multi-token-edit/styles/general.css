@@ -475,11 +475,11 @@ input.me-subtract {
   opacity: 0.5;
 }
 
-.mass-edit-preset-form .item .preset-favorite {
+.mass-edit-preset-form .display-hover {
   display: none;
 }
 
-.mass-edit-preset-form .item .preset-favorite.show {
+.mass-edit-preset-form .display-hover.show {
   display: block;
 }
 
@@ -632,13 +632,14 @@ nav > a[data-tab='me-pinned'] {
 }
 
 .mass-edit-brush-menu .sub-controls {
-  display: flex;
+  display: inline-block;
   text-align: center;
-  margin-top: 14px;
+  margin-top: 3px;
+  line-height: 1.5em;
 }
 
 .mass-edit-brush-menu .sub-controls a {
-  flex: 1;
+  padding: 3px;
 }
 
 .mass-edit-brush-menu a.active {
@@ -652,4 +653,14 @@ nav > a[data-tab='me-pinned'] {
 
 .mass-edit-brush-menu input[type='text'] {
   color: wheat;
+}
+
+.rainbow-text {
+  background: red;
+  background: -webkit-linear-gradient(left, red, yellow, green, cyan, blue, violet);
+  background: -o-linear-gradient(right, red, yellow, green, cyan, blue, violet);
+  background: -moz-linear-gradient(right, red, yellow, green, cyan, blue, violet);
+  background: linear-gradient(to right, red, yellow, green, cyan, blue, violet);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }

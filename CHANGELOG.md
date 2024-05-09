@@ -1,3 +1,27 @@
+# 1.67.0
+
+**Brush Menu**
+
+- New Control: **Density**
+  - While the brush is held, placeables will be spawned within the grid space increments defined by the selected density
+  - e.g. density of 1 spaces out presets within 1 grid space increments
+  - e.g. density of 0.1 spaces out presets within 1/10th grid space increments
+- New Control: **Tagger**
+  - Available when `Tagger` module is installed and active
+  - Applies tags to the spanwed placeables
+- Control: **TokenMagicFX**
+  - Multiple TMFX filters can now be selected at the same time
+  - Two special TMFX filter presets are now available:
+    - **DELETE ALL**: removes all TMFX from spawned/updated placeables
+    - **DELETE**: when included with other filter presets will remove them instead of applying them to placeables
+- Colorization controls are now hidden behind a toggle
+- Fixed errors thrown while using Brush delete tool
+
+**Presets**
+
+- Improved handing of presets with empty data
+- Improved re-indexing of presets with missing metadata
+
 # 1.66.0
 
 - Brush Menu

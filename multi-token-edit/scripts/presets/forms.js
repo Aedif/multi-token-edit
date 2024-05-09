@@ -195,11 +195,11 @@ export class MassEditPresets extends FormApplication {
 
     // Hide/Show preset tags and favorite control
     html.on('mouseenter', '.item', (event) => {
-      $(event.currentTarget).find('.tags, .preset-favorite').addClass('show');
+      $(event.currentTarget).find('.tags, .display-hover').addClass('show');
     });
 
     html.on('mouseleave', '.item', (event) => {
-      $(event.currentTarget).find('.tags, .preset-favorite').removeClass('show');
+      $(event.currentTarget).find('.tags, .display-hover').removeClass('show');
     });
 
     html.on('dragstart', '.item', (event) => {

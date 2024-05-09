@@ -13,31 +13,21 @@
                 <div class="density-slider"></div>
 
                 <div class="sub-controls">
-                    <a class="toggle-button {{#if random}}active{{/if}}" data-name="random" title="{{localize 'MassEdit.common.randomize'}}"><i class="fa-solid fa-dice"></i></a>
+                    <a class="toggle-button {{#if spawner}}active{{/if}}" data-name="spawner" title="Spawner"><i class="fas fa-plus-circle"></i></a>
                     <a class="toggle-button {{#if lock}}active{{/if}}" data-name="lock" title="Lock to current preset."><i class="fas fa-lock"></i></a>
+                    <a class="toggle-button {{#if random}}active{{/if}}" data-name="random" title="{{localize 'MassEdit.common.randomize'}}"><i class="fa-solid fa-dice"></i></a>
                     <a class="toggle-button {{#if group}}active{{/if}}" data-name="group" title="Spawn multi-placeable presets as a group."><i class="fa-solid fa-object-group"></i></a>
                     <a class="toggle-button {{#if snap}}active{{/if}}" data-name="snap" title="{{localize 'MassEdit.randomizer.snapToGrid'}}"><i class="fas fa-th"></i></a>
                     <a class="toggle-button {{#if scaleToGrid}}active{{/if}}" data-name="scaleToGrid" title="{{localize 'MassEdit.presets.controls.scale-to-grid'}}"><i class="fa-solid fa-arrow-down-big-small"></i></a>
-                    <a class="toggle-button {{#if spawner}}active{{/if}}" data-name="spawner" title="Spawner"><i class="fas fa-plus-circle"></i></a>
-                    <a class="toggle-button {{#if eraser}}active{{/if}}" data-name="eraser" title="Eraser"><i class="fas fa-eraser"></i></a>
-                </div>
 
-                <div class="sub-controls">
-                    {{#if tmfxActive}}<a class="tmfxPresetControl {{#if tmfxPreset}}active{{/if}}" title="TokenMagicFX">TMFX</a>{{/if}}
-                    {{#if taggerActive}}<a class="taggerControl {{#if tagger}}active{{/if}}" title="Tagger">TAGGER</a>{{/if}}
+                    <a class="colorizeControl {{#if randomColor}}rainbow-text{{/if}}" {{#if color}}{{#unless randomColor}}style="color: {{color}}"{{/unless}}{{/if}} title="Colorize"><i class="fa-solid fa-palette"></i></a>
+
+                    <a class="toggle-button {{#if eraser}}active{{/if}}" data-name="eraser" title="Eraser"><i class="fas fa-eraser"></i></a>
+                    {{#if tmfxActive}}<a class="tmfxPresetControl {{#if tmfxPreset}}active{{/if}}" title="TokenMagicFX"><i class="fa-solid fa-fire"></i></a>{{/if}}
+                    {{#if taggerActive}}<a class="taggerControl {{#if tagger}}active{{/if}}" title="Tagger"><i class="fa-solid fa-tag"></i></a>{{/if}}
                 </div>
 
                 <div class="sub-menu"></div>
-
-                <div style="display: flex; margin-top: 10px; margin-bottom: 5px;">
-                    {{colorPicker name="color" value=color}}
-                    <div class="color-controls" style="display: flex; flex-direction: column; margin-top: -5px; margin-left: 6px;">
-                        {{#if tmfxActive}}
-                        <a class="toggle-button {{#if ddTint}}active{{/if}}" data-name="ddTint" title="TokenMagicFX DDTint"><i class="fa-solid fa-f fa-sm"></i><i class="fa-solid fa-x fa-sm"></i></a>
-                        {{/if}}
-                        <a class="randomize-color {{#if randomColor}}active{{/if}}"><i class="fa-solid fa-dice"></i></a>
-                    </div>
-                </div>
             </fieldset>
         </div>
         <br>
