@@ -1,3 +1,7 @@
+# 1.67.1
+
+- Fixed errors thrown when using Brush update tool with empty presets
+
 # 1.67.0
 
 **Brush Menu**
