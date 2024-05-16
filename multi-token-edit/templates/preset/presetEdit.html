@@ -2,6 +2,7 @@
 <form autocomplete="off" style="overflow: hidden;">
     <input type="hidden" name="type" value="{{preset.documentName}}"/>
 
+    {{#unless virtual}}
 
     <div class="form-group">
         <label>{{localize "Name"}}</label>
@@ -115,6 +116,7 @@
     {{/if}}
 
     <br>
+    {{/unless}}
     {{#if multiEdit}}
         {{tagInput name="addTags" label="Add Tags"}}
         {{tagInput name="removeTags" label="Remove Tags"}}

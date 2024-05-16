@@ -1,6 +1,6 @@
 import { pasteDataUpdate } from '../applications/forms.js';
 import { Picker } from './picker.js';
-import { PresetAPI, PresetCollection } from './presets/collection.js';
+import { PresetAPI } from './presets/collection.js';
 import { Preset } from './presets/preset.js';
 import { applyRandomization } from './randomizer/randomizerUtils.js';
 import { MODULE_ID, TagInput } from './utils.js';
@@ -517,6 +517,14 @@ export class BrushMenu extends FormApplication {
     this.preset = p.clone();
     if (index.hasOwnProperty('dI')) this.preset.data = [this.preset.data[index.dI]];
 
+    // Place tiles above others on the scene
+    if (this.preset.documentName === 'Tile' && canvas.tiles.placeables.length) {
+      const maxZ = Math.max(...canvas.tiles.placeables.map((p) => p.document.z));
+      this.preset.data.forEach((d) => {
+        d.z = maxZ;
+      });
+    }
+
     // Apply Color
     await this._applyColor();
 
@@ -910,7 +918,7 @@ export class BrushMenu extends FormApplication {
 
   addPresets(presets = []) {
     for (const preset of presets) {
-      if (!this.presets.find((p) => p.id === preset.id)) this.presets.push(preset);
+      if (!this.presets.find((p) => p.uuid === preset.uuid)) this.presets.push(preset);
     }
     this._createIndex();
     this.render(true);

@@ -212,7 +212,7 @@ export function pasteData() {
   if (!selected) selected = getControlled();
   if (!selected) selected = getHover();
 
-  if (selected) return pasteDataUpdate(selected);
+  if (selected) return pasteDataUpdate(selected, null, false, true);
   else {
     let docName = canvas.activeLayer.constructor.documentName;
     const preset = getClipboardData(docName);

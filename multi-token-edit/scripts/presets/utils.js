@@ -303,3 +303,15 @@ function getDataBounds(docName, data) {
   }
   return { x1, y1, x2, y2 };
 }
+
+export function isImage(path) {
+  var extension = path.split('.');
+  extension = extension[extension.length - 1].toLowerCase();
+  return ['jpg', 'jpeg', 'png', 'svg', 'webp', 'gif'].includes(extension);
+}
+
+export function isVideo(path) {
+  var extension = path.split('.');
+  extension = extension[extension.length - 1].toLowerCase();
+  return ['mp4', 'ogg', 'webm', 'm4v'].includes(extension);
+}

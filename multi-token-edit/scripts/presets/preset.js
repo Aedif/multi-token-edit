@@ -1,5 +1,6 @@
-import { MODULE_ID, SUPPORTED_PLACEABLES } from '../utils.js';
+import { MODULE_ID, SUPPORTED_PLACEABLES, isImage } from '../utils.js';
 import { META_INDEX_FIELDS, META_INDEX_ID } from './collection.js';
+import { FileIndexer } from './fileIndexer.js';
 import { placeableToData } from './utils.js';
 
 const DOCUMENT_FIELDS = ['id', 'name', 'sort', 'folder'];
@@ -259,6 +260,94 @@ export class Preset {
   clone() {
     const clone = new Preset(this.toJSON());
     clone.document = this.document;
+    return clone;
+  }
+}
+
+export class VirtualTilePreset extends Preset {
+  constructor(data) {
+    if (!data.data) data.data = [{ texture: { src: data.img }, x: 0, y: 0, rotation: 0 }];
+    data.uuid = 'virtual@' + data.img;
+    if (!data.name) data.name = data.img.split('/').pop();
+    data.gridSize = 150;
+    super(data);
+    this.documentName = 'Tile';
+  }
+
+  get virtual() {
+    return true;
+  }
+
+  async load(force = false) {
+    if (this.data[0].width != null && this.data[0].height != null) return this;
+
+    // Load image/video metadata to retrieve the width/height
+    const src = this.data[0].texture?.src;
+
+    let width, height;
+    let prom;
+    if (isImage(src)) {
+      const img = new Image();
+      prom = new Promise((resolve) => {
+        img.onload = resolve;
+        img.src = src;
+      });
+
+      await Promise.race([
+        prom,
+        (async () => {
+          await new Promise((res) => setTimeout(res, 1000));
+        })(),
+      ]);
+
+      if (!img.complete || img.naturalWidth === 0) {
+        console.log('Image Load failed', src);
+        return null;
+      }
+
+      width = img.naturalWidth;
+      height = img.naturalHeight;
+    } else {
+      const video = document.createElement('video');
+      prom = new Promise((resolve) => {
+        video.onloadedmetadata = resolve;
+        video.src = src;
+        video.load();
+      });
+
+      await Promise.race([
+        prom,
+        (async () => {
+          await new Promise((res) => setTimeout(res, 1000));
+        })(),
+      ]);
+
+      width = video.videoWidth;
+      height = video.videoHeight;
+    }
+
+    this.data[0].width = width;
+    this.data[0].height = height;
+
+    const p = FileIndexer.getPreset(this.uuid);
+    if (p) this.tags = p.tags;
+    this._storedReference = p;
+
+    return this;
+  }
+
+  async update(update) {
+    if (!update.hasOwnProperty('tags')) return;
+
+    if (this._storedReference) {
+      this._storedReference.tags = update.tags;
+      clearTimeout(VirtualTilePreset._updateTimeout);
+      VirtualTilePreset._updateTimeout = setTimeout(() => FileIndexer.saveIndexToCache(), 1000);
+    }
+  }
+
+  clone() {
+    const clone = new VirtualTilePreset(this.toJSON());
     return clone;
   }
 }

@@ -10,9 +10,11 @@ import {
   applyPresetToScene,
   createDocuments,
   executeScript,
+  isImage,
   localize,
 } from '../utils.js';
-import { Preset } from './preset.js';
+import { FileIndexer } from './fileIndexer.js';
+import { Preset, VirtualTilePreset } from './preset.js';
 import {
   FolderState,
   getPresetDataCenterOffset,
@@ -68,6 +70,17 @@ export class PresetCollection {
           }
         }
       }
+
+      // Read/Construct File Index
+      if (CONFIG.debug.MassEdit) console.time('Virtual Directory');
+      const fileDirectory = await FileIndexer.getVirtualPresetFolder();
+      if (fileDirectory) {
+        extFolders.push(fileDirectory);
+        for (const folder of fileDirectory.allVirtualFolders) {
+          mainTree.allFolders.set(folder.uuid, folder);
+        }
+      }
+      if (CONFIG.debug.MassEdit) console.timeEnd('Virtual Directory');
     }
 
     mainTree.extFolders = this._groupExtFolders(extFolders, mainTree.allFolders);
@@ -236,6 +249,8 @@ export class PresetCollection {
   }
 
   static async get(uuid, { full = true } = {}) {
+    if (uuid.startsWith('virtual@')) return this._constructVirtualTilePreset(uuid, { full });
+
     let { collection, documentId, documentType, embedded, doc } = foundry.utils.parseUuid(uuid);
     const index = collection.index.get(documentId);
 
@@ -248,6 +263,13 @@ export class PresetCollection {
       return preset;
     }
     return null;
+  }
+
+  static async _constructVirtualTilePreset(uuid, { full = true } = {}) {
+    const src = uuid.substring(8);
+    const preset = new VirtualTilePreset({ img: src });
+    if (full) await preset.load();
+    return preset;
   }
 
   /**
@@ -921,6 +943,8 @@ export class PresetVirtualFolder extends PresetFolder {
 
   async update(data) {}
 }
+
+export class VirtualFileFolder extends PresetVirtualFolder {}
 
 export class PresetPackFolder extends PresetVirtualFolder {
   constructor(options) {

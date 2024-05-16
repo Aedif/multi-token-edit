@@ -14,8 +14,8 @@ import {
   localFormat,
   localize,
 } from '../utils.js';
-import { META_INDEX_ID, PresetAPI, PresetCollection, PresetPackFolder, PresetVirtualFolder } from './collection.js';
-import { DOC_ICONS, Preset } from './preset.js';
+import { VirtualFileFolder, META_INDEX_ID, PresetAPI, PresetCollection, PresetPackFolder } from './collection.js';
+import { DOC_ICONS, Preset, VirtualTilePreset } from './preset.js';
 import { FolderState, mergePresetDataToDefaultDoc, placeableToData, randomizeChildrenFolderColors } from './utils.js';
 
 const SEARCH_MIN_CHAR = 2;
@@ -535,10 +535,12 @@ export class MassEditPresets extends FormApplication {
     BrushMenu.close();
     // TODO: 3D Preview
     if (game.Levels3DPreview?._active) return;
-    const uuid = $(event.target).closest('.item').data('uuid');
+    const item = $(event.target).closest('.item');
+    const uuid = item.data('uuid');
     if (!uuid) return;
 
-    const preset = await PresetAPI.getPreset({ uuid });
+    let preset = await PresetAPI.getPreset({ uuid });
+
     if (!preset) return;
 
     if (preset.documentName === 'Scene') {
@@ -586,7 +588,7 @@ export class MassEditPresets extends FormApplication {
       {
         name: localize('CONTROLS.CommonEdit', false),
         icon: '<i class="fas fa-edit"></i>',
-        condition: (item) => item.hasClass('editable'),
+        condition: (item) => item.hasClass('editable') || item.hasClass('virtual'),
         callback: (item) => this._onEditSelectedPresets(item),
       },
       {
@@ -598,6 +600,7 @@ export class MassEditPresets extends FormApplication {
       {
         name: localize('presets.open-journal'),
         icon: '<i class="fas fa-book-open"></i>',
+        condition: (item) => !item.hasClass('virtual'),
         callback: (item) => this._onOpenJournal(item),
       },
       {
@@ -646,14 +649,20 @@ export class MassEditPresets extends FormApplication {
         icon: '<i class="fas fa-edit"></i>',
         condition: (header) => {
           const folder = this.tree.allFolders.get(header.closest('.folder').data('uuid'));
-          return !(folder instanceof PresetVirtualFolder) || folder instanceof PresetPackFolder;
+          return !(folder.virtual || folder instanceof PresetPackFolder);
         },
         callback: (header) => this._onFolderEdit(header),
       },
       {
         name: 'Export to Compendium',
         icon: '<i class="fas fa-file-export fa-fw"></i>',
-        callback: (header) => this._onExportFolder(header.closest('.folder').data('uuid')),
+        condition: (header) => {
+          const folder = this.tree.allFolders.get(header.closest('.folder').data('uuid'));
+          return !(folder instanceof VirtualFileFolder);
+        },
+        callback: (header) => {
+          this._onExportFolder(header.closest('.folder').data('uuid'));
+        },
       },
       {
         name: localize('FOLDER.Remove', false),
@@ -760,9 +769,13 @@ export class MassEditPresets extends FormApplication {
     if (selected.length) copyToClipboard(selected[0]);
   }
 
-  async _getSelectedPresets({ editableOnly = false, full = true } = {}) {
+  async _getSelectedPresets({ editableOnly = false, virtualOnly = false, full = true } = {}) {
     const uuids = [];
-    const items = this.element.find('.item-list').find('.item.selected' + (editableOnly ? '.editable' : ''));
+    let selector = '.item.selected';
+    if (virtualOnly) selector += '.virtual';
+    else if (editableOnly) selector += '.editable';
+
+    const items = this.element.find('.item-list').find(selector);
     items.each(function () {
       const uuid = $(this).data('uuid');
       uuids.push(uuid);
@@ -782,7 +795,7 @@ export class MassEditPresets extends FormApplication {
   }
 
   async _onEditSelectedPresets(item) {
-    const [selected, _] = await this._getSelectedPresets({ editableOnly: true });
+    const [selected, _] = await this._getSelectedPresets({ virtualOnly: item.hasClass('virtual'), editableOnly: true });
     if (selected.length) {
       // Position edit window just bellow the item
       const options = item.offset();
@@ -1590,8 +1603,9 @@ export class PresetConfig extends FormApplication {
 
   /** @override */
   get title() {
-    if (this.presets.length > 1) return `Presets [${this.presets.length}]`;
-    else return `Preset: ${this.presets[0].name.substring(0, 20)}${this.presets[0].name.length > 20 ? '...' : ''}`;
+    const prefix = this.presets[0] instanceof VirtualTilePreset ? 'File' : 'Preset';
+    if (this.presets.length > 1) return `${prefix}s [${this.presets.length}]`;
+    else return `${prefix}: ${this.presets[0].name.substring(0, 20)}${this.presets[0].name.length > 20 ? '...' : ''}`;
   }
 
   _getHeaderButtons() {
@@ -1628,6 +1642,8 @@ export class PresetConfig extends FormApplication {
   async getData(options = {}) {
     const data = {};
     data.advancedOpen = this.advancedOpen;
+
+    data.virtual = this.presets[0] instanceof VirtualTilePreset;
 
     data.preset = {};
     if (this.presets.length === 1) {
@@ -1736,8 +1752,8 @@ export class PresetConfig extends FormApplication {
   _getSubmitData(updateData = {}) {
     const data = super._getSubmitData(updateData);
 
-    data.name = data.name.trim();
-    data.img = data.img.trim() || null;
+    data.name = data.name?.trim();
+    data.img = data.img?.trim() || null;
     data.preSpawnScript = data.preSpawnScript?.trim();
     data.postSpawnScript = data.postSpawnScript?.trim();
     data.tags = data.tags ? data.tags.split(',') : [];
