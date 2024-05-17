@@ -22,7 +22,7 @@
         {{/if}}
         <div class="header-search flexrow">
             <a class="header-control toggle-search-mode" data-tooltip="{{searchMode.tooltip}}">{{{searchMode.icon}}}</a>
-            <input class="{{#if lastSearch}}active{{/if}}" type="search" name="search" value="{{lastSearch}}" placeholder="{{localize 'FILES.Search'}}" autocomplete="off">
+            <input class="{{#if lastSearch}}active{{/if}}" type="search" name="search" value="{{lastSearch}}" placeholder="{{localize 'FILES.Search'}}" autocomplete="off" style="color: black">
             <a class="header-control toggle-sort" data-tooltip="{{sortMode.tooltip}}">{{{sortMode.icon}}}</a>
             <a class="header-control create-folder" data-tooltip="{{localize 'FOLDER.Create'}}" style="position: relative;"><i class="fas fa-folder"></i><i class="fas fa-plus"></i></a>
             {{#unless allowDocumentSwap}}

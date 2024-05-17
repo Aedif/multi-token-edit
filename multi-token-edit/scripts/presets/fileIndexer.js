@@ -1,5 +1,5 @@
 import { isImage } from '../utils.js';
-import { VirtualFileFolder } from './collection.js';
+import { PresetTree, VirtualFileFolder } from './collection.js';
 import { VirtualTilePreset } from './preset.js';
 
 const CACHE_PATH = '';
@@ -8,22 +8,46 @@ const INDEX_PATH = 'modules/mass-edit-aedifs-presets';
 // const CACHE_STRUCTURE = [{ dir: 'modules', files: [{ name: 'box.webp', tags: [] }], dirs: [] }];
 
 export class FileIndexer {
-  static async getVirtualPresetFolder() {
-    // storedCacheResponse = await fetch(jsonPath ?? prefixURL + '/DigDownCache.json');
+  static _loadedTree;
 
-    if (FileIndexer._loadedVirtualFolder) return FileIndexer._loadedVirtualFolder;
+  static async getVirtualDirectoryTree(type, { setFormVisibility = false } = {}) {
+    if (CONFIG.debug.MassEdit) console.time('Virtual File Directory');
 
-    const folders = [];
-    const folder = await this.loadIndexCache(folders, CACHE_PATH + '/MassEditCache.json');
-    if (folder) folder.allVirtualFolders = folders;
-    FileIndexer._loadedVirtualFolder = folder;
+    if (FileIndexer._loadedTree) {
+      if (CONFIG.debug.MassEdit) console.timeEnd('Virtual File Directory');
+      if (setFormVisibility) FileIndexer._loadedTree.setVisibility(type);
+      return FileIndexer._loadedTree;
+    }
 
-    return folder;
+    const allFolders = new Map();
+    const allPresets = [];
+    const folders = await this.loadIndexCache(allFolders, allPresets, CACHE_PATH + '/MassEditCache.json');
+
+    let tree;
+    if (folders?.length) {
+      tree = new PresetTree({
+        folders,
+        presets: [],
+        allPresets,
+        allFolders,
+        hasVisible: allPresets.some((p) => p._visible),
+        metaDoc: null,
+        pack: null,
+      });
+
+      if (setFormVisibility) tree.setVisibility(type);
+    }
+
+    this._loadedTree = tree;
+
+    if (CONFIG.debug.MassEdit) console.timeEnd('Virtual File Directory');
+    return tree;
   }
 
   static async buildIndex() {
     ui.notifications.info('Building Mass Edit directory index.');
 
+    // TODO: support multiple index paths
     let index = await FileIndexer.generateIndex(INDEX_PATH);
 
     if (index) {
@@ -33,42 +57,28 @@ export class FileIndexer {
       }
     }
 
-    if (index) {
-      FileIndexer._writeIndexToCache(index);
+    await FileIndexer._writeIndexToCache([index]);
+    FileIndexer._loadedTree = null;
+  }
 
-      const folders = [];
-      const folder = FileIndexer._indexToVirtualFolder(index, '', folders);
-      folder.allVirtualFolders = folders;
-      FileIndexer._loadedVirtualFolder = folder;
-    } else {
-      FileIndexer._loadedVirtualFolder = null;
+  static async getPreset(uuid) {
+    if (!this._loadedTree) await FileIndexer.getVirtualDirectoryTree();
+    if (!this._loadedTree) return null;
+    return this._loadedTree.allPresets.find((p) => p.uuid === uuid);
+  }
+
+  static async saveIndexToCache(notify = true) {
+    if (this._loadedTree) {
+      const cacheFolders = this._loadedTree.folders.map((f) => this._cacheFolder(f));
+      this._writeIndexToCache(cacheFolders, notify);
     }
   }
 
-  static getPreset(uuid, folder = this._loadedVirtualFolder) {
-    if (!folder) return null;
-
-    const preset = folder.presets.find((p) => p.uuid === uuid);
-    if (preset) return preset;
-
-    for (const c of folder.children) {
-      const preset = this.getPreset(uuid, c);
-      if (preset) return preset;
-    }
-
-    return null;
-  }
-
-  static async saveIndexToCache() {
-    if (this._loadedVirtualFolder) this._writeIndexToCache(this._cacheFolder(this._loadedVirtualFolder));
-  }
-
-  static async _writeIndexToCache(index) {
-    const cache = [index];
-    let file = new File([JSON.stringify(cache)], 'MassEditCache.json', {
+  static async _writeIndexToCache(index, notify = true) {
+    let file = new File([JSON.stringify(index)], 'MassEditCache.json', {
       type: 'text/plain',
     });
-    FilePicker.upload('data', CACHE_PATH, file);
+    await FilePicker.upload('data', CACHE_PATH, file, {}, { notify });
   }
 
   static _cacheFolder(folder) {
@@ -84,24 +94,22 @@ export class FileIndexer {
     return pDic;
   }
 
-  static async loadIndexCache(folders, cacheFile) {
-    let folder;
+  static async loadIndexCache(allFolders, allPresets, cacheFile) {
+    let folders;
     try {
       await jQuery.getJSON(cacheFile, (json) => {
         if (!(Array.isArray(json) && json?.length)) return null;
         console.log(json);
 
-        folder = this._indexToVirtualFolder(json[0], '', folders);
-
-        console.log('Parsed CACHE: ', folder);
+        folders = json.map((f) => this._indexToVirtualFolder(f, '', allFolders, allPresets));
       });
     } catch (error) {
       ui.notifications.warn(`Failed to load file`);
     }
-    return folder;
+    return folders;
   }
 
-  static _indexToVirtualFolder(cache, parentDirPath, folders) {
+  static _indexToVirtualFolder(cache, parentDirPath, allFolders, allPresets) {
     const fullPath = parentDirPath + '/' + cache.dir;
     const uuid = 'virtual.' + fullPath;
     const fileFolder = new VirtualFileFolder({
@@ -115,8 +123,11 @@ export class FileIndexer {
 
     if (cache.dirs) {
       for (const dir of cache.dirs) {
-        const childFolder = this._indexToVirtualFolder(dir, fullPath, folders);
-        if (childFolder) fileFolder.children.push(childFolder);
+        const childFolder = this._indexToVirtualFolder(dir, fullPath, allFolders, allPresets);
+        if (childFolder) {
+          childFolder.folder = fileFolder.id;
+          fileFolder.children.push(childFolder);
+        }
       }
     }
 
@@ -126,12 +137,14 @@ export class FileIndexer {
           name: file.name,
           img: fullPath + '/' + file.name,
           tags: file.tags,
+          folder: fileFolder.id,
         });
+        allPresets.push(preset);
         fileFolder.presets.push(preset);
       }
     }
 
-    folders.push(fileFolder);
+    allFolders.set(uuid, fileFolder);
     return fileFolder;
   }
 

@@ -72,15 +72,21 @@ export class PresetCollection {
       }
 
       // Read/Construct File Index
-      if (CONFIG.debug.MassEdit) console.time('Virtual Directory');
-      const fileDirectory = await FileIndexer.getVirtualPresetFolder();
-      if (fileDirectory) {
-        extFolders.push(fileDirectory);
-        for (const folder of fileDirectory.allVirtualFolders) {
-          mainTree.allFolders.set(folder.uuid, folder);
+      const vTree = await FileIndexer.getVirtualDirectoryTree(type, { setFormVisibility });
+      if (vTree?.hasVisible) {
+        const topFolder = new VirtualFileFolder({
+          name: 'User Data',
+          children: vTree.folders,
+          uuid: 'virtual_directory',
+        });
+        extFolders.push(topFolder);
+
+        // Collate all folders with the main tree
+        mainTree.allFolders.set(topFolder.uuid, topFolder);
+        for (const [uuid, folder] of vTree.allFolders) {
+          mainTree.allFolders.set(uuid, folder);
         }
       }
-      if (CONFIG.debug.MassEdit) console.timeEnd('Virtual Directory');
     }
 
     mainTree.extFolders = this._groupExtFolders(extFolders, mainTree.allFolders);
@@ -944,7 +950,12 @@ export class PresetVirtualFolder extends PresetFolder {
   async update(data) {}
 }
 
-export class VirtualFileFolder extends PresetVirtualFolder {}
+export class VirtualFileFolder extends PresetVirtualFolder {
+  constructor(options) {
+    super(options);
+    this.types = ['ALL', 'Tile'];
+  }
+}
 
 export class PresetPackFolder extends PresetVirtualFolder {
   constructor(options) {
@@ -981,7 +992,7 @@ export class PresetPackFolder extends PresetVirtualFolder {
   }
 }
 
-class PresetTree {
+export class PresetTree {
   static _packTrees = {};
 
   static async init(pack, type, { forceLoad = false, setFormVisibility = false } = {}) {
@@ -1135,14 +1146,14 @@ class PresetTree {
         }
       }
 
-      this.hasVisible |= preset._visible;
+      this.hasVisible = this.hasVisible || preset._visible;
     }
   }
 
   _setChildAndParentFoldersVisible(folder) {
     folder.visible = true;
     if (folder.folder) {
-      for (const f of this.allFolders.entries()) {
+      for (const [uuid, f] of this.allFolders.entries()) {
         if (f.id === folder.folder) return this._setChildAndParentFoldersVisible(f);
       }
     }

@@ -329,7 +329,7 @@ export class VirtualTilePreset extends Preset {
     this.data[0].width = width;
     this.data[0].height = height;
 
-    const p = FileIndexer.getPreset(this.uuid);
+    const p = await FileIndexer.getPreset(this.uuid);
     if (p) this.tags = p.tags;
     this._storedReference = p;
 
@@ -342,7 +342,7 @@ export class VirtualTilePreset extends Preset {
     if (this._storedReference) {
       this._storedReference.tags = update.tags;
       clearTimeout(VirtualTilePreset._updateTimeout);
-      VirtualTilePreset._updateTimeout = setTimeout(() => FileIndexer.saveIndexToCache(), 1000);
+      VirtualTilePreset._updateTimeout = setTimeout(() => FileIndexer.saveIndexToCache(), 3000);
     }
   }
 
