@@ -10,11 +10,10 @@ import {
   applyPresetToScene,
   createDocuments,
   executeScript,
-  isImage,
   localize,
 } from '../utils.js';
 import { FileIndexer } from './fileIndexer.js';
-import { Preset, VirtualTilePreset } from './preset.js';
+import { Preset, VirtualFilePreset } from './preset.js';
 import {
   FolderState,
   getPresetDataCenterOffset,
@@ -255,7 +254,7 @@ export class PresetCollection {
   }
 
   static async get(uuid, { full = true } = {}) {
-    if (uuid.startsWith('virtual@')) return this._constructVirtualTilePreset(uuid, { full });
+    if (uuid.startsWith('virtual@')) return this._constructVirtualFilePreset(uuid, { full });
 
     let { collection, documentId, documentType, embedded, doc } = foundry.utils.parseUuid(uuid);
     const index = collection.index.get(documentId);
@@ -271,9 +270,9 @@ export class PresetCollection {
     return null;
   }
 
-  static async _constructVirtualTilePreset(uuid, { full = true } = {}) {
+  static async _constructVirtualFilePreset(uuid, { full = true } = {}) {
     const src = uuid.substring(8);
-    const preset = new VirtualTilePreset({ img: src });
+    const preset = new VirtualFilePreset({ src });
     if (full) await preset.load();
     return preset;
   }
@@ -953,7 +952,7 @@ export class PresetVirtualFolder extends PresetFolder {
 export class VirtualFileFolder extends PresetVirtualFolder {
   constructor(options) {
     super(options);
-    this.types = ['ALL', 'Tile'];
+    this.types = ['ALL'];
   }
 }
 
@@ -1137,10 +1136,10 @@ export class PresetTree {
         } else if (preset.documentName !== type) preset._visible = false;
       }
 
-      if (preset.folder && type === 'FAVORITES') {
+      if (type === 'FAVORITES' && preset.folder && preset.isFavorite) {
         for (const [uuid, folder] of this.allFolders) {
           if (folder.id === preset.folder) {
-            if (preset.isFavorite) this._setChildAndParentFoldersVisible(folder);
+            this._setChildAndParentFoldersVisible(folder);
             break;
           }
         }

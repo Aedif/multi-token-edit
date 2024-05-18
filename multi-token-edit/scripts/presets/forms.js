@@ -15,10 +15,11 @@ import {
   localize,
 } from '../utils.js';
 import { VirtualFileFolder, META_INDEX_ID, PresetAPI, PresetCollection, PresetPackFolder } from './collection.js';
-import { DOC_ICONS, Preset, VirtualTilePreset } from './preset.js';
+import { DOC_ICONS, Preset, VirtualFilePreset } from './preset.js';
 import { FolderState, mergePresetDataToDefaultDoc, placeableToData, randomizeChildrenFolderColors } from './utils.js';
 
 const SEARCH_MIN_CHAR = 2;
+const SEARCH_FOUND_MAX_COUNT = 1001;
 
 // const FLAG_DATA = {
 //   documentName: null,
@@ -963,6 +964,8 @@ export class MassEditPresets extends FormApplication {
     if (!filter.length) return;
     $(event.target).addClass('active');
 
+    this._searchFoundCount = 0;
+
     this.tree.folders.forEach((f) => this._searchFolder(filter, f));
     this.tree.extFolders.forEach((f) => this._searchFolder(filter, f));
     this.tree.presets.forEach((p) => this._searchPreset(filter, p));
@@ -992,10 +995,13 @@ export class MassEditPresets extends FormApplication {
   }
 
   _searchPreset(filter, preset, forceRender = false) {
+    if (!preset._visible) return false;
+
     const presetName = preset.name.toLowerCase();
     if (filter.every((k) => presetName.includes(k)) || filter.every((k) => preset.tags.includes(k))) {
-      preset._render = true;
-      return true;
+      this._searchFoundCount++;
+      preset._render = this._searchFoundCount < SEARCH_FOUND_MAX_COUNT;
+      return preset._render;
     } else {
       preset._render = false || forceRender;
       return false;
@@ -1603,7 +1609,7 @@ export class PresetConfig extends FormApplication {
 
   /** @override */
   get title() {
-    const prefix = this.presets[0] instanceof VirtualTilePreset ? 'File' : 'Preset';
+    const prefix = this.presets[0] instanceof VirtualFilePreset ? 'File' : 'Preset';
     if (this.presets.length > 1) return `${prefix}s [${this.presets.length}]`;
     else return `${prefix}: ${this.presets[0].name.substring(0, 20)}${this.presets[0].name.length > 20 ? '...' : ''}`;
   }
@@ -1643,7 +1649,7 @@ export class PresetConfig extends FormApplication {
     const data = {};
     data.advancedOpen = this.advancedOpen;
 
-    data.virtual = this.presets[0] instanceof VirtualTilePreset;
+    data.virtual = this.presets[0] instanceof VirtualFilePreset;
 
     data.preset = {};
     if (this.presets.length === 1) {

@@ -1,7 +1,7 @@
-import { MODULE_ID, SUPPORTED_PLACEABLES, isImage } from '../utils.js';
+import { MODULE_ID, SUPPORTED_PLACEABLES, isImage, isAudio } from '../utils.js';
 import { META_INDEX_FIELDS, META_INDEX_ID } from './collection.js';
 import { FileIndexer } from './fileIndexer.js';
-import { placeableToData } from './utils.js';
+import { isVideo, placeableToData } from './utils.js';
 
 const DOCUMENT_FIELDS = ['id', 'name', 'sort', 'folder'];
 
@@ -106,7 +106,10 @@ export class Preset {
   }
 
   get isFavorite() {
-    if (!Preset.favorites) Preset.favorites = game.settings.get(MODULE_ID, 'presetFavorites');
+    if (!Preset.favorites) {
+      console.log('GETTING FAVORITE SETTINGS');
+      Preset.favorites = game.settings.get(MODULE_ID, 'presetFavorites');
+    }
     return Boolean(Preset.favorites[this.uuid]);
   }
 
@@ -264,14 +267,23 @@ export class Preset {
   }
 }
 
-export class VirtualTilePreset extends Preset {
+export class VirtualFilePreset extends Preset {
   constructor(data) {
-    if (!data.data) data.data = [{ texture: { src: data.img }, x: 0, y: 0, rotation: 0 }];
-    data.uuid = 'virtual@' + data.img;
-    if (!data.name) data.name = data.img.split('/').pop();
+    if (!data.name) data.name = data.src.split('/').pop();
+    data.uuid = 'virtual@' + data.src;
+    data.documentName = isAudio(data.src) ? 'AmbientSound' : 'Tile';
+
+    if (data.documentName === 'Tile') {
+      data.data = [{ texture: { src: data.src }, x: 0, y: 0, rotation: 0 }];
+      if (isVideo(data.src)) data.img = 'icons/svg/video.svg';
+      else data.img = data.src;
+    } else {
+      data.data = [{ path: data.src, radius: 20, x: 0, y: 0 }];
+      data.img = 'icons/svg/sound.svg';
+    }
+
     data.gridSize = 150;
     super(data);
-    this.documentName = 'Tile';
   }
 
   get virtual() {
@@ -279,7 +291,14 @@ export class VirtualTilePreset extends Preset {
   }
 
   async load(force = false) {
-    if (this.data[0].width != null && this.data[0].height != null) return this;
+    if (this._storedReference) return this;
+
+    const p = await FileIndexer.getPreset(this.uuid);
+    if (p) this.tags = p.tags;
+    this._storedReference = p;
+
+    // Ambient Sound, no further processing required
+    if (this.data[0].path) return this;
 
     // Load image/video metadata to retrieve the width/height
     const src = this.data[0].texture?.src;
@@ -329,10 +348,6 @@ export class VirtualTilePreset extends Preset {
     this.data[0].width = width;
     this.data[0].height = height;
 
-    const p = await FileIndexer.getPreset(this.uuid);
-    if (p) this.tags = p.tags;
-    this._storedReference = p;
-
     return this;
   }
 
@@ -341,13 +356,13 @@ export class VirtualTilePreset extends Preset {
 
     if (this._storedReference) {
       this._storedReference.tags = update.tags;
-      clearTimeout(VirtualTilePreset._updateTimeout);
-      VirtualTilePreset._updateTimeout = setTimeout(() => FileIndexer.saveIndexToCache(), 3000);
+      clearTimeout(VirtualFilePreset._updateTimeout);
+      VirtualFilePreset._updateTimeout = setTimeout(() => FileIndexer.saveIndexToCache(), 3000);
     }
   }
 
   clone() {
-    const clone = new VirtualTilePreset(this.toJSON());
+    const clone = new VirtualFilePreset(this.toJSON());
     return clone;
   }
 }

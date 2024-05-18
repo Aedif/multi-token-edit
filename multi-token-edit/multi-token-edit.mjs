@@ -216,7 +216,7 @@ Hooks.once('init', () => {
     activateBrush: activateBrush,
     deactivateBrush: deactivateBush,
     openBrushMenu: openBrushMenu,
-    buildDirectoryIndex: FileIndexer.buildIndex,
+    buildDirectoryIndex: (options) => FileIndexer.buildIndex(options),
   };
 
   game.modules.get(MODULE_ID).api = {

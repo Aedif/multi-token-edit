@@ -27,13 +27,18 @@ export function interpolateColor(u, c1, c2) {
 
 export const MODULE_ID = 'multi-token-edit';
 
+const IMAGE_EXTENSIONS = ['webp', 'jpg', 'jpeg', 'png', 'svg', 'apng', 'avif', 'bmp', 'gif', 'tif'];
+const VIDEO_EXTENSIONS = ['mp4', 'ogv', 'webm', 'm4v'];
+const AUDIO_EXTENSIONS = ['aac', 'flac', 'm4a', 'mid', 'mp3', 'ogg', 'opus', 'wav'];
+export const FILE_EXTENSIONS = [...IMAGE_EXTENSIONS, ...VIDEO_EXTENSIONS, ...AUDIO_EXTENSIONS];
+
 /**
  * Returns true of provided path points to an image
  */
 export function isImage(path) {
   var extension = path.split('.');
   extension = extension[extension.length - 1].toLowerCase();
-  return ['jpg', 'jpeg', 'png', 'svg', 'webp', 'gif'].includes(extension);
+  return IMAGE_EXTENSIONS.includes(extension);
 }
 
 /**
@@ -42,7 +47,16 @@ export function isImage(path) {
 export function isVideo(path) {
   var extension = path.split('.');
   extension = extension[extension.length - 1].toLowerCase();
-  return ['mp4', 'ogg', 'webm', 'm4v'].includes(extension);
+  return VIDEO_EXTENSIONS.includes(extension);
+}
+
+/**
+ * Returns true of provided path points to an audio file
+ */
+export function isAudio(path) {
+  var extension = path.split('.');
+  extension = extension[extension.length - 1].toLowerCase();
+  return AUDIO_EXTENSIONS.includes(extension);
 }
 
 export async function recursiveTraverse(path, source, bucket, files = []) {
