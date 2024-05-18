@@ -122,6 +122,8 @@ export class Picker {
           if (!preview.z) preview.z = preview.document.z;
           if (preview.z) preview.document.z = preview.z + 9999999;
 
+          if (preview.source) preview.updateSource();
+
           if (preview.controlIcon && !preview.controlIcon._meVInsert) {
             preview.controlIcon.alpha = 0.4;
 
