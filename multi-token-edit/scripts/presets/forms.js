@@ -15,6 +15,7 @@ import {
   localize,
 } from '../utils.js';
 import { VirtualFileFolder, META_INDEX_ID, PresetAPI, PresetCollection, PresetPackFolder } from './collection.js';
+import { IndexerForm } from './fileIndexer.js';
 import { DOC_ICONS, Preset, VirtualFilePreset } from './preset.js';
 import { FolderState, mergePresetDataToDefaultDoc, placeableToData, randomizeChildrenFolderColors } from './utils.js';
 
@@ -247,6 +248,7 @@ export class MassEditPresets extends FormApplication {
     });
 
     html.on('drop', '.item.editable', (event) => {
+      if (MassEditPresets.lastSearch?.length) return; // Prevent drops while searching
       if (this.dragType !== 'item') return;
       if (!this.draggedElements.hasClass('editable')) return;
 
@@ -332,6 +334,8 @@ export class MassEditPresets extends FormApplication {
 
     html.on('drop', '.folder.editable header', (event) => {
       if (this._foundryDrop(event)) return;
+      if (MassEditPresets.lastSearch?.length) return; // Prevent drops while searching
+
       const targetFolder = $(event.target).closest('.folder');
 
       if (this.dragType === 'folder') {
@@ -385,6 +389,7 @@ export class MassEditPresets extends FormApplication {
 
     html.on('drop', '.top-level-preset-items', (event) => {
       if (this._foundryDrop(event)) return;
+      if (MassEditPresets.lastSearch?.length) return; // Prevent drops while searching
       if (this.dragType === 'folder') {
         // Move HTML Elements
         const target = html.find('.top-level-folder-items');
@@ -413,7 +418,6 @@ export class MassEditPresets extends FormApplication {
     // ================
 
     html.on('click', '.toggle-sort', this._onToggleSort.bind(this));
-    html.on('click', '.toggle-search-mode', this._onToggleSearch.bind(this));
     html.on('click', '.toggle-doc-lock', this._onToggleLock.bind(this));
     html.on('click', '.toggle-ext-comp', this._onToggleExtComp.bind(this));
     html.on('click', '.toggle-scaling', this._onToggleScaling.bind(this));
@@ -429,6 +433,10 @@ export class MassEditPresets extends FormApplication {
     const headerSearch = html.find('.header-search input');
     headerSearch.on('input', (event) => this._onSearchInput(event));
     if ((MassEditPresets.lastSearch?.length ?? 0) >= SEARCH_MIN_CHAR) headerSearch.trigger('input');
+
+    html.on('click', '.toggle-search-mode', (event) => {
+      this._onToggleSearch(event, headerSearch);
+    });
 
     // Activate context menu
     this._contextMenu(html.find('.item-list'));
@@ -965,6 +973,7 @@ export class MassEditPresets extends FormApplication {
     $(event.target).addClass('active');
 
     this._searchFoundCount = 0;
+    this._searchFoundPresets = game.settings.get(MODULE_ID, 'presetSearchMode') === 'p' ? [] : null;
 
     this.tree.folders.forEach((f) => this._searchFolder(filter, f));
     this.tree.extFolders.forEach((f) => this._searchFolder(filter, f));
@@ -1001,6 +1010,7 @@ export class MassEditPresets extends FormApplication {
     if (filter.every((k) => presetName.includes(k)) || filter.every((k) => preset.tags.includes(k))) {
       this._searchFoundCount++;
       preset._render = this._searchFoundCount < SEARCH_FOUND_MAX_COUNT;
+      if (preset._render) this._searchFoundPresets?.push(preset);
       return preset._render;
     } else {
       preset._render = false || forceRender;
@@ -1009,6 +1019,7 @@ export class MassEditPresets extends FormApplication {
   }
 
   _resetSearchState() {
+    this._searchFoundPresets = null;
     this.tree.folders.forEach((f) => this._resetSearchStateFolder(f));
     this.tree.extFolders.forEach((f) => this._resetSearchStateFolder(f));
     this.tree.presets.forEach((p) => this._resetSearchStatePreset(p));
@@ -1026,13 +1037,26 @@ export class MassEditPresets extends FormApplication {
   }
 
   async _renderContent() {
-    const content = await renderTemplate(`modules/${MODULE_ID}/templates/preset/presetsContent.html`, {
-      callback: Boolean(this.callback),
-      presets: this.tree.presets,
-      folders: this.tree.folders,
-      createEnabled: Boolean(this.configApp),
-      extFolders: this.tree.extFolders.length ? this.tree.extFolders : null,
-    });
+    let data;
+    if (this._searchFoundPresets) {
+      data = {
+        callback: Boolean(this.callback),
+        presets: this._searchFoundPresets,
+        folders: [],
+        createEnabled: Boolean(this.configApp),
+        extFolders: null,
+      };
+    } else {
+      data = {
+        callback: Boolean(this.callback),
+        presets: this.tree.presets,
+        folders: this.tree.folders,
+        createEnabled: Boolean(this.configApp),
+        extFolders: this.tree.extFolders.length ? this.tree.extFolders : null,
+      };
+    }
+
+    const content = await renderTemplate(`modules/${MODULE_ID}/templates/preset/presetsContent.html`, data);
     this.element.find('.item-list').html(content);
   }
 
@@ -1124,7 +1148,7 @@ export class MassEditPresets extends FormApplication {
     this.render(true);
   }
 
-  async _onToggleSearch(event) {
+  async _onToggleSearch(event, headerSearch) {
     const searchControl = $(event.target).closest('.toggle-search-mode');
 
     const currentMode = game.settings.get(MODULE_ID, 'presetSearchMode');
@@ -1134,7 +1158,7 @@ export class MassEditPresets extends FormApplication {
     const mode = SEARCH_MODES[newMode];
     searchControl.attr('data-tooltip', mode.tooltip).html(mode.icon);
 
-    $(this.form).find('.header-search input').trigger('input');
+    if (MassEditPresets.lastSearch) headerSearch.trigger('input');
   }
 
   _onToggleLock(event) {
@@ -1190,6 +1214,11 @@ export class MassEditPresets extends FormApplication {
 
       if (game.settings.get(MODULE_ID, 'presetLayerSwitch'))
         canvas.getLayerByEmbeddedName(this.docName === 'Actor' ? 'Token' : this.docName)?.activate();
+
+      if (MassEditPresets.lastSearch) {
+        MassEditPresets.lastSearch = '';
+        this._resetSearchState();
+      }
 
       this.render(true);
     }
@@ -1483,6 +1512,13 @@ export class MassEditPresets extends FormApplication {
     });
     buttons.unshift({
       label: '',
+      class: 'mass-edit-indexer',
+      icon: 'fas fa-archive',
+      onclick: (ev) => this._onOpenIndexer(),
+    });
+
+    buttons.unshift({
+      label: '',
       class: 'mass-edit-export',
       icon: 'fas fa-file-export',
       onclick: (ev) => this._onExport(ev),
@@ -1517,6 +1553,11 @@ export class MassEditPresets extends FormApplication {
       await game.settings.set(MODULE_ID, 'workingPack', pack);
       this.render(true);
     }
+  }
+
+  async _onOpenIndexer() {
+    let indexer = new IndexerForm();
+    indexer.render(true);
   }
 
   async _onExport() {

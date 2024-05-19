@@ -2,6 +2,7 @@ import { GeneralDataAdapter } from '../applications/dataAdapters.js';
 import { MassEditPresets } from './presets/forms.js';
 import { applyRandomization } from './randomizer/randomizerUtils.js';
 
+export const MODULE_ID = 'multi-token-edit';
 export const SUPPORTED_PLACEABLES = [
   'Token',
   'MeasuredTemplate',
@@ -12,25 +13,17 @@ export const SUPPORTED_PLACEABLES = [
   'AmbientSound',
   'Note',
 ];
-
 export const UI_DOCS = ['FAVORITES', 'ALL', ...SUPPORTED_PLACEABLES];
-
 export const SUPPORT_SHEET_CONFIGS = [...SUPPORTED_PLACEABLES, 'Actor', 'PlaylistSound', 'Scene'];
-
-export const SUPPORTED_HISTORY_DOCS = [...SUPPORTED_PLACEABLES, 'Scene', 'Actor', 'PlaylistSound'];
-
 export const SUPPORTED_COLLECTIONS = ['Item', 'Cards', 'RollTable', 'Actor', 'JournalEntry', 'Scene'];
-
-export function interpolateColor(u, c1, c2) {
-  return c1.map((a, i) => Math.floor((1 - u) * a + u * c2[i]));
-}
-
-export const MODULE_ID = 'multi-token-edit';
-
 const IMAGE_EXTENSIONS = ['webp', 'jpg', 'jpeg', 'png', 'svg', 'apng', 'avif', 'bmp', 'gif', 'tif'];
 const VIDEO_EXTENSIONS = ['mp4', 'ogv', 'webm', 'm4v'];
 const AUDIO_EXTENSIONS = ['aac', 'flac', 'm4a', 'mid', 'mp3', 'ogg', 'opus', 'wav'];
 export const FILE_EXTENSIONS = [...IMAGE_EXTENSIONS, ...VIDEO_EXTENSIONS, ...AUDIO_EXTENSIONS];
+
+export function interpolateColor(u, c1, c2) {
+  return c1.map((a, i) => Math.floor((1 - u) * a + u * c2[i]));
+}
 
 /**
  * Returns true of provided path points to an image

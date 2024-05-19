@@ -76,14 +76,6 @@
         "name": "Insert TMFX Fields",
         "hint": "DungeonDraft tint color and Preset filter fields will be added to Mass Edit forms. Selecting these fields will cause TokenMagicFX filters to be applied."
       },
-      "historyMaxLength": {
-        "name": "History Max Length",
-        "hint": "Number of updates to be recorded in history."
-      },
-      "enableHistory": {
-        "name": "Update History",
-        "hint": "(REQUIRES GAME RELOAD) When enabled updates made to placeables will be stored and accessible via Mass Edit forms."
-      },
       "enableFlagsTab": {
         "name": "Flags Tab",
         "hint": " When enabled 'Flags' tab will be added to Mass Edit forms to allow updating and removing of document flags."
@@ -176,7 +168,6 @@
       "pin": "Pin",
       "preset": "Preset",
       "presets": "Presets",
-      "history": "History",
       "delete": "Delete",
       "apply": "Apply",
       "ratio": "Ratio",

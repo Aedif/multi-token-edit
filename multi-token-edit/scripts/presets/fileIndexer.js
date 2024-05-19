@@ -1,37 +1,59 @@
-import { FILE_EXTENSIONS } from '../utils.js';
+import { FILE_EXTENSIONS, MODULE_ID } from '../utils.js';
 import { PresetTree, VirtualFileFolder } from './collection.js';
 import { VirtualFilePreset } from './preset.js';
 
 const CACHE_PATH = '';
-// const INDEX_PATHS = ['modules/mass-edit-aedifs-presets', 'modules/token-variants', 'dump'];
-const INDEX_PATHS = ['modules'];
 const CACHE_NAME = 'MassEditCache.json';
 
 export class FileIndexer {
   static _loadedTree;
+  static _buildingIndex = false;
 
   static async getVirtualDirectoryTree(type, { setFormVisibility = false } = {}) {
     if (CONFIG.debug.MassEdit) console.time('Virtual File Directory');
 
-    if (FileIndexer._loadedTree) {
+    // If we already have a loaded index, re-use it
+    if (this._loadedTree) {
       if (CONFIG.debug.MassEdit) console.timeEnd('Virtual File Directory');
-      if (setFormVisibility) FileIndexer._loadedTree.setVisibility(type);
-      ui.notifications.info(`Index consist of ${FileIndexer._loadedTree.allPresets.length} files.`);
-      return FileIndexer._loadedTree;
+      if (setFormVisibility) this._loadedTree.setVisibility(type);
+      ui.notifications.info(`Index consist of ${this._loadedTree.allPresets.length} files.`);
+      return this._loadedTree;
     }
 
+    // Load and convert an index cache to a virtual folder
     const allFolders = new Map();
     const allPresets = [];
+    const topLevelFolders = [];
 
     const cache = await this.loadIndexCache(CACHE_PATH + '/' + CACHE_NAME);
-    const folders = cache.map((f) => this._indexToVirtualFolder(f, '', allFolders, allPresets));
+    if (!cache) return null;
+
+    for (const source of cache) {
+      let folders, name, uuid;
+      if (source.source === 'data' || source.source === 'public') {
+        folders = source.index.map((f) => this._indexToVirtualFolder(f, '', allFolders, allPresets, ''));
+        name = source.source;
+        uuid = 'virtual.source.' + source.source;
+      }
+
+      if (folders?.length) {
+        const sFolder = new VirtualFileFolder({
+          uuid,
+          name,
+          children: folders,
+          types: ['ALL', 'Tile', 'AmbientSound'],
+        });
+        allFolders.set(sFolder.uuid, sFolder);
+        topLevelFolders.push(sFolder);
+      }
+    }
 
     ui.notifications.info(`Index consist of ${allPresets.length} files.`);
 
     let tree;
-    if (folders?.length) {
+    if (topLevelFolders.length) {
       tree = new PresetTree({
-        folders,
+        folders: topLevelFolders,
         presets: [],
         allPresets,
         allFolders,
@@ -53,42 +75,80 @@ export class FileIndexer {
    * Build the directory index using the user defined paths to be scanned.
    * Index structure: [{ dir: 'modules', files: [{ name: 'box.webp', tags: [] }], dirs: [] }];
    */
-  static async buildIndex({ ignorePreCachedTags = true } = {}) {
+  static async buildIndex() {
+    if (this._buildingIndex) {
+      ui.notifications.info('Index Build In-Progress. Wait for it to finish before attempting it again.');
+      return;
+    }
+
+    this._buildingIndex = true;
+
     ui.notifications.info('Building Mass Edit directory index.');
 
-    const index = [];
-    const foundCaches = [];
+    const settings = game.settings.get(MODULE_ID, 'indexer');
 
-    for (const path of INDEX_PATHS) {
-      let iDir = await this.generateIndex(path, foundCaches);
+    try {
+      const scannedSources = [];
+      const foundCaches = [];
 
-      if (iDir) {
-        const sPath = path.split('/').filter(Boolean);
-        for (let i = sPath.length - 2; i >= 0; i--) {
-          iDir = { dir: sPath[i], dirs: [iDir] };
+      // Traverse directories specified in settings.indexDirs
+      for (const dir of settings.indexDirs) {
+        let iDir = await this.generateIndex(dir.target, foundCaches, dir.source, dir.bucket, settings);
+
+        if (iDir) {
+          const sPath = dir.target.split('/').filter(Boolean);
+          for (let i = sPath.length - 2; i >= 0; i--) {
+            iDir = { dir: sPath[i], dirs: [iDir] };
+          }
+
+          let index = scannedSources.find((i) => i.source === dir.source && i.bucket == dir.bucket);
+          if (index) this.mergeIndex(index.index, [iDir]);
+          else {
+            index = { source: dir.source, index: [iDir] };
+            if (dir.bucket) index.bucket = dir.bucket;
+            scannedSources.push(index);
+          }
         }
-
-        this.mergeIndex(index, [iDir]);
       }
+
+      // If pre-generated caches have been found we want to load and merge them here
+      for (const cacheFile of foundCaches) {
+        const cache = await this.loadIndexCache(cacheFile);
+        if (cache) this.mergeCaches(scannedSources, cache);
+      }
+
+      // User can specify if he wants the tags associated with images/video to be retained or not.
+      // overrideNullTagsOnly - true - will essentially override user changes to pre-cached directories
+      // overrideNullTagsOnly - false - pre-cached directory tags will be ignored, favoring user tags
+      const currentCache = await this.loadIndexCache(CACHE_PATH + '/' + CACHE_NAME);
+      if (currentCache) {
+        this.mergeCaches(scannedSources, currentCache, {
+          tagsOnly: true,
+          overrideNullTagsOnly: !settings.overrideTags,
+        });
+      }
+
+      if (scannedSources.length) await this._writeIndexToCache(scannedSources);
+      this._loadedTree = null;
+    } catch (e) {
+      console.log(e);
     }
 
-    // If pre-generated caches have been found we want to load and merge them here
-    for (const path of foundCaches) {
-      const cache = await this.loadIndexCache(path);
-      console.log(cache, index);
-      if (cache) this.mergeIndex(index, cache);
-    }
+    this._buildingIndex = false;
+  }
 
-    // User can specify if he wants the tags associated with images/video to be retained or not.
-    // overrideNullTagsOnly - true - will essentially override user changes to pre-cached directories
-    // overrideNullTagsOnly - false - pre-cached directory tags will be ignored, favoring user tags
-    const currentCache = await this.loadIndexCache(CACHE_PATH + '/' + CACHE_NAME);
-    if (currentCache) {
-      this.mergeIndex(index, currentCache, { tagsOnly: true, overrideNullTagsOnly: !ignorePreCachedTags });
+  static mergeCaches(cacheTo, cacheFrom, { tagsOnly = false, overrideNullTagsOnly = false } = {}) {
+    for (const indexSourceFrom of cacheFrom) {
+      const indexSourceTo = cacheTo.find(
+        (i) => i.source === indexSourceFrom.source && i.bucket == indexSourceFrom.bucket
+      );
+      if (indexSourceTo) {
+        this.mergeIndex(indexSourceTo.index, indexSourceFrom.index, {
+          tagsOnly,
+          overrideNullTagsOnly,
+        });
+      } else if (!tagsOnly) cacheTo.push(indexSourceFrom);
     }
-
-    if (index.length) await this._writeIndexToCache(index);
-    this._loadedTree = null;
   }
 
   // options to only merge tags if they didn't have any
@@ -141,16 +201,7 @@ export class FileIndexer {
     const str = JSON.stringify(index);
 
     const tFile = await StringCompress.compress(str);
-    console.log(tFile);
     await FilePicker.upload('data', CACHE_PATH, tFile, {}, { notify });
-
-    const tCache = await StringCompress.decompressCache(CACHE_PATH + '/' + 'MassEditCacheGZ.json');
-    console.log(tCache);
-
-    let file = new File([str], 'MassEditCache.json', {
-      type: 'text/plain',
-    });
-    await FilePicker.upload('data', CACHE_PATH, file, {}, { notify });
   }
 
   static _cacheFolder(folder) {
@@ -169,26 +220,19 @@ export class FileIndexer {
   static async loadIndexCache(cacheFile) {
     let cache;
     try {
-      await jQuery.getJSON(cacheFile, (json) => {
-        if (!(Array.isArray(json) && json?.length)) return null;
-        cache = json;
-      });
+      cache = await StringCompress.decompressCache(cacheFile);
     } catch (error) {
-      ui.notifications.warn(`Failed to load file`);
+      ui.notifications.warn(`Failed to load cache: ` + cacheFile);
     }
     return cache;
   }
 
-  static _indexToVirtualFolder(cache, parentDirPath, allFolders, allPresets) {
+  static _indexToVirtualFolder(cache, parentDirPath, allFolders, allPresets, prePend = '') {
     const fullPath = parentDirPath + '/' + cache.dir;
-    const uuid = 'virtual.' + fullPath;
+    const uuid = 'virtual.' + prePend + fullPath;
     const fileFolder = new VirtualFileFolder({
-      id: randomID(),
       uuid,
       name: cache.dir,
-      children: [],
-      presets: [],
-      draggable: false,
     });
 
     // For assigning folder category
@@ -197,7 +241,7 @@ export class FileIndexer {
 
     if (cache.dirs) {
       for (const dir of cache.dirs) {
-        const childFolder = this._indexToVirtualFolder(dir, fullPath, allFolders, allPresets);
+        const childFolder = this._indexToVirtualFolder(dir, fullPath, allFolders, allPresets, prePend);
         if (childFolder) {
           childFolder.folder = fileFolder.id;
           fileFolder.children.push(childFolder);
@@ -212,7 +256,7 @@ export class FileIndexer {
       for (const file of cache.files) {
         const preset = new VirtualFilePreset({
           name: file.name,
-          src: fullPath + '/' + file.name,
+          src: prePend + fullPath + '/' + file.name,
           tags: file.tags,
           folder: fileFolder.id,
         });
@@ -231,10 +275,10 @@ export class FileIndexer {
     return fileFolder;
   }
 
-  static async generateIndex(dir, foundCaches = []) {
+  static async generateIndex(dir, foundCaches = [], source = 'data', bucket = null, settings) {
     let content;
     try {
-      content = await FilePicker.browse('user', dir);
+      content = await FilePicker.browse(source, dir, { bucket });
     } catch (e) {
       return null;
     }
@@ -244,16 +288,20 @@ export class FileIndexer {
       dirs: [],
       files: [],
     };
+    if (settings.folderKeywordFilter.some((k) => folder.dir.includes(k))) return null;
 
     for (let path of content.files) {
       const fileName = path.split('\\').pop().split('/').pop();
+      if (settings.fileKeywordFilter.some((k) => fileName.includes(k))) continue;
 
       // Cancel indexing if noscan.txt or cache file is present within the directory
       if (fileName === 'noscan.txt') return null;
-      if (fileName === CACHE_NAME && CACHE_PATH !== dir) {
-        console.log('FOUND CACHE', path, fileName);
-        foundCaches.push(path);
-        return null;
+      if (fileName === CACHE_NAME) {
+        const cacheDir = settings.cacheDir;
+        if (!(cacheDir.target === dir.target && cacheDir.source === source && cacheDir.bucket === bucket)) {
+          foundCaches.push(path);
+          return null;
+        }
       }
 
       // Otherwise process the file
@@ -266,7 +314,7 @@ export class FileIndexer {
     }
 
     for (let dir of content.dirs) {
-      dir = await this.generateIndex(dir + '/', foundCaches);
+      dir = await this.generateIndex(dir, foundCaches, source, bucket, settings);
       if (dir) folder.dirs.push(dir);
     }
 
@@ -279,50 +327,47 @@ export class FileIndexer {
 }
 
 class StringCompress {
+  /**
+   * Compresses the provided string using native gzip implementation and return it as a File ready to be uploaded.
+   * @param {String} str string to be compressed
+   * @returns {File} compressed string file
+   */
   static async compress(str) {
-    // Convert the string to a byte stream.
     const stream = new Blob([str]).stream();
-
-    // Create a compressed stream.
     const compressedStream = stream.pipeThrough(new CompressionStream('gzip'));
-
-    console.log(compressedStream);
-
-    // Read all the bytes from this stream.
     const chunks = [];
     for await (const chunk of this.streamAsyncIterator(compressedStream)) {
       chunks.push(chunk);
     }
-
     const blob = new Blob(chunks);
-    const file = new File([blob], 'MassEditCacheGZ.json');
+    const file = new File([blob], CACHE_NAME);
     return file;
-    //return await this.concatUint8Arrays(chunks);
   }
 
+  /**
+   * Decompressed provided compressed json file
+   * @param {String} filePath path to the compressed json file
+   * @returns {Object} decompressed and parsed json object
+   */
   static async decompressCache(filePath) {
-    const response = await fetch(filePath);
-    console.log(response);
-    if (response.ok) {
-      const str = await this.decompress(response.body);
-      const cache = JSON.parse(str);
-      return cache;
-    }
-    return null;
+    let cache;
+    try {
+      const response = await fetch(filePath);
+      if (response.ok) {
+        const str = await this.decompress(response.body);
+        cache = JSON.parse(str);
+      }
+    } catch (e) {}
+    return cache;
   }
 
   static async decompress(stream) {
-    // Create a decompressed stream.
     const decompressedStream = stream.pipeThrough(new DecompressionStream('gzip'));
-
-    // Read all the bytes from this stream.
     const chunks = [];
     for await (const chunk of this.streamAsyncIterator(decompressedStream)) {
       chunks.push(chunk);
     }
     const stringBytes = await this.concatUint8Arrays(chunks);
-
-    // Convert the bytes to a string.
     return new TextDecoder().decode(stringBytes);
   }
 
@@ -333,20 +378,52 @@ class StringCompress {
   }
 
   static async *streamAsyncIterator(stream) {
-    // Get a lock on the stream
     const reader = stream.getReader();
-
     try {
       while (true) {
-        // Read from the stream
         const { done, value } = await reader.read();
-        // Exit if we're done
         if (done) return;
-        // Else yield the chunk
         yield value;
       }
     } finally {
       reader.releaseLock();
     }
+  }
+}
+
+/**
+ * Form to help configure and execute index build.
+ */
+export class IndexerForm extends FormApplication {
+  /** @inheritdoc */
+  static get defaultOptions() {
+    return foundry.utils.mergeObject(super.defaultOptions, {
+      classes: ['sheet', 'mass-edit-dark-window'],
+      template: `modules/${MODULE_ID}/templates/preset/indexer.html`,
+      width: 360,
+    });
+  }
+
+  activateListeners(html) {
+    super.activateListeners(html);
+
+    html.on('click', '.addPath', this._onAddPath.bind(this));
+  }
+
+  async _onAddPath(event) {
+    console.log(await this.selectFolder());
+  }
+
+  async selectFolder({ activeSource = 'data', current = '' } = {}) {
+    return new Promise((resolve) => {
+      new FilePicker({
+        type: 'folder',
+        activeSource,
+        current,
+        callback: (path, fp) => {
+          resolve({ path: fp.result.target, source: fp.activeSource, bucket: fp.result.bucket });
+        },
+      }).render(true);
+    });
   }
 }

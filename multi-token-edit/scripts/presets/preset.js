@@ -106,10 +106,8 @@ export class Preset {
   }
 
   get isFavorite() {
-    if (!Preset.favorites) {
-      console.log('GETTING FAVORITE SETTINGS');
-      Preset.favorites = game.settings.get(MODULE_ID, 'presetFavorites');
-    }
+    if (!Preset.favorites) Preset.favorites = game.settings.get(MODULE_ID, 'presetFavorites');
+
     return Boolean(Preset.favorites[this.uuid]);
   }
 

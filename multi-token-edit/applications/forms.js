@@ -19,13 +19,11 @@ import {
   panToFitPlaceables,
   selectAddSubtractFields,
   SUPPORTED_COLLECTIONS,
-  SUPPORTED_HISTORY_DOCS,
   SUPPORTED_PLACEABLES,
   wildcardStringMatch,
 } from '../scripts/utils.js';
 import { getInUseStyle } from './cssEdit.js';
 import { GeneralDataAdapter, TokenDataAdapter } from './dataAdapters.js';
-import MassEditHistory from './history.js';
 import MacroForm from './macro.js';
 import { SCENE_DOC_MAPPINGS, showMassActorForm, showMassEdit } from './multiConfig.js';
 
@@ -864,18 +862,6 @@ export const WithMassConfig = (docName = 'NONE') => {
         },
       });
 
-      // History
-      if (game.settings.get(MODULE_ID, 'enableHistory') && SUPPORTED_HISTORY_DOCS.includes(this.docName)) {
-        buttons.unshift({
-          label: '',
-          class: 'mass-edit-history',
-          icon: 'fas fa-history',
-          onclick: () => {
-            new MassEditHistory(this.docName, async (preset) => this._processPreset(preset)).render(true);
-          },
-        });
-      }
-
       // Toggle between Token and Actor forms
       if (this.documentName === 'Token' && this.meObjects.filter((t) => t.actor).length) {
         buttons.unshift({
@@ -951,7 +937,7 @@ export const WithMassConfig = (docName = 'NONE') => {
     }
 
     async _processPreset(preset) {
-      // This will be called when a preset or history item is selected or JSON data is being directly applied
+      // This will be called when a preset item is selected or JSON data is being directly applied
       // The code bellow handles it being applied to the current form
 
       // =====================
@@ -1233,13 +1219,6 @@ export async function performMassUpdate(data, objects, docName, applyType) {
 
     // push update
     updates.push(update);
-  }
-
-  // If history is enabled we'll want to attach additional controls to the updates
-  // so that they can be tracked.
-  if (game.settings.get(MODULE_ID, 'enableHistory')) {
-    context['mass-edit-randomize'] = [foundry.utils.deepClone(this.randomizeFields)];
-    context['mass-edit-addSubtract'] = [foundry.utils.deepClone(this.addSubtractFields)];
   }
 
   // Applies randomization

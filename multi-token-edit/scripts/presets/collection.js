@@ -74,7 +74,7 @@ export class PresetCollection {
       const vTree = await FileIndexer.getVirtualDirectoryTree(type, { setFormVisibility });
       if (vTree?.hasVisible) {
         const topFolder = new VirtualFileFolder({
-          name: 'User Data',
+          name: 'VIRTUAL DIRECTORY',
           children: vTree.folders,
           uuid: 'virtual_directory',
         });
@@ -944,6 +944,7 @@ export class PresetVirtualFolder extends PresetFolder {
   constructor(options) {
     super(options);
     this.virtual = true;
+    this.draggable = false;
   }
 
   async update(data) {}
@@ -952,7 +953,8 @@ export class PresetVirtualFolder extends PresetFolder {
 export class VirtualFileFolder extends PresetVirtualFolder {
   constructor(options) {
     super(options);
-    this.types = ['ALL'];
+    this.id = randomID();
+    if (!options.types) this.types = ['ALL'];
   }
 }
 

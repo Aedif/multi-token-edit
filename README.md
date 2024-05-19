@@ -176,12 +176,6 @@ Note, Token and Actor forms will contain a 'Permissions' header button allowing 
 
 ![Permissions](https://user-images.githubusercontent.com/7693704/192584817-7ed7b710-ad44-41f3-ab82-93a962084aa4.png)
 
-## History
-
-When enabled in the module settings, updates made to placeables will be tracked and available via Mass Edit forms. These updates can be selected to be applied to the currently open form or copied to the module's clipboard to be pasted on other placeables.
-
-![History](https://user-images.githubusercontent.com/7693704/197341186-503648b5-5703-4b78-b27d-0895b4b5dc76.gif)
-
 ## Macro Generator
 
 Using the selected fields the module will generate simple macros that will update, toggle, delete, or open Mass Edit forms.

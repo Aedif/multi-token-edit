@@ -1,0 +1,19 @@
+<form>
+<fieldset>
+    <legend>Index Paths <a class="addPath"><i class="fas fa-plus"></i></a></legend>
+
+    <div class="indexPaths">
+        {{#each indexPaths as |path|}}
+        <div class="path">
+            <input type="text" name="indexPaths.{{@index}}.source" value="{{path.source}}">
+            <input type="text" name="indexPaths.{{@index}}.bucket" value="{{path.bucket}}" {{#unless path.bucket}}hidden{{/unless}}>
+            <input type="text" name="indexPaths.{{@index}}.target" value="{{path.target}}">
+            {{/each}}
+        </div>
+    </div>
+</fieldset>
+
+    <footer class="sheet-footer flexrow">
+        <button type="submit"><i class="far fa-gear"></i>Generate Index</button>
+    </footer>
+</form>
