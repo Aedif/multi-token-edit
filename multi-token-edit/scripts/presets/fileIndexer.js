@@ -1,6 +1,7 @@
 import { FILE_EXTENSIONS, MODULE_ID } from '../utils.js';
 import { PresetTree, VirtualFileFolder } from './collection.js';
 import { VirtualFilePreset } from './preset.js';
+import { encodeURIComponentSafely } from './utils.js';
 
 const CACHE_PATH = '';
 const CACHE_NAME = 'MassEditCache.json';
@@ -16,7 +17,6 @@ export class FileIndexer {
     if (this._loadedTree) {
       if (CONFIG.debug.MassEdit) console.timeEnd('Virtual File Directory');
       if (setFormVisibility) this._loadedTree.setVisibility(type);
-      ui.notifications.info(`Index consist of ${this._loadedTree.allPresets.length} files.`);
       return this._loadedTree;
     }
 
@@ -26,7 +26,10 @@ export class FileIndexer {
     const topLevelFolders = [];
 
     const cache = await this.loadIndexCache(CACHE_PATH + '/' + CACHE_NAME);
-    if (!cache) return null;
+    if (!cache) {
+      if (CONFIG.debug.MassEdit) console.timeEnd('Virtual File Directory');
+      return null;
+    }
 
     for (const source of cache) {
       let folders, name, uuid;
@@ -42,13 +45,12 @@ export class FileIndexer {
           name,
           children: folders,
           types: ['ALL', 'Tile', 'AmbientSound'],
+          bucket: source.bucket,
         });
         allFolders.set(sFolder.uuid, sFolder);
         topLevelFolders.push(sFolder);
       }
     }
-
-    ui.notifications.info(`Index consist of ${allPresets.length} files.`);
 
     let tree;
     if (topLevelFolders.length) {
@@ -77,7 +79,7 @@ export class FileIndexer {
    */
   static async buildIndex() {
     if (this._buildingIndex) {
-      ui.notifications.info('Index Build In-Progress. Wait for it to finish before attempting it again.');
+      ui.notifications.warn('Index Build In-Progress. Wait for it to finish before attempting it again.');
       return;
     }
 
@@ -130,6 +132,8 @@ export class FileIndexer {
 
       if (scannedSources.length) await this._writeIndexToCache(scannedSources);
       this._loadedTree = null;
+
+      ui.notifications.info(`MassEdit Index build finished.`);
     } catch (e) {
       console.log(e);
     }
@@ -192,8 +196,17 @@ export class FileIndexer {
 
   static async saveIndexToCache(notify = true) {
     if (this._loadedTree) {
-      const cacheFolders = this._loadedTree.folders.map((f) => this._cacheFolder(f));
-      this._writeIndexToCache(cacheFolders, notify);
+      const cache = [];
+      for (const sourceFolder of this._loadedTree.folders) {
+        const sourceCache = {
+          source: sourceFolder.name,
+          index: sourceFolder.children.map((f) => this._cacheFolder(f)),
+        };
+        if (sourceFolder.bucket) sourceCache.bucket = sourceFolder.bucket;
+        cache.push(sourceCache);
+      }
+
+      this._writeIndexToCache(cache, notify);
     }
   }
 
@@ -205,14 +218,14 @@ export class FileIndexer {
   }
 
   static _cacheFolder(folder) {
-    const fDic = { dir: folder.name };
+    const fDic = { dir: encodeURIComponentSafely(folder.name) };
     if (folder.presets.length) fDic.files = folder.presets.map((p) => this._cachePreset(p));
     if (folder.children.length) fDic.dirs = folder.children.map((c) => this._cacheFolder(c));
     return fDic;
   }
 
   static _cachePreset(preset) {
-    const pDic = { name: preset.name };
+    const pDic = { name: encodeURIComponentSafely(preset.name) };
     if (preset.tags?.length) pDic.tags = preset.tags;
     return pDic;
   }
@@ -288,11 +301,11 @@ export class FileIndexer {
       dirs: [],
       files: [],
     };
-    if (settings.folderKeywordFilter.some((k) => folder.dir.includes(k))) return null;
+    if (settings.folderFilters.some((k) => folder.dir.includes(k))) return null;
 
     for (let path of content.files) {
       const fileName = path.split('\\').pop().split('/').pop();
-      if (settings.fileKeywordFilter.some((k) => fileName.includes(k))) continue;
+      if (settings.fileFilters.some((k) => fileName.includes(k))) continue;
 
       // Cancel indexing if noscan.txt or cache file is present within the directory
       if (fileName === 'noscan.txt') return null;
@@ -401,29 +414,118 @@ export class IndexerForm extends FormApplication {
       classes: ['sheet', 'mass-edit-dark-window'],
       template: `modules/${MODULE_ID}/templates/preset/indexer.html`,
       width: 360,
+      height: 'auto',
     });
+  }
+
+  get title() {
+    return 'Directory Indexer';
+  }
+
+  async getData(options = {}) {
+    const data = foundry.utils.deepClone(game.settings.get(MODULE_ID, 'indexer'));
+    data.fileFilters = data.fileFilters.join(', ');
+    data.folderFilters = data.folderFilters.join(', ');
+    return data;
   }
 
   activateListeners(html) {
     super.activateListeners(html);
 
-    html.on('click', '.addPath', this._onAddPath.bind(this));
+    html.on('click', '.addDirectory', this._onAddDirectory.bind(this));
+    html.on('click', '.deleteDirectory', this._onDeleteDirectory.bind(this));
+    html.on('input', '[name="fileFilters"]', this._onFileFiltersChange.bind(this));
+    html.on('input', '[name="folderFilters"]', this._onFolderFiltersChange.bind(this));
   }
 
-  async _onAddPath(event) {
-    console.log(await this.selectFolder());
+  _onFileFiltersChange(event) {
+    clearTimeout(this._onInputTimeOut);
+    this._onInputTimeOut = setTimeout(() => {
+      const fileFilters = $(event.currentTarget)
+        .val()
+        .split(',')
+        .map((f) => f.trim())
+        .filter(Boolean);
+      this._updateIndexerSettings({ fileFilters }, false);
+    }, 500);
   }
 
-  async selectFolder({ activeSource = 'data', current = '' } = {}) {
-    return new Promise((resolve) => {
-      new FilePicker({
-        type: 'folder',
-        activeSource,
-        current,
-        callback: (path, fp) => {
-          resolve({ path: fp.result.target, source: fp.activeSource, bucket: fp.result.bucket });
-        },
-      }).render(true);
+  _onFolderFiltersChange(event) {
+    clearTimeout(this._onInputTimeOut);
+    this._onInputTimeOut = setTimeout(() => {
+      const folderFilters = $(event.currentTarget)
+        .val()
+        .split(',')
+        .map((f) => f.trim())
+        .filter(Boolean);
+      this._updateIndexerSettings({ folderFilters }, false);
+    }, 500);
+  }
+
+  async _onAddDirectory() {
+    this.selectFolder(async (selection) => {
+      if (!selection) return;
+      if (!selection.bucket) delete selection.bucket;
+
+      // TODO add support for forgevtt, bazaar, and s3
+      if (!['data', 'public'].includes(selection.source)) {
+        ui.notifications.warn(`${selection.source} is not a supported source.`);
+        return;
+      }
+
+      const indexDirs = game.settings.get(MODULE_ID, 'indexer').indexDirs;
+      // Make sure the selection is unique
+      if (
+        indexDirs.find(
+          (id) => id.source === selection.source && id.target === selection.target && id.bucket == selection.bucket
+        )
+      ) {
+        return;
+      }
+
+      indexDirs.push(selection);
+      this._updateIndexerSettings({ indexDirs });
     });
+  }
+
+  async _onDeleteDirectory(event) {
+    const directory = $(event.target).closest('.directory');
+    const source = directory.find('.source').val();
+    const target = directory.find('.target').val();
+    const bucket = directory.find('.bucket').val() || null;
+
+    const indexDirs = game.settings
+      .get(MODULE_ID, 'indexer')
+      .indexDirs.filter((id) => !(id.source === source && id.target === target && id.bucket == bucket));
+
+    this._updateIndexerSettings({ indexDirs });
+  }
+
+  async _updateIndexerSettings(update = {}, render = true) {
+    const settings = game.settings.get(MODULE_ID, 'indexer');
+    foundry.utils.mergeObject(settings, update);
+    await game.settings.set(MODULE_ID, 'indexer', settings);
+    if (render) await this.render();
+  }
+
+  async selectFolder(callback) {
+    new FilePicker({
+      type: 'folder',
+      activeSource: 'data',
+      current: '',
+      callback: (path, fp) => {
+        const selection = { target: fp.result.target, source: fp.activeSource, bucket: fp.result.bucket };
+        if (!selection.bucket) delete selection.bucket;
+        callback(selection);
+      },
+    }).render(true);
+  }
+
+  /**
+   * @param {Event} event
+   * @param {Object} formData
+   */
+  async _updateObject(event, formData) {
+    FileIndexer.buildIndex();
   }
 }

@@ -1,17 +1,32 @@
 <form>
-<fieldset>
-    <legend>Index Paths <a class="addPath"><i class="fas fa-plus"></i></a></legend>
+    <fieldset>
+        <legend>Directories to Index <a class="addDirectory"><i class="fas fa-plus"></i></a></legend>
 
-    <div class="indexPaths">
-        {{#each indexPaths as |path|}}
-        <div class="path">
-            <input type="text" name="indexPaths.{{@index}}.source" value="{{path.source}}">
-            <input type="text" name="indexPaths.{{@index}}.bucket" value="{{path.bucket}}" {{#unless path.bucket}}hidden{{/unless}}>
-            <input type="text" name="indexPaths.{{@index}}.target" value="{{path.target}}">
+        <div class="indexDirectories">
+            {{#each indexDirs as |dir|}}
+            <div class="directory">
+                <input class="source" type="text" name="indexDirs.{{@index}}.source" value="{{dir.source}}" readonly>
+                <input class="bucket" type="text" name="indexDirs.{{@index}}.bucket" value="{{dir.bucket}}" {{#unless dir.bucket}}hidden{{/unless}} readonly>
+                <input class="target" type="text" name="indexDirs.{{@index}}.target" value="{{dir.target}}" readonly>
+                <a class="deleteDirectory"><i class="fas fa-trash"></i></a>
+            </div>
             {{/each}}
         </div>
+    </fieldset>
+
+    <br>
+
+    <div class="form-group">
+        <label>File Keyword Filter</label>
+        <input name="fileFilters" type="text" value="{{fileFilters}}"></input>
+        <p class="notes">Files containing these keywords in their name will not be included in the index. Use comma "," to separate keywords.</p>
     </div>
-</fieldset>
+
+    <div class="form-group">
+        <label>Folder Keyword Filter</label>
+        <input name="folderFilters" type="text" value="{{folderFilters}}"></input>
+        <p class="notes">Folders containing these keywords in their name will not be included in the index. Use comma "," to separate keywords.</p>
+    </div>
 
     <footer class="sheet-footer flexrow">
         <button type="submit"><i class="far fa-gear"></i>Generate Index</button>

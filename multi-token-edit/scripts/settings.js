@@ -68,11 +68,14 @@ export function registerSettings() {
     config: false,
     type: Object,
     default: {
-      indexDirs: [{ target: 'modules', source: 'data' }],
-      cacheDirs: [{ target: '', source: 'data' }],
+      indexDirs: [
+        { target: 'modules', source: 'data' },
+        { target: 'icons', source: 'public' },
+      ],
+      cacheDir: { target: '', source: 'data' },
       overrideTags: false,
-      fileKeywordFilter: ['thumbnail', 'Thumbnail'],
-      folderKeywordFilter: ['thumbnail', 'Thumbnail'],
+      fileFilters: ['thumbnail', 'Thumbnail'],
+      folderFilters: ['thumbnail', 'Thumbnail'],
     },
   });
 

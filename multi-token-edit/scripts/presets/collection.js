@@ -16,6 +16,7 @@ import { FileIndexer } from './fileIndexer.js';
 import { Preset, VirtualFilePreset } from './preset.js';
 import {
   FolderState,
+  decodeURIComponentSafely,
   getPresetDataCenterOffset,
   getTransformToOrigin,
   mergePresetDataToDefaultDoc,
@@ -955,6 +956,8 @@ export class VirtualFileFolder extends PresetVirtualFolder {
     super(options);
     this.id = randomID();
     if (!options.types) this.types = ['ALL'];
+    this.bucket = options.bucket;
+    this.name = decodeURIComponentSafely(this.name);
   }
 }
 

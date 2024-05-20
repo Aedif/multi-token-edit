@@ -114,18 +114,21 @@
 .mass-edit-dark-window .window-content,
 .mass-edit-dark-window .tag {
   background: rgba(50, 50, 50, 0.8);
-  color: rgba(255, 255, 240, 0.8);
+  color: white;
 }
 
 .mass-edit-dark-window button {
   background: black;
-  color: rgba(255, 255, 240, 0.8);
+  color: white;
 }
 
 .mass-edit-dark-window input,
-.mass-edit-dark-window p.notes,
 .mass-edit-dark-window textarea {
-  color: var(--color-text-light-4);
+  color: white;
+}
+
+.mass-edit-dark-window p.notes {
+  color: var(--color-text-light-primary);
 }
 
 .mass-edit-window-fill .window-content {
@@ -637,4 +640,37 @@ nav > a[data-tab='me-pinned'] {
   background: linear-gradient(to right, red, yellow, green, cyan, blue, violet);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+/* ================== 
+   ===== Indexer ====
+   ================== */
+
+.indexDirectories {
+  display: flex;
+  flex-direction: column;
+}
+
+.indexDirectories .directory {
+  display: flex;
+  flex: 1;
+}
+
+.indexDirectories .directory > * {
+  margin: 2px;
+}
+
+.indexDirectories .source,
+.indexDirectories .bucket {
+  flex: 0.3;
+}
+
+.indexDirectories .target {
+  flex: 1;
+}
+
+.indexDirectories .deleteDirectory {
+  flex: 0.1;
+  text-align: center;
+  padding-top: 5px;
 }

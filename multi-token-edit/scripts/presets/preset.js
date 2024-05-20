@@ -1,7 +1,7 @@
 import { MODULE_ID, SUPPORTED_PLACEABLES, isImage, isAudio } from '../utils.js';
 import { META_INDEX_FIELDS, META_INDEX_ID } from './collection.js';
 import { FileIndexer } from './fileIndexer.js';
-import { isVideo, placeableToData } from './utils.js';
+import { decodeURIComponentSafely, isVideo, placeableToData } from './utils.js';
 
 const DOCUMENT_FIELDS = ['id', 'name', 'sort', 'folder'];
 
@@ -268,6 +268,8 @@ export class Preset {
 export class VirtualFilePreset extends Preset {
   constructor(data) {
     if (!data.name) data.name = data.src.split('/').pop();
+    data.name = decodeURIComponentSafely(data.name);
+
     data.uuid = 'virtual@' + data.src;
     data.documentName = isAudio(data.src) ? 'AmbientSound' : 'Tile';
 
@@ -282,6 +284,7 @@ export class VirtualFilePreset extends Preset {
 
     data.gridSize = 150;
     super(data);
+    this.src = data.src;
   }
 
   get virtual() {
@@ -357,6 +360,12 @@ export class VirtualFilePreset extends Preset {
       clearTimeout(VirtualFilePreset._updateTimeout);
       VirtualFilePreset._updateTimeout = setTimeout(() => FileIndexer.saveIndexToCache(), 3000);
     }
+  }
+
+  toJSON() {
+    const json = super.toJSON();
+    json.src = this.src;
+    return json;
   }
 
   clone() {

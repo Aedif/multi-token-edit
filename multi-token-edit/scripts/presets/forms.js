@@ -15,7 +15,7 @@ import {
   localize,
 } from '../utils.js';
 import { VirtualFileFolder, META_INDEX_ID, PresetAPI, PresetCollection, PresetPackFolder } from './collection.js';
-import { IndexerForm } from './fileIndexer.js';
+import { FileIndexer, IndexerForm } from './fileIndexer.js';
 import { DOC_ICONS, Preset, VirtualFilePreset } from './preset.js';
 import { FolderState, mergePresetDataToDefaultDoc, placeableToData, randomizeChildrenFolderColors } from './utils.js';
 
@@ -1556,8 +1556,11 @@ export class MassEditPresets extends FormApplication {
   }
 
   async _onOpenIndexer() {
-    let indexer = new IndexerForm();
-    indexer.render(true);
+    if (FileIndexer._buildingIndex) {
+      ui.notifications.warn('Index Build In-Progress. Wait for it to finish before attempting it again.');
+      return;
+    }
+    new IndexerForm().render(true);
   }
 
   async _onExport() {

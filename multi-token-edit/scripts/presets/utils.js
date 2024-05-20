@@ -315,3 +315,21 @@ export function isVideo(path) {
   extension = extension[extension.length - 1].toLowerCase();
   return ['mp4', 'ogg', 'webm', 'm4v'].includes(extension);
 }
+
+export function decodeURIComponentSafely(uri) {
+  try {
+    return decodeURIComponent(uri);
+  } catch (e) {
+    console.warn('URI Component not decodable: ' + uri);
+    return uri;
+  }
+}
+
+export function encodeURIComponentSafely(uri) {
+  try {
+    return encodeURIComponent(uri);
+  } catch (e) {
+    console.warn('URI Component not encodable: ' + uri);
+    return uri;
+  }
+}
