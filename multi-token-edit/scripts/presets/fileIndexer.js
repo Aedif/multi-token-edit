@@ -35,6 +35,11 @@ export class FileIndexer {
       let prepend = '';
       if (source.source === 'forge-bazaar') {
         prepend = `https://assets.forge-vtt.com/bazaar/`;
+      } else if (source.source === 'forgevtt') {
+        if (typeof ForgeVTT === 'undefined' || !ForgeVTT.usingTheForge) continue;
+        const userId = await ForgeAPI.getUserId();
+        if (!userId) continue;
+        prepend = `https://assets.forge-vtt.com/${userId}/`;
       }
       const folders = source.index.map((f) => this._indexToVirtualFolder(f, '', allFolders, allPresets, prepend));
 
@@ -94,7 +99,9 @@ export class FileIndexer {
 
       // Traverse directories specified in settings.indexDirs
       for (const dir of settings.indexDirs) {
-        if (dir.source === 'forge-bazaar') await this._buildFauxForgeBrowser(dir.source, dir.target);
+        if (dir.source === 'forge-bazaar' || dir.source === 'forgevtt') {
+          await this._buildFauxForgeBrowser(dir.source, dir.target);
+        }
         let iDir = await this.generateIndex(dir.target, foundCaches, dir.source, dir.bucket, settings);
 
         if (iDir) {
@@ -337,7 +344,6 @@ export class FileIndexer {
         }
       } else if (fileName === 'module.json') {
         folder.subtext = await this._getAuthorFromModule(path);
-        console.log(folder.subtext);
         if (folder.subtext === 'Baileywiki') folder.icon = 'bw_icon.png'; // TODO REMOVE
       }
 
@@ -363,7 +369,7 @@ export class FileIndexer {
   }
 
   static async _browse(source, dir, options) {
-    if (source === 'forge-bazaar') {
+    if (source === 'forge-bazaar' || source === 'forgevtt') {
       return this._fauxForgeBrowser?.get(dir) ?? { dirs: [], files: [] };
     } else {
       return await FilePicker.browse(source, dir, options);
@@ -375,16 +381,20 @@ export class FileIndexer {
    * To keep the processing consistent between different sources however we will simulate FilePicker.browse results
    * by rebuilding the directory structure using the recursively retrieved results.
    * This faux structure will be used by FileIndexer._browse(...)
-   * @param {String} source forge-bazaar
+   * @param {String} source forge-bazaar or forgevtt
    * @param {String} dir
    */
   static async _buildFauxForgeBrowser(source, dir) {
     this._fauxForgeBrowser = new Map();
 
-    // Recursion doesn't work for bazaar paths at one level above root. Perform non-recursive browse
+    if (typeof ForgeVTT === 'undefined' || !ForgeVTT.usingTheForge) {
+      return;
+    }
+
+    // Recursion doesn't work for forge-bazaar paths at one level above root. Perform non-recursive browse
     // and then recursive one on all of the retrieved dirs
     let paths;
-    if (!['modules', 'systems', 'worlds', 'assets'].includes(dir.replaceAll(/[\/\\]/g, ''))) {
+    if (source === 'forgevtt' || !['modules', 'systems', 'worlds', 'assets'].includes(dir.replaceAll(/[\/\\]/g, ''))) {
       paths = [dir];
     } else {
       const contents = await FilePicker.browse(source, dir, { recursive: false });
@@ -499,7 +509,7 @@ export class IndexerForm extends FormApplication {
     return foundry.utils.mergeObject(super.defaultOptions, {
       classes: ['sheet', 'mass-edit-dark-window'],
       template: `modules/${MODULE_ID}/templates/preset/indexer.html`,
-      width: 360,
+      width: 500,
       height: 'auto',
     });
   }
@@ -553,8 +563,8 @@ export class IndexerForm extends FormApplication {
       if (!selection) return;
       if (!selection.bucket) delete selection.bucket;
 
-      // TODO add support for forgevtt, bazaar, and s3
-      if (!['data', 'public', 'forge-bazaar'].includes(selection.source)) {
+      // TODO add support for s3
+      if (!['data', 'public', 'forge-bazaar', 'forgevtt'].includes(selection.source)) {
         ui.notifications.warn(`${selection.source} is not a supported source.`);
         return;
       }
