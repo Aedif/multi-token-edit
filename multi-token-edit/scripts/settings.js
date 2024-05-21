@@ -70,12 +70,12 @@ export function registerSettings() {
     default: {
       indexDirs: [
         { target: 'modules', source: 'data' },
-        { target: 'icons', source: 'public' },
+        { target: 'sounds', source: 'public' },
       ],
       cacheDir: { target: '', source: 'data' },
       overrideTags: false,
-      fileFilters: ['thumbnail', 'Thumbnail'],
-      folderFilters: ['thumbnail', 'Thumbnail'],
+      fileFilters: ['Thumb', '-thumb', 'Thumbnail', 'thumbnail'],
+      folderFilters: ['Thumb', 'thumb'],
     },
   });
 

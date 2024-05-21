@@ -25,24 +25,23 @@ export class FileIndexer {
     const allPresets = [];
     const topLevelFolders = [];
 
-    const cache = await this.loadIndexCache(CACHE_PATH + '/' + CACHE_NAME);
+    const cache = await this.loadMainIndexCache();
     if (!cache) {
       if (CONFIG.debug.MassEdit) console.timeEnd('Virtual File Directory');
       return null;
     }
 
     for (const source of cache) {
-      let folders, name, uuid;
-      if (source.source === 'data' || source.source === 'public') {
-        folders = source.index.map((f) => this._indexToVirtualFolder(f, '', allFolders, allPresets, ''));
-        name = source.source;
-        uuid = 'virtual.source.' + source.source;
+      let prepend = '';
+      if (source.source === 'forge-bazaar') {
+        prepend = `https://assets.forge-vtt.com/bazaar/`;
       }
+      const folders = source.index.map((f) => this._indexToVirtualFolder(f, '', allFolders, allPresets, prepend));
 
       if (folders?.length) {
         const sFolder = new VirtualFileFolder({
-          uuid,
-          name,
+          uuid: 'virtual.source.' + source.source,
+          name: source.source,
           children: folders,
           types: ['ALL', 'Tile', 'AmbientSound'],
           bucket: source.bucket,
@@ -95,6 +94,7 @@ export class FileIndexer {
 
       // Traverse directories specified in settings.indexDirs
       for (const dir of settings.indexDirs) {
+        if (dir.source === 'forge-bazaar') await this._buildFauxForgeBrowser(dir.source, dir.target);
         let iDir = await this.generateIndex(dir.target, foundCaches, dir.source, dir.bucket, settings);
 
         if (iDir) {
@@ -161,11 +161,18 @@ export class FileIndexer {
       const dirTo = indexTo.find((dir) => dir.dir === dirFrom.dir);
       if (dirTo) {
         // TODO: We may want to merge customizable fields here
+        if (!tagsOnly) {
+          dirTo.icon = dirFrom.icon;
+          dirTo.subtext = dirFrom.subtext;
+        }
 
         // Merge directories
         if (dirFrom.dirs) {
-          if (dirTo.dirs) this.mergeIndex(dirTo.dirs, dirFrom.dirs, { tagsOnly, overrideNullTagsOnly });
-          else if (!tagsOnly) dirTo.dirs = dirFrom.dirs;
+          if (dirTo.dirs) {
+            this.mergeIndex(dirTo.dirs, dirFrom.dirs, { tagsOnly, overrideNullTagsOnly });
+          } else if (!tagsOnly) {
+            dirTo.dirs = dirFrom.dirs;
+          }
         }
 
         // Merge files
@@ -240,12 +247,25 @@ export class FileIndexer {
     return cache;
   }
 
+  static async loadMainIndexCache() {
+    let path;
+    if (typeof ForgeVTT !== 'undefined' && ForgeVTT.usingTheForge) {
+      const userId = await ForgeAPI.getUserId();
+      path = `https://assets.forge-vtt.com/${userId}/${CACHE_NAME}`;
+    } else {
+      path = CACHE_PATH + '/' + CACHE_NAME;
+    }
+    return await this.loadIndexCache(path);
+  }
+
   static _indexToVirtualFolder(cache, parentDirPath, allFolders, allPresets, prePend = '') {
     const fullPath = parentDirPath + '/' + cache.dir;
     const uuid = 'virtual.' + prePend + fullPath;
     const fileFolder = new VirtualFileFolder({
       uuid,
       name: cache.dir,
+      subtext: cache.subtext,
+      icon: cache.icon,
     });
 
     // For assigning folder category
@@ -291,7 +311,7 @@ export class FileIndexer {
   static async generateIndex(dir, foundCaches = [], source = 'data', bucket = null, settings) {
     let content;
     try {
-      content = await FilePicker.browse(source, dir, { bucket });
+      content = await this._browse(source, dir, { bucket });
     } catch (e) {
       return null;
     }
@@ -309,12 +329,16 @@ export class FileIndexer {
 
       // Cancel indexing if noscan.txt or cache file is present within the directory
       if (fileName === 'noscan.txt') return null;
-      if (fileName === CACHE_NAME) {
+      else if (fileName === CACHE_NAME) {
         const cacheDir = settings.cacheDir;
         if (!(cacheDir.target === dir.target && cacheDir.source === source && cacheDir.bucket === bucket)) {
           foundCaches.push(path);
           return null;
         }
+      } else if (fileName === 'module.json') {
+        folder.subtext = await this._getAuthorFromModule(path);
+        console.log(folder.subtext);
+        if (folder.subtext === 'Baileywiki') folder.icon = 'bw_icon.png'; // TODO REMOVE
       }
 
       // Otherwise process the file
@@ -336,6 +360,68 @@ export class FileIndexer {
 
     if (!(folder.dirs || folder.files)) return null;
     return folder;
+  }
+
+  static async _browse(source, dir, options) {
+    if (source === 'forge-bazaar') {
+      return this._fauxForgeBrowser?.get(dir) ?? { dirs: [], files: [] };
+    } else {
+      return await FilePicker.browse(source, dir, options);
+    }
+  }
+
+  /**
+   * ForgeVTT forge-bazaar can be browsed recursively returning all the found dirs and files at a given path.
+   * To keep the processing consistent between different sources however we will simulate FilePicker.browse results
+   * by rebuilding the directory structure using the recursively retrieved results.
+   * This faux structure will be used by FileIndexer._browse(...)
+   * @param {String} source forge-bazaar
+   * @param {String} dir
+   */
+  static async _buildFauxForgeBrowser(source, dir) {
+    this._fauxForgeBrowser = new Map();
+
+    // Recursion doesn't work for bazaar paths at one level above root. Perform non-recursive browse
+    // and then recursive one on all of the retrieved dirs
+    let paths;
+    if (!['modules', 'systems', 'worlds', 'assets'].includes(dir.replaceAll(/[\/\\]/g, ''))) {
+      paths = [dir];
+    } else {
+      const contents = await FilePicker.browse(source, dir, { recursive: false });
+      paths = contents.dirs;
+    }
+
+    const insertFile = (dirs, file) => {
+      for (let i = 1; i < dirs.length + 1; i++) {
+        const pDirPath = dirs.slice(0, i).join('/');
+        const chDirPath = dirs.slice(0, i + 1).join('/');
+
+        let pDir = this._fauxForgeBrowser.get(pDirPath);
+        if (!pDir) {
+          pDir = { dirs: [], files: [] };
+          this._fauxForgeBrowser.set(pDirPath, pDir);
+        }
+        if (pDirPath === chDirPath) pDir.files.push(file);
+        else if (!pDir.dirs.includes(chDirPath)) pDir.dirs.push(chDirPath);
+      }
+    };
+
+    for (const path of paths) {
+      const contents = await FilePicker.browse(source, path, { recursive: true });
+      for (const file of contents.files) {
+        const pathname = new URL(file).pathname;
+        const components = pathname.split('/');
+        insertFile(components.slice(2, components.length - 1), components.slice(2).join('/'));
+      }
+    }
+  }
+
+  static async _getAuthorFromModule(moduleFile) {
+    try {
+      const module = await jQuery.getJSON(moduleFile);
+      return module.author ?? module.authors?.[0]?.name;
+    } catch (e) {}
+    return null;
   }
 }
 
@@ -468,7 +554,7 @@ export class IndexerForm extends FormApplication {
       if (!selection.bucket) delete selection.bucket;
 
       // TODO add support for forgevtt, bazaar, and s3
-      if (!['data', 'public'].includes(selection.source)) {
+      if (!['data', 'public', 'forge-bazaar'].includes(selection.source)) {
         ui.notifications.warn(`${selection.source} is not a supported source.`);
         return;
       }

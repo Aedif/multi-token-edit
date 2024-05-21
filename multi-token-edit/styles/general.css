@@ -254,6 +254,21 @@
   margin-top: 1px;
 }
 
+.mass-edit-preset-form .folder .branding {
+  height: 35px;
+  width: 35px;
+  position: absolute;
+  right: 0;
+}
+
+.mass-edit-preset-form .folder .subtext {
+  color: #ffd700a6;
+  position: absolute;
+  margin-top: 13px;
+  margin-left: 30px;
+  font-size: smaller;
+}
+
 .mass-edit-preset-form .preset-items {
   padding: 0;
   margin: 0;
@@ -512,6 +527,11 @@ input.me-subtract {
     height: 100%;
     object-fit: contain;
     margin: auto;
+  }
+
+  .mass-edit-preset-form .item img {
+    flex: none;
+    object-position: 0;
   }
 }
 

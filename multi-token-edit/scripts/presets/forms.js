@@ -134,7 +134,8 @@ export class MassEditPresets extends FormApplication {
     data.extCompActive = displayExtCompendiums;
     data.sortMode = SORT_MODES[game.settings.get(MODULE_ID, 'presetSortMode')];
     data.searchMode = SEARCH_MODES[game.settings.get(MODULE_ID, 'presetSearchMode')];
-    data.displayDragDropMessage = data.allowDocumentSwap && !(this.tree.presets.length || this.tree.folders.length);
+    data.displayDragDropMessage =
+      data.allowDocumentSwap && !(this.tree.presets.length || this.tree.folders.length || data.extFolders);
     data.canvas3dActive = Boolean(game.Levels3DPreview?._active);
 
     data.lastSearch = MassEditPresets.lastSearch;
@@ -456,7 +457,7 @@ export class MassEditPresets extends FormApplication {
 
     if (folderElement.find('.folder-items').length) {
       folderElement.removeClass('collapsed');
-      folderElement.find('header h3 i').first().removeClass('fa-folder-closed').addClass('fa-folder-open');
+      folderElement.find('header .folder-icon').first().removeClass('fa-folder-closed').addClass('fa-folder-open');
     } else {
       let content = await renderTemplate(`modules/${MODULE_ID}/templates/preset/presetFolder.html`, {
         folder,
@@ -470,7 +471,7 @@ export class MassEditPresets extends FormApplication {
 
   _folderCollapse(folderElement, folder) {
     folderElement.addClass('collapsed');
-    folderElement.find('header h3 i').first().removeClass('fa-folder-open').addClass('fa-folder-closed');
+    folderElement.find('header .folder-icon').first().removeClass('fa-folder-open').addClass('fa-folder-closed');
 
     FolderState.setExpanded(folder.uuid, false);
     folder.expanded = false;

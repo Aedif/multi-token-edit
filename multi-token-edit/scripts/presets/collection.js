@@ -958,6 +958,8 @@ export class VirtualFileFolder extends PresetVirtualFolder {
     if (!options.types) this.types = ['ALL'];
     this.bucket = options.bucket;
     this.name = decodeURIComponentSafely(this.name);
+    this.icon = options.icon;
+    this.subtext = options.subtext;
   }
 }
 
