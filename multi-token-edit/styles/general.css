@@ -170,7 +170,7 @@
   margin-left: 4px;
   border-left: 2px solid gray;
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
   padding-bottom: 12px;
   padding-left: 5px;
 }
@@ -352,7 +352,7 @@
   height: var(--sidebar-item-height);
   width: var(--sidebar-item-height);
   object-fit: cover;
-  object-position: 50% 0;
+  object-position: center;
   border: none;
   margin-top: 1px;
   margin-bottom: 1px;
@@ -531,7 +531,6 @@ input.me-subtract {
 
   .mass-edit-preset-form .item img {
     flex: none;
-    object-position: 0;
   }
 }
 

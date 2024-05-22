@@ -137,6 +137,13 @@ export function registerSettings() {
     default: true,
   });
 
+  game.settings.register(MODULE_ID, 'presetVirtualDir', {
+    scope: 'world',
+    config: false,
+    type: Boolean,
+    default: true,
+  });
+
   game.settings.register(MODULE_ID, 'presetScaling', {
     scope: 'world',
     config: false,

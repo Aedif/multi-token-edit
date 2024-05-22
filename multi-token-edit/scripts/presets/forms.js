@@ -93,7 +93,7 @@ export class MassEditPresets extends FormApplication {
       template: `modules/${MODULE_ID}/templates/preset/presets.html`,
       resizable: true,
       minimizable: true,
-      width: 350,
+      width: 360,
       height: 900,
       scrollY: ['.item-list'],
     });
@@ -115,9 +115,11 @@ export class MassEditPresets extends FormApplication {
     await getTemplate(`modules/${MODULE_ID}/templates/preset/presetsContent.html`, 'me-presets-content');
 
     const displayExtCompendiums = game.settings.get(MODULE_ID, 'presetExtComp');
+    const displayVirtualDirectory = game.settings.get(MODULE_ID, 'presetVirtualDir');
 
     this.tree = await PresetCollection.getTree(this.docName, {
-      mainOnly: !displayExtCompendiums,
+      externalCompendiums: displayExtCompendiums,
+      virtualDirectory: displayVirtualDirectory,
       setFormVisibility: true,
     });
     data.presets = this.tree.presets;
@@ -132,6 +134,7 @@ export class MassEditPresets extends FormApplication {
     data.layerSwitchActive = game.settings.get(MODULE_ID, 'presetLayerSwitch');
     data.scaling = game.settings.get(MODULE_ID, 'presetScaling');
     data.extCompActive = displayExtCompendiums;
+    data.virtDirActive = displayVirtualDirectory;
     data.sortMode = SORT_MODES[game.settings.get(MODULE_ID, 'presetSortMode')];
     data.searchMode = SEARCH_MODES[game.settings.get(MODULE_ID, 'presetSearchMode')];
     data.displayDragDropMessage =
@@ -421,6 +424,7 @@ export class MassEditPresets extends FormApplication {
     html.on('click', '.toggle-sort', this._onToggleSort.bind(this));
     html.on('click', '.toggle-doc-lock', this._onToggleLock.bind(this));
     html.on('click', '.toggle-ext-comp', this._onToggleExtComp.bind(this));
+    html.on('click', '.toggle-virtual-dir', this._onToggleVirtDir.bind(this));
     html.on('click', '.toggle-scaling', this._onToggleScaling.bind(this));
     html.on('click', '.toggle-layer-switch', this._onToggleLayerSwitch.bind(this));
     html.on('click', '.document-select', this._onDocumentChange.bind(this));
@@ -965,7 +969,7 @@ export class MassEditPresets extends FormApplication {
 
     if (newSearch.length < SEARCH_MIN_CHAR) return;
 
-    const filter = event.target.value
+    let filter = event.target.value
       .trim()
       .toLowerCase()
       .split(' ')
@@ -973,28 +977,31 @@ export class MassEditPresets extends FormApplication {
     if (!filter.length) return;
     $(event.target).addClass('active');
 
+    const tags = filter.filter((f) => f.startsWith('#')).map((f) => f.substring(1));
+    filter = filter.filter((f) => !f.startsWith('#'));
+
     this._searchFoundCount = 0;
     this._searchFoundPresets = game.settings.get(MODULE_ID, 'presetSearchMode') === 'p' ? [] : null;
 
-    this.tree.folders.forEach((f) => this._searchFolder(filter, f));
-    this.tree.extFolders.forEach((f) => this._searchFolder(filter, f));
-    this.tree.presets.forEach((p) => this._searchPreset(filter, p));
+    this.tree.folders.forEach((f) => this._searchFolder(filter, tags, f));
+    this.tree.extFolders.forEach((f) => this._searchFolder(filter, tags, f));
+    this.tree.presets.forEach((p) => this._searchPreset(filter, tags, p));
 
     this._renderContent();
   }
 
-  _searchFolder(filter, folder, forceRender = false) {
+  _searchFolder(filter, tags, folder, forceRender = false) {
     const folderName = folder.name.toLowerCase();
-    let match = filter.every((k) => folderName.includes(k));
+    let match = !tags.length && filter.every((k) => folderName.includes(k));
 
     let childFolderMatch = false;
     for (const f of folder.children) {
-      if (this._searchFolder(filter, f, match || forceRender)) childFolderMatch = true;
+      if (this._searchFolder(filter, tags, f, match || forceRender)) childFolderMatch = true;
     }
 
     let presetMatch = false;
     for (const p of folder.presets) {
-      if (this._searchPreset(filter, p, match || forceRender)) presetMatch = true;
+      if (this._searchPreset(filter, tags, p, match || forceRender)) presetMatch = true;
     }
 
     const containsMatch = match || childFolderMatch || presetMatch;
@@ -1004,14 +1011,18 @@ export class MassEditPresets extends FormApplication {
     return containsMatch;
   }
 
-  _searchPreset(filter, preset, forceRender = false) {
+  _searchPreset(filter, tags, preset, forceRender = false) {
     if (!preset._visible) return false;
 
     const presetName = preset.name.toLowerCase();
-    if (filter.every((k) => presetName.includes(k)) || filter.every((k) => preset.tags.includes(k))) {
+    if (
+      this._searchFoundCount < SEARCH_FOUND_MAX_COUNT &&
+      filter.every((k) => presetName.includes(k) || preset.tags.includes(k)) &&
+      tags.every((k) => preset.tags.includes(k))
+    ) {
       this._searchFoundCount++;
-      preset._render = this._searchFoundCount < SEARCH_FOUND_MAX_COUNT;
-      if (preset._render) this._searchFoundPresets?.push(preset);
+      preset._render = true;
+      this._searchFoundPresets?.push(preset);
       return preset._render;
     } else {
       preset._render = false || forceRender;
@@ -1178,7 +1189,7 @@ export class MassEditPresets extends FormApplication {
   }
 
   _onToggleLayerSwitch(event) {
-    const switchControl = $(event.target).closest('.toggle-layer-switch');
+    const switchControl = $(event.currentTarget);
 
     const value = !game.settings.get(MODULE_ID, 'presetLayerSwitch');
     if (value) switchControl.addClass('active');
@@ -1187,8 +1198,19 @@ export class MassEditPresets extends FormApplication {
     game.settings.set(MODULE_ID, 'presetLayerSwitch', value);
   }
 
+  async _onToggleVirtDir(event) {
+    const switchControl = $(event.currentTarget);
+
+    const value = !game.settings.get(MODULE_ID, 'presetVirtualDir');
+    if (value) switchControl.addClass('active');
+    else switchControl.removeClass('active');
+
+    await game.settings.set(MODULE_ID, 'presetVirtualDir', value);
+    this.render(true);
+  }
+
   async _onToggleExtComp(event) {
-    const switchControl = $(event.target).closest('.toggle-ext-comp');
+    const switchControl = $(event.currentTarget);
 
     const value = !game.settings.get(MODULE_ID, 'presetExtComp');
     if (value) switchControl.addClass('active');
@@ -1565,7 +1587,7 @@ export class MassEditPresets extends FormApplication {
   }
 
   async _onExport() {
-    const tree = await PresetCollection.getTree(null, { mainOnly: true });
+    const tree = await PresetCollection.getTree();
     exportPresets(tree.allPresets);
   }
 

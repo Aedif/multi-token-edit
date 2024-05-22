@@ -1,4 +1,4 @@
-import { FILE_EXTENSIONS, MODULE_ID } from '../utils.js';
+import { FILE_EXTENSIONS, MODULE_ID, TagInput } from '../utils.js';
 import { PresetTree, VirtualFileFolder } from './collection.js';
 import { VirtualFilePreset } from './preset.js';
 import { encodeURIComponentSafely } from './utils.js';
@@ -40,6 +40,10 @@ export class FileIndexer {
         const userId = await ForgeAPI.getUserId();
         if (!userId) continue;
         prepend = `https://assets.forge-vtt.com/${userId}/`;
+      } else if (source.source === 's3') {
+        const s3 = game.data.files.s3;
+        if (!s3 || !s3.buckets.includes(source.bucket)) continue;
+        prepend = `https://${source.bucket}.${s3.endpoint.host}/`;
       }
       const folders = source.index.map((f) => this._indexToVirtualFolder(f, '', allFolders, allPresets, prepend));
 
@@ -133,7 +137,7 @@ export class FileIndexer {
       if (currentCache) {
         this.mergeCaches(scannedSources, currentCache, {
           tagsOnly: true,
-          overrideNullTagsOnly: !settings.overrideTags,
+          overrideNullTagsOnly: settings.overrideTags,
         });
       }
 
@@ -315,7 +319,7 @@ export class FileIndexer {
     return fileFolder;
   }
 
-  static async generateIndex(dir, foundCaches = [], source = 'data', bucket = null, settings) {
+  static async generateIndex(dir, foundCaches = [], source = 'data', bucket = null, settings, tags = null) {
     let content;
     try {
       content = await this._browse(source, dir, { bucket });
@@ -343,8 +347,19 @@ export class FileIndexer {
           return null;
         }
       } else if (fileName === 'module.json') {
-        folder.subtext = await this._getAuthorFromModule(path);
-        if (folder.subtext === 'Baileywiki') folder.icon = 'bw_icon.png'; // TODO REMOVE
+        // Read metadata from module's json file applying subtext to current folder
+        // and tags to all files
+        const author = await this._getAuthorFromModule(path);
+        if (author) {
+          folder.subtext = author;
+          const tag = TagInput.simplifyString(author.split(/[ ,\-_@]+/)[0] ?? '');
+          if (tag && tag.length >= 3) {
+            tags = [...(tags ?? []), tag];
+            folder.files.forEach((f) => {
+              f.tags = tags;
+            });
+          }
+        }
       }
 
       // Otherwise process the file
@@ -352,12 +367,14 @@ export class FileIndexer {
       ext = ext[ext.length - 1].toLowerCase();
 
       if (FILE_EXTENSIONS.includes(ext)) {
-        folder.files.push({ name: fileName });
+        const f = { name: fileName };
+        if (tags) f.tags = tags;
+        folder.files.push(f);
       }
     }
 
     for (let dir of content.dirs) {
-      dir = await this.generateIndex(dir, foundCaches, source, bucket, settings);
+      dir = await this.generateIndex(dir, foundCaches, source, bucket, settings, tags);
       if (dir) folder.dirs.push(dir);
     }
 
@@ -429,7 +446,8 @@ export class FileIndexer {
   static async _getAuthorFromModule(moduleFile) {
     try {
       const module = await jQuery.getJSON(moduleFile);
-      return module.author ?? module.authors?.[0]?.name;
+      const author = module.author ?? module.authors?.[0]?.name;
+      if (typeof author === 'string') return author;
     } catch (e) {}
     return null;
   }
@@ -532,6 +550,11 @@ export class IndexerForm extends FormApplication {
     html.on('click', '.deleteDirectory', this._onDeleteDirectory.bind(this));
     html.on('input', '[name="fileFilters"]', this._onFileFiltersChange.bind(this));
     html.on('input', '[name="folderFilters"]', this._onFolderFiltersChange.bind(this));
+    html.find('[name="overrideTags"]').on('change', this._onOverrideTagsChange.bind(this));
+  }
+
+  _onOverrideTagsChange(event) {
+    this._updateIndexerSettings({ overrideTags: $(event.currentTarget).is(':checked') }, false);
   }
 
   _onFileFiltersChange(event) {
@@ -564,7 +587,7 @@ export class IndexerForm extends FormApplication {
       if (!selection.bucket) delete selection.bucket;
 
       // TODO add support for s3
-      if (!['data', 'public', 'forge-bazaar', 'forgevtt'].includes(selection.source)) {
+      if (!['data', 'public', 'forge-bazaar', 'forgevtt', 's3'].includes(selection.source)) {
         ui.notifications.warn(`${selection.source} is not a supported source.`);
         return;
       }

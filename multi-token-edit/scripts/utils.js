@@ -596,6 +596,10 @@ export class SeededRandom {
 }
 
 export class TagInput {
+  static simplifyString(str) {
+    return str.replace(/[^0-9a-zA-Z_\- ]/gi, '').toLowerCase();
+  }
+
   static registerHandlebarsHelper() {
     Handlebars.registerHelper('tagInput', (options) => {
       const name = options.hash.name;
@@ -654,7 +658,7 @@ export class TagInput {
         .split(',')
         .map((t) => {
           t = t.trim();
-          if (simplifyTags) t = t.replace(/[^0-9a-zA-Z_\- ]/gi, '').toLowerCase();
+          if (simplifyTags) t = this.simplifyString(t);
           return t;
         })
         .filter(Boolean);

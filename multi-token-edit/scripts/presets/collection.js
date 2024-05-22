@@ -33,7 +33,7 @@ export class PresetCollection {
 
   static workingPack;
 
-  static async getTree(type, { mainOnly = false, setFormVisibility = false } = {}) {
+  static async getTree(type, { externalCompendiums = true, virtualDirectory = true, setFormVisibility = false } = {}) {
     if (CONFIG.debug.MassEdit) console.time('getTree');
 
     let pack;
@@ -54,7 +54,7 @@ export class PresetCollection {
 
     const extFolders = [];
 
-    if (!mainOnly) {
+    if (externalCompendiums) {
       for (const p of game.packs) {
         if (p.collection !== this.workingPack && p.index.get(META_INDEX_ID)) {
           const tree = await PresetTree.init(p, type, { setFormVisibility });
@@ -70,14 +70,17 @@ export class PresetCollection {
           }
         }
       }
+    }
 
-      // Read/Construct File Index
+    // Read File Index
+    if (virtualDirectory) {
       const vTree = await FileIndexer.getVirtualDirectoryTree(type, { setFormVisibility });
       if (vTree?.hasVisible) {
         const topFolder = new VirtualFileFolder({
           name: 'VIRTUAL DIRECTORY',
           children: vTree.folders,
           uuid: 'virtual_directory',
+          color: '#1c5fa385',
         });
         extFolders.push(topFolder);
 
@@ -407,7 +410,7 @@ export class PresetCollection {
    * @param {Array[CONFIG.SpotlightOmnisearch.SearchTerm]} soIndex
    */
   static async buildSpotlightOmnisearchIndex(soIndex) {
-    const tree = await PresetCollection.getTree();
+    const tree = await PresetCollection.getTree(null, { externalCompendiums: true });
 
     const SearchTerm = CONFIG.SpotlightOmnisearch.SearchTerm;
 
@@ -514,12 +517,15 @@ export class PresetAPI {
       else if (typeof tags === 'string') tags = { tags: tags.split(','), matchAny: true };
     }
 
-    const presets = PresetCollection._searchPresetTree(await PresetCollection.getTree(), {
-      name,
-      type,
-      folder,
-      tags,
-    });
+    const presets = PresetCollection._searchPresetTree(
+      await PresetCollection.getTree(type, { externalCompendiums: true, virtualDirectory: true }),
+      {
+        name,
+        type,
+        folder,
+        tags,
+      }
+    );
 
     const preset = random ? presets[Math.floor(Math.random() * presets.length)] : presets[0];
     return preset?.clone().load();
@@ -553,12 +559,15 @@ export class PresetAPI {
         else if (typeof tags === 'string') tags = { tags: tags.split(','), matchAny: true };
       }
 
-      presets = PresetCollection._searchPresetTree(await PresetCollection.getTree(), {
-        name,
-        type,
-        folder,
-        tags,
-      });
+      presets = PresetCollection._searchPresetTree(
+        await PresetCollection.getTree(type, { externalCompendiums: true, virtualDirectory: true }),
+        {
+          name,
+          type,
+          folder,
+          tags,
+        }
+      );
     }
 
     if (format === 'name') return presets.map((p) => p.name);
