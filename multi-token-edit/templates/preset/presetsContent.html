@@ -2,7 +2,7 @@
     {{#each folders as |folder|}}
         {{#if folder.visible}}
         {{#if folder.render}}
-            {{>me-preset-folder folder=folder createEnabled=../createEnabled callback=../callback editable=true}}
+            {{>me-preset-folder folder=folder createEnabled=../createEnabled callback=../callback sortable=true}}
         {{/if}}
         {{/if}}
     {{/each}}
@@ -11,7 +11,7 @@
 <ol class="preset-items top-level-preset-items">
     {{#each presets as |preset|}}
     {{#if preset.visible}}
-        {{>me-preset preset=preset createEnabled=../createEnabled callback=../callback editable=true}}
+        {{>me-preset preset=preset createEnabled=../createEnabled callback=../callback sortable=true}}
     {{/if}}
     {{/each}}
 </ol>

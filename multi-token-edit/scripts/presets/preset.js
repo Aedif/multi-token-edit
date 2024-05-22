@@ -1,5 +1,5 @@
 import { MODULE_ID, SUPPORTED_PLACEABLES, isImage, isAudio } from '../utils.js';
-import { META_INDEX_FIELDS, META_INDEX_ID } from './collection.js';
+import { META_INDEX_FIELDS, META_INDEX_ID, PresetTree } from './collection.js';
 import { FileIndexer } from './fileIndexer.js';
 import { decodeURIComponentSafely, isVideo, placeableToData } from './utils.js';
 
@@ -42,8 +42,12 @@ export const DOC_ICONS = {
 };
 
 export class Preset {
-  static name = 'Preset';
-  document;
+  static isEditable(uuid) {
+    if (uuid.startsWith('virtual@')) return true;
+    let { collection } = foundry.utils.parseUuid(uuid);
+    if (!collection) return false;
+    return !collection.locked;
+  }
 
   constructor(data) {
     this.id = data.id ?? data._id ?? foundry.utils.randomID();
@@ -237,6 +241,7 @@ export class Preset {
         let tmp = {};
         tmp[this.id] = update;
         await metaDoc.setFlag(MODULE_ID, 'index', tmp);
+        delete PresetTree._packTrees[pack.metadata.name];
       } else {
         console.warn(`META INDEX missing in ${this.document.pack}`);
         return;

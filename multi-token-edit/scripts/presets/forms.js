@@ -14,7 +14,14 @@ import {
   localFormat,
   localize,
 } from '../utils.js';
-import { VirtualFileFolder, META_INDEX_ID, PresetAPI, PresetCollection, PresetPackFolder } from './collection.js';
+import {
+  VirtualFileFolder,
+  META_INDEX_ID,
+  PresetAPI,
+  PresetCollection,
+  PresetPackFolder,
+  PresetFolder,
+} from './collection.js';
 import { FileIndexer, IndexerForm } from './fileIndexer.js';
 import { DOC_ICONS, Preset, VirtualFilePreset } from './preset.js';
 import { FolderState, mergePresetDataToDefaultDoc, placeableToData, randomizeChildrenFolderColors } from './utils.js';
@@ -227,13 +234,13 @@ export class MassEditPresets extends FormApplication {
       this.dragData = uuids;
       this.draggedElements = itemList.find('.item.selected');
     });
-    html.on('dragleave', '.item.editable', (event) => {
+    html.on('dragleave', '.item.sortable', (event) => {
       $(event.target).closest('.item').removeClass('drag-bot').removeClass('drag-top');
     });
 
-    html.on('dragover', '.item.editable', (event) => {
+    html.on('dragover', '.item.sortable', (event) => {
       if (this.dragType !== 'item') return;
-      if (!this.draggedElements.hasClass('editable')) return;
+      if (!this.draggedElements.hasClass('sortable')) return;
 
       const targetItem = $(event.target).closest('.item');
 
@@ -251,10 +258,10 @@ export class MassEditPresets extends FormApplication {
       }
     });
 
-    html.on('drop', '.item.editable', (event) => {
+    html.on('drop', '.item.sortable', (event) => {
       if (MassEditPresets.lastSearch?.length) return; // Prevent drops while searching
       if (this.dragType !== 'item') return;
-      if (!this.draggedElements.hasClass('editable')) return;
+      if (!this.draggedElements.hasClass('sortable')) return;
 
       const targetItem = $(event.target).closest('.item');
 
@@ -295,7 +302,7 @@ export class MassEditPresets extends FormApplication {
     // Folder Listeners
     html.on('click', '.folder > header', (event) => this._folderToggle($(event.target).closest('.folder')));
 
-    html.on('dragstart', '.folder.editable', (event) => {
+    html.on('dragstart', '.folder.sortable', (event) => {
       if (this.dragType == 'item') return;
       this.dragType = 'folder';
 
@@ -311,11 +318,11 @@ export class MassEditPresets extends FormApplication {
       this.dragData = uuids;
     });
 
-    html.on('dragleave', '.folder.editable header', (event) => {
+    html.on('dragleave', '.folder.sortable header', (event) => {
       $(event.target).closest('.folder').removeClass('drag-mid').removeClass('drag-top');
     });
 
-    html.on('dragover', '.folder.editable header', (event) => {
+    html.on('dragover', '.folder.sortable header', (event) => {
       const targetFolder = $(event.target).closest('.folder');
 
       if (this.dragType === 'folder') {
@@ -331,12 +338,12 @@ export class MassEditPresets extends FormApplication {
         } else {
           targetFolder.removeClass('drag-top').addClass('drag-mid');
         }
-      } else if (this.dragType === 'item' && this.draggedElements.hasClass('editable')) {
+      } else if (this.dragType === 'item' && this.draggedElements.hasClass('sortable')) {
         targetFolder.addClass('drag-mid');
       }
     });
 
-    html.on('drop', '.folder.editable header', (event) => {
+    html.on('drop', '.folder.sortable header', (event) => {
       if (this._foundryDrop(event)) return;
       if (MassEditPresets.lastSearch?.length) return; // Prevent drops while searching
 
@@ -370,7 +377,7 @@ export class MassEditPresets extends FormApplication {
             }
           }
         }
-      } else if (this.dragType === 'item' && this.draggedElements.hasClass('editable')) {
+      } else if (this.dragType === 'item' && this.draggedElements.hasClass('sortable')) {
         targetFolder.removeClass('drag-mid');
         const uuids = this.dragData;
 
@@ -401,7 +408,7 @@ export class MassEditPresets extends FormApplication {
         target.append(folder);
 
         this._onFolderSort(this.dragData[0], null);
-      } else if (this.dragType === 'item' && this.draggedElements.hasClass('editable')) {
+      } else if (this.dragType === 'item' && this.draggedElements.hasClass('sortable')) {
         const uuids = this.dragData;
 
         // Move HTML Elements
@@ -467,7 +474,7 @@ export class MassEditPresets extends FormApplication {
         folder,
         createEnabled: Boolean(this.configApp),
         callback: Boolean(this.callback),
-        editable: fromUuidSync(folder.uuid)?.pack === PresetCollection.workingPack,
+        sortable: fromUuidSync(folder.uuid)?.pack === PresetCollection.workingPack,
       });
       folderElement.replaceWith(content);
     }
@@ -602,7 +609,7 @@ export class MassEditPresets extends FormApplication {
       {
         name: localize('CONTROLS.CommonEdit', false),
         icon: '<i class="fas fa-edit"></i>',
-        condition: (item) => item.hasClass('editable') || item.hasClass('virtual'),
+        condition: (item) => Preset.isEditable(item.data('uuid')),
         callback: (item) => this._onEditSelectedPresets(item),
       },
       {
@@ -628,7 +635,7 @@ export class MassEditPresets extends FormApplication {
       {
         name: localize('Duplicate', false),
         icon: '<i class="fa-solid fa-copy"></i>',
-        condition: (item) => item.hasClass('editable'),
+        condition: (item) => Preset.isEditable(item.data('uuid')) && !item.hasClass('virtual'),
         callback: (item) => this._onCopySelectedPresets(null, { keepFolder: true, keepId: false }),
       },
       {
@@ -650,7 +657,7 @@ export class MassEditPresets extends FormApplication {
       {
         name: localize('CONTROLS.CommonDelete', false),
         icon: '<i class="fas fa-trash fa-fw"></i>',
-        condition: (item) => item.hasClass('editable'),
+        condition: (item) => Preset.isEditable(item.data('uuid')) && !item.hasClass('virtual'),
         callback: (item) => this._onDeleteSelectedPresets(item),
       },
     ];
@@ -663,7 +670,7 @@ export class MassEditPresets extends FormApplication {
         icon: '<i class="fas fa-edit"></i>',
         condition: (header) => {
           const folder = this.tree.allFolders.get(header.closest('.folder').data('uuid'));
-          return !(folder.virtual || folder instanceof PresetPackFolder);
+          return !folder.virtual || folder instanceof PresetPackFolder;
         },
         callback: (header) => this._onFolderEdit(header),
       },
@@ -681,13 +688,13 @@ export class MassEditPresets extends FormApplication {
       {
         name: localize('FOLDER.Remove', false),
         icon: '<i class="fas fa-trash fa-fw"></i>',
-        condition: (header) => header.closest('.folder').hasClass('editable'),
+        condition: (header) => PresetFolder.isEditable(header.closest('.folder').data('uuid')),
         callback: (header) => this._onFolderDelete(header.closest('.folder').data('uuid')),
       },
       {
         name: localize('FOLDER.Delete', false),
         icon: '<i class="fas fa-dumpster"></i>',
-        condition: (header) => header.closest('.folder').hasClass('editable'),
+        condition: (header) => PresetFolder.isEditable(header.closest('.folder').data('uuid')),
         callback: (header) =>
           this._onFolderDelete(header.closest('.folder').data('uuid'), {
             deleteAll: true,
@@ -787,9 +794,13 @@ export class MassEditPresets extends FormApplication {
     const uuids = [];
     let selector = '.item.selected';
     if (virtualOnly) selector += '.virtual';
-    else if (editableOnly) selector += '.editable';
 
-    const items = this.element.find('.item-list').find(selector);
+    let items = this.element.find('.item-list').find(selector);
+    if (editableOnly)
+      items = items.filter(function () {
+        return Preset.isEditable($(this).data('uuid'));
+      });
+
     items.each(function () {
       const uuid = $(this).data('uuid');
       uuids.push(uuid);

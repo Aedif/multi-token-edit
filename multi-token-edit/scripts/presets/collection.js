@@ -143,7 +143,10 @@ export class PresetCollection {
       if (!index.has(idx)) update['-=' + idx] = null;
     }
 
-    if (!foundry.utils.isEmpty(update)) metaDoc.setFlag(MODULE_ID, 'index', update);
+    if (!foundry.utils.isEmpty(update)) {
+      metaDoc.setFlag(MODULE_ID, 'index', update);
+      delete PresetTree._packTrees[pack.metadata.name];
+    }
   }
 
   static _sortFolders(folders, sorting = 'a') {
@@ -197,6 +200,7 @@ export class PresetCollection {
     });
 
     await metaDoc.setFlag(MODULE_ID, 'index', { [preset.id]: update });
+    delete PresetTree._packTrees[compendium.metadata.name];
   }
 
   /**
@@ -292,6 +296,7 @@ export class PresetCollection {
     const sorted = {};
     for (const preset of presets) {
       let { collection } = foundry.utils.parseUuid(preset.uuid);
+      if (!collection) continue;
       collection = collection.collection;
       if (!sorted[collection]) sorted[collection] = [preset];
       else sorted[collection].push(preset);
@@ -312,6 +317,7 @@ export class PresetCollection {
 
       await JournalEntry.deleteDocuments(deleteIds, { pack });
       metaDoc.setFlag(MODULE_ID, 'index', metaUpdate);
+      delete PresetTree._packTrees[compendium.metadata.name];
     }
   }
 
@@ -374,6 +380,7 @@ export class PresetCollection {
       metaDoc.setFlag(MODULE_ID, 'index', metaUpdate);
     }
 
+    delete PresetTree._packTrees[folderDoc.compendium.metadata.name];
     return await folderDoc.delete({ deleteSubfolders: deleteAll, deleteContents: deleteAll });
   }
 
@@ -906,7 +913,11 @@ export class PresetAPI {
   }
 }
 
-class PresetFolder {
+export class PresetFolder {
+  static isEditable(uuid) {
+    return Boolean(foundry.utils.parseUuid(uuid).collection?.locked);
+  }
+
   constructor({
     id,
     uuid,

@@ -1,4 +1,4 @@
-<li class="folder {{#unless folder.expanded}}collapsed{{/unless}} {{#if editable}}editable{{/if}}" data-id="{{folder.id}}" data-uuid="{{folder.uuid}}" data-name="{{folder.name}}" style="border-color: {{folder.color}};" {{#if draggable}}draggable="true"{{/if}}>
+<li class="folder {{#unless folder.expanded}}collapsed{{/unless}} {{#if sortable}}sortable{{/if}}" data-id="{{folder.id}}" data-uuid="{{folder.uuid}}" data-name="{{folder.name}}" style="border-color: {{folder.color}};" {{#if draggable}}draggable="true"{{/if}}>
     <header class="handle flexrow" style="background-color: {{folder.color}};">
         <h3><i class="folder-icon fas fa-folder-{{#if folder.expanded}}open{{else}}closed{{/if}} fa-fw"></i>{{folder.name}}</h3>
         {{#if folder.subtext}}<span class="subtext">{{folder.subtext}}</span>{{/if}}
@@ -9,7 +9,7 @@
         {{#each folder.children as |child|}}
             {{#if child.visible}}
             {{#if child.render}}
-                 {{>me-preset-folder folder=child createEnabled=../createEnabled callback=../callback editable=../editable}}
+                 {{>me-preset-folder folder=child createEnabled=../createEnabled callback=../callback sortable=../sortable}}
             {{/if}}
             {{/if}}
         {{/each}}
@@ -17,7 +17,7 @@
     <ol class="preset-items">
         {{#each folder.presets as |preset|}}
             {{#if preset.visible}}
-                {{>me-preset preset=preset createEnabled=../createEnabled callback=../callback editable=../editable}}
+                {{>me-preset preset=preset createEnabled=../createEnabled callback=../callback sortable=../sortable}}
             {{/if}}
         {{/each}}
     </ol>

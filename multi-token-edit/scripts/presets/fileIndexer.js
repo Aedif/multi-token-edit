@@ -4,7 +4,7 @@ import { VirtualFilePreset } from './preset.js';
 import { encodeURIComponentSafely } from './utils.js';
 
 const CACHE_PATH = '';
-const CACHE_NAME = 'MassEditCache.json';
+const CACHE_NAME = 'mass_edit_cache.json';
 
 export class FileIndexer {
   static _loadedTree;
@@ -43,7 +43,7 @@ export class FileIndexer {
       } else if (source.source === 's3') {
         const s3 = game.data.files.s3;
         if (!s3 || !s3.buckets.includes(source.bucket)) continue;
-        prepend = `https://${source.bucket}.${s3.endpoint.host}/`;
+        prepend = `https://${source.bucket}.${s3.endpoint.host}`;
       }
       const folders = source.index.map((f) => this._indexToVirtualFolder(f, '', allFolders, allPresets, prepend));
 
