@@ -639,6 +639,12 @@ export class MassEditPresets extends FormApplication {
         callback: (item) => this._onCopySelectedPresets(null, { keepFolder: true, keepId: false }),
       },
       {
+        name: localize('presets.copy-source-to-clipboard'),
+        icon: '<i class="fa-solid fa-copy"></i>',
+        condition: (item) => item.data('uuid').startsWith('virtual@'),
+        callback: (item) => game.clipboard.copyPlainText(item.data('uuid').substring(8)),
+      },
+      {
         name: localize('presets.copy-to-clipboard'),
         icon: '<i class="fa-solid fa-copy"></i>',
         condition: (item) => $(this.form).find('.item-list').find('.item.selected').length === 1,
