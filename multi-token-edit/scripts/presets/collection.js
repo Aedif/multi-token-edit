@@ -115,7 +115,7 @@ export class PresetCollection {
     const newExtFolders = [];
     for (const [group, folders] of Object.entries(groups)) {
       const id = SeededRandom.randomID(group); // For export operation a real ID is needed. Lets keep it consistent by seeding
-      const uuid = 'virtual.' + group; // faux uuid
+      const uuid = 'virtual@' + group; // faux uuid
 
       const groupFolder = new PresetVirtualFolder({
         id,
@@ -915,7 +915,8 @@ export class PresetAPI {
 
 export class PresetFolder {
   static isEditable(uuid) {
-    return Boolean(foundry.utils.parseUuid(uuid).collection?.locked);
+    const { collection } = foundry.utils.parseUuid(uuid);
+    return collection && !collection.locked;
   }
 
   constructor({
@@ -977,9 +978,11 @@ export class VirtualFileFolder extends PresetVirtualFolder {
     this.id = randomID();
     if (!options.types) this.types = ['ALL'];
     this.bucket = options.bucket;
+    this.source = options.source;
     this.name = decodeURIComponentSafely(this.name);
     this.icon = options.icon;
     this.subtext = options.subtext;
+    if (options.source && ['data', 'forgevtt'].includes(options.source)) this.indexable = true;
   }
 }
 
@@ -1046,7 +1049,7 @@ export class PresetTree {
         sorting: f.sorting,
         color: f.color,
         sort: f.sort,
-        draggable: f.pack === this.workingPack,
+        draggable: f.pack === PresetCollection.workingPack,
         folder: f.folder?.uuid,
         types: f.flags[MODULE_ID]?.types || ['ALL'],
       });
@@ -1146,7 +1149,6 @@ export class PresetTree {
   setVisibility(type) {
     this.allFolders.forEach((f) => {
       f.render = true;
-      f.draggable = f.pack === this.workingPack;
       f.visible = type ? f.types.includes(type) : true;
     });
 

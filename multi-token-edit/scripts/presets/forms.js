@@ -681,6 +681,17 @@ export class MassEditPresets extends FormApplication {
         callback: (header) => this._onFolderEdit(header),
       },
       {
+        name: 'Save Index',
+        icon: '<i class="fas fa-file-search"></i>',
+        condition: (header) => {
+          const folder = this.tree.allFolders.get(header.closest('.folder').data('uuid'));
+          return folder.indexable;
+        },
+        callback: (header) => {
+          FileIndexer.saveFolderToCache(this.tree.allFolders.get(header.closest('.folder').data('uuid')));
+        },
+      },
+      {
         name: 'Export to Compendium',
         icon: '<i class="fas fa-file-export fa-fw"></i>',
         condition: (header) => {

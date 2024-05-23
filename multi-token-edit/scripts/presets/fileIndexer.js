@@ -32,28 +32,39 @@ export class FileIndexer {
     }
 
     for (const source of cache) {
-      let prepend = '';
+      let prePend = '';
       if (source.source === 'forge-bazaar') {
-        prepend = `https://assets.forge-vtt.com/bazaar/`;
+        prePend = `https://assets.forge-vtt.com/bazaar/`;
       } else if (source.source === 'forgevtt') {
         if (typeof ForgeVTT === 'undefined' || !ForgeVTT.usingTheForge) continue;
         const userId = await ForgeAPI.getUserId();
         if (!userId) continue;
-        prepend = `https://assets.forge-vtt.com/${userId}/`;
+        prePend = `https://assets.forge-vtt.com/${userId}/`;
       } else if (source.source === 's3') {
         const s3 = game.data.files.s3;
         if (!s3 || !s3.buckets.includes(source.bucket)) continue;
-        prepend = `https://${source.bucket}.${s3.endpoint.host}`;
+        prePend = `https://${source.bucket}.${s3.endpoint.host}`;
       }
-      const folders = source.index.map((f) => this._indexToVirtualFolder(f, '', allFolders, allPresets, prepend));
+      const folders = source.index.map((f) =>
+        this._indexToVirtualFolder(f, '', allFolders, allPresets, {
+          prePend,
+          source: source.source,
+          bucket: source.bucket,
+        })
+      );
 
       if (folders?.length) {
         const sFolder = new VirtualFileFolder({
-          uuid: 'virtual.source.' + source.source,
+          uuid: 'virtual@source@' + source.source,
           name: source.source,
           children: folders,
-          types: ['ALL', 'Tile', 'AmbientSound'],
+          types: ['ALL'],
           bucket: source.bucket,
+        });
+        if (folders.some((f) => f.types.includes('Tile'))) sFolder.types.push('Tile');
+        if (folders.some((f) => f.types.includes('AmbientSound'))) sFolder.types.push('AmbientSound');
+        folders.forEach((f) => {
+          f.folder = sFolder.id;
         });
         allFolders.set(sFolder.uuid, sFolder);
         topLevelFolders.push(sFolder);
@@ -125,6 +136,7 @@ export class FileIndexer {
       }
 
       // If pre-generated caches have been found we want to load and merge them here
+      console.log('FOUND CACHES', foundCaches);
       for (const cacheFile of foundCaches) {
         const cache = await this.loadIndexCache(cacheFile);
         if (cache) this.mergeCaches(scannedSources, cache);
@@ -212,10 +224,13 @@ export class FileIndexer {
     return this._loadedTree.allPresets.find((p) => p.uuid === uuid);
   }
 
-  static async saveIndexToCache(notify = true) {
-    if (this._loadedTree) {
+  static async saveIndexToCache(
+    folders = this._loadedTree?.folders,
+    { path = CACHE_PATH, notify = true, source = 'data' } = {}
+  ) {
+    if (folders) {
       const cache = [];
-      for (const sourceFolder of this._loadedTree.folders) {
+      for (const sourceFolder of folders) {
         const sourceCache = {
           source: sourceFolder.name,
           index: sourceFolder.children.map((f) => this._cacheFolder(f)),
@@ -224,15 +239,41 @@ export class FileIndexer {
         cache.push(sourceCache);
       }
 
-      this._writeIndexToCache(cache, notify);
+      this._writeIndexToCache(cache, { path, notify, source });
     }
   }
 
-  static async _writeIndexToCache(index, notify = true) {
+  static async _writeIndexToCache(index, { path = CACHE_PATH, notify = true, source = 'data' } = {}) {
     const str = JSON.stringify(index);
 
     const tFile = await StringCompress.compress(str);
-    await FilePicker.upload('data', CACHE_PATH, tFile, {}, { notify });
+    await FilePicker.upload(source, path, tFile, {}, { notify });
+  }
+
+  static async saveFolderToCache(folder) {
+    if (!(this._loadedTree || folder.indexable || folder.source)) return;
+    const allFolders = this._loadedTree.allFolders;
+
+    let wFolder = folder;
+    while (wFolder.folder) {
+      let pFolder;
+      for (const [uuid, folder] of allFolders) {
+        if (folder.id === wFolder.folder) {
+          pFolder = folder;
+          break;
+        }
+      }
+      if (!pFolder) return;
+
+      pFolder = new VirtualFileFolder({
+        name: pFolder.name,
+        folder: pFolder.folder,
+      });
+      if (wFolder) pFolder.children = [wFolder];
+      wFolder = pFolder;
+    }
+
+    this.saveIndexToCache([wFolder], { path: folder.uuid.replace('virtual@', ''), source: folder.source });
   }
 
   static _cacheFolder(folder) {
@@ -269,51 +310,52 @@ export class FileIndexer {
     return await this.loadIndexCache(path);
   }
 
-  static _indexToVirtualFolder(cache, parentDirPath, allFolders, allPresets, prePend = '') {
+  static _indexToVirtualFolder(cache, parentDirPath, allFolders, allPresets, options) {
     const fullPath = parentDirPath + '/' + cache.dir;
-    const uuid = 'virtual.' + prePend + fullPath;
+    const uuid = 'virtual@' + options.prePend + fullPath;
     const fileFolder = new VirtualFileFolder({
       uuid,
       name: cache.dir,
       subtext: cache.subtext,
       icon: cache.icon,
+      source: options.source,
+      bucket: options.bucket,
     });
-
-    // For assigning folder category
-    let hasAudio = false;
-    let hasImgVideo = false;
 
     if (cache.dirs) {
       for (const dir of cache.dirs) {
-        const childFolder = this._indexToVirtualFolder(dir, fullPath, allFolders, allPresets, prePend);
+        const childFolder = this._indexToVirtualFolder(dir, fullPath, allFolders, allPresets, options);
         if (childFolder) {
           childFolder.folder = fileFolder.id;
           fileFolder.children.push(childFolder);
-
-          hasAudio = hasAudio || childFolder.types.includes('AmbientSound');
-          hasImgVideo = hasImgVideo || childFolder.types.includes('Tile');
         }
       }
+      fileFolder.children.sort((f1, f2) => f1.name.localeCompare(f2.name));
     }
 
     if (cache.files) {
       for (const file of cache.files) {
         const preset = new VirtualFilePreset({
           name: file.name,
-          src: prePend + fullPath + '/' + file.name,
+          src: options.prePend + fullPath + '/' + file.name,
           tags: file.tags,
           folder: fileFolder.id,
         });
         allPresets.push(preset);
         fileFolder.presets.push(preset);
-
-        hasAudio = hasAudio || preset.documentName === 'AmbientSound';
-        hasImgVideo = hasImgVideo || preset.documentName === 'Tile';
       }
     }
 
-    if (hasAudio) fileFolder.types.push('AmbientSound');
-    if (hasImgVideo) fileFolder.types.push('Tile');
+    // Assign folder to categories based on whether the folder itself or
+    // it's child folders contain presets of those types
+    ['Tile', 'AmbientSound'].forEach((type) => {
+      if (
+        fileFolder.presets.some((p) => p.documentName === type) ||
+        fileFolder.children.some((c) => c.types.includes(type))
+      ) {
+        fileFolder.types.push(type);
+      }
+    });
 
     allFolders.set(uuid, fileFolder);
     return fileFolder;
@@ -646,5 +688,11 @@ export class IndexerForm extends FormApplication {
    */
   async _updateObject(event, formData) {
     FileIndexer.buildIndex();
+  }
+}
+
+export class FileIndexerAPI {
+  static async readCacheFile(cacheFile) {
+    return FileIndexer.loadIndexCache(cacheFile);
   }
 }

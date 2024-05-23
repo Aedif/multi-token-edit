@@ -27,7 +27,7 @@ import { MassEditPresets, PresetConfig } from './scripts/presets/forms.js';
 import { registerKeybinds, registerSettings } from './scripts/settings.js';
 import { Picker } from './scripts/picker.js';
 import { BrushMenu, activateBrush, deactivateBush, openBrushMenu } from './scripts/brush.js';
-import { FileIndexer } from './scripts/presets/fileIndexer.js';
+import { FileIndexer, FileIndexerAPI } from './scripts/presets/fileIndexer.js';
 
 // Initialize module
 Hooks.once('init', () => {
@@ -205,6 +205,7 @@ Hooks.once('init', () => {
     deactivateBrush: deactivateBush,
     openBrushMenu: openBrushMenu,
     buildDirectoryIndex: (options) => FileIndexer.buildIndex(options),
+    readCacheFile: FileIndexerAPI.readCacheFile,
   };
 
   game.modules.get(MODULE_ID).api = {
