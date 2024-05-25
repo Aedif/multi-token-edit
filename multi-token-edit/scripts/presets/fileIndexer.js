@@ -1,7 +1,7 @@
 import { FILE_EXTENSIONS, MODULE_ID, TagInput } from '../utils.js';
 import { PresetTree, VirtualFileFolder } from './collection.js';
 import { VirtualFilePreset } from './preset.js';
-import { encodeURIComponentSafely } from './utils.js';
+import { encodeURIComponentSafely, readJSONFile } from './utils.js';
 
 const CACHE_PATH = '';
 const CACHE_NAME = 'mass_edit_cache.json';
@@ -136,7 +136,6 @@ export class FileIndexer {
       }
 
       // If pre-generated caches have been found we want to load and merge them here
-      console.log('FOUND CACHES', foundCaches);
       for (const cacheFile of foundCaches) {
         const cache = await this.loadIndexCache(cacheFile);
         if (cache) this.mergeCaches(scannedSources, cache);
@@ -318,6 +317,7 @@ export class FileIndexer {
       name: cache.dir,
       subtext: cache.subtext,
       icon: cache.icon,
+      color: cache.color,
       source: options.source,
       bucket: options.bucket,
     });
@@ -361,12 +361,33 @@ export class FileIndexer {
     return fileFolder;
   }
 
-  static async generateIndex(dir, foundCaches = [], source = 'data', bucket = null, settings, tags = null) {
+  static async generateIndex(dir, foundCaches = [], source = 'data', bucket = null, settings, options = {}, tags = []) {
+    // Get options associated to this specific directory
+    let opts = options[dir] ?? {};
+    if (opts.noscan) return null;
+
+    // Get directory contents
+    // contents.dirs -> array of children directories
+    // contents.files -> array of contained files
     let content;
     try {
       content = await this._browse(source, dir, { bucket });
     } catch (e) {
       return null;
+    }
+
+    const indexerFile = content.files.find((f) => f.endsWith('indexer.json'));
+    if (indexerFile) {
+      options = (await readJSONFile(indexerFile)) ?? {};
+      opts = options[dir] ?? {};
+      if (opts.noscan) return null;
+    }
+
+    if (opts.tags) {
+      tags = opts.tags
+        .map((t) => TagInput.simplifyString(t))
+        .filter(Boolean)
+        .concat(tags);
     }
 
     const folder = {
@@ -375,14 +396,21 @@ export class FileIndexer {
       files: [],
     };
     if (settings.folderFilters.some((k) => folder.dir.includes(k))) return null;
+    if (!foundry.utils.isEmpty(opts)) {
+      ['color', 'icon', 'subtext'].forEach((k) => {
+        if (opts[k]) folder[k] = opts[k];
+      });
+    }
 
     for (let path of content.files) {
       const fileName = path.split('\\').pop().split('/').pop();
       if (settings.fileFilters.some((k) => fileName.includes(k))) continue;
 
+      // Special file processing
+
       // Cancel indexing if noscan.txt or cache file is present within the directory
       if (fileName === 'noscan.txt') return null;
-      else if (fileName === CACHE_NAME) {
+      else if (fileName === CACHE_NAME && !settings.ignoreExternal) {
         const cacheDir = settings.cacheDir;
         if (!(cacheDir.target === dir.target && cacheDir.source === source && cacheDir.bucket === bucket)) {
           foundCaches.push(path);
@@ -393,10 +421,10 @@ export class FileIndexer {
         // and tags to all files
         const author = await this._getAuthorFromModule(path);
         if (author) {
-          folder.subtext = author;
+          folder.subtext = opts.subtext ?? author;
           const tag = TagInput.simplifyString(author.split(/[ ,\-_@]+/)[0] ?? '');
           if (tag && tag.length >= 3) {
-            tags = [...(tags ?? []), tag];
+            tags = [...tags, tag];
             folder.files.forEach((f) => {
               f.tags = tags;
             });
@@ -410,13 +438,13 @@ export class FileIndexer {
 
       if (FILE_EXTENSIONS.includes(ext)) {
         const f = { name: fileName };
-        if (tags) f.tags = tags;
+        if (tags.length) f.tags = tags;
         folder.files.push(f);
       }
     }
 
     for (let dir of content.dirs) {
-      dir = await this.generateIndex(dir, foundCaches, source, bucket, settings, tags);
+      dir = await this.generateIndex(dir, foundCaches, source, bucket, settings, options, tags);
       if (dir) folder.dirs.push(dir);
     }
 
@@ -486,11 +514,11 @@ export class FileIndexer {
   }
 
   static async _getAuthorFromModule(moduleFile) {
-    try {
-      const module = await jQuery.getJSON(moduleFile);
+    const module = await readJSONFile(moduleFile);
+    if (module) {
       const author = module.author ?? module.authors?.[0]?.name;
       if (typeof author === 'string') return author;
-    } catch (e) {}
+    }
     return null;
   }
 }
@@ -592,11 +620,13 @@ export class IndexerForm extends FormApplication {
     html.on('click', '.deleteDirectory', this._onDeleteDirectory.bind(this));
     html.on('input', '[name="fileFilters"]', this._onFileFiltersChange.bind(this));
     html.on('input', '[name="folderFilters"]', this._onFolderFiltersChange.bind(this));
-    html.find('[name="overrideTags"]').on('change', this._onOverrideTagsChange.bind(this));
+    html.find('input[type="checkbox"]').on('change', this._onToggleCheckbox.bind(this));
   }
 
-  _onOverrideTagsChange(event) {
-    this._updateIndexerSettings({ overrideTags: $(event.currentTarget).is(':checked') }, false);
+  _onToggleCheckbox(event) {
+    const chkBox = $(event.currentTarget);
+    const name = chkBox.attr('name');
+    this._updateIndexerSettings({ [name]: chkBox.is(':checked') }, false);
   }
 
   _onFileFiltersChange(event) {

@@ -333,3 +333,10 @@ export function encodeURIComponentSafely(uri) {
     return uri;
   }
 }
+
+export async function readJSONFile(url) {
+  try {
+    return await jQuery.getJSON(url);
+  } catch (e) {}
+  return null;
+}

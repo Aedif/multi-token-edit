@@ -74,6 +74,7 @@ export function registerSettings() {
       ],
       cacheDir: { target: '', source: 'data' },
       overrideTags: false,
+      ignoreExternal: false,
       fileFilters: ['Thumb', '-thumb', 'Thumbnail', 'thumbnail'],
       folderFilters: ['Thumb', 'thumb'],
     },

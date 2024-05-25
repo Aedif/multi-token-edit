@@ -1,3 +1,53 @@
+# 1.68.0
+
+**Preset Browser**
+
+- **Directory Indexer** can now be accessed via the header
+- Presets belonging to unlocked compendiums can now be edited even if they're not part of the current working compendium
+- Tags can be explicitly searched for using **#**
+  - e.g. rock #terrain
+  - This would bring up all presets that have been tagged with **terrain** and that contain **rock** in their name
+- Switching placeable types will now reset the search textbox
+- Search mode toggle can now be used to turn-off display of folders during searches
+- Due to allowing scanning and inclusion of tens of thousands of files within the form, searches have been limited to the first 1000 presets
+- Fixed folders showing up as visible during searches even if they do not contain matched presets
+- Fixed **FAVORITES** tab rendering sluggishly compared to other tabs
+- Fixed AmbientLight and AmbientSound previews only rendering their controls
+- Fixed images floating up when in thumbnail view mode
+
+**Directory Indexer**
+
+- The module now supports indexing of directories and displaying them within the **Preset Browser** as Tile and AmbientSound presets.
+- Indexer menu is accessed via a new **Preset Browsers** header button
+  - Select directories you want to be indexed, filters, and override settings
+  - The index will be created as a file within your user data folder and will be re-used on all subsequent openings of the **Preset Browser**
+  - Any module directories found as part of indexing will result in assets found within being tagged with the author's name (e.g. baileywiki, caeora, etc)
+  - Supported sources: data, public, s3, forgevtt, forge-bazaar
+- `noscan.txt` file can be added to directories you do not wish to be indexed
+- `indexer.json` file can be added to directories to modify folder appearance, tags, and indexing exclusions.
+  - Format:
+
+```
+{
+  "modules/baileywiki-3d": {
+    "tags": ["3d_canvas"],
+    "color": "#7e1212",
+    "icon": "icons/vtt-512.png",
+    "subtext": "3D Canvas"
+  },
+  "modules/baileywiki-3d/icons": {
+    "noscan": true
+  }
+}
+
+```
+
+**Misc.**
+
+- Preset pasting onto existing placeables will no longer include position data
+- Tiles spawned through the **Brush Menu** will have their Z-Index be automatically set to the current highest on the scene.
+- **History** recording feature has been removed
+
 # 1.67.1
 
 - Fixed errors thrown when using Brush update tool with empty presets

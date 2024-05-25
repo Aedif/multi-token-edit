@@ -259,14 +259,14 @@
   width: 35px;
   position: absolute;
   right: 0;
+  top: 0;
+  border: none;
 }
 
 .mass-edit-preset-form .folder .subtext {
-  color: #ffd700a6;
-  position: absolute;
-  margin-top: 13px;
-  margin-left: 30px;
+  color: #f1d438eb;
   font-size: smaller;
+  padding-left: 15px;
 }
 
 .mass-edit-preset-form .preset-items {

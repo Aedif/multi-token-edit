@@ -28,11 +28,22 @@
         <p class="notes">Folders containing these keywords in their name will not be included in the index. Use comma "," to separate keywords.</p>
     </div>
 
-    <div class="form-group">
-        <label>Override Tags</label>
-        <input name="overrideTags" type="checkbox" {{checked overrideTags}}/>
-        <p class="notes">When enabled user set tags will be overridden by other external indexes found during re-indexing.</p>
-    </div>
+    <fieldset>
+        <legend>External Indexes (ADVANCED)</legend>
+
+        <div class="form-group">
+            <label>Ignore External Indexes</label>
+            <input name="ignoreExternal" type="checkbox" {{checked ignoreExternal}}/>
+            <p class="notes">When enabled external indexes will not be read and directories processed as normal.</p>
+        </div>
+
+        <div class="form-group">
+            <label>Override Tags</label>
+            <input name="overrideTags" type="checkbox" {{checked overrideTags}}/>
+            <p class="notes">When enabled user tags set through the Preset Browser will be overridden during re-indexing.</p>
+        </div>
+    
+    </fieldset>
 
     <footer class="sheet-footer flexrow">
         <button type="submit"><i class="far fa-gear"></i>Generate Index</button>
