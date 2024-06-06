@@ -34,7 +34,9 @@ export function enableUniversalSelectTool() {
     'AmbientLight.prototype._onDragLeftCancel',
     function (...args) {
       Object.getPrototypeOf(AmbientLight).prototype._onDragLeftCancel.apply(this, args);
-      this.updateSource({ defer: true });
+      // V12
+      if (this.initializeLightSource) this.initializeLightSource({ defer: true });
+      else this.updateSource({ defer: true });
     },
     'OVERRIDE'
   );

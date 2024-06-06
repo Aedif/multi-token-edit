@@ -28,6 +28,7 @@ import { registerKeybinds, registerSettings } from './scripts/settings.js';
 import { Picker } from './scripts/picker.js';
 import { BrushMenu, activateBrush, deactivateBush, openBrushMenu } from './scripts/brush.js';
 import { FileIndexer, FileIndexerAPI } from './scripts/presets/fileIndexer.js';
+import { V12Migrator } from './scripts/presets/migration.js';
 
 // Initialize module
 Hooks.once('init', () => {
@@ -206,6 +207,7 @@ Hooks.once('init', () => {
     openBrushMenu: openBrushMenu,
     buildDirectoryIndex: (options) => FileIndexer.buildIndex(options),
     readCacheFile: FileIndexerAPI.readCacheFile,
+    migratePack: (pack) => V12Migrator.migratePack(pack),
   };
 
   game.modules.get(MODULE_ID).api = {

@@ -536,7 +536,10 @@ export class MassEditPresets extends FormApplication {
       { pack: PresetCollection.workingPack }
     );
 
-    nFolder = await Folder.create(nFolder, { pack: nFolder.pack, keepId: options.keepId });
+    nFolder = await Folder.create(nFolder, {
+      pack: nFolder.pack,
+      keepId: options.keepId,
+    });
 
     for (const child of folder.children) {
       if (!this._importTracker?.active) break;
@@ -545,7 +548,10 @@ export class MassEditPresets extends FormApplication {
 
     for (const actor of folder.contents) {
       if (!this._importTracker?.active) break;
-      await PresetAPI.createPresetFromActorUuid(actor.uuid, { folder: nFolder.id, keepId: options.keepId });
+      await PresetAPI.createPresetFromActorUuid(actor.uuid, {
+        folder: nFolder.id,
+        keepId: options.keepId,
+      });
       this._importTracker.incrementCount();
     }
 
@@ -636,7 +642,11 @@ export class MassEditPresets extends FormApplication {
         name: localize('Duplicate', false),
         icon: '<i class="fa-solid fa-copy"></i>',
         condition: (item) => Preset.isEditable(item.data('uuid')) && !item.hasClass('virtual'),
-        callback: (item) => this._onCopySelectedPresets(null, { keepFolder: true, keepId: false }),
+        callback: (item) =>
+          this._onCopySelectedPresets(null, {
+            keepFolder: true,
+            keepId: false,
+          }),
       },
       {
         name: localize('presets.copy-source-to-clipboard'),
@@ -837,7 +847,10 @@ export class MassEditPresets extends FormApplication {
   }
 
   async _onEditSelectedPresets(item) {
-    const [selected, _] = await this._getSelectedPresets({ virtualOnly: item.hasClass('virtual'), editableOnly: true });
+    const [selected, _] = await this._getSelectedPresets({
+      virtualOnly: item.hasClass('virtual'),
+      editableOnly: true,
+    });
     if (selected.length) {
       // Position edit window just bellow the item
       const options = item.offset();
@@ -848,7 +861,10 @@ export class MassEditPresets extends FormApplication {
   }
 
   async _onDeleteSelectedPresets(item) {
-    const [selected, items] = await this._getSelectedPresets({ editableOnly: true, full: false });
+    const [selected, items] = await this._getSelectedPresets({
+      editableOnly: true,
+      full: false,
+    });
     if (selected.length) {
       const confirm =
         selected.length === 0
@@ -868,12 +884,16 @@ export class MassEditPresets extends FormApplication {
   }
 
   async _onOpenJournal(item) {
-    const [selected, _] = await this._getSelectedPresets({ editableOnly: false });
+    const [selected, _] = await this._getSelectedPresets({
+      editableOnly: false,
+    });
     selected.forEach((p) => p.openJournal());
   }
 
   async _onApplyToSelected(item) {
-    const [selected, _] = await this._getSelectedPresets({ editableOnly: false });
+    const [selected, _] = await this._getSelectedPresets({
+      editableOnly: false,
+    });
     if (!selected.length) return;
 
     // Confirm that all presets are of the same document type
@@ -1129,7 +1149,9 @@ export class MassEditPresets extends FormApplication {
 
         ctrl.target.sort = update.sort;
       });
-      await Folder.updateDocuments(updates, { pack: PresetCollection.workingPack });
+      await Folder.updateDocuments(updates, {
+        pack: PresetCollection.workingPack,
+      });
     }
     this.render(true);
   }
@@ -1377,7 +1399,9 @@ export class MassEditPresets extends FormApplication {
   }
 
   async _onActivateBrush(item) {
-    const [selected, _] = await this._getSelectedPresets({ editableOnly: false });
+    const [selected, _] = await this._getSelectedPresets({
+      editableOnly: false,
+    });
     BrushMenu.addPresets(selected);
   }
 
@@ -1406,7 +1430,9 @@ export class MassEditPresets extends FormApplication {
       const tarW = width || el.offsetWidth;
       const minW = parseInt(styles.minWidth) || (pop ? MIN_WINDOW_WIDTH : 0);
       const maxW = el.style.maxWidth || window.innerWidth / scale;
-      currentPosition.width = width = Math.clamped(tarW, minW, maxW);
+      currentPosition.width = width = Math.clamp
+        ? Math.clamp(tarW, minW, maxW) // v12
+        : Math.clamped(tarW, minW, maxW);
       el.style.width = `${width}px`;
       if (width * scale + currentPosition.left > window.innerWidth) left = currentPosition.left;
     }
@@ -1417,7 +1443,9 @@ export class MassEditPresets extends FormApplication {
       const tarH = height || el.offsetHeight + 1;
       const minH = parseInt(styles.minHeight) || (pop ? MIN_WINDOW_HEIGHT : 0);
       const maxH = el.style.maxHeight || window.innerHeight / scale;
-      currentPosition.height = height = Math.clamped(tarH, minH, maxH);
+      currentPosition.height = height = Math.clamp
+        ? Math.clamp(tarH, minH, maxH) // v12
+        : Math.clamped(tarH, minH, maxH);
       el.style.height = `${height}px`;
       if (height * scale + currentPosition.top > window.innerHeight + 1) top = currentPosition.top - 1;
     }
@@ -1429,7 +1457,9 @@ export class MassEditPresets extends FormApplication {
       const scaledWidth = width * scale;
       const tarL = Number.isFinite(left) ? left : (window.innerWidth - scaledWidth) / 2;
       const maxL = Math.max(window.innerWidth - scaledWidth, 0);
-      currentPosition.left = left = Math.clamped(tarL, 0, maxL);
+      currentPosition.left = left = Math.clamp
+        ? Math.clamp(tarL, 0, maxL) // v12
+        : Math.clamped(tarL, 0, maxL);
       leftT = left;
     }
 
@@ -1438,7 +1468,9 @@ export class MassEditPresets extends FormApplication {
       const scaledHeight = height * scale;
       const tarT = Number.isFinite(top) ? top : (window.innerHeight - scaledHeight) / 2;
       const maxT = Math.max(window.innerHeight - scaledHeight, 0);
-      currentPosition.top = Math.clamped(tarT, 0, maxT);
+      currentPosition.top = Math.clamp
+        ? Math.clamp(tarT, 0, maxT) // v12
+        : Math.clamped(tarT, 0, maxT);
 
       topT = currentPosition.top;
     }
@@ -1549,7 +1581,9 @@ export class MassEditPresets extends FormApplication {
   }
 
   _getActiveEffectFields() {
-    return { changes: foundry.utils.deepClone(this.configApp.object.changes ?? []) };
+    return {
+      changes: foundry.utils.deepClone(this.configApp.object.changes ?? []),
+    };
   }
 
   _getHeaderButtons() {
@@ -1748,7 +1782,7 @@ export class PresetConfig extends FormApplication {
 
     data.preset = {};
     if (this.presets.length === 1) {
-      data.preset = deepClone(this.presets[0].toJSON());
+      data.preset = foundry.utils.deepClone(this.presets[0].toJSON());
       data.displayFieldDelete = true;
       data.displayFieldModify = true;
 
@@ -1847,7 +1881,9 @@ export class PresetConfig extends FormApplication {
       });
 
     //Tags
-    TagInput.activateListeners(html, { change: () => this.setPosition({ height: 'auto' }) });
+    TagInput.activateListeners(html, {
+      change: () => this.setPosition({ height: 'auto' }),
+    });
   }
 
   _getSubmitData(updateData = {}) {
@@ -1877,8 +1913,13 @@ export class PresetConfig extends FormApplication {
   async dropPlaceable(placeables, event) {
     this.advancedOpen = true;
 
-    if (!this.attached) this.attached = deepClone(this.presets[0].attached ?? []);
-    placeables.forEach((p) => this.attached.push({ documentName: p.document.documentName, data: placeableToData(p) }));
+    if (!this.attached) this.attached = foundry.utils.deepClone(this.presets[0].attached ?? []);
+    placeables.forEach((p) =>
+      this.attached.push({
+        documentName: p.document.documentName,
+        data: placeableToData(p),
+      })
+    );
 
     await this.render(true);
     setTimeout(() => this.setPosition({ height: 'auto' }), 30);
@@ -1886,7 +1927,7 @@ export class PresetConfig extends FormApplication {
 
   async onAttachedRemove(event) {
     const index = $(event.target).closest('.attached').data('index');
-    this.attached = this.attached || deepClone(this.presets[0].attached);
+    this.attached = this.attached || foundry.utils.deepClone(this.presets[0].attached);
     this.attached.splice(index, 1);
     await this.render(true);
     setTimeout(() => this.setPosition({ height: 'auto' }), 30);
@@ -2139,7 +2180,10 @@ class PresetFieldDelete extends PresetFieldSelect {
   /** @override */
   async getData(options = {}) {
     const data = await super.getData(options);
-    data.button = { icon: '<i class="fas fa-trash"></i>', text: localize('common.delete') };
+    data.button = {
+      icon: '<i class="fas fa-trash"></i>',
+      text: localize('common.delete'),
+    };
     return data;
   }
 
@@ -2187,7 +2231,10 @@ class PresetFieldModify extends PresetFieldSelect {
   /** @override */
   async getData(options = {}) {
     const data = await super.getData(options);
-    data.button = { icon: '<i class="fas fa-check"></i>', text: localize('CONTROLS.CommonSelect', false) };
+    data.button = {
+      icon: '<i class="fas fa-check"></i>',
+      text: localize('CONTROLS.CommonSelect', false),
+    };
     for (const field of data.fields) {
       if (this.modifyOnSpawn.includes(field.name)) field.selected = true;
     }
@@ -2274,7 +2321,12 @@ class PresetFolderConfig extends FolderConfig {
       this.displayTypes = true;
       docs = [];
       UI_DOCS.forEach((type) => {
-        if (type != 'FAVORITES') docs.push({ name: type, icon: DOC_ICONS[type], active: folderDocs.includes(type) });
+        if (type != 'FAVORITES')
+          docs.push({
+            name: type,
+            icon: DOC_ICONS[type],
+            active: folderDocs.includes(type),
+          });
       });
     }
 
@@ -2401,7 +2453,11 @@ function getCompendiumDialog(resolve, { excludePack, exportTo = false, keepIdSel
         label: config.buttonLabel,
         callback: (html) => {
           const pack = $(html).find('select').val();
-          if (keepIdSelect) resolve({ pack, keepId: $(html).find('[name="keepId"]').is(':checked') });
+          if (keepIdSelect)
+            resolve({
+              pack,
+              keepId: $(html).find('[name="keepId"]').is(':checked'),
+            });
           else resolve(pack);
         },
       },

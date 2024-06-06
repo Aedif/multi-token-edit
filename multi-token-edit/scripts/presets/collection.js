@@ -844,11 +844,16 @@ export class PresetAPI {
     let pos = { x, y };
 
     if (snapToGrid && !game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.SHIFT)) {
-      pos = canvas.grid.getSnappedPosition(
-        pos.x,
-        pos.y,
-        canvas.getLayerByEmbeddedName(preset.documentName).gridPrecision
-      );
+      // v12
+      if (canvas.grid.getSnappedPoint) {
+        pos = canvas.getLayerByEmbeddedName(preset.documentName).getSnappedPoint(pos);
+      } else {
+        pos = canvas.grid.getSnappedPosition(
+          pos.x,
+          pos.y,
+          canvas.getLayerByEmbeddedName(preset.documentName).gridPrecision
+        );
+      }
     }
     pos.z = z;
     // ==================

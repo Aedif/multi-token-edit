@@ -322,13 +322,13 @@ export default class RandomizerForm extends FormApplication {
   _onSnapToGrid(event) {
     const form = $(event.target).closest('form');
     form.find('[name="minX"], [name="maxX"]').each(function () {
-      this.value = nearestStep(this.value, canvas.grid.w);
+      this.value = nearestStep(this.value, canvas.grid.sizeX ?? canvas.grid.w); //v12
     });
     form.find('[name="minY"], [name="maxY"]').each(function () {
-      this.value = nearestStep(this.value, canvas.grid.h);
+      this.value = nearestStep(this.value, canvas.grid.sizeY ?? canvas.grid.h); //v12
     });
-    form.find('[name="stepX"]').val(canvas.grid.w);
-    form.find('[name="stepY"]').val(canvas.grid.h);
+    form.find('[name="stepX"]').val(canvas.grid.sizeX ?? canvas.grid.w); //v12
+    form.find('[name="stepY"]').val(canvas.grid.sizeY ?? canvas.grid.h); //v12
   }
 
   /**
@@ -421,7 +421,12 @@ export default class RandomizerForm extends FormApplication {
         const maxX = Math.max(formData.minX, formData.maxX);
         const minY = Math.min(formData.minY, formData.maxY);
         const maxY = Math.max(formData.minY, formData.maxY);
-        const boundingBox = { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+        const boundingBox = {
+          x: minX,
+          y: minY,
+          width: maxX - minX,
+          height: maxY - minY,
+        };
         this.configApp.randomizeFields['x'] = {
           type: 'coordinate',
           method: 'noOverlap',
@@ -526,11 +531,17 @@ function processCoordinate(inputX, inputY, configApp, label) {
 }
 
 function _showRandomTextDialog(input, configApp, label) {
-  new RandomizerForm(label, input, configApp, { textForm: true, current: input.val() }).render(true);
+  new RandomizerForm(label, input, configApp, {
+    textForm: true,
+    current: input.val(),
+  }).render(true);
 }
 
 function _showRandomImageDialog(input, configApp, label) {
-  new RandomizerForm(label, input, configApp, { imageForm: true, current: input.val() }).render(true);
+  new RandomizerForm(label, input, configApp, {
+    imageForm: true,
+    current: input.val(),
+  }).render(true);
 }
 
 function _showRandomColorDialog(input, configApp, label) {

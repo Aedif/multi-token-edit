@@ -33,12 +33,12 @@ export function placeableToData(placeable) {
     const attached = data.flags?.['token-attacher']?.attached || {};
     if (!foundry.utils.isEmpty(attached)) {
       const prototypeAttached = tokenAttacher.generatePrototypeAttached(data, attached);
-      setProperty(data, 'flags.token-attacher.attached', null);
-      setProperty(data, 'flags.token-attacher.prototypeAttached', prototypeAttached);
-      setProperty(data, 'flags.token-attacher.grid', {
+      foundry.utils.setProperty(data, 'flags.token-attacher.attached', null);
+      foundry.utils.setProperty(data, 'flags.token-attacher.prototypeAttached', prototypeAttached);
+      foundry.utils.setProperty(data, 'flags.token-attacher.grid', {
         size: canvas.grid.size,
-        w: canvas.grid.w,
-        h: canvas.grid.h,
+        w: canvas.grid.sizeX ?? canvas.grid.w, // v12
+        h: canvas.grid.sizeY ?? canvas.grid.h, // v12
       });
     }
   }
@@ -110,7 +110,14 @@ export function mergePresetDataToDefaultDoc(preset, presetData) {
       data = { name: preset.name, elevation: 0, x: 0, y: 0, rotation: 0, width: 1, height: 1 };
       break;
     case 'Tile':
-      data = { width: canvas.grid.w, height: canvas.grid.h, x: 0, y: 0, rotation: 0 };
+      data = {
+        width: canvas.grid.sizeX ?? canvas.grid.w, // v12
+        height: canvas.grid.sizeY ?? canvas.grid.h, // v12
+        x: 0,
+        y: 0,
+        rotation: 0,
+        elevation: 0,
+      };
       break;
     case 'AmbientSound':
       data = { radius: 20, x: 0, y: 0 };
@@ -118,8 +125,8 @@ export function mergePresetDataToDefaultDoc(preset, presetData) {
     case 'Drawing':
       data = {
         shape: {
-          width: canvas.grid.w * 2,
-          height: canvas.grid.h * 2,
+          width: (canvas.grid.sizeX ?? canvas.grid.w) * 2, // v12
+          height: (canvas.grid.sizeY ?? canvas.grid.h) * 2, // v12
           strokeWidth: 8,
           strokeAlpha: 1.0,
         },

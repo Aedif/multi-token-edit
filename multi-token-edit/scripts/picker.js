@@ -63,9 +63,14 @@ export class Picker {
       const setPositions = function (pos) {
         if (!pos) return;
         if (preview.center) offset = getPresetDataCenterOffset(preview.previewData);
-        if (preview.snap && layer && !game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.SHIFT))
-          pos = canvas.grid.getSnappedPosition(pos.x, pos.y, layer.gridPrecision);
-
+        if (preview.snap && layer && !game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.SHIFT)) {
+          // v12
+          if (layer.getSnappedPoint) {
+            pos = layer.getSnappedPoint(pos);
+          } else {
+            pos = canvas.grid.getSnappedPosition(pos.x, pos.y, layer.gridPrecision);
+          }
+        }
         // calculate transform
         const fpX = previews[0].document.documentName === 'Wall' ? previews[0].document.c[0] : previews[0].document.x;
         const fpY = previews[0].document.documentName === 'Wall' ? previews[0].document.c[1] : previews[0].document.y;
@@ -119,10 +124,19 @@ export class Picker {
           preview.visible = true;
 
           // Tile z order, to make sure previews are rendered on-top
-          if (!preview.z) preview.z = preview.document.z;
-          if (preview.z) preview.document.z = preview.z + 9999999;
+          // v12
+          if (preview.document.sort != null) {
+            if (!preview.sort) preview.sort = preview.document.sort;
+            if (preview.sort) preview.document.sort = preview.sort + 9999999;
+          } else {
+            if (!preview.z) preview.z = preview.document.z;
+            if (preview.z) preview.document.z = preview.z + 9999999;
+          }
 
-          if (preview.source) preview.updateSource();
+          // V12
+          if (preview.initializeLightSource) preview.initializeLightSource();
+          else if (preview.initializeSoundSource) preview.initializeSoundSource();
+          else if (preview.source) preview.updateSource();
 
           if (preview.controlIcon && !preview.controlIcon._meVInsert) {
             preview.controlIcon.alpha = 0.4;
@@ -265,7 +279,7 @@ export class Picker {
       const layer = canvas.getLayerByEmbeddedName(documentName);
       for (const data of dataArr) {
         // Create Preview
-        const previewObject = await this._createPreview.call(layer, deepClone(data));
+        const previewObject = await this._createPreview.call(layer, foundry.utils.deepClone(data));
         previewObject._pData = data;
         previews.push(previewObject);
         previewDocuments.add(documentName);
@@ -321,9 +335,9 @@ export class Picker {
   static async _genTAPreviews(data, taPreview, parent, previews) {
     if (!game.modules.get('token-attacher')?.active) return [];
 
-    const attached = getProperty(data, 'flags.token-attacher.prototypeAttached');
-    const pos = getProperty(data, 'flags.token-attacher.pos');
-    const grid = getProperty(data, 'flags.token-attacher.grid');
+    const attached = foundry.utils.getProperty(data, 'flags.token-attacher.prototypeAttached');
+    const pos = foundry.utils.getProperty(data, 'flags.token-attacher.pos');
+    const grid = foundry.utils.getProperty(data, 'flags.token-attacher.grid');
 
     if (!(attached && pos && grid)) return [];
 
@@ -463,7 +477,7 @@ export class DataTransform {
   }
 
   static transformWall(data, origin, transform, preview) {
-    const c = deepClone(data.c);
+    const c = foundry.utils.deepClone(data.c);
 
     if (transform.scale != null) {
       const scale = transform.scale;
@@ -759,19 +773,19 @@ export async function editPreviewPlaceables() {
           const attached = d.flags?.['token-attacher']?.attached || {};
           if (!foundry.utils.isEmpty(attached)) {
             const prototypeAttached = tokenAttacher.generatePrototypeAttached(d, attached);
-            setProperty(d, 'flags.token-attacher.attached', null);
-            setProperty(d, 'flags.token-attacher.prototypeAttached', prototypeAttached);
-            setProperty(d, 'flags.token-attacher.grid', {
+            foundry.utils.setProperty(d, 'flags.token-attacher.attached', null);
+            foundry.utils.setProperty(d, 'flags.token-attacher.prototypeAttached', prototypeAttached);
+            foundry.utils.setProperty(d, 'flags.token-attacher.grid', {
               size: canvas.grid.size,
-              w: canvas.grid.w,
-              h: canvas.grid.h,
+              w: canvas.grid.sizeX ?? canvas.grid.w, // v12
+              h: canvas.grid.sizeY ?? canvas.grid.h, // v12
             });
           }
         }
       }
 
       docToData.set(documentName, data);
-      originalDocTolData.set(documentName, deepClone(data));
+      originalDocTolData.set(documentName, foundry.utils.deepClone(data));
       if (!mainDocName) mainDocName = documentName;
     }
   });
