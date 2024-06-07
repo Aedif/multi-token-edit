@@ -55,14 +55,18 @@ export class Picker {
       this._rotation = preview.rotation ?? 0;
       this._scale = preview.scale ?? 1;
 
+      const centerOnCursor = () => {
+        return preview.center && !(layer.name === 'TokenLayer' && preview.previewData.size === 1);
+      };
+
       // Position offset to center preview over the mouse
       let offset;
-      if (preview.center) offset = getPresetDataCenterOffset(preview.previewData);
+      if (centerOnCursor()) offset = getPresetDataCenterOffset(preview.previewData);
       else offset = { x: 0, y: 0 };
 
       const setPositions = function (pos) {
         if (!pos) return;
-        if (preview.center) offset = getPresetDataCenterOffset(preview.previewData);
+        if (centerOnCursor()) offset = getPresetDataCenterOffset(preview.previewData);
         if (preview.snap && layer && !game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.SHIFT)) {
           // v12
           if (layer.getSnappedPoint) {
@@ -312,13 +316,13 @@ export class Picker {
   }
 
   static _genTAPreviews(data, taPreview, parent, toCreate) {
-    if (!game.modules.get('token-attacher')?.active) return [];
+    if (!game.modules.get('token-attacher')?.active) return;
 
     const attached = foundry.utils.getProperty(data, 'flags.token-attacher.prototypeAttached');
     const pos = foundry.utils.getProperty(data, 'flags.token-attacher.pos');
     const grid = foundry.utils.getProperty(data, 'flags.token-attacher.grid');
 
-    if (!(attached && pos && grid)) return [];
+    if (!(attached && pos && grid)) return;
 
     const ratio = canvas.grid.size / grid.size;
     const attachedData = this._parseTAPreview(taPreview, attached);

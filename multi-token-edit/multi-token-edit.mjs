@@ -206,6 +206,7 @@ Hooks.once('init', () => {
     buildDirectoryIndex: (options) => FileIndexer.buildIndex(options),
     readCacheFile: FileIndexerAPI.readCacheFile,
     migratePack: (pack) => V12Migrator.migratePack(pack),
+    migrateAllPacks: () => V12Migrator.migrateAllPacks(),
   };
 
   game.modules.get(MODULE_ID).api = {

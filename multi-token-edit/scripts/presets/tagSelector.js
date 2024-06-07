@@ -15,8 +15,7 @@ export class TagSelector extends FormApplication {
       resizable: true,
       minimizable: true,
       width: 200,
-      height: 175,
-      scrollY: ['.tag-list'],
+      height: 500,
     });
   }
 
@@ -58,13 +57,9 @@ export class TagSelector extends FormApplication {
   getTagsOfRendered() {
     const tags = new Map();
 
-    if (this.presetsApp._searchFoundPresets?.length) {
-      this.presetsApp._searchFoundPresets.forEach((p) => this._getPresetTags(p, tags));
-    } else {
-      this.presetsApp.tree.folders.forEach((f) => this._getFolderTags(f, tags));
-      this.presetsApp.tree.extFolders.forEach((f) => this._getFolderTags(f, tags));
-      this.presetsApp.tree.presets.forEach((p) => this._getPresetTags(p, tags));
-    }
+    this.presetsApp.tree.folders.forEach((f) => this._getFolderTags(f, tags));
+    this.presetsApp.tree.extFolders.forEach((f) => this._getFolderTags(f, tags));
+    this.presetsApp.tree.presets.forEach((p) => this._getPresetTags(p, tags));
 
     return tags;
   }
@@ -91,7 +86,7 @@ export class TagSelector extends FormApplication {
   }
 
   _getPresetTags(preset, tags) {
-    if (preset._visible) {
+    if (preset.visible) {
       for (const tag of preset.tags) {
         tags.set(tag, (tags.get(tag) ?? 0) + 1);
       }

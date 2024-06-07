@@ -1,16 +1,21 @@
 import { MODULE_ID } from '../utils.js';
-import { META_INDEX_ID } from './collection.js';
+import { META_INDEX_ID, PresetCollection } from './collection.js';
 
 export class V12Migrator {
   static async migrateAllPacks() {
     for (const pack of game.packs) {
       if (pack.documentName !== 'JournalEntry') continue;
+      if (!pack.index.get(META_INDEX_ID)) continue;
+      else if (pack.locked) {
+        console.warn(`Mass Edit - Unable to migrate a locked compendium. ${pack.metadata.label}`);
+        continue;
+      }
 
-      this.migrateCompendium(pack);
+      this.migratePack(pack);
     }
   }
 
-  static async migratePack(pack) {
+  static async migratePack(pack = PresetCollection.workingPack) {
     if (foundry.utils.getType(pack) === 'string') {
       let fPack = game.packs.get(pack) || game.packs.find((p) => p.metadata.label === pack);
       if (!fPack) {
