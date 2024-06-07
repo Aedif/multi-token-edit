@@ -125,9 +125,11 @@ export class Picker {
 
           // Tile z order, to make sure previews are rendered on-top
           // v12
-          if (preview.document.sort != null) {
-            if (!preview.sort) preview.sort = preview.document.sort;
-            if (preview.sort) preview.document.sort = preview.sort + 9999999;
+          if (foundry.utils.isNewerVersion(game.version, 12)) {
+            if (preview.document.sort != null) {
+              if (!preview.sort) preview.sort = preview.document.sort;
+              if (preview.sort) preview.document.sort = preview.sort + 9999999;
+            }
           } else {
             if (!preview.z) preview.z = preview.document.z;
             if (preview.z) preview.document.z = preview.z + 9999999;
@@ -271,42 +273,76 @@ export class Picker {
   static async _genPreviews(preview) {
     if (!preview.previewData) return { previews: [] };
 
-    const previewDocuments = new Set();
-    const previews = [];
     const transform = {};
-
+    const toCreate = [];
     for (const [documentName, dataArr] of preview.previewData.entries()) {
-      const layer = canvas.getLayerByEmbeddedName(documentName);
       for (const data of dataArr) {
-        // Create Preview
-        const previewObject = await this._createPreview.call(layer, foundry.utils.deepClone(data));
-        previewObject._pData = data;
-        previews.push(previewObject);
-        previewDocuments.add(documentName);
-
         // Set initial transform which will set first preview to (0, 0) and all others relative to it
         if (transform.x == null) {
           if (documentName === 'Wall') {
-            transform.x = -previewObject.document.c[0];
-            transform.y = -previewObject.document.c[1];
+            transform.x = -data.c?.[0] ?? 0;
+            transform.y = -data.c?.[1] ?? 0;
           } else {
-            transform.x = -previewObject.document.x;
-            transform.y = -previewObject.document.y;
+            transform.x = -data.x ?? 0;
+            transform.y = -data.y ?? 0;
           }
         }
 
+        toCreate.push({ documentName, data });
+
         if (preview.taPreview && documentName === 'Token') {
-          const documentNames = await this._genTAPreviews(data, preview.taPreview, previewObject, previews);
-          documentNames.forEach((dName) => previewDocuments.add(dName));
+          this._genTAPreviews(data, preview.taPreview, data, toCreate);
         }
       }
     }
 
-    for (const preview of previews) {
-      const doc = preview.document;
-      DataTransform.apply(doc.documentName, preview._pData ?? doc, { x: 0, y: 0 }, transform, preview);
+    const previewDocuments = new Set();
+    const previews = [];
+    for (const { documentName, data } of toCreate) {
+      DataTransform.apply(documentName, data, { x: 0, y: 0 }, transform);
+      const p = await this._createPreview.call(
+        canvas.getLayerByEmbeddedName(documentName),
+        foundry.utils.deepClone(data)
+      );
+      p._pData = data;
+      previews.push(p);
+      previewDocuments.add(documentName);
     }
     return { previews, layer: canvas.getLayerByEmbeddedName(preview.documentName), previewDocuments };
+  }
+
+  static _genTAPreviews(data, taPreview, parent, toCreate) {
+    if (!game.modules.get('token-attacher')?.active) return [];
+
+    const attached = foundry.utils.getProperty(data, 'flags.token-attacher.prototypeAttached');
+    const pos = foundry.utils.getProperty(data, 'flags.token-attacher.pos');
+    const grid = foundry.utils.getProperty(data, 'flags.token-attacher.grid');
+
+    if (!(attached && pos && grid)) return [];
+
+    const ratio = canvas.grid.size / grid.size;
+    const attachedData = this._parseTAPreview(taPreview, attached);
+
+    for (const [name, dataList] of Object.entries(attachedData)) {
+      for (let data of dataList) {
+        if (['Token', 'Tile', 'Drawing'].includes(name)) {
+          data.width *= ratio;
+          data.height *= ratio;
+        }
+
+        if (name === 'Wall') {
+          data.c[0] = parent.x + (data.c[0] - pos.xy.x) * ratio;
+          data.c[1] = parent.y + (data.c[1] - pos.xy.y) * ratio;
+          data.c[2] = parent.x + (data.c[2] - pos.xy.x) * ratio;
+          data.c[3] = parent.y + (data.c[3] - pos.xy.y) * ratio;
+        } else {
+          data.x = parent.x + (data.x - pos.xy.x) * ratio;
+          data.y = parent.y + (data.y - pos.xy.y) * ratio;
+        }
+
+        toCreate.push({ documentName: name, data });
+      }
+    }
   }
 
   static _parseTAPreview(taPreview, attached) {
@@ -330,47 +366,6 @@ export class Picker {
     }
 
     return attachedData;
-  }
-
-  static async _genTAPreviews(data, taPreview, parent, previews) {
-    if (!game.modules.get('token-attacher')?.active) return [];
-
-    const attached = foundry.utils.getProperty(data, 'flags.token-attacher.prototypeAttached');
-    const pos = foundry.utils.getProperty(data, 'flags.token-attacher.pos');
-    const grid = foundry.utils.getProperty(data, 'flags.token-attacher.grid');
-
-    if (!(attached && pos && grid)) return [];
-
-    const documentNames = new Set();
-
-    const ratio = canvas.grid.size / grid.size;
-    const attachedData = this._parseTAPreview(taPreview, attached);
-
-    for (const [name, dataList] of Object.entries(attachedData)) {
-      for (let data of dataList) {
-        if (['Token', 'Tile', 'Drawing'].includes(name)) {
-          data.width *= ratio;
-          data.height *= ratio;
-        }
-
-        const taPreviewObject = await this._createPreview.call(canvas.getLayerByEmbeddedName(name), data);
-        documentNames.add(name);
-        previews.push(taPreviewObject);
-
-        const doc = taPreviewObject.document;
-        if (name === 'Wall') {
-          doc.c[0] = parent.document.x + (data.c[0] - pos.xy.x) * ratio;
-          doc.c[1] = parent.document.y + (data.c[1] - pos.xy.y) * ratio;
-          doc.c[2] = parent.document.x + (data.c[2] - pos.xy.x) * ratio;
-          doc.c[3] = parent.document.y + (data.c[3] - pos.xy.y) * ratio;
-        } else {
-          doc.x = parent.document.x + (data.x - pos.xy.x) * ratio;
-          doc.y = parent.document.y + (data.y - pos.xy.y) * ratio;
-        }
-      }
-    }
-
-    return documentNames;
   }
 }
 
@@ -437,9 +432,6 @@ export class DataTransform {
   }
 
   static transformAmbientSound(data, origin, transform, preview) {
-    // 3D support
-    const bottom = data.flags?.levels?.rangeBottom;
-
     if (transform.scale != null) {
       const scale = transform.scale;
       data.x *= scale;
@@ -447,10 +439,10 @@ export class DataTransform {
       if (!transform.gridScale) {
         data.radius *= scale;
       }
-      // 3D Support
-      if (bottom != null && bottom != '') {
-        data.flags.levels.rangeBottom *= scale;
-        data.flags.levels.rangeTop *= scale;
+
+      if (data.elevation != null) {
+        data.elevation *= scale;
+        data.elevation *= scale;
       }
     }
 
@@ -459,8 +451,7 @@ export class DataTransform {
 
     // 3D Support
     if (transform.z != null) {
-      setProperty(data, 'flags.levels.rangeBottom', (bottom ?? 0) + transform.z);
-      setProperty(data, 'flags.levels.rangeTop', (bottom ?? 0) + transform.z);
+      data.elevation = (data.elevation ?? 0) + transform.z;
     }
 
     if (transform.rotation != null) {
@@ -533,9 +524,6 @@ export class DataTransform {
   }
 
   static transformAmbientLight(data, origin, transform, preview) {
-    // 3D support
-    const bottom = data.flags?.levels?.rangeBottom;
-
     if (transform.scale != null) {
       const scale = transform.scale;
       data.x *= scale;
@@ -544,10 +532,9 @@ export class DataTransform {
         data.config.dim *= scale;
         data.config.bright *= scale;
       }
-      // 3D Support
-      if (bottom != null && bottom != '') {
-        data.flags.levels.rangeBottom *= scale;
-        data.flags.levels.rangeTop *= scale;
+
+      if (data.elevation != null) {
+        data.elevation *= scale;
       }
     }
 
@@ -556,8 +543,7 @@ export class DataTransform {
 
     // 3D Support
     if (transform.z != null) {
-      setProperty(data, 'flags.levels.rangeBottom', (bottom ?? 0) + transform.z);
-      setProperty(data, 'flags.levels.rangeTop', (bottom ?? 0) + transform.z);
+      data.elevation = (data.elevation ?? 0) + transform.z;
     }
 
     if (transform.rotation != null) {
@@ -579,7 +565,6 @@ export class DataTransform {
   static transformTile(data, origin, transform, preview) {
     // 3D support
     const depth = data.flags?.['levels-3d-preview']?.depth;
-    const bottom = data.flags?.levels?.rangeBottom;
 
     if (transform.scale != null) {
       const scale = transform.scale;
@@ -590,9 +575,8 @@ export class DataTransform {
 
       // 3D Support
       if (depth != null && depth != '') data.flags['levels-3d-preview'].depth *= scale;
-      if (bottom != null && bottom != '') {
-        data.flags.levels.rangeBottom *= scale;
-        data.flags.levels.rangeTop *= scale;
+      if (data.elevation != null) {
+        data.elevation *= scale;
       }
     }
 
@@ -601,8 +585,7 @@ export class DataTransform {
 
     // 3D Support
     if (transform.z != null) {
-      setProperty(data, 'flags.levels.rangeBottom', (bottom ?? 0) + transform.z);
-      setProperty(data, 'flags.levels.rangeTop', (bottom ?? 0) + transform.z);
+      data.elevation = (data.elevation ?? 0) + transform.z;
     }
 
     if (transform.rotation != null) {

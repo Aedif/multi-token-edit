@@ -8,40 +8,6 @@ export class V12Migrator {
 
       this.migrateCompendium(pack);
     }
-
-    // for (const [collectionName, collection] of Object.entries(collections)) {
-    //   const documents = collection.contents;
-    //   const updates = [];
-    //   for (const document of documents) {
-    //     const oldBottom = document.flags?.levels?.rangeBottom;
-    //     let update = {};
-    //     if (Number.isNumeric(oldBottom)) {
-    //       update = {
-    //         _id: document.id,
-    //         elevation: oldBottom,
-    //         flags: {
-    //           levels: {
-    //             '-=rangeBottom': null,
-    //           },
-    //         },
-    //       };
-    //       if (documents[0].documentName === 'Drawing') {
-    //         update.interface = false;
-    //       }
-    //       updates.push(update);
-    //     }
-    //   }
-    //   if (updates.length <= 0) continue;
-    //   await scene.updateEmbeddedDocuments(documents[0].documentName, updates);
-    //   ui.notifications.notify(
-    //     'Levels - Migrated ' +
-    //       updates.length +
-    //       ' ' +
-    //       collectionName +
-    //       's to new elevation data structure in scene ' +
-    //       scene.name
-    //   );
-    // }
   }
 
   static async migratePack(pack) {
@@ -56,6 +22,11 @@ export class V12Migrator {
 
     if (!pack.index.get(META_INDEX_ID)) {
       console.warn(`Mass Edit - This is not a preset compendium. ${pack.metadata.label}`);
+      return;
+    }
+
+    if (pack.locked) {
+      console.warn(`Mass Edit - Unable to migrate a locked compendium. ${pack.metadata.label}`);
       return;
     }
 
@@ -76,8 +47,8 @@ export class V12Migrator {
 
       // Convert attached Preset data
       if (preset.attached?.length) {
-        for (const [documentName, data] of Object.entries(preset.attached)) {
-          this.migrateData([data], documentName);
+        for (const attached of preset.attached) {
+          this.migrateData([attached.data], attached.documentName);
         }
         foundry.utils.setProperty(update, `flags.${MODULE_ID}.preset.attached`, preset.attached);
       }

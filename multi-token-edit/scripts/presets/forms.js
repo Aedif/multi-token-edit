@@ -24,6 +24,7 @@ import {
 } from './collection.js';
 import { FileIndexer, IndexerForm } from './fileIndexer.js';
 import { DOC_ICONS, Preset, VirtualFilePreset } from './preset.js';
+import { TagSelector } from './tagSelector.js';
 import { FolderState, mergePresetDataToDefaultDoc, placeableToData, randomizeChildrenFolderColors } from './utils.js';
 
 const SEARCH_MIN_CHAR = 2;
@@ -129,6 +130,8 @@ export class MassEditPresets extends FormApplication {
       virtualDirectory: displayVirtualDirectory,
       setFormVisibility: true,
     });
+    this._tagSelector?.render(true);
+
     data.presets = this.tree.presets;
     data.folders = this.tree.folders;
     data.extFolders = this.tree.extFolders.length ? this.tree.extFolders : null;
@@ -441,6 +444,7 @@ export class MassEditPresets extends FormApplication {
     html.on('click', '.preset-update a', this._onPresetUpdate.bind(this));
     html.on('click', '.preset-favorite', this._onToggleFavorite.bind(this));
     html.on('click', '.preset-callback', this._onApplyPreset.bind(this));
+    html.on('click', '.tagSelector', this._onToggleTagSelector.bind(this));
 
     const headerSearch = html.find('.header-search input');
     headerSearch.on('input', (event) => this._onSearchInput(event));
@@ -1028,9 +1032,7 @@ export class MassEditPresets extends FormApplication {
     const tags = filter.filter((f) => f.startsWith('#')).map((f) => f.substring(1));
     filter = filter.filter((f) => !f.startsWith('#'));
 
-    this._searchFoundCount = 0;
-    this._searchFoundPresets = game.settings.get(MODULE_ID, 'presetSearchMode') === 'p' ? [] : null;
-
+    this._searchFoundPresets = [];
     this.tree.folders.forEach((f) => this._searchFolder(filter, tags, f));
     this.tree.extFolders.forEach((f) => this._searchFolder(filter, tags, f));
     this.tree.presets.forEach((p) => this._searchPreset(filter, tags, p));
@@ -1064,13 +1066,12 @@ export class MassEditPresets extends FormApplication {
 
     const presetName = preset.name.toLowerCase();
     if (
-      this._searchFoundCount < SEARCH_FOUND_MAX_COUNT &&
+      this._searchFoundPresets.length < SEARCH_FOUND_MAX_COUNT &&
       filter.every((k) => presetName.includes(k) || preset.tags.includes(k)) &&
       tags.every((k) => preset.tags.includes(k))
     ) {
-      this._searchFoundCount++;
       preset._render = true;
-      this._searchFoundPresets?.push(preset);
+      this._searchFoundPresets.push(preset);
       return preset._render;
     } else {
       preset._render = false || forceRender;
@@ -1079,7 +1080,7 @@ export class MassEditPresets extends FormApplication {
   }
 
   _resetSearchState() {
-    this._searchFoundPresets = null;
+    this._searchFoundPresets = [];
     this.tree.folders.forEach((f) => this._resetSearchStateFolder(f));
     this.tree.extFolders.forEach((f) => this._resetSearchStateFolder(f));
     this.tree.presets.forEach((p) => this._resetSearchStatePreset(p));
@@ -1098,7 +1099,7 @@ export class MassEditPresets extends FormApplication {
 
   async _renderContent() {
     let data;
-    if (this._searchFoundPresets) {
+    if (game.settings.get(MODULE_ID, 'presetSearchMode') === 'p') {
       data = {
         callback: Boolean(this.callback),
         presets: this._searchFoundPresets,
@@ -1118,6 +1119,8 @@ export class MassEditPresets extends FormApplication {
 
     const content = await renderTemplate(`modules/${MODULE_ID}/templates/preset/presetsContent.html`, data);
     this.element.find('.item-list').html(content);
+
+    this._tagSelector?.render(true);
   }
 
   async _onFolderSort(sourceUuid, targetUuid, { inside = true, folderUuid = null } = {}) {
@@ -1323,6 +1326,14 @@ export class MassEditPresets extends FormApplication {
     }
   }
 
+  async _onToggleTagSelector(event) {
+    if (this._tagSelector) this._tagSelector.render(true);
+    else {
+      this._tagSelector = new TagSelector(this);
+      this._tagSelector.render(true);
+    }
+  }
+
   async _onPresetDragOut(event) {
     const uuid = $(event.originalEvent.target).closest('.item').data('uuid');
     const preset = await PresetCollection.get(uuid);
@@ -1506,6 +1517,7 @@ export class MassEditPresets extends FormApplication {
 
   async close(options = {}) {
     MassEditPresets.objectHover = false;
+    this._tagSelector?.close();
     return super.close(options);
   }
 

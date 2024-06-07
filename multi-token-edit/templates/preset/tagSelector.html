@@ -1,0 +1,12 @@
+<div class="me-tags">
+    <div class="tag-container">
+
+        {{#each activeTags as |tag|}}
+        <a style="background-color: orange;" class="tag active"><span>{{tag.name}}</span> <span>{{tag.count}}</span></a>
+        {{/each}}
+
+        {{#each tags as |tag|}}
+        <a class="tag"><span>{{tag.name}}</span> <span>{{tag.count}}</span></a>
+        {{/each}}
+    </div>
+</div>

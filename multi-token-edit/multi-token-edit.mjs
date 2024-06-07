@@ -3,7 +3,6 @@ import { pasteData, showMassEdit, showGenericForm } from './applications/multiCo
 import {
   checkApplySpecialFields,
   deleteFromClipboard,
-  getObjFormData,
   performMassSearch,
   performMassUpdate,
 } from './applications/forms.js';
@@ -12,7 +11,6 @@ import {
   activeEffectPresetSelect,
   applyAddSubtract,
   createDocuments,
-  flagCompare,
   MODULE_ID,
   resolveCreateDocumentRequest,
   SUPPORTED_PLACEABLES,
