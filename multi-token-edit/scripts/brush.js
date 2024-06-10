@@ -1,4 +1,4 @@
-import { pasteDataUpdate } from '../applications/forms.js';
+import { pasteDataUpdate } from '../applications/formUtils.js';
 import { Picker } from './picker.js';
 import { PresetAPI } from './presets/collection.js';
 import { Preset } from './presets/preset.js';

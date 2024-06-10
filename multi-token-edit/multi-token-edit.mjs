@@ -1,11 +1,4 @@
 import { pasteData, showMassEdit, showGenericForm } from './applications/multiConfig.js';
-
-import {
-  checkApplySpecialFields,
-  deleteFromClipboard,
-  performMassSearch,
-  performMassUpdate,
-} from './applications/forms.js';
 import { MassEditGenericForm } from './applications/generic/genericForm.js';
 import {
   activeEffectPresetSelect,
@@ -27,6 +20,12 @@ import { Picker } from './scripts/picker.js';
 import { BrushMenu, activateBrush, deactivateBush, openBrushMenu } from './scripts/brush.js';
 import { FileIndexer, FileIndexerAPI } from './scripts/presets/fileIndexer.js';
 import { V12Migrator } from './scripts/presets/migration.js';
+import {
+  checkApplySpecialFields,
+  deleteFromClipboard,
+  performMassSearch,
+  performMassUpdate,
+} from './applications/formUtils.js';
 
 // Initialize module
 Hooks.once('init', () => {
@@ -205,8 +204,8 @@ Hooks.once('init', () => {
     openBrushMenu: openBrushMenu,
     buildDirectoryIndex: (options) => FileIndexer.buildIndex(options),
     readCacheFile: FileIndexerAPI.readCacheFile,
-    migratePack: (pack) => V12Migrator.migratePack(pack),
-    migrateAllPacks: () => V12Migrator.migrateAllPacks(),
+    migratePack: (pack, options = {}) => V12Migrator.migratePack(pack, options),
+    migrateAllPacks: (options = {}) => V12Migrator.migrateAllPacks(options),
   };
 
   game.modules.get(MODULE_ID).api = {

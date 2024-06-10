@@ -1,5 +1,5 @@
 import { TokenDataAdapter } from '../../applications/dataAdapters.js';
-import { copyToClipboard, pasteDataUpdate } from '../../applications/forms.js';
+import { copyToClipboard, pasteDataUpdate } from '../../applications/formUtils.js';
 import { showMassEdit } from '../../applications/multiConfig.js';
 import { countFolderItems, trackProgress } from '../../applications/progressDialog.js';
 import { BrushMenu } from '../brush.js';
@@ -212,10 +212,12 @@ export class MassEditPresets extends FormApplication {
     // Hide/Show preset tags and favorite control
     html.on('mouseenter', '.item', (event) => {
       $(event.currentTarget).find('.tags, .display-hover').addClass('show');
+      this._playPreview(event);
     });
 
     html.on('mouseleave', '.item', (event) => {
       $(event.currentTarget).find('.tags, .display-hover').removeClass('show');
+      this._endPreview(event);
     });
 
     html.on('dragstart', '.item', (event) => {
@@ -456,6 +458,23 @@ export class MassEditPresets extends FormApplication {
 
     // Activate context menu
     this._contextMenu(html.find('.item-list'));
+  }
+
+  async _playPreview(event) {
+    await this._endPreview();
+    const uuid = $(event.currentTarget).data('uuid');
+    if (!uuid) return;
+
+    const preset = await PresetCollection.get(uuid, { full: false });
+    if (preset.documentName === 'AmbientSound') {
+      const src = preset.src ?? (await preset.load()).data[0]?.path;
+      if (!src) return;
+      this._soundPreview = await game.audio.play(src);
+    }
+  }
+
+  async _endPreview() {
+    this._soundPreview?.stop();
   }
 
   _folderToggle(folderElement) {
@@ -1518,6 +1537,7 @@ export class MassEditPresets extends FormApplication {
   async close(options = {}) {
     MassEditPresets.objectHover = false;
     this._tagSelector?.close();
+    this._endPreview();
     return super.close(options);
   }
 

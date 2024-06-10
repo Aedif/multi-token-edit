@@ -2,7 +2,12 @@ import { MODULE_ID } from '../utils.js';
 import { META_INDEX_ID, PresetCollection } from './collection.js';
 
 export class V12Migrator {
-  static async migrateAllPacks() {
+  static async migrateAllPacks({ migrateFunc = null, coreMigration = false } = {}) {
+    if (!migrateFunc && !coreMigration) {
+      ui.notifications.warn('Specify either a `migrateFunc` or enable `coreMigration` flag.');
+      return;
+    }
+
     for (const pack of game.packs) {
       if (pack.documentName !== 'JournalEntry') continue;
       if (!pack.index.get(META_INDEX_ID)) continue;
@@ -11,11 +16,11 @@ export class V12Migrator {
         continue;
       }
 
-      this.migratePack(pack);
+      this.migratePack(pack, { migrateFunc, coreMigration });
     }
   }
 
-  static async migratePack(pack = PresetCollection.workingPack) {
+  static async migratePack(pack = PresetCollection.workingPack, { migrateFunc = null, coreMigration = false } = {}) {
     if (foundry.utils.getType(pack) === 'string') {
       let fPack = game.packs.get(pack) || game.packs.find((p) => p.metadata.label === pack);
       if (!fPack) {
@@ -35,6 +40,11 @@ export class V12Migrator {
       return;
     }
 
+    if (!migrateFunc && !coreMigration) {
+      ui.notifications.warn('Specify either a `migrateFunc` or enable `coreMigration` flag.');
+      return;
+    }
+
     const updates = [];
     const documents = await pack.getDocuments();
 
@@ -46,14 +56,14 @@ export class V12Migrator {
 
       // Migrate Preset data
       if (preset.data?.length) {
-        this.migrateData(preset.data, preset.documentName);
+        this._migrateData(preset.data, preset.documentName, coreMigration, migrateFunc);
         foundry.utils.setProperty(update, `flags.${MODULE_ID}.preset.data`, preset.data);
       }
 
       // Convert attached Preset data
       if (preset.attached?.length) {
         for (const attached of preset.attached) {
-          this.migrateData([attached.data], attached.documentName);
+          this._migrateData([attached.data], attached.documentName, coreMigration, migrateFunc);
         }
         foundry.utils.setProperty(update, `flags.${MODULE_ID}.preset.attached`, preset.attached);
       }
@@ -72,39 +82,22 @@ export class V12Migrator {
     }
   }
 
-  static migrateData(dataArr, documentName) {
+  static _migrateData(dataArr, documentName, coreMigration = true, migrateFunc = null) {
     const cls = getDocumentClass(documentName);
 
     for (const data of dataArr) {
-      // Core Foundry migration
-      cls.migrateData(data);
+      if (coreMigration) cls.migrateData(data); // Core Foundry migration
+      if (migrateFunc) migrateFunc(data, documentName); // Custom migration function
 
-      // Levels 'rangeBottom' flag migration
-      const oldBottom = data.flags?.levels?.rangeBottom;
-      if (Number.isNumeric(oldBottom)) {
-        delete data.flags.levels.rangeBottom;
-        data.elevation = oldBottom;
-
-        if (documentName === 'Drawing') data.interface = true;
-      }
-
-      // Token Attacher migration
+      // Token Attacher data traversal
       const prototypeAttached = data.flags?.['token-attacher']?.prototypeAttached;
-      if (prototypeAttached) this.migratePrototypeAttached(prototypeAttached);
-      const elevation = data.flags?.['token-attacher']?.offset?.elevation;
-      if (elevation) {
-        const oldBottom = elevation.flags?.levels?.rangeBottom;
-        if (Number.isNumeric(oldBottom)) {
-          delete elevation.flags.levels.rangeBottom;
-          elevation.elevation = oldBottom;
-        }
-      }
+      if (prototypeAttached) this._migratePrototypeAttached(prototypeAttached, coreMigration, migrateFunc);
     }
   }
 
-  static migratePrototypeAttached(prototypeAttached) {
+  static _migratePrototypeAttached(prototypeAttached, coreMigration = true, migrateFunc = null) {
     for (const [documentName, attached] of Object.entries(prototypeAttached)) {
-      this.migrateData(attached, documentName);
+      this._migrateData(attached, documentName, coreMigration, migrateFunc);
     }
   }
 }

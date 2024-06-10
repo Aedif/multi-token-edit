@@ -1,7 +1,8 @@
 import { showPlaceableTypeSelectDialog } from '../scripts/dialogs.js';
 import { PresetAPI } from '../scripts/presets/collection.js';
 import { getData, getDocumentName, MODULE_ID, SUPPORT_SHEET_CONFIGS, SUPPORTED_COLLECTIONS } from '../scripts/utils.js';
-import { getClipboardData, pasteDataUpdate, WithMassConfig } from './forms.js';
+import { getClipboardData, pasteDataUpdate } from './formUtils.js';
+import { WithMassConfig } from './forms.js';
 import { MassEditGenericForm } from './generic/genericForm.js';
 
 export const LAYER_MAPPINGS = {
