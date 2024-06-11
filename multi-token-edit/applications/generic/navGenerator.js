@@ -130,8 +130,8 @@ function genControl(type, label, value, name, pinned, editableLabel = false, cus
   const allowedArrayElTypes = ['number', 'string'];
 
   let control = { label: label, value, name, editableLabel, pins };
-  if (getProperty(customControls, name)) {
-    control = foundry.utils.mergeObject(control, getProperty(customControls, name));
+  if (foundry.utils.getProperty(customControls, name)) {
+    control = foundry.utils.mergeObject(control, foundry.utils.getProperty(customControls, name));
   } else if (type === 'number') {
     control.number = true;
     const varName = name.split('.').pop();

@@ -20,12 +20,12 @@ function genSearch(target, docName) {
   let fields = objToString(target.fields);
   if (target.scope === 'selected') {
     let command = genSelected(docName);
-    command += `\ntargets = await MassEdit.api.performMassSearch('search', '${docName}' , ${fields}, { scope: 'selected', selected: targets, control: false, pan: false });`;
+    command += `\ntargets = await MassEdit.api.performMassSearch('meSearch', '${docName}' , ${fields}, { scope: 'selected', selected: targets, control: false, pan: false });`;
     return command;
   } else if (target.scope === 'scene') {
-    return `const targets = await MassEdit.api.performMassSearch('search', '${docName}' , ${fields}, { scope: 'scene', control: false, pan: false });`;
+    return `const targets = await MassEdit.api.performMassSearch('meSearch', '${docName}' , ${fields}, { scope: 'scene', control: false, pan: false });`;
   } else if (target.scope === 'world') {
-    return `const targets = await MassEdit.api.performMassSearch('search', '${docName}' , ${fields}, { scope: 'world', control: false, pan: false });`;
+    return `const targets = await MassEdit.api.performMassSearch('meSearch', '${docName}' , ${fields}, { scope: 'world', control: false, pan: false });`;
   }
 }
 

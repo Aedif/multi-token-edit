@@ -55,7 +55,7 @@ export function performMassSearch(
       }
     }, 100);
   }
-  if (command === 'searchAndEdit') {
+  if (command === 'meSearchAndEdit') {
     setTimeout(() => {
       showMassEdit(found, docName);
     }, 500);
@@ -181,7 +181,7 @@ export async function performMassUpdate(data, objects, docName, applyType) {
     const splitUpdates = {};
     for (let i = 0; i < updates.length; i++) {
       const scene = objects[i].scene ?? objects[i].parent;
-      if (applyType === 'currentScene' && scene.id !== canvas.scene.id) continue;
+      if (applyType === 'meApplyCurrentScene' && scene.id !== canvas.scene.id) continue;
       if (!(scene.id in splitUpdates)) {
         splitUpdates[scene.id] = { scene: scene, updates: [] };
       }
@@ -204,7 +204,7 @@ export async function performMassUpdate(data, objects, docName, applyType) {
   } else if (SUPPORTED_COLLECTIONS.includes(docName)) {
     objects[0].constructor?.updateDocuments(updates, context);
   } else {
-    // Note a placeable or otherwise specially handled doc type
+    // Not a placeable or otherwise specially handled doc type
     // Simply merge the fields directly into the object
     for (let i = 0; i < updates.length; i++) {
       const update = updates[i];
@@ -217,7 +217,7 @@ export async function performMassUpdate(data, objects, docName, applyType) {
   }
 
   // May need to also update Token prototypes
-  if ((applyType === 'applyToPrototype' || this.isPrototype) && docName === 'Token') {
+  if ((applyType === 'meApplyToPrototype' || this.isPrototype) && docName === 'Token') {
     const actorUpdates = {};
     for (let i = 0; i < objects.length; i++) {
       const actor = objects[i].actor;
@@ -360,7 +360,7 @@ export function pasteDataUpdate(docs, preset, suppressNotif = false, excludePosi
     if (docName === 'Token') {
       if (!preset) {
         preset = getClipboardData('TokenProto');
-        applyType = 'applyToPrototype';
+        applyType = 'meApplyToPrototype';
       }
 
       if (!preset) {

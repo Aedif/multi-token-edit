@@ -230,7 +230,7 @@ export function mergeObjectPreserveDot(original, other = {}, nestedKey = '') {
     const t = foundry.utils.getType(val);
     if (t === 'Object') mergeObjectPreserveDot(val, other, fullKey);
     else {
-      const prop = getProperty(other, fullKey);
+      const prop = foundry.utils.getProperty(other, fullKey);
       if (prop !== undefined) {
         original[key] = prop;
       }

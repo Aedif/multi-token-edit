@@ -53,84 +53,22 @@ export const WithBaseMassEditForm = (cls) => {
       return localFormat('form.mass-edit-title', { document: this.documentName, count: this.meObjects.length });
     }
 
-    _meGetSubmitButtons() {
-      // Add submit buttons
-      const buttons = [];
-
-      if (this.options.massSelect) {
-        buttons.push({
-          type: 'submit',
-          icon: 'fas fa-search',
-          label: localize('FILES.Search', false),
-          action: 'meSearch', // search
-        });
-        buttons.push({
-          type: 'submit',
-          icon: 'fas fa-search',
-          label: localize('form.search-and-edit'),
-          action: 'meSearchAndEdit', // searchAndEdit
-        });
-      } else if (this.documentName === 'Note' && !this.options.presetEdit) {
-        // If we're editing notes and there are some on a different scene
-        if (this.meObjects.filter((n) => (n.scene ?? n.parent).id === canvas.scene.id).length) {
-          buttons.push({
-            type: 'submit',
-            icon: 'far fa-save',
-            label: localize('form.apply-on-current-scene'),
-            action: 'meApplyCurrentScene', // currentScene
-          });
-        }
-
-        if (this.meObjects.filter((n) => (n.scene ?? n.parent).id !== canvas.scene.id).length) {
-          buttons.push({
-            type: 'submit',
-            label: localize('form.apply-on-all-scenes'),
-            icon: 'fas fa-globe',
-            action: 'meApplyAllScenes', // allScenes
-          });
-        }
-      } else {
-        buttons.push({
-          type: 'submit',
-          label: localize('common.apply'),
-          icon: 'far fa-save',
-          action: 'meApply', // apply
-        });
-
-        // Extra control for Tokens to update their Actors Token prototype
-        if (
-          this.documentName === 'Token' &&
-          !this.options.simplified &&
-          !this.meObjects[0].constructor?.name?.startsWith('PrototypeToken') &&
-          !this.options.presetEdit
-        ) {
-          buttons.push({
-            type: 'submit',
-            label: localize('form.apply-update-proto'),
-            icon: 'far fa-save',
-            action: 'meApplyToPrototype', // applyToPrototype
-          });
-        }
-      }
-
-      return buttons;
-    }
-
     /**
      * Form Submit
      * @param {*} event
      * @param {*} formData
      * @returns
      */
-    async massUpdateObject(event, formData) {
-      if (!event.submitter?.value) return;
+    static async massUpdateObject(event, control) {
+      control = $(control);
+      if (!control.data('action')) return;
 
       // Gather up all named fields that have mass-edit-checkbox checked
-      const selectedFields = this.getSelectedFields(formData);
+      const selectedFields = this.getSelectedFields();
 
       // Detection modes may have been selected out of order
       // Fix that here
-      if (this.docName === 'Token') {
+      if (this.documentName === 'Token') {
         TokenDataAdapter.correctDetectionModeOrder(selectedFields, this.randomizeFields);
       }
 
@@ -146,12 +84,12 @@ export const WithBaseMassEditForm = (cls) => {
 
       // Search and Select mode
       if (this.options.massSelect) {
-        return performMassSearch(event.submitter.value, this.docName, selectedFields, {
+        return performMassSearch(control.data('action'), this.documentName, selectedFields, {
           scope: this.modUpdate ? this.modUpdateType : null,
         });
       } else {
         // Edit mode
-        return performMassUpdate.call(this, selectedFields, this.meObjects, this.docName, event.submitter.value);
+        return performMassUpdate.call(this, selectedFields, this.meObjects, this.documentName, control.data('action'));
       }
     }
 
@@ -751,7 +689,7 @@ export const WithBaseMassEditForm = (cls) => {
       new MacroForm(
         this.baseDocument,
         this.meObjects,
-        this.docName,
+        this.documentName,
         selectedFields,
         this.randomizeFields,
         this.addSubtractFields
@@ -822,7 +760,7 @@ export const WithBaseMassEditForm = (cls) => {
 
               if (!foundry.utils.isEmpty(json)) {
                 const preset = new Preset({
-                  documentName: this.docName,
+                  documentName: this.documentName,
                   data: foundry.utils.flattenObject(json),
                 });
                 this._processPreset(preset);
@@ -851,7 +789,80 @@ export const WithBaseMassEditForm = (cls) => {
       actions.mePresetBrowser = this._openPresetBrowser;
       actions.meJSON = this._openViewApplyJSON;
       actions.meTokenActor = this._showMassActorForm;
+      [
+        'meSearch',
+        'meSearchAndEdit',
+        'meApplyCurrentScene',
+        'meApplyAllScenes',
+        'meApply',
+        'meApplyToPrototype',
+      ].forEach((action) => {
+        actions[action] = this.massUpdateObject;
+      });
       options.actions = actions;
+    }
+
+    _meGetSubmitButtons() {
+      // Add submit buttons
+      const buttons = [];
+
+      if (this.options.massSelect) {
+        buttons.push({
+          type: 'submit',
+          icon: 'fas fa-search',
+          label: localize('FILES.Search', false),
+          action: 'meSearch',
+        });
+        buttons.push({
+          type: 'submit',
+          icon: 'fas fa-search',
+          label: localize('form.search-and-edit'),
+          action: 'meSearchAndEdit',
+        });
+      } else if (this.documentName === 'Note' && !this.options.presetEdit) {
+        // If we're editing notes and there are some on a different scene
+        if (this.meObjects.filter((n) => (n.scene ?? n.parent).id === canvas.scene.id).length) {
+          buttons.push({
+            type: 'submit',
+            icon: 'far fa-save',
+            label: localize('form.apply-on-current-scene'),
+            action: 'meApplyCurrentScene',
+          });
+        }
+
+        if (this.meObjects.filter((n) => (n.scene ?? n.parent).id !== canvas.scene.id).length) {
+          buttons.push({
+            type: 'submit',
+            label: localize('form.apply-on-all-scenes'),
+            icon: 'fas fa-globe',
+            action: 'meApplyAllScenes',
+          });
+        }
+      } else {
+        buttons.push({
+          type: 'submit',
+          label: localize('common.apply'),
+          icon: 'far fa-save',
+          action: 'meApply',
+        });
+
+        // Extra control for Tokens to update their Actors Token prototype
+        if (
+          this.documentName === 'Token' &&
+          !this.options.simplified &&
+          !this.meObjects[0].constructor?.name?.startsWith('PrototypeToken') &&
+          !this.options.presetEdit
+        ) {
+          buttons.push({
+            type: 'submit',
+            label: localize('form.apply-update-proto'),
+            icon: 'far fa-save',
+            action: 'meApplyToPrototype',
+          });
+        }
+      }
+
+      return buttons;
     }
 
     _getMeControls() {

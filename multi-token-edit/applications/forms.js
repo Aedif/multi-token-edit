@@ -1,8 +1,8 @@
 import { Brush } from '../scripts/brush.js';
 import { Preset } from '../scripts/presets/preset.js';
-import { getData, getDocumentName, localize } from '../scripts/utils.js';
+import { getData } from '../scripts/utils.js';
 import { TokenDataAdapter } from './dataAdapters.js';
-import { copyToClipboard, getCommonDocData, performMassSearch, performMassUpdate } from './formUtils.js';
+import { copyToClipboard, performMassUpdate } from './formUtils.js';
 import { WithBaseMassEditForm, WithMassEditFormApplication, WithMassEditFormApplicationV2 } from './meApplication.js';
 
 // ==================================
