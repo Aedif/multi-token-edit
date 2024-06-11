@@ -1105,7 +1105,7 @@ export const WithMassEditFormApplication = (cls) => {
     }
 
     async _updateObject(event, formData) {
-      await this.massUpdateObject(event, event.currentTarget);
+      await this.options.actions.meApply.call(this, event, event.submitter);
 
       // On v11 certain placeable will freeze the canvas layer if parent _updateObject is not called
       if (['Token', 'AmbientLight'].includes(this.docName) && this.preview?.object) {

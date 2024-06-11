@@ -2563,9 +2563,10 @@ function hoverMassEditForm(mouseX, mouseY, documentName) {
     const position = app.position;
     const appX = position.left;
     const appY = position.top;
+    const height = Number.isNumeric(position.height) ? position.height : $(app.element).height();
+    const width = Number.isNumeric(position.width) ? position.width : $(app.element).width();
 
-    if (mouseX > appX && mouseX < appX + position.width && mouseY > appY && mouseY < appY + position.height)
-      return true;
+    if (mouseX > appX && mouseX < appX + width && mouseY > appY && mouseY < appY + height) return true;
     return false;
   };
 

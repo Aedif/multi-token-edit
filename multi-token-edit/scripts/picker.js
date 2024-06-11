@@ -407,9 +407,11 @@ export class DataTransform {
     } else {
       data.x += transform.x;
       data.y += transform.y;
+      if (data.elevation != null) data.elevation += transform.z ?? 0;
       if (preview) {
         preview.document.x = data.x;
         preview.document.y = data.y;
+        if (data.elevation) preview.document.elevation = data.elevation;
       }
     }
   }
@@ -423,6 +425,7 @@ export class DataTransform {
 
     data.x += transform.x;
     data.y += transform.y;
+    if (data.elevation != null) data.elevation += transform.z ?? 0;
 
     if (transform.rotation != null) {
       const dr = Math.toRadians(transform.rotation % 360);
@@ -432,6 +435,7 @@ export class DataTransform {
     if (preview) {
       preview.document.x = data.x;
       preview.document.y = data.y;
+      if (data.elevation) preview.document.elevation = data.elevation;
     }
   }
 
@@ -452,6 +456,7 @@ export class DataTransform {
 
     data.x += transform.x;
     data.y += transform.y;
+    if (data.elevation != null) data.elevation += transform.z ?? 0;
 
     // 3D Support
     if (transform.z != null) {
@@ -468,6 +473,7 @@ export class DataTransform {
       doc.x = data.x;
       doc.y = data.y;
       doc.radius = data.radius;
+      if (data.elevation) doc.elevation = data.elevation;
     }
   }
 
@@ -510,6 +516,7 @@ export class DataTransform {
 
     data.x += transform.x;
     data.y += transform.y;
+    if (data.elevation != null) data.elevation += transform.z ?? 0;
 
     if (transform.rotation != null) {
       const dr = Math.toRadians(transform.rotation % 360);
@@ -524,6 +531,7 @@ export class DataTransform {
       doc.direction = data.direction;
       doc.distance = data.distance;
       doc.width = data.width;
+      if (data.elevation) doc.elevation = data.elevation;
     }
   }
 
@@ -544,6 +552,7 @@ export class DataTransform {
 
     data.x += transform.x;
     data.y += transform.y;
+    if (data.elevation != null) data.elevation += transform.z ?? 0;
 
     // 3D Support
     if (transform.z != null) {
@@ -563,6 +572,7 @@ export class DataTransform {
       doc.rotation = data.rotation;
       doc.config.dim = data.config.dim;
       doc.config.bright = data.config.bright;
+      if (data.elevation) doc.elevation = data.elevation;
     }
   }
 
@@ -586,6 +596,7 @@ export class DataTransform {
 
     data.x += transform.x;
     data.y += transform.y;
+    if (data.elevation != null) data.elevation += transform.z ?? 0;
 
     // 3D Support
     if (transform.z != null) {
@@ -608,6 +619,7 @@ export class DataTransform {
       doc.width = data.width;
       doc.height = data.height;
       doc.rotation = data.rotation;
+      if (data.elevation) doc.elevation = data.elevation;
     }
   }
 
@@ -628,6 +640,7 @@ export class DataTransform {
 
     data.x += transform.x;
     data.y += transform.y;
+    if (data.elevation != null) data.elevation += transform.z ?? 0;
 
     if (transform.rotation != null) {
       const dr = Math.toRadians(transform.rotation % 360);
@@ -646,6 +659,7 @@ export class DataTransform {
       doc.shape.height = data.shape.height;
       doc.shape.points = data.shape.points;
       doc.rotation = data.rotation;
+      if (data.elevation) doc.elevation = data.elevation;
     }
   }
 
@@ -663,15 +677,18 @@ export class DataTransform {
 
     data.x += transform.x;
     data.y += transform.y;
-    data.elevation += transform.z ?? 0;
+    if (data.elevation != null) data.elevation += transform.z ?? 0;
 
     const grid = canvas.grid;
     if (transform.rotation != null) {
       const dr = Math.toRadians(transform.rotation % 360);
-      let rectCenter = { x: data.x + (data.width * grid.w) / 2, y: data.y + (data.height * grid.h) / 2 };
+      let rectCenter = {
+        x: data.x + (data.width * (grid.sizeX ?? grid.w)) / 2,
+        y: data.y + (data.height * (grid.sizeY ?? grid.h)) / 2,
+      };
       [rectCenter.x, rectCenter.y] = this.rotatePoint(origin.x, origin.y, rectCenter.x, rectCenter.y, dr);
-      data.x = rectCenter.x - (data.width * grid.w) / 2;
-      data.y = rectCenter.y - (data.height * grid.h) / 2;
+      data.x = rectCenter.x - (data.width * (grid.sizeX ?? grid.w)) / 2;
+      data.y = rectCenter.y - (data.height * (grid.sizeY ?? grid.h)) / 2;
       data.rotation = (data.rotation + Math.toDegrees(dr)) % 360;
     }
 
@@ -683,6 +700,7 @@ export class DataTransform {
       doc.rotation = data.rotation;
       doc.width = data.width;
       doc.height = data.height;
+      if (data.elevation) doc.elevation = data.elevation;
     }
   }
 

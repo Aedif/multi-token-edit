@@ -1,3 +1,4 @@
+import { DataTransform } from '../scripts/picker.js';
 import { applyRandomization } from '../scripts/randomizer/randomizerUtils.js';
 import { applyDDTint, applyTMFXPreset } from '../scripts/tmfx.js';
 import {

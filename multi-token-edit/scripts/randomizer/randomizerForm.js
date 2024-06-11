@@ -488,8 +488,8 @@ export function showRandomizeDialog(formGroup, configApp) {
 
       if (type === 'SELECT') {
         _showRandomSelectDialog($(this), configApp, label);
-      } else if (type === 'INPUT') {
-        _processInput($(this), configApp, label, singleInput);
+      } else if (['INPUT', 'COLOR-PICKER', 'RANGE-PICKER'].includes(type)) {
+        _processInput(type, $(this), configApp, label, singleInput);
       } else {
         console.log(label, type);
       }
@@ -498,15 +498,15 @@ export function showRandomizeDialog(formGroup, configApp) {
 }
 
 // Handle <input> tag
-function _processInput(input, configApp, label, singleInput) {
+function _processInput(nodeName, input, configApp, label, singleInput) {
   const type = input.attr('type');
   if (type === 'number' || (type === 'text' && input.attr('data-dtype') === 'Number')) {
     _showRandomNumberDialog(input, configApp, label);
-  } else if (type === 'range') {
+  } else if (nodeName === 'RANGE-PICKER' || type === 'range') {
     _showRandomRangeDialog(input, configApp, label);
   } else if (type === 'checkbox') {
     _showRandomBoolDialog(input, configApp, label, singleInput);
-  } else if (type === 'text' && input.hasClass('color')) {
+  } else if (nodeName === 'COLOR-PICKER' || (type === 'text' && input.hasClass('color'))) {
     _showRandomColorDialog(input, configApp, label);
   } else if (type === 'text' && input.hasClass('image')) {
     _showRandomImageDialog(input, configApp, label);
