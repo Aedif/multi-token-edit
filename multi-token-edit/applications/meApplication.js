@@ -2,17 +2,21 @@ import { Brush } from '../scripts/brush.js';
 import { injectVisibility } from '../scripts/fieldInjector.js';
 import { MassEditPresets } from '../scripts/presets/forms.js';
 import { Preset } from '../scripts/presets/preset.js';
+import { selectRandomizerFields } from '../scripts/randomizer/randomizerUtils.js';
 import { getDDTint } from '../scripts/tmfx.js';
 import {
   MODULE_ID,
   SUPPORTED_COLLECTIONS,
   SUPPORTED_PLACEABLES,
+  getDocumentName,
   hasFlagRemove,
   localFormat,
   localize,
+  selectAddSubtractFields,
 } from '../scripts/utils.js';
 import { getInUseStyle } from './cssEdit.js';
-import { onInputChange } from './formUtils.js';
+import { GeneralDataAdapter, TokenDataAdapter } from './dataAdapters.js';
+import { getCommonDocData, onInputChange, performMassSearch, performMassUpdate } from './formUtils.js';
 import { WithMassPermissions } from './forms.js';
 import MacroForm from './macro.js';
 import { showMassActorForm } from './multiConfig.js';
@@ -20,8 +24,12 @@ import { showMassActorForm } from './multiConfig.js';
 export const WithBaseMassEditForm = (cls) => {
   class BaseMassEditForm extends cls {
     constructor(doc, docs, options) {
+      if (options.massSelect) options.randomizerEnabled = false;
+      const documentName = options.documentName ?? getDocumentName(doc);
+      if (!options.commonData) options.commonData = getCommonDocData(docs, documentName);
+
       BaseMassEditForm._setMEActions(options);
-      const documentName = options.documentName ?? doc.document?.documentName ?? doc.documentName ?? 'NONE';
+
       if (documentName === 'AmbientSound' || documentName === 'AmbientLight') {
         options.document = doc;
         super(options);
@@ -30,18 +38,121 @@ export const WithBaseMassEditForm = (cls) => {
       this.documentName = documentName;
       this.commonData = foundry.utils.flattenObject(options.commonData || {});
       this.randomizerEnabled = options.massEdit;
-      this.massFormButtons = [
-        {
-          title: localize(`common.apply`),
-          value: 'permissions',
-          icon: 'far fa-save',
-        },
-      ];
-
       this.randomizeFields = {};
       this.addSubtractFields = {};
       this.meForm = true;
       this.rangeSpanToTextbox = game.settings.get(MODULE_ID, 'rangeToTextbox');
+    }
+
+    get baseDocument() {
+      throw Error('The getBaseDocument() method must be defined by a subclass.');
+    }
+
+    get title() {
+      if (this.options.massSelect) return localFormat('form.mass-search-title', { document: this.documentName });
+      return localFormat('form.mass-edit-title', { document: this.documentName, count: this.meObjects.length });
+    }
+
+    _meGetSubmitButtons() {
+      // Add submit buttons
+      const buttons = [];
+
+      if (this.options.massSelect) {
+        buttons.push({
+          type: 'submit',
+          icon: 'fas fa-search',
+          label: localize('FILES.Search', false),
+          action: 'meSearch', // search
+        });
+        buttons.push({
+          type: 'submit',
+          icon: 'fas fa-search',
+          label: localize('form.search-and-edit'),
+          action: 'meSearchAndEdit', // searchAndEdit
+        });
+      } else if (this.documentName === 'Note' && !this.options.presetEdit) {
+        // If we're editing notes and there are some on a different scene
+        if (this.meObjects.filter((n) => (n.scene ?? n.parent).id === canvas.scene.id).length) {
+          buttons.push({
+            type: 'submit',
+            icon: 'far fa-save',
+            label: localize('form.apply-on-current-scene'),
+            action: 'meApplyCurrentScene', // currentScene
+          });
+        }
+
+        if (this.meObjects.filter((n) => (n.scene ?? n.parent).id !== canvas.scene.id).length) {
+          buttons.push({
+            type: 'submit',
+            label: localize('form.apply-on-all-scenes'),
+            icon: 'fas fa-globe',
+            action: 'meApplyAllScenes', // allScenes
+          });
+        }
+      } else {
+        buttons.push({
+          type: 'submit',
+          label: localize('common.apply'),
+          icon: 'far fa-save',
+          action: 'meApply', // apply
+        });
+
+        // Extra control for Tokens to update their Actors Token prototype
+        if (
+          this.documentName === 'Token' &&
+          !this.options.simplified &&
+          !this.meObjects[0].constructor?.name?.startsWith('PrototypeToken') &&
+          !this.options.presetEdit
+        ) {
+          buttons.push({
+            type: 'submit',
+            label: localize('form.apply-update-proto'),
+            icon: 'far fa-save',
+            action: 'meApplyToPrototype', // applyToPrototype
+          });
+        }
+      }
+
+      return buttons;
+    }
+
+    /**
+     * Form Submit
+     * @param {*} event
+     * @param {*} formData
+     * @returns
+     */
+    async massUpdateObject(event, formData) {
+      if (!event.submitter?.value) return;
+
+      // Gather up all named fields that have mass-edit-checkbox checked
+      const selectedFields = this.getSelectedFields(formData);
+
+      // Detection modes may have been selected out of order
+      // Fix that here
+      if (this.docName === 'Token') {
+        TokenDataAdapter.correctDetectionModeOrder(selectedFields, this.randomizeFields);
+      }
+
+      // Preset editing
+      if (this.options.presetEdit) {
+        this.options.callback?.({
+          data: selectedFields,
+          addSubtract: this.addSubtractFields,
+          randomize: this.randomizeFields,
+        });
+        return;
+      }
+
+      // Search and Select mode
+      if (this.options.massSelect) {
+        return performMassSearch(event.submitter.value, this.docName, selectedFields, {
+          scope: this.modUpdate ? this.modUpdateType : null,
+        });
+      } else {
+        // Edit mode
+        return performMassUpdate.call(this, selectedFields, this.meObjects, this.docName, event.submitter.value);
+      }
     }
 
     getSelectedFields(formData) {
@@ -54,7 +165,7 @@ export const WithBaseMassEditForm = (cls) => {
       // Modules Specific Logic
       // 3D Canvas
       if ('flags.levels-3d-preview.shaders' in formData) {
-        formData['flags.levels-3d-preview.shaders'] = this.meObjects[0].getFlag('levels-3d-preview', 'shaders');
+        formData['flags.levels-3d-preview.shaders'] = this.baseDocument.getFlag('levels-3d-preview', 'shaders');
       }
       // == End of Module specific logic
 
@@ -85,7 +196,6 @@ export const WithBaseMassEditForm = (cls) => {
             .find('[name]')
             .each(function (_) {
               const name = $(this).attr('name');
-              console.log('name', name);
 
               // Module specific logic
               if (name === 'flags.limits') {
@@ -276,6 +386,90 @@ export const WithBaseMassEditForm = (cls) => {
       });
     }
 
+    async _processPreset(preset) {
+      // This will be called when a preset item is selected or JSON data is being directly applied
+      // The code bellow handles it being applied to the current form
+
+      // =====================
+      // Module specific logic
+      // =====================
+      let timeoutRequired = false;
+
+      const data = foundry.utils.flattenObject(preset.data[0]);
+
+      // Monk's Active Tiles
+      if ('flags.monks-active-tiles.actions' in data) {
+        timeoutRequired = true;
+        await this.baseDocument.setFlag('monks-active-tiles', 'actions', data['flags.monks-active-tiles.actions']);
+      }
+
+      if ('flags.monks-active-tiles.files' in data) {
+        timeoutRequired = true;
+        await this.baseDocument.setFlag('monks-active-tiles', 'files', data['flags.monks-active-tiles.files']);
+      }
+
+      // 3D Canvas
+      if ('flags.levels-3d-preview.shaders' in data) {
+        timeoutRequired = true;
+        await this.baseDocument.setFlag('levels-3d-preview', 'shaders', data['flags.levels-3d-preview.shaders']);
+      }
+
+      // Limits
+      if ('flags.limits.light.enabled' in data) {
+        timeoutRequired = true;
+        await this.baseDocument.update({ flags: { limits: foundry.utils.expandObject(data).flags.limits } });
+      }
+
+      if (this.documentName === 'Token') {
+        timeoutRequired = TokenDataAdapter.modifyPresetData(this, data);
+      }
+
+      if (timeoutRequired) {
+        setTimeout(() => {
+          this._applyPreset(preset);
+        }, 250);
+        return;
+      }
+
+      this._applyPreset(preset);
+    }
+
+    /**
+     * Apply preset to the form
+     * @param {Preset} preset
+     */
+    _applyPreset(preset) {
+      const form = $(this.form);
+
+      const customMerge = (obj1, obj2) => {
+        if (!obj2) return obj1;
+        for (const [k, v] of Object.entries(obj2)) {
+          obj1[k] = v;
+        }
+        return obj1;
+      };
+
+      this.randomizeFields = customMerge(this.randomizeFields, preset.randomize);
+      this.addSubtractFields = customMerge(this.addSubtractFields, preset.addSubtract);
+      selectRandomizerFields(form, this.randomizeFields);
+      selectAddSubtractFields(form, this.addSubtractFields);
+
+      const data = foundry.utils.flattenObject(preset.data[0]);
+      GeneralDataAdapter.dataToForm(this.documentName, preset.data[0], data);
+      for (const key of Object.keys(data)) {
+        const el = form.find(`[name="${key}"]`);
+        if (el.is(':checkbox')) {
+          el.prop('checked', data[key]);
+        } else {
+          el.val(data[key]);
+        }
+        el.trigger('change');
+      }
+
+      // Make brush aware of randomized field changes
+      Brush.refreshPreset();
+    }
+
     _registerRandomizerListeners(html) {
       const context = this;
       if (this.randomizerEnabled) {
@@ -386,49 +580,6 @@ export const WithBaseMassEditForm = (cls) => {
       });
     }
 
-    _removeFooterButtons(html) {
-      throw Error('The _removeFooterButtons() method must be defined by a subclass.');
-    }
-
-    _insertSubmitButtons(html) {
-      // Add submit buttons
-      let htmlButtons = '';
-      if (!this._meSubmitInserted) {
-        this._meSubmitInserted = true;
-        for (const button of this.massFormButtons) {
-          htmlButtons += `<button class="me-submit" type="submit" value="${button.value}"><i class="${button.icon}"></i> ${button.title}</button>`;
-          // Auto update control
-          if (this.options.massEdit && !this.options.simplified && !this.options.presetEdit)
-            htmlButtons += `<div class="me-mod-update" title="${localize(
-              `form.immediate-update-title`
-            )}"><input type="checkbox" data-submit="${button.value}"><i class="fas fa-cogs"></i></div>`;
-        }
-        if (this.options.massSelect && SUPPORTED_PLACEABLES.includes(this.documentName)) {
-          htmlButtons += `<div class="me-mod-update" title="${localize(
-            `form.global-search-title`
-          )}"><input type="checkbox" data-submit="world"><i class="far fa-globe"></i></div>`;
-        }
-
-        let footer = $(html).find('.sheet-footer').last();
-        if (footer.length) {
-          footer.append(htmlButtons);
-        } else {
-          footer = $(`<footer class="sheet-footer flexrow">${htmlButtons}</footer>`);
-          $(html).closest('form').append(footer);
-        }
-
-        // Auto update listeners
-        footer.find('.me-mod-update > input').on('change', (event) => {
-          event.stopPropagation();
-          const isChecked = event.target.checked;
-          footer.find('.me-mod-update > input').not(this).prop('checked', false);
-          $(event.target).prop('checked', isChecked);
-          this.modUpdate = isChecked;
-          this.modUpdateType = event.target.dataset?.submit;
-        });
-      }
-    }
-
     _insertModuleSpecificFields(html) {
       // Monk's Active Tiles
       if (this.documentName === 'Tile' && this._createAction) {
@@ -489,7 +640,7 @@ export const WithBaseMassEditForm = (cls) => {
         $(html).find('[name="texture.tint"]').closest('.form-group').after(chk);
         this._processFormGroup(chk, 'meInsert');
 
-        const currentDDTint = getDDTint(this.object.object ?? this.object);
+        const currentDDTint = getDDTint(this.baseDocument.object ?? this.baseDocument);
         chk = $(`
               <div class="form-group">
                 <label>DungeonDraft <span class="units">(TMFX)</span></label>
@@ -527,6 +678,33 @@ export const WithBaseMassEditForm = (cls) => {
               </div>`);
         $(html).find('[name="texture.scaleX"]').closest('.form-group').before(scaleInput);
         this._processFormGroup(scaleInput, 'meInsert');
+      }
+    }
+
+    /**
+     * Insert button to toggle auto-update on form changes
+     * @param {*} html
+     */
+    _insertModUpdateCheckboxes(html) {
+      if (this.options.massEdit && !this.options.simplified && !this.options.presetEdit) {
+        html.find('button[type="submit"]').each(function () {
+          const button = $(this);
+          const modButton = $(
+            `<div class="me-mod-update" title="${localize(
+              `form.immediate-update-title`
+            )}"><input type="checkbox" data-submit="${button.data('action')}"><i class="fas fa-cogs"></i></div>`
+          );
+          modButton.on('change', (event) => {
+            event.stopPropagation();
+            const isChecked = event.target.checked;
+            html.find('.me-mod-update > input').not(this).prop('checked', false);
+            $(event.target).prop('checked', isChecked);
+            this.modUpdate = isChecked;
+            this.modUpdateType = event.target.dataset?.submit;
+          });
+
+          modButton.insertAfter(button);
+        });
       }
     }
 
@@ -571,7 +749,7 @@ export const WithBaseMassEditForm = (cls) => {
     static _openMacroForm() {
       const selectedFields = this.getSelectedFields();
       new MacroForm(
-        this.object,
+        this.baseDocument,
         this.meObjects,
         this.docName,
         selectedFields,
@@ -595,9 +773,9 @@ export const WithBaseMassEditForm = (cls) => {
       const ids = new Set();
       for (const p of this.meObjects) {
         let d;
-        if (this.docName === 'Actor' || this.docName === 'JournalEntry') d = p;
-        else if (this.docName === 'Token' && p.actor) d = p.actor;
-        else if (this.docName === 'Note' && p.entry) d = p.entry;
+        if (this.documentName === 'Actor' || this.documentName === 'JournalEntry') d = p;
+        else if (this.documentName === 'Token' && p.actor) d = p.actor;
+        else if (this.documentName === 'Note' && p.entry) d = p.entry;
 
         // Only retain unique docs
         if (d && !ids.has(d.id)) {
@@ -614,7 +792,6 @@ export const WithBaseMassEditForm = (cls) => {
      * Open Preset browser with a relationship to this app
      */
     static _openPresetBrowser() {
-      console.log('PRESET BROWSER');
       this.linkedPresetForm = new MassEditPresets(this, null, this.documentName, {
         left: this.position.left - 370,
         top: this.position.top,
@@ -723,7 +900,6 @@ export const WithBaseMassEditForm = (cls) => {
           visible: this.documentName === 'Token' && this.meObjects.filter((t) => t.actor).length,
         },
       ];
-      console.log(controls);
       return controls;
     }
   }
@@ -733,8 +909,11 @@ export const WithBaseMassEditForm = (cls) => {
 export const WithMassEditFormApplicationV2 = (cls) => {
   class MassEditForm extends cls {
     _attachFrameListeners() {
-      console.log('IN _attachFrameListeners');
       super._attachFrameListeners();
+    }
+
+    _onRender() {
+      super._onRender();
       injectVisibility(this);
 
       const html = $(this.element);
@@ -746,11 +925,14 @@ export const WithMassEditFormApplicationV2 = (cls) => {
       this._registerNumericalInputListeners(html);
       this._registerInputChangeCallback(html);
       this._registerNavigationTabMassSelect(html);
-      this._removeFooterButtons(html);
-      this._insertSubmitButtons(html);
+      this._insertModUpdateCheckboxes(html);
       this._insertModuleSpecificFields(html);
       this._insertSpecialFields(html);
       this._registerMutateObserver(html);
+    }
+
+    get baseDocument() {
+      return this.document;
     }
 
     _getSubmitData() {
@@ -764,8 +946,11 @@ export const WithMassEditFormApplicationV2 = (cls) => {
       return [].concat(super._getHeaderControls()).concat(this._getMeControls());
     }
 
-    _removeFooterButtons(html) {
-      html.find('footer.form-footer > button').remove();
+    async _prepareContext(options) {
+      const context = await super._prepareContext(options);
+      context.buttons = (context.buttons ?? []).filter((b) => b.type !== 'submit');
+      context.buttons = context.buttons.concat(this._meGetSubmitButtons());
+      return context;
     }
   }
   return MassEditForm;
@@ -777,10 +962,14 @@ export const WithMassEditFormApplication = (cls) => {
       // During Preset editing we will be editing AmbientLight document directly, which causes the preview to be set to null
       // and Foundry complaining about being unable to read data from it. So we set the preview manually here
       if (this.documentName === 'AmbientLight' && !this.preview) {
-        this.preview = this.meObjects[0].clone();
+        this.preview = this.baseDocument.clone();
       }
       const data = super.getData(options);
       return data;
+    }
+
+    get baseDocument() {
+      return this.object;
     }
 
     // Add styles and controls to the sheet
@@ -797,6 +986,7 @@ export const WithMassEditFormApplication = (cls) => {
       this._registerNavigationTabMassSelect(html);
       this._removeFooterButtons(html);
       this._insertSubmitButtons(html);
+      this._insertModUpdateCheckboxes(html);
       this._insertModuleSpecificFields(html);
       this._insertSpecialFields(html);
       this._registerMutateObserver(html);
@@ -811,6 +1001,32 @@ export const WithMassEditFormApplication = (cls) => {
           .each(function (_) {
             $(this).wrap('<div class="form-group"></div>');
           });
+      }
+    }
+
+    _insertSubmitButtons(html) {
+      const buttons = this._meGetSubmitButtons();
+
+      // Add submit buttons
+      let htmlButtons = '';
+      if (!this._meSubmitInserted) {
+        this._meSubmitInserted = true;
+        for (const button of buttons) {
+          htmlButtons += `<button class="me-submit" type="submit" data-action="${button.action}"><i class="${button.icon}"></i> ${button.label}</button>`;
+        }
+        if (this.options.massSelect && SUPPORTED_PLACEABLES.includes(this.documentName)) {
+          htmlButtons += `<div class="me-mod-update" title="${localize(
+            `form.global-search-title`
+          )}"><input type="checkbox" data-submit="world"><i class="far fa-globe"></i></div>`;
+        }
+
+        let footer = $(html).find('.sheet-footer').last();
+        if (footer.length) {
+          footer.append(htmlButtons);
+        } else {
+          footer = $(`<footer class="sheet-footer flexrow">${htmlButtons}</footer>`);
+          $(html).closest('form').append(footer);
+        }
       }
     }
 
@@ -829,11 +1045,18 @@ export const WithMassEditFormApplication = (cls) => {
     }
 
     _getHeaderButtons() {
-      let buttons = super._getHeaderButtons();
-      return buttons.filter((b) => b.class !== 'configure-sheet');
+      let buttons = super._getHeaderButtons().filter((b) => b.class !== 'configure-sheet');
+
+      const controls = foundry.utils.deepClone(this._getMeControls());
+      controls.forEach((ctrl) => {
+        ctrl.onclick = this.options.actions[ctrl.action].bind(this);
+        ctrl.label = '';
+      });
+
+      return controls.concat(buttons);
     }
 
-    _removeFooterButtons() {
+    _removeFooterButtons(html) {
       // Remove all buttons in the footer
       html.find('.sheet-footer > button').remove();
 
