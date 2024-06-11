@@ -550,9 +550,9 @@ export class BrushMenu extends FormApplication {
   async _applyColor() {
     if (this._settings.randomColor || this._settings.color) {
       let pPath;
-      const docName = this.preset.documentName;
-      if (docName === 'Token' || docName === 'Tile') pPath = 'texture.tint';
-      else if (docName === 'AmbientLight') pPath = 'config.color';
+      const documentName = this.preset.documentName;
+      if (documentName === 'Token' || documentName === 'Tile') pPath = 'texture.tint';
+      else if (documentName === 'AmbientLight') pPath = 'config.color';
 
       if (pPath) {
         if (this._settings.randomColor) {

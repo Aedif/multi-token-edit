@@ -633,13 +633,13 @@ export class PresetAPI {
 
     const groups = {};
     for (const placeable of placeables) {
-      const docName = placeable.document.documentName;
-      if (!groups.hasOwnProperty(docName)) groups[docName] = [];
-      groups[docName].push(placeable);
+      const documentName = placeable.document.documentName;
+      if (!groups.hasOwnProperty(documentName)) groups[documentName] = [];
+      groups[documentName].push(placeable);
     }
 
     const presets = [];
-    for (const [docName, placeables] of Object.entries(groups)) {
+    for (const [documentName, placeables] of Object.entries(groups)) {
       const data = [];
       for (const placeable of placeables) {
         data.push(placeableToData(placeable));
@@ -648,7 +648,7 @@ export class PresetAPI {
       // Preset data before merging with user provided
       const defPreset = {
         name: localize('presets.default-name'),
-        documentName: docName,
+        documentName,
         data: data,
       };
 

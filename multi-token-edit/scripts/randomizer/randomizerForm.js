@@ -92,7 +92,7 @@ export default class RandomizerForm extends FormApplication {
 
     data.fieldName = this.fieldName;
     data.title = this.title;
-    data.isTile = 'Tile' === this.configApp.docName;
+    data.isTile = 'Tile' === this.configApp.documentName;
 
     // Assign default values for some specific fields
     if (this.configuration.numberForm && !this.configuration.existing) {
@@ -190,7 +190,7 @@ export default class RandomizerForm extends FormApplication {
   activateListeners(html) {
     super.activateListeners(html);
 
-    const docName = this.configApp.docName;
+    const documentName = this.configApp.documentName;
     $(html)
       .find('.folder-picker')
       .click(() => {
@@ -209,8 +209,8 @@ export default class RandomizerForm extends FormApplication {
         }).render(true);
       });
     html.find('.token-variants').click((ev) => {
-      if (game.modules.get('token-variants')?.active && docName) {
-        let type = docName;
+      if (game.modules.get('token-variants')?.active && documentName) {
+        let type = documentName;
         if (type === 'Actor') type = 'Portrait';
         else if (type === 'MeasuredTemplate') type = 'Tile';
         game.modules.get('token-variants').api.showArtSelect('image', {

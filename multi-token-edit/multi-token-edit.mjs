@@ -235,8 +235,8 @@ Hooks.on('renderSceneControls', (sceneControls, html, options) => {
   `);
 
   presetControl.on('click', () => {
-    let docName = canvas.activeLayer.constructor.documentName;
-    if (!SUPPORTED_PLACEABLES.includes(docName)) docName = 'ALL';
+    let documentName = canvas.activeLayer.constructor.documentName;
+    if (!SUPPORTED_PLACEABLES.includes(documentName)) documentName = 'ALL';
 
     const presetForm = Object.values(ui.windows).find((app) => app instanceof MassEditPresets);
     if (presetForm) {
@@ -244,7 +244,7 @@ Hooks.on('renderSceneControls', (sceneControls, html, options) => {
       return;
     }
 
-    new MassEditPresets(null, null, docName, {
+    new MassEditPresets(null, null, documentName, {
       left: presetControl.position().left + presetControl.width() + 40,
     }).render(true);
   });

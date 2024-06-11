@@ -37,9 +37,9 @@ export function getControlled() {
 
 // Retrieve hovered over placeable
 function getHover() {
-  let docName = canvas.activeLayer.constructor.documentName;
+  let documentName = canvas.activeLayer.constructor.documentName;
   // Walls do not properly cleanup hover state
-  if (!['Wall'].includes(docName)) {
+  if (!['Wall'].includes(documentName)) {
     if (canvas.activeLayer.hover) {
       return [canvas.activeLayer.hover];
     }
@@ -140,18 +140,18 @@ export function showMassSelect(basePlaceable) {
     return;
   }
 
-  const docName = getDocumentName(target);
+  const documentName = getDocumentName(target);
 
   const options = {
     commonData: foundry.utils.flattenObject(getData(target).toObject()),
     massSelect: true,
-    documentName: docName,
+    documentName: documentName,
   };
 
-  if (SUPPORT_SHEET_CONFIGS.includes(docName) && docName !== 'Actor') {
-    const MassConfig = WithMassConfig(docName);
+  if (SUPPORT_SHEET_CONFIGS.includes(documentName) && documentName !== 'Actor') {
+    const MassConfig = WithMassConfig(documentName);
     new MassConfig(target, selected, options).render(true, {});
-  } else if (SUPPORTED_COLLECTIONS.includes(docName)) {
+  } else if (SUPPORTED_COLLECTIONS.includes(documentName)) {
     new MassEditGenericForm(selected, options).render(true);
   }
 }
@@ -215,8 +215,8 @@ export function pasteData() {
 
   if (selected) return pasteDataUpdate(selected, null, false, true);
   else {
-    let docName = canvas.activeLayer.constructor.documentName;
-    const preset = getClipboardData(docName);
+    let documentName = canvas.activeLayer.constructor.documentName;
+    const preset = getClipboardData(documentName);
     if (preset) {
       PresetAPI.spawnPreset({ preset });
       return true;

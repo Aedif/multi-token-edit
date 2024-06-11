@@ -20,23 +20,23 @@ import { SCENE_DOC_MAPPINGS, showMassEdit } from './multiConfig.js';
 
 export function performMassSearch(
   command,
-  docName,
+  documentName,
   selectedFields,
   { scope = null, selected = null, control = true, pan = true } = {}
 ) {
   const found = [];
 
   if (scope === 'selected') {
-    performDocSearch(selected, docName, selectedFields, found);
-  } else if (SUPPORTED_COLLECTIONS.includes(docName)) {
-    performDocSearch(Array.from(game.collections.get(docName)), docName, selectedFields, found);
+    performDocSearch(selected, documentName, selectedFields, found);
+  } else if (SUPPORTED_COLLECTIONS.includes(documentName)) {
+    performDocSearch(Array.from(game.collections.get(documentName)), documentName, selectedFields, found);
   } else {
     let scenes = [];
     if (scope === 'world') scenes = Array.from(game.scenes);
     else if (canvas.scene) scenes = [canvas.scene];
 
     for (const scene of scenes) {
-      performMassSearchScene(scene, docName, selectedFields, found);
+      performMassSearchScene(scene, documentName, selectedFields, found);
     }
   }
 
@@ -58,18 +58,18 @@ export function performMassSearch(
   }
   if (command === 'meSearchAndEdit') {
     setTimeout(() => {
-      showMassEdit(found, docName);
+      showMassEdit(found, documentName);
     }, 500);
   }
   return found;
 }
 
-function performMassSearchScene(scene, docName, selectedFields, found) {
-  const docs = Array.from(scene[SCENE_DOC_MAPPINGS[docName]]);
-  performDocSearch(docs, docName, selectedFields, found);
+function performMassSearchScene(scene, documentName, selectedFields, found) {
+  const docs = Array.from(scene[SCENE_DOC_MAPPINGS[documentName]]);
+  performDocSearch(docs, documentName, selectedFields, found);
 }
 
-function performDocSearch(docs, docName, selectedFields, found) {
+function performDocSearch(docs, documentName, selectedFields, found) {
   // Next select objects that match the selected fields
   for (const c of docs) {
     let matches = true;
@@ -77,7 +77,7 @@ function performDocSearch(docs, docName, selectedFields, found) {
 
     // Special processing for some placeable types
     // Necessary when form data is not directly mappable to placeable
-    GeneralDataAdapter.dataToForm(docName, c, data);
+    GeneralDataAdapter.dataToForm(documentName, c, data);
 
     for (const [k, v] of Object.entries(selectedFields)) {
       // Special handling for flags
@@ -94,7 +94,7 @@ function performDocSearch(docs, docName, selectedFields, found) {
       } else if (data[k] != v) {
         // Detection mode keys cannot be treated in isolation
         // We skip them here and will check them later
-        if (docName === 'Token') {
+        if (documentName === 'Token') {
           if (k.startsWith('detectionModes')) {
             continue;
           }
@@ -106,7 +106,7 @@ function performDocSearch(docs, docName, selectedFields, found) {
     }
     if (matches) {
       // We skipped detectionMode matching in the previous step and do it now instead
-      if (docName === 'Token') {
+      if (documentName === 'Token') {
         const modes = Object.values(foundry.utils.expandObject(selectedFields)?.detectionModes || {});
 
         if (!TokenDataAdapter.detectionModeMatch(modes, c.detectionModes)) {
@@ -119,7 +119,7 @@ function performDocSearch(docs, docName, selectedFields, found) {
   }
 }
 
-export async function performMassUpdate(data, objects, docName, applyType) {
+export async function performMassUpdate(data, objects, documentName, applyType) {
   // Used by GenericForms, we want just the data, and no updates
   if (this.options?.simplified) {
     if (this.options.callback) this.options.callback(data);
@@ -150,16 +150,16 @@ export async function performMassUpdate(data, objects, docName, applyType) {
 
   // Applies randomization
   if (this) await applyRandomization(updates, objects, this.randomizeFields);
-  if (this) applyAddSubtract(updates, objects, docName, this.addSubtractFields);
+  if (this) applyAddSubtract(updates, objects, documentName, this.addSubtractFields);
 
   // Necessary when form data is not directly mappable to placeable
   for (let i = 0; i < total; i++) {
-    GeneralDataAdapter.formToData(docName, objects[i], updates[i]);
+    GeneralDataAdapter.formToData(documentName, objects[i], updates[i]);
   }
 
-  await checkApplySpecialFields(docName, updates, objects);
+  await checkApplySpecialFields(documentName, updates, objects);
 
-  if (docName === 'Actor') {
+  if (documentName === 'Actor') {
     // Perform Updates
     // There is a lot of wonkiness related to updating of real/synthetic actors. It's probably best
     // to simply update the Actors directly
@@ -170,14 +170,14 @@ export async function performMassUpdate(data, objects, docName, applyType) {
       if (this.options?.tokens) this.options.tokens[i].actor.update(update);
       else objects[i].update(update);
     }
-  } else if (docName === 'Scene') {
+  } else if (documentName === 'Scene') {
     Scene.updateDocuments(updates, context);
-  } else if (docName === 'PlaylistSound') {
+  } else if (documentName === 'PlaylistSound') {
     for (let i = 0; i < objects.length; i++) {
       delete updates[i]._id;
       objects[i].update(updates[i], context);
     }
-  } else if (docName === 'Note') {
+  } else if (documentName === 'Note') {
     // Notes can be updated across different scenes
     const splitUpdates = {};
     for (let i = 0; i < updates.length; i++) {
@@ -189,9 +189,9 @@ export async function performMassUpdate(data, objects, docName, applyType) {
       splitUpdates[scene.id].updates.push(updates[i]);
     }
     for (const sceneUpdate of Object.values(splitUpdates)) {
-      sceneUpdate.scene.updateEmbeddedDocuments(docName, sceneUpdate.updates, context);
+      sceneUpdate.scene.updateEmbeddedDocuments(documentName, sceneUpdate.updates, context);
     }
-  } else if (!this.isPrototype && SUPPORTED_PLACEABLES.includes(docName)) {
+  } else if (!this.isPrototype && SUPPORTED_PLACEABLES.includes(documentName)) {
     const splitUpdates = {};
     for (let i = 0; i < updates.length; i++) {
       const scene = objects[i].parent;
@@ -200,9 +200,9 @@ export async function performMassUpdate(data, objects, docName, applyType) {
     }
 
     for (const sceneId of Object.keys(splitUpdates)) {
-      game.scenes.get(sceneId)?.updateEmbeddedDocuments(docName, splitUpdates[sceneId], context);
+      game.scenes.get(sceneId)?.updateEmbeddedDocuments(documentName, splitUpdates[sceneId], context);
     }
-  } else if (SUPPORTED_COLLECTIONS.includes(docName)) {
+  } else if (SUPPORTED_COLLECTIONS.includes(documentName)) {
     objects[0].constructor?.updateDocuments(updates, context);
   } else {
     // Not a placeable or otherwise specially handled doc type
@@ -218,7 +218,7 @@ export async function performMassUpdate(data, objects, docName, applyType) {
   }
 
   // May need to also update Token prototypes
-  if ((applyType === 'meApplyToPrototype' || this.isPrototype) && docName === 'Token') {
+  if ((applyType === 'meApplyToPrototype' || this.isPrototype) && documentName === 'Token') {
     const actorUpdates = {};
     for (let i = 0; i < objects.length; i++) {
       const actor = objects[i].actor;
@@ -236,11 +236,11 @@ export async function performMassUpdate(data, objects, docName, applyType) {
 
 /**
  * Processes Mass Edit inserted custom fields
- * @param {String} docName
+ * @param {String} documentName
  * @param {*} updates
  * @param {*} objects
  */
-export async function checkApplySpecialFields(docName, updates, objects) {
+export async function checkApplySpecialFields(documentName, updates, objects) {
   for (let i = 0; i < updates.length; i++) {
     const update = updates[i];
     const object = objects[i];
@@ -258,7 +258,7 @@ export async function checkApplySpecialFields(docName, updates, objects) {
     }
 
     // Mass Edit inserted fields
-    if (docName === 'Tile') {
+    if (documentName === 'Tile') {
       if (update.hasOwnProperty('massedit.scale')) {
         const scale = update['massedit.scale'];
         update.width = object.width * scale;
@@ -298,8 +298,7 @@ export async function onInputChange(event) {
   selectTabs(meChk[0]);
 
   // Immediately update the placeables
-  if (this && this.options.massEdit && this._performOnInputChangeUpdate && this.modUpdate)
-    this._performOnInputChangeUpdate();
+  if (this?.options.massEdit && this._performOnInputChangeUpdate && this.modUpdate) this._performOnInputChangeUpdate();
 }
 
 export function selectTabs(target) {
@@ -324,20 +323,20 @@ export function deselectTabs(target) {
   }
 }
 
-function getObjFormData(obj, docName) {
+function getObjFormData(obj, documentName) {
   const data = foundry.utils.flattenObject(getData(obj).toObject());
 
   // Special processing for some placeable types
   // Necessary when form data is not directly mappable to placeable
-  GeneralDataAdapter.dataToForm(docName, obj, data);
+  GeneralDataAdapter.dataToForm(documentName, obj, data);
 
   return data;
 }
 
 // Merge all data and determine what is common between the docs
-export function getCommonDocData(docs, docName) {
-  if (!docName) getDocumentName(docs[0]);
-  const objects = docs.map((d) => getObjFormData(d, docName));
+export function getCommonDocData(docs, documentName) {
+  if (!documentName) getDocumentName(docs[0]);
+  const objects = docs.map((d) => getObjFormData(d, documentName));
   return getCommonData(objects);
 }
 
@@ -351,14 +350,14 @@ export function getCommonDocData(docs, docName) {
 export function pasteDataUpdate(docs, preset, suppressNotif = false, excludePosition = false, transform = null) {
   if (!docs || !docs.length) return false;
 
-  let docName = docs[0].document ? docs[0].document.documentName : docs[0].documentName;
+  let documentName = docs[0].document ? docs[0].document.documentName : docs[0].documentName;
 
-  preset = preset ?? getClipboardData(docName);
+  preset = preset ?? getClipboardData(documentName);
   let applyType;
 
   // Special handling for Tokens/Actors
   if (!preset) {
-    if (docName === 'Token') {
+    if (documentName === 'Token') {
       if (!preset) {
         preset = getClipboardData('TokenProto');
         applyType = 'meApplyToPrototype';
@@ -366,21 +365,21 @@ export function pasteDataUpdate(docs, preset, suppressNotif = false, excludePosi
 
       if (!preset) {
         preset = getClipboardData('Actor');
-        docName = 'Actor';
+        documentName = 'Actor';
         docs = docs.filter((d) => d.actor).map((d) => d.actor);
       }
     }
   }
 
   if (preset) {
-    if (preset.documentName !== docName) return;
+    if (preset.documentName !== documentName) return;
 
     const context = { meObjects: docs };
     if (!foundry.utils.isEmpty(preset.randomize)) context.randomizeFields = preset.randomize;
     if (!foundry.utils.isEmpty(preset.addSubtract)) context.addSubtractFields = preset.addSubtract;
 
     let data = foundry.utils.deepClone(preset.data[Math.floor(Math.random() * preset.data.length)]);
-    if (transform) DataTransform.apply(docName, data, { x: 0, y: 0 }, transform);
+    if (transform) DataTransform.apply(documentName, data, { x: 0, y: 0 }, transform);
     if (excludePosition) {
       delete data.x;
       delete data.y;
@@ -432,11 +431,11 @@ export function copyToClipboard(preset, command, isPrototype) {
   );
 }
 
-export function getClipboardData(docName) {
-  return CLIPBOARD[docName];
+export function getClipboardData(documentName) {
+  return CLIPBOARD[documentName];
 }
 
-export function deleteFromClipboard(docName) {
-  delete CLIPBOARD[docName];
-  if (docName === 'Token') delete CLIPBOARD['TokenProto'];
+export function deleteFromClipboard(documentName) {
+  delete CLIPBOARD[documentName];
+  if (documentName === 'Token') delete CLIPBOARD['TokenProto'];
 }

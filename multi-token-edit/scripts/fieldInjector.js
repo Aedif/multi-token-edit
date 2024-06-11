@@ -1,11 +1,10 @@
-import { constructNav } from '../applications/generic/navGenerator.js';
-import { MODULE_ID, getDocumentName, localize } from './utils.js';
+import { getDocumentName, localize } from './utils.js';
 
 export function injectVisibility(app) {
-  const docName = getDocumentName(app.meObjects[0]);
+  const documentName = getDocumentName(app.meObjects[0]);
 
   // Only the following docs necessitate hidden field
-  if (!['AmbientLight', 'AmbientSound'].includes(docName)) return;
+  if (!['AmbientLight', 'AmbientSound'].includes(documentName)) return;
 
   const form = $(app.form);
 

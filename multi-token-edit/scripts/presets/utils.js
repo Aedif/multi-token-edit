@@ -260,9 +260,9 @@ export function getPresetDataBounds(docToData) {
   let y1 = Number.MAX_SAFE_INTEGER;
   let x2 = Number.MIN_SAFE_INTEGER;
   let y2 = Number.MIN_SAFE_INTEGER;
-  docToData.forEach((dataArr, docName) => {
+  docToData.forEach((dataArr, documentName) => {
     for (const data of dataArr) {
-      const b = getDataBounds(docName, data);
+      const b = getDataBounds(documentName, data);
       if (b.x1 < x1) x1 = b.x1;
       if (b.y1 < y1) y1 = b.y1;
       if (b.x2 > x2) x2 = b.x2;
@@ -274,14 +274,14 @@ export function getPresetDataBounds(docToData) {
 
 /**
  * Calculates and returns bounds of placeable's data
- * @param {String} docName
+ * @param {String} documentName
  * @param {Object} data
  * @returns
  */
-function getDataBounds(docName, data) {
+function getDataBounds(documentName, data) {
   let x1, y1, x2, y2;
 
-  if (docName === 'Wall') {
+  if (documentName === 'Wall') {
     x1 = Math.min(data.c[0], data.c[2]);
     y1 = Math.min(data.c[1], data.c[3]);
     x2 = Math.max(data.c[0], data.c[2]);
@@ -291,13 +291,13 @@ function getDataBounds(docName, data) {
     y1 = data.y || 0;
 
     let width, height;
-    if (docName === 'Tile') {
+    if (documentName === 'Tile') {
       width = data.width;
       height = data.height;
-    } else if (docName === 'Drawing') {
+    } else if (documentName === 'Drawing') {
       width = data.shape.width;
       height = data.shape.height;
-    } else if (docName === 'Token') {
+    } else if (documentName === 'Token') {
       width = data.width * canvas.dimensions.size;
       height = data.height * canvas.dimensions.size;
     } else {

@@ -181,7 +181,7 @@ export class MassEditGenericForm extends WMC {
   }
 }
 
-function defineRangeControl(name, val, customControls, docName, { min = null, max = null, step = null } = {}) {
+function defineRangeControl(name, val, customControls, documentName, { min = null, max = null, step = null } = {}) {
   let content = `
 <div class="form-group slim">
   <label>Range</label>
@@ -208,7 +208,7 @@ function defineRangeControl(name, val, customControls, docName, { min = null, ma
 
           setProperty(customControls, name, { range: true, min, max, step });
           const allControls = game.settings.get(MODULE_ID, 'customControls');
-          allControls[docName] = customControls;
+          allControls[documentName] = customControls;
           game.settings.set(MODULE_ID, 'customControls', allControls);
         },
       },
@@ -216,7 +216,7 @@ function defineRangeControl(name, val, customControls, docName, { min = null, ma
   }).render(true);
 }
 
-function defineSelectControl(name, val, customControls, docName, { options = null } = {}) {
+function defineSelectControl(name, val, customControls, documentName, { options = null } = {}) {
   let content = `
 <div class="form-group slim">
   <label>${localize('common.options')}</label>
@@ -237,7 +237,7 @@ function defineSelectControl(name, val, customControls, docName, { options = nul
               options: options.split('\n').filter((o) => o),
             });
             const allControls = game.settings.get(MODULE_ID, 'customControls');
-            allControls[docName] = customControls;
+            allControls[documentName] = customControls;
             game.settings.set(MODULE_ID, 'customControls', allControls);
           }
         },
@@ -246,9 +246,9 @@ function defineSelectControl(name, val, customControls, docName, { options = nul
   }).render(true);
 }
 
-function unsetCustomControl(name, docName) {
+function unsetCustomControl(name, documentName) {
   const allControls = game.settings.get(MODULE_ID, 'customControls');
-  let docControls = allControls[docName] || {};
+  let docControls = allControls[documentName] || {};
   setProperty(docControls, name, null);
   game.settings.set(MODULE_ID, 'customControls', allControls);
 }

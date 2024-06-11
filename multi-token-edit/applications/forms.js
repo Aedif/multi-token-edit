@@ -14,10 +14,10 @@ export const WithMassEditForm = (cls) => {
   }
 };
 
-export const WithMassConfig = (docName = 'NONE') => {
+export const WithMassConfig = (documentName = 'NONE') => {
   let cls;
-  const sheets = CONFIG[docName]?.sheetClasses;
-  if (!sheets || docName === 'Actor') {
+  const sheets = CONFIG[documentName]?.sheetClasses;
+  if (!sheets || documentName === 'Actor') {
     cls = FormApplication;
   } else {
     cls = Object.values(Object.values(sheets).pop() ?? {}).pop()?.cls;
@@ -31,7 +31,7 @@ export const WithMassConfig = (docName = 'NONE') => {
     }
   }
 
-  const constructorName = `Mass${docName}Config`;
+  const constructorName = `Mass${documentName}Config`;
   Object.defineProperty(MassConfig.prototype.constructor, 'name', { value: constructorName });
   return MassConfig;
 };

@@ -8,15 +8,15 @@ export function objToString(obj) {
   return JSON.stringify(obj, null, 2);
 }
 
-export async function generateMacro(docName, placeables, options) {
+export async function generateMacro(documentName, placeables, options) {
   let command = '';
 
   // Dependencies get checked first
-  command += genMacroDependencies(options, docName);
-  command += genTargets(options, docName, placeables);
-  command += genAction(options, docName);
+  command += genMacroDependencies(options, documentName);
+  command += genTargets(options, documentName, placeables);
+  command += genAction(options, documentName);
   if (options.macro || options.toggle?.macro) {
-    command += genRunMacro(options, docName);
+    command += genRunMacro(options, documentName);
   }
 
   if (command) {
@@ -31,14 +31,14 @@ export async function generateMacro(docName, placeables, options) {
   }
 }
 
-function genRunMacro(options, docName) {
+function genRunMacro(options, documentName) {
   let command = `\n
 // ===================
 // = Macro Execution =
 // ===================
 
 const advancedMacro = game.modules.get('advanced-macros')?.active;
-const layer = canvas.getLayerByEmbeddedName('${docName}');
+const layer = canvas.getLayerByEmbeddedName('${documentName}');
 `;
   // Run macros if applicable
   if (options.macro) {
@@ -100,7 +100,7 @@ export function hasMassEditUpdateDependency(options) {
   );
 }
 
-function genMacroDependencies(options, docName) {
+function genMacroDependencies(options, documentName) {
   let dep = '';
 
   const depWarning = (module) => {
@@ -128,7 +128,7 @@ if(!MassEdit?.active){
 
 `;
 
-  if (SUPPORTED_COLLECTIONS.includes(docName) && options.target.scope === 'select')
+  if (SUPPORTED_COLLECTIONS.includes(documentName) && options.target.scope === 'select')
     dep += `
 if (!game.modules.get('multiple-document-selection')?.active) {
   ${depWarning('Multiple Document Selection')}

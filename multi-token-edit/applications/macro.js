@@ -3,11 +3,11 @@ import { MODULE_ID, SUPPORTED_COLLECTIONS, SUPPORTED_PLACEABLES, localFormat, lo
 import { GeneralDataAdapter } from './dataAdapters.js';
 
 export default class MacroForm extends FormApplication {
-  constructor(object, placeables, docName, fields, randomizeFields, addSubtractFields) {
+  constructor(object, placeables, documentName, fields, randomizeFields, addSubtractFields) {
     super({}, {});
     this.mainObject = object;
     this.placeables = placeables;
-    this.docName = docName;
+    this.documentName = documentName;
     this.fields = fields;
     this.randomizeFields = randomizeFields;
     this.addSubtractFields = addSubtractFields;
@@ -18,7 +18,7 @@ export default class MacroForm extends FormApplication {
     ) {
       // keep selected fields in form format
     } else {
-      GeneralDataAdapter.formToData(this.docName, this.mainObject, this.fields);
+      GeneralDataAdapter.formToData(this.documentName, this.mainObject, this.fields);
     }
   }
 
@@ -38,18 +38,18 @@ export default class MacroForm extends FormApplication {
   async getData(options) {
     const data = super.getData(options);
 
-    data.docName = this.docName;
+    data.documentName = this.documentName;
     data.fields = JSON.stringify(this.fields, null, 2);
-    data.selectable = SUPPORTED_PLACEABLES.includes(this.docName);
+    data.selectable = SUPPORTED_PLACEABLES.includes(this.documentName);
     data.selectScopeEnabled =
       data.selectable ||
-      (SUPPORTED_COLLECTIONS.includes(this.docName) && game.modules.get('multiple-document-selection')?.active);
+      (SUPPORTED_COLLECTIONS.includes(this.documentName) && game.modules.get('multiple-document-selection')?.active);
 
     // Define targeting options based on the document being updated
     const targetingOptions = [
       {
         value: 'all',
-        title: localFormat('macro.target-all-title', { document: this.docName }),
+        title: localFormat('macro.target-all-title', { document: this.documentName }),
         label: localize('common.all'),
       },
       {
@@ -59,11 +59,11 @@ export default class MacroForm extends FormApplication {
       },
       {
         value: 'search',
-        title: localFormat('macro.target-search-title', { document: this.docName }),
+        title: localFormat('macro.target-search-title', { document: this.documentName }),
         label: localize('FILES.Search', false),
       },
     ];
-    if (SUPPORTED_PLACEABLES.includes(this.docName) && game.modules.get('tagger')?.active) {
+    if (SUPPORTED_PLACEABLES.includes(this.documentName) && game.modules.get('tagger')?.active) {
       targetingOptions.push({
         value: 'tagger',
         title: localize('macro.target-tagger-title'),
@@ -86,7 +86,7 @@ export default class MacroForm extends FormApplication {
 
     // Visibility Toggle
     data.hiddenControl = ['Token', 'Tile', 'Drawing', 'AmbientLight', 'AmbientSound', 'MeasuredTemplate'].includes(
-      this.docName
+      this.documentName
     );
 
     // Macros
@@ -238,7 +238,7 @@ export default class MacroForm extends FormApplication {
     if (formData.addSubtract) formData.addSubtract = JSON.parse(formData.addSubtract);
     if (formData.toggle?.addSubtract) formData.toggle.addSubtract = JSON.parse(formData.toggle.addSubtract);
 
-    generateMacro(this.docName, this.placeables, formData);
+    generateMacro(this.documentName, this.placeables, formData);
   }
 }
 

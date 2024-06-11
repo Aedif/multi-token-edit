@@ -214,22 +214,22 @@ const ADAPTERS = {
 };
 
 export class GeneralDataAdapter {
-  static formToData(docName, obj, formData) {
-    const adapter = ADAPTERS[docName];
+  static formToData(documentName, obj, formData) {
+    const adapter = ADAPTERS[documentName];
     if (adapter && adapter.formToData) {
       adapter.formToData(obj, formData);
     }
   }
 
-  static dataToForm(docName, obj, formData) {
-    const adapter = ADAPTERS[docName];
+  static dataToForm(documentName, obj, formData) {
+    const adapter = ADAPTERS[documentName];
     if (adapter && adapter.dataToForm) {
       adapter.dataToForm(obj, formData);
     }
   }
 
-  static updateToForm(docName, update) {
-    const adapter = ADAPTERS[docName];
+  static updateToForm(documentName, update) {
+    const adapter = ADAPTERS[documentName];
     if (adapter && adapter.updateToForm) {
       adapter.updateToForm(update);
     }

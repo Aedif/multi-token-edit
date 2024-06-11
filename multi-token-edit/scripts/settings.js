@@ -372,9 +372,9 @@ export function registerKeybinds() {
         return;
       }
 
-      const docName = canvas.activeLayer.constructor.documentName;
-      if (!SUPPORTED_PLACEABLES.includes(docName)) return;
-      new MassEditPresets(null, null, docName).render(true);
+      const documentName = canvas.activeLayer.constructor.documentName;
+      if (!SUPPORTED_PLACEABLES.includes(documentName)) return;
+      new MassEditPresets(null, null, documentName).render(true);
     },
     restricted: true,
     precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
@@ -408,13 +408,13 @@ export function registerKeybinds() {
     onDown: () => {
       let [target, selected] = getSelected(null, false);
       if (!target) return;
-      const docName = getDocumentName(target);
-      if (![...SUPPORTED_COLLECTIONS, 'Token'].includes(docName)) return;
+      const documentName = getDocumentName(target);
+      if (![...SUPPORTED_COLLECTIONS, 'Token'].includes(documentName)) return;
 
-      if (docName === 'Token') {
+      if (documentName === 'Token') {
         showMassActorForm(selected, { massEdit: true });
       } else {
-        new MassEditGenericForm(selected, { massEdit: true, documentName: docName }).render(true);
+        new MassEditGenericForm(selected, { massEdit: true, documentName }).render(true);
       }
     },
     restricted: true,

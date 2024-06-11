@@ -71,7 +71,7 @@ export class MassEditPresets extends FormApplication {
   static objectHover = false;
   static lastSearch;
 
-  constructor(configApp, callback, docName, options = {}) {
+  constructor(configApp, callback, documentName, options = {}) {
     // Restore position and dimensions the previously closed window
     if (!options.preventPositionOverride && MassEditPresets.previousPosition) {
       options = { ...options, ...MassEditPresets.previousPosition };
@@ -85,12 +85,12 @@ export class MassEditPresets extends FormApplication {
     this.dragData = null;
     this.draggedElements = null;
 
-    if (!configApp && UI_DOCS.includes(docName)) {
+    if (!configApp && UI_DOCS.includes(documentName)) {
       const docLock = game.settings.get(MODULE_ID, 'presetDocLock');
-      this.docName = docLock || docName;
+      this.documentName = docLock || documentName;
     } else {
       this.configApp = configApp;
-      this.docName = docName || this.configApp.documentName;
+      this.documentName = documentName || this.configApp.documentName;
     }
   }
 
@@ -109,7 +109,7 @@ export class MassEditPresets extends FormApplication {
 
   get title() {
     let title = localize('common.presets');
-    if (!UI_DOCS.includes(this.docName)) title += ` [${this.docName}]`;
+    if (!UI_DOCS.includes(this.documentName)) title += ` [${this.documentName}]`;
     else title += ` [${localize('common.placeable')}]`;
     return title;
   }
@@ -125,7 +125,7 @@ export class MassEditPresets extends FormApplication {
     const displayExtCompendiums = game.settings.get(MODULE_ID, 'presetExtComp');
     const displayVirtualDirectory = game.settings.get(MODULE_ID, 'presetVirtualDir');
 
-    this.tree = await PresetCollection.getTree(this.docName, {
+    this.tree = await PresetCollection.getTree(this.documentName, {
       externalCompendiums: displayExtCompendiums,
       virtualDirectory: displayVirtualDirectory,
       setFormVisibility: true,
@@ -138,9 +138,11 @@ export class MassEditPresets extends FormApplication {
 
     data.createEnabled = Boolean(this.configApp);
     data.isPlaceable =
-      SUPPORTED_PLACEABLES.includes(this.docName) || this.docName === 'ALL' || this.docName === 'FAVORITES';
-    data.allowDocumentSwap = UI_DOCS.includes(this.docName) && !this.configApp;
-    data.docLockActive = game.settings.get(MODULE_ID, 'presetDocLock') === this.docName;
+      SUPPORTED_PLACEABLES.includes(this.documentName) ||
+      this.documentName === 'ALL' ||
+      this.documentName === 'FAVORITES';
+    data.allowDocumentSwap = UI_DOCS.includes(this.documentName) && !this.configApp;
+    data.docLockActive = game.settings.get(MODULE_ID, 'presetDocLock') === this.documentName;
     data.layerSwitchActive = game.settings.get(MODULE_ID, 'presetLayerSwitch');
     data.scaling = game.settings.get(MODULE_ID, 'presetScaling');
     data.extCompActive = displayExtCompendiums;
@@ -161,7 +163,7 @@ export class MassEditPresets extends FormApplication {
     }, {});
 
     data.documents = UI_DOCS;
-    data.currentDocument = this.docName;
+    data.currentDocument = this.documentName;
 
     data.callback = Boolean(this.callback);
 
@@ -942,12 +944,12 @@ export class MassEditPresets extends FormApplication {
 
   async _onCreateFolder(event) {
     const types = [];
-    if (this.docName === 'ALL') {
+    if (this.documentName === 'ALL') {
       types.push('ALL');
-    } else if (UI_DOCS.includes(this.docName)) {
-      types.push('ALL', this.docName);
+    } else if (UI_DOCS.includes(this.documentName)) {
+      types.push('ALL', this.documentName);
     } else {
-      types.push(this.docName);
+      types.push(this.documentName);
     }
 
     const folder = new Folder.implementation(
@@ -1252,7 +1254,7 @@ export class MassEditPresets extends FormApplication {
     const lockControl = $(event.target).closest('.toggle-doc-lock');
 
     let currentLock = game.settings.get(MODULE_ID, 'presetDocLock');
-    let newLock = this.docName;
+    let newLock = this.documentName;
 
     if (newLock !== currentLock) lockControl.addClass('active');
     else {
@@ -1306,12 +1308,12 @@ export class MassEditPresets extends FormApplication {
   }
 
   _onDocumentChange(event) {
-    const newDocName = $(event.target).closest('.document-select').data('name');
-    if (newDocName != this.docName) {
-      this.docName = newDocName;
+    const newDocumentName = $(event.target).closest('.document-select').data('name');
+    if (newDocumentName != this.documentName) {
+      this.documentName = newDocumentName;
 
       if (game.settings.get(MODULE_ID, 'presetLayerSwitch'))
-        canvas.getLayerByEmbeddedName(this.docName === 'Actor' ? 'Token' : this.docName)?.activate();
+        canvas.getLayerByEmbeddedName(this.documentName === 'Actor' ? 'Token' : this.documentName)?.activate();
 
       if (MassEditPresets.lastSearch) {
         MassEditPresets.lastSearch = '';
@@ -1560,7 +1562,7 @@ export class MassEditPresets extends FormApplication {
 
     // Detection modes may have been selected out of order
     // Fix that here
-    if (this.docName === 'Token') {
+    if (this.documentName === 'Token') {
       TokenDataAdapter.correctDetectionModeOrder(selectedFields, randomize);
     }
 
@@ -1579,7 +1581,7 @@ export class MassEditPresets extends FormApplication {
 
     const preset = new Preset({
       name: localize('presets.default-name'),
-      documentName: this.docName,
+      documentName: this.documentName,
       data: selectedFields,
       addSubtract: this.configApp.addSubtractFields,
       randomize: this.configApp.randomizeFields,
@@ -1601,7 +1603,7 @@ export class MassEditPresets extends FormApplication {
 
     // Switch to just created preset's category before rendering if not set to 'ALL'
     const documentName = placeables[0].document.documentName;
-    if (this.docName !== 'ALL' && this.docName !== documentName) this.docName = documentName;
+    if (this.documentName !== 'ALL' && this.documentName !== documentName) this.documentName = documentName;
 
     const options = { isCreate: true };
     options.left = this.position.left + this.position.width + 20;
@@ -1851,10 +1853,10 @@ export class PresetConfig extends FormApplication {
     }
 
     // Check if all presets are for the same document type and thus can be edited using a Mass Edit form
-    const docName = this.presets[0].documentName;
-    if (docName !== 'Actor' && this.presets.every((p) => p.documentName === docName)) {
-      data.documentEdit = docName;
-      data.isPlaceable = SUPPORTED_PLACEABLES.includes(docName);
+    const documentName = this.presets[0].documentName;
+    if (documentName !== 'Actor' && this.presets.every((p) => p.documentName === documentName)) {
+      data.documentEdit = documentName;
+      data.isPlaceable = SUPPORTED_PLACEABLES.includes(documentName);
     }
 
     return data;

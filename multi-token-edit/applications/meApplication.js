@@ -660,6 +660,7 @@ export const WithBaseMassEditForm = (cls) => {
      */
     _insertModUpdateCheckboxes(html) {
       if (this.options.massEdit && !this.options.simplified && !this.options.presetEdit) {
+        const app = this;
         html.find('button[type="submit"]').each(function () {
           const button = $(this);
           const modButton = $(
@@ -672,8 +673,8 @@ export const WithBaseMassEditForm = (cls) => {
             const isChecked = event.target.checked;
             html.find('.me-mod-update > input').not(this).prop('checked', false);
             $(event.target).prop('checked', isChecked);
-            this.modUpdate = isChecked;
-            this.modUpdateType = event.target.dataset?.submit;
+            app.modUpdate = isChecked;
+            app.modUpdateType = event.currentTarget.dataset?.submit;
           });
 
           modButton.insertAfter(button);
@@ -683,7 +684,7 @@ export const WithBaseMassEditForm = (cls) => {
 
     _performOnInputChangeUpdate() {
       const selectedFields = this.getSelectedFields();
-      performMassUpdate.call(this, selectedFields, this.meObjects, this.docName, this.modUpdateType);
+      performMassUpdate.call(this, selectedFields, this.meObjects, this.documentName, this.modUpdateType);
     }
 
     _registerMutateObserver(html) {
@@ -1108,7 +1109,7 @@ export const WithMassEditFormApplication = (cls) => {
       await this.options.actions.meApply.call(this, event, event.submitter);
 
       // On v11 certain placeable will freeze the canvas layer if parent _updateObject is not called
-      if (['Token', 'AmbientLight'].includes(this.docName) && this.preview?.object) {
+      if (['Token', 'AmbientLight'].includes(this.documentName) && this.preview?.object) {
         this._resetPreview();
       }
     }
@@ -1168,7 +1169,7 @@ export const WithMassEditFormApplication = (cls) => {
 
     async close(options = {}) {
       super._onClose(options);
-      if (['Token', 'AmbientLight'].includes(this.docName) && this.preview?.object) {
+      if (['Token', 'AmbientLight'].includes(this.documentName) && this.preview?.object) {
         this._resetPreview();
       }
       return super.close(options);

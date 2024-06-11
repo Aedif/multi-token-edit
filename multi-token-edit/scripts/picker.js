@@ -376,33 +376,33 @@ export class Picker {
 export class DataTransform {
   /**
    * Transform placeable data and optionally an accompanying preview with the provided delta transform
-   * @param {String} docName
+   * @param {String} documentName
    * @param {Object} data
    * @param {Object} origin
    * @param {Object} transform
    * @param {PlaceableObject} preview
    */
-  static apply(docName, data, origin, transform, preview) {
+  static apply(documentName, data, origin, transform, preview) {
     if (transform.x == null) transform.x = 0;
     if (transform.y == null) transform.y = 0;
 
     // TODO: Add checks for data with missing fields
 
-    if (docName === 'Wall') {
+    if (documentName === 'Wall') {
       this.transformWall(data, origin, transform, preview);
-    } else if (docName === 'Tile') {
+    } else if (documentName === 'Tile') {
       this.transformTile(data, origin, transform, preview);
-    } else if (docName == 'Note') {
+    } else if (documentName == 'Note') {
       this.transformNote(data, origin, transform, preview);
-    } else if (docName === 'Token') {
+    } else if (documentName === 'Token') {
       this.transformToken(data, origin, transform, preview);
-    } else if (docName === 'MeasuredTemplate') {
+    } else if (documentName === 'MeasuredTemplate') {
       this.transformMeasuredTemplate(data, origin, transform, preview);
-    } else if (docName === 'AmbientLight') {
+    } else if (documentName === 'AmbientLight') {
       this.transformAmbientLight(data, origin, transform, preview);
-    } else if (docName === 'AmbientSound') {
+    } else if (documentName === 'AmbientSound') {
       this.transformAmbientSound(data, origin, transform, preview);
-    } else if (docName === 'Drawing') {
+    } else if (documentName === 'Drawing') {
       this.transformDrawing(data, origin, transform, preview);
     } else {
       data.x += transform.x;
@@ -723,11 +723,11 @@ export class DataTransform {
 export async function editPreviewPlaceables() {
   const docToPlaceables = new Map();
 
-  SUPPORTED_PLACEABLES.forEach((docName) => {
-    const controlled = canvas.getLayerByEmbeddedName(docName).controlled;
+  SUPPORTED_PLACEABLES.forEach((documentName) => {
+    const controlled = canvas.getLayerByEmbeddedName(documentName).controlled;
     if (controlled.length) {
       docToPlaceables.set(
-        docName,
+        documentName,
         controlled.map((p) => p)
       );
     }
@@ -748,13 +748,13 @@ export async function editPreviewPlaceables() {
       coords.end.y - coords.start.y
     );
 
-    SUPPORTED_PLACEABLES.forEach((docName) => {
+    SUPPORTED_PLACEABLES.forEach((documentName) => {
       let insideRect = [];
-      canvas.getLayerByEmbeddedName(docName).placeables.forEach((p) => {
+      canvas.getLayerByEmbeddedName(documentName).placeables.forEach((p) => {
         const c = p.center;
         if (selectionRect.contains(c.x, c.y)) insideRect.push(p);
       });
-      if (insideRect.length) docToPlaceables.set(docName, insideRect);
+      if (insideRect.length) docToPlaceables.set(documentName, insideRect);
     });
   }
 
@@ -764,7 +764,7 @@ export async function editPreviewPlaceables() {
   const docToData = new Map();
   const originalDocTolData = new Map();
 
-  let mainDocName;
+  let mainDocumentName;
   docToPlaceables.forEach((placeables, documentName) => {
     if (SUPPORTED_PLACEABLES.includes(documentName)) {
       let data = placeables.map((p) => p.document.toCompendium(null, { keepId: true }));
@@ -791,7 +791,7 @@ export async function editPreviewPlaceables() {
 
       docToData.set(documentName, data);
       originalDocTolData.set(documentName, foundry.utils.deepClone(data));
-      if (!mainDocName) mainDocName = documentName;
+      if (!mainDocumentName) mainDocumentName = documentName;
     }
   });
 
@@ -817,7 +817,7 @@ export async function editPreviewPlaceables() {
       });
     },
     {
-      documentName: mainDocName,
+      documentName: mainDocumentName,
       previewData: docToData,
       snap: true,
       taPreview: 'ALL',

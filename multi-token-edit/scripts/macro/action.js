@@ -1,7 +1,7 @@
 import { SUPPORTED_PLACEABLES } from '../utils.js';
 import { hasMassEditUpdateDependency, objToString } from './generator.js';
 
-export function genAction(options, docName) {
+export function genAction(options, documentName) {
   if (options.method === 'update' || options.method === 'toggle') {
     let command = ``;
 
@@ -27,23 +27,23 @@ const update = ${objToString(options.fields)};\n`;
     }
 
     if (hasMassEditUpdateDependency(options)) {
-      return command + genUpdateWithMassEditDep(options, docName);
+      return command + genUpdateWithMassEditDep(options, documentName);
     } else {
-      return command + genUpdate(options, docName);
+      return command + genUpdate(options, documentName);
     }
   } else if (options.method === 'massEdit') {
     return `\n// Open Mass Edit Form
-await MassEdit.api.showMassEdit(targets, '${docName}');`;
+await MassEdit.api.showMassEdit(targets, '${documentName}');`;
   } else if (options.method === 'delete') {
-    return genDelete(options, docName);
+    return genDelete(options, documentName);
   }
 }
 
-function genDelete(options, docName) {
-  let command = `\n// Delete ${docName}s`;
-  if (SUPPORTED_PLACEABLES.includes(docName)) {
+function genDelete(options, documentName) {
+  let command = `\n// Delete ${documentName}s`;
+  if (SUPPORTED_PLACEABLES.includes(documentName)) {
     if (options.target.scope === 'selected' || options.target.scope === 'scene') {
-      command += `\ncanvas.scene.deleteEmbeddedDocuments('${docName}', targets.map(t => t.id));`;
+      command += `\ncanvas.scene.deleteEmbeddedDocuments('${documentName}', targets.map(t => t.id));`;
     } else {
       command += `\nconst toDelete = {};
 targets.forEach( t => {
@@ -51,16 +51,16 @@ targets.forEach( t => {
   if(!toDelete[sceneID]) toDelete[sceneID] = [];
   toDelete[sceneID].push(t.id);
 });
-Object.keys(toDelete).forEach(sceneID => game.scenes.get(sceneID).deleteEmbeddedDocuments('${docName}', toDelete[sceneID]));
+Object.keys(toDelete).forEach(sceneID => game.scenes.get(sceneID).deleteEmbeddedDocuments('${documentName}', toDelete[sceneID]));
       `;
     }
   } else {
-    command += `\n${docName}.deleteDocuments(targets.map( t => t.id ));`;
+    command += `\n${documentName}.deleteDocuments(targets.map( t => t.id ));`;
   }
   return command;
 }
 
-function genUpdate(options, docName) {
+function genUpdate(options, documentName) {
   // Update related code
   let command = '';
 
@@ -91,7 +91,7 @@ const toggleOffTargets = [];
   }
 
   // Setting up updates
-  if (SUPPORTED_PLACEABLES.includes(docName)) {
+  if (SUPPORTED_PLACEABLES.includes(documentName)) {
     command += '\nconst updates = {};';
     if (options.method === 'toggle') {
       command += `
@@ -149,13 +149,13 @@ targets.forEach((t) => {
   }
 
   // Executing updates
-  if (SUPPORTED_PLACEABLES.includes(docName)) {
+  if (SUPPORTED_PLACEABLES.includes(documentName)) {
     command += `
 for(const sceneId of Object.keys(updates)) {
-  game.scenes.get(sceneId)?.updateEmbeddedDocuments('${docName}', updates[sceneId]);
+  game.scenes.get(sceneId)?.updateEmbeddedDocuments('${documentName}', updates[sceneId]);
 }
   `;
-  } else if (docName === 'PlaylistSound') {
+  } else if (documentName === 'PlaylistSound') {
     command += `
 for (let i = 0; i < targets.length; i++) {
   delete updates[i]._id;
@@ -163,13 +163,13 @@ for (let i = 0; i < targets.length; i++) {
 }
   `;
   } else {
-    command += `\n${docName}.updateDocuments(updates);\n`;
+    command += `\n${documentName}.updateDocuments(updates);\n`;
   }
 
   return command;
 }
 
-function genUpdateWithMassEditDep(options, docName) {
+function genUpdateWithMassEditDep(options, documentName) {
   let context = [];
   if (options.randomize) context.push('randomizeFields');
   if (options.addSubtract) context.push('addSubtractFields');
@@ -189,11 +189,11 @@ targets.forEach((t) => {
   else toggleOnTargets.push(t);
 });
   
-await MassEdit.api.performMassUpdate.call({${context}}, update, toggleOnTargets, '${docName}');
-await MassEdit.api.performMassUpdate.call({${context2}}, update2, toggleOffTargets, '${docName}');
+await MassEdit.api.performMassUpdate.call({${context}}, update, toggleOnTargets, '${documentName}');
+await MassEdit.api.performMassUpdate.call({${context2}}, update2, toggleOffTargets, '${documentName}');
 `;
   } else {
-    return `await MassEdit.api.performMassUpdate.call({${context}}, update, targets, '${docName}');\n`;
+    return `await MassEdit.api.performMassUpdate.call({${context}}, update, targets, '${documentName}');\n`;
   }
 }
 
