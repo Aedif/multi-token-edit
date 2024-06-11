@@ -1,8 +1,4 @@
-import { Brush } from '../scripts/brush.js';
-import { Preset } from '../scripts/presets/preset.js';
 import { getData } from '../scripts/utils.js';
-import { TokenDataAdapter } from './dataAdapters.js';
-import { copyToClipboard, performMassUpdate } from './formUtils.js';
 import { WithBaseMassEditForm, WithMassEditFormApplication, WithMassEditFormApplicationV2 } from './meApplication.js';
 
 // ==================================
@@ -23,8 +19,6 @@ export const WithMassConfig = (docName = 'NONE') => {
   const sheets = CONFIG[docName]?.sheetClasses;
   if (!sheets || docName === 'Actor') {
     cls = FormApplication;
-
-    cls = FormApplication;
   } else {
     cls = Object.values(Object.values(sheets).pop() ?? {}).pop()?.cls;
   }
@@ -34,96 +28,6 @@ export const WithMassConfig = (docName = 'NONE') => {
   class MassConfig extends MEF {
     constructor(target, docs, options) {
       super(target.document ? target.document : target, docs, options);
-    }
-
-    async _updateObject(event, formData) {
-      await this.massUpdateObject(event, formData);
-
-      // On v11 certain placeable will freeze the canvas layer if parent _updateObject is not called
-      if (['Token', 'AmbientLight'].includes(this.docName) && this.preview?.object) {
-        this._resetPreview();
-      }
-    }
-
-    _performOnInputChangeUpdate() {
-      const selectedFields = this.getSelectedFields();
-      performMassUpdate.call(this, selectedFields, this.meObjects, this.docName, this.modUpdateType);
-    }
-
-    /**
-     * Copy currently selected field to the clipboard
-     */
-    performMassCopy({ command = '', selectedFields = null } = {}) {
-      if (!selectedFields) {
-        selectedFields = this.getSelectedFields();
-        if (this.documentName === 'Token') {
-          TokenDataAdapter.correctDetectionModeOrder(selectedFields, this.randomizeFields);
-        }
-      }
-
-      if (foundry.utils.isEmpty(selectedFields)) return false;
-
-      const preset = new Preset({
-        documentName: this.documentName,
-        data: selectedFields,
-        randomize: this.randomizeFields,
-        addSubtract: this.addSubtractFields,
-      });
-      copyToClipboard(preset, command, this.isPrototype);
-      return true;
-    }
-
-    async activateListeners(html) {
-      await super.activateListeners(html);
-      // We want to update fields used by brush control every time a field changes on the form
-      html.on('input', 'textarea, input[type="text"], input[type="number"]', () => Brush.refreshPreset());
-      html.on('change', 'textarea, input, select', () => Brush.refreshPreset());
-      html.on('paste', 'input', () => Brush.refreshPreset());
-      html.on('click', 'button', () => Brush.refreshPreset());
-    }
-
-    async close(options = {}) {
-      Brush.deactivate();
-      options.force = true;
-
-      if (['Token', 'AmbientLight'].includes(this.docName) && this.preview?.object) {
-        this._resetPreview();
-      }
-      if (this.linkedPresetForm) this.linkedPresetForm.close();
-      return super.close(options);
-    }
-
-    // Some forms will manipulate themselves via modifying internal objects and re-rendering
-    // In such cases we want to preserve the selected fields
-    render(force, options = {}) {
-      // If it's being re-rendered with an action "update" in means it's ClientDocumentMixin response to _onUpdate
-      // We can ignore these
-      if (options.action === 'update') return;
-      // Form hasn't been rendered yet, aka first render pass, ignore it
-      if (!this.form) return super.render(force, options);
-
-      // Fetch the currently selected fields before re-rendering
-      const selectedFields = this.getSelectedFields();
-      const randomize = this.randomizeFields;
-      const addSubtract = this.addSubtractFields;
-
-      // Render, the selections will be wiped
-      super.render(force, options);
-
-      // Re-select fields, we're reusing preset functions here.
-      // Timeout require for this module including others to apply their
-      // modifications to the configuration window
-      setTimeout(() => {
-        if (this.form) {
-          this._applyPreset(
-            new Preset({
-              data: selectedFields,
-              randomize,
-              addSubtract,
-            })
-          );
-        }
-      }, 1000);
     }
   }
 

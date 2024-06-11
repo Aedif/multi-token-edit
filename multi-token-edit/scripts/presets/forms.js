@@ -469,12 +469,15 @@ export class MassEditPresets extends FormApplication {
     if (preset.documentName === 'AmbientSound') {
       const src = preset.src ?? (await preset.load()).data[0]?.path;
       if (!src) return;
-      this._soundPreview = await game.audio.play(src);
+      const sound = await game.audio.play(src);
+      sound._mePreview = true;
     }
   }
 
   async _endPreview() {
-    this._soundPreview?.stop();
+    game.audio.playing.forEach((s) => {
+      if (s._mePreview) s.stop();
+    });
   }
 
   _folderToggle(folderElement) {

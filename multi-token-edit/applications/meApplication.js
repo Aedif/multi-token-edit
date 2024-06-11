@@ -16,7 +16,7 @@ import {
 } from '../scripts/utils.js';
 import { getInUseStyle } from './cssEdit.js';
 import { GeneralDataAdapter, TokenDataAdapter } from './dataAdapters.js';
-import { getCommonDocData, onInputChange, performMassSearch, performMassUpdate } from './formUtils.js';
+import { copyToClipboard, getCommonDocData, onInputChange, performMassSearch, performMassUpdate } from './formUtils.js';
 import { WithMassPermissions } from './forms.js';
 import MacroForm from './macro.js';
 import { showMassActorForm } from './multiConfig.js';
@@ -185,6 +185,29 @@ export const WithBaseMassEditForm = (cls) => {
     }
 
     /**
+     * Copy currently selected field to the clipboard
+     */
+    performMassCopy({ command = '', selectedFields = null } = {}) {
+      if (!selectedFields) {
+        selectedFields = this.getSelectedFields();
+        if (this.documentName === 'Token') {
+          TokenDataAdapter.correctDetectionModeOrder(selectedFields, this.randomizeFields);
+        }
+      }
+
+      if (foundry.utils.isEmpty(selectedFields)) return false;
+
+      const preset = new Preset({
+        documentName: this.documentName,
+        data: selectedFields,
+        randomize: this.randomizeFields,
+        addSubtract: this.addSubtractFields,
+      });
+      copyToClipboard(preset, command, this.isPrototype);
+      return true;
+    }
+
+    /**
      * Control button style
      * @param {*} html
      */
@@ -234,7 +257,11 @@ export const WithBaseMassEditForm = (cls) => {
 
     _activateAutoSelectListeners(html) {
       // On any field being changed we want to automatically select the form-group to be included in the update
-      html.on('input', 'textarea, input[type="text"], input[type="number"]', onInputChange.bind(this));
+      html.on(
+        'input',
+        'textarea, input[type="text"], input[type="number"], range-picker, color-picker',
+        onInputChange.bind(this)
+      );
       html.on('change', 'textarea, input, select', onInputChange.bind(this));
       html.on('paste', 'input', onInputChange.bind(this));
       html.on('click', 'button', onInputChange.bind(this));
@@ -417,6 +444,14 @@ export const WithBaseMassEditForm = (cls) => {
           });
         });
       }
+    }
+
+    // We want to update fields used by brush control every time a field changes on the form
+    _registerBrushRefreshListeners(html) {
+      html.on('input', 'textarea, input[type="text"], input[type="number"]', () => Brush.refreshPreset());
+      html.on('change', 'textarea, input, select', () => Brush.refreshPreset());
+      html.on('paste', 'input', () => Brush.refreshPreset());
+      html.on('click', 'button', () => Brush.refreshPreset());
     }
 
     _registerNumericalInputListeners(html) {
@@ -646,6 +681,11 @@ export const WithBaseMassEditForm = (cls) => {
       }
     }
 
+    _performOnInputChangeUpdate() {
+      const selectedFields = this.getSelectedFields();
+      performMassUpdate.call(this, selectedFields, this.meObjects, this.docName, this.modUpdateType);
+    }
+
     _registerMutateObserver(html) {
       // TokenConfig might be changed by some modules after activateListeners is processed
       // Look out for these updates and add checkboxes for any newly added form-groups
@@ -675,6 +715,13 @@ export const WithBaseMassEditForm = (cls) => {
         childList: true,
         subtree: true,
       });
+    }
+
+    _onClose(options = {}) {
+      options.force = true;
+      Brush.deactivate();
+      if (this.linkedPresetForm) this.linkedPresetForm.close();
+      return super._onClose?.(options);
     }
 
     /**
@@ -933,6 +980,7 @@ export const WithMassEditFormApplicationV2 = (cls) => {
       this._activateAutoSelectListeners(html);
       this._processAllFormGroups(html);
       this._registerRandomizerListeners(html);
+      this._registerBrushRefreshListeners(html);
       this._registerNumericalInputListeners(html);
       this._registerInputChangeCallback(html);
       this._registerNavigationTabMassSelect(html);
@@ -992,6 +1040,7 @@ export const WithMassEditFormApplication = (cls) => {
       this._activateAutoSelectListeners(html);
       this._processAllFormGroups(html);
       this._registerRandomizerListeners(html);
+      this._registerBrushRefreshListeners(html);
       this._registerNumericalInputListeners(html);
       this._registerInputChangeCallback(html);
       this._registerNavigationTabMassSelect(html);
@@ -1055,6 +1104,15 @@ export const WithMassEditFormApplication = (cls) => {
       else if (el.type === 'range') this._onChangeRange(event);
     }
 
+    async _updateObject(event, formData) {
+      await this.massUpdateObject(event, event.currentTarget);
+
+      // On v11 certain placeable will freeze the canvas layer if parent _updateObject is not called
+      if (['Token', 'AmbientLight'].includes(this.docName) && this.preview?.object) {
+        this._resetPreview();
+      }
+    }
+
     _getHeaderButtons() {
       let buttons = super._getHeaderButtons().filter((b) => b.class !== 'configure-sheet');
 
@@ -1073,6 +1131,47 @@ export const WithMassEditFormApplication = (cls) => {
 
       // Special handling for Walls sheet
       html.find('button[type="submit"]').remove();
+    }
+
+    // Some forms will manipulate themselves via modifying internal objects and re-rendering
+    // In such cases we want to preserve the selected fields
+    render(force, options = {}) {
+      // If it's being re-rendered with an action "update" in means it's ClientDocumentMixin response to _onUpdate
+      // We can ignore these
+      if (options.action === 'update') return;
+      // Form hasn't been rendered yet, aka first render pass, ignore it
+      if (!this.form) return super.render(force, options);
+
+      // Fetch the currently selected fields before re-rendering
+      const selectedFields = this.getSelectedFields();
+      const randomize = this.randomizeFields;
+      const addSubtract = this.addSubtractFields;
+
+      // Render, the selections will be wiped
+      super.render(force, options);
+
+      // Re-select fields, we're reusing preset functions here.
+      // Timeout require for this module including others to apply their
+      // modifications to the configuration window
+      setTimeout(() => {
+        if (this.form) {
+          this._applyPreset(
+            new Preset({
+              data: selectedFields,
+              randomize,
+              addSubtract,
+            })
+          );
+        }
+      }, 1000);
+    }
+
+    async close(options = {}) {
+      super._onClose(options);
+      if (['Token', 'AmbientLight'].includes(this.docName) && this.preview?.object) {
+        this._resetPreview();
+      }
+      return super.close(options);
     }
   }
 
