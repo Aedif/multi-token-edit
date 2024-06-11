@@ -674,7 +674,7 @@ export const WithBaseMassEditForm = (cls) => {
             html.find('.me-mod-update > input').not(this).prop('checked', false);
             $(event.target).prop('checked', isChecked);
             app.modUpdate = isChecked;
-            app.modUpdateType = event.currentTarget.dataset?.submit;
+            app.modUpdateType = $(event.target).data('submit');
           });
 
           modButton.insertAfter(button);
@@ -1012,6 +1012,13 @@ export const WithMassEditFormApplicationV2 = (cls) => {
       context.buttons = context.buttons.concat(this._meGetSubmitButtons());
       return context;
     }
+
+    async render(options = {}, _options = {}) {
+      // Do not re-render the form if this is due to the document being updated
+      // This is to prevent ME checkboxes from being reset.
+      if (_options.renderContext?.startsWith('update')) return;
+      return super.render(options, _options);
+    }
   }
   return MassEditForm;
 };
@@ -1139,7 +1146,7 @@ export const WithMassEditFormApplication = (cls) => {
     render(force, options = {}) {
       // If it's being re-rendered with an action "update" in means it's ClientDocumentMixin response to _onUpdate
       // We can ignore these
-      if (options.action === 'update') return;
+      if (options.action === 'update' || options.renderContext?.startsWith('update')) return;
       // Form hasn't been rendered yet, aka first render pass, ignore it
       if (!this.form) return super.render(force, options);
 

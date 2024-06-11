@@ -64,8 +64,6 @@ async function updateFilter() {
      `,
   };
 
-  console.log(VisualEffectsMaskingFilter.POST_PROCESS_TECHNIQUES['COLOR_REPLACE'].glsl);
-
   CONFIG.Canvas.visionModes['color_replace'] = new VisionMode({
     id: 'color_replace',
     label: 'Color Replace',

@@ -16,11 +16,11 @@ export class V12Migrator {
         continue;
       }
 
-      this.migratePack(pack, { migrateFunc, coreMigration });
+      this.migratePack({ pack, migrateFunc, coreMigration });
     }
   }
 
-  static async migratePack(pack = PresetCollection.workingPack, { migrateFunc = null, coreMigration = false } = {}) {
+  static async migratePack({ pack = PresetCollection.workingPack, migrateFunc = null, coreMigration = false } = {}) {
     if (foundry.utils.getType(pack) === 'string') {
       let fPack = game.packs.get(pack) || game.packs.find((p) => p.metadata.label === pack);
       if (!fPack) {
