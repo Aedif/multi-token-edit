@@ -508,6 +508,7 @@ export class MassEditPresets extends FormApplication {
   }
 
   async _endPreview() {
+    clearTimeout(this._previewTimeout);
     game.audio.playing.forEach((s) => {
       if (s._mePreview) s.stop();
     });
@@ -1386,8 +1387,10 @@ export class MassEditPresets extends FormApplication {
   }
 
   async _onToggleTagSelector(event) {
-    if (this._tagSelector) this._tagSelector.render(true);
-    else {
+    if (this._tagSelector) {
+      this._tagSelector.close(true);
+      this._tagSelector = null;
+    } else {
       this._tagSelector = new TagSelector(this);
       this._tagSelector.render(true);
     }

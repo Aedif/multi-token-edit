@@ -1,3 +1,15 @@
+# 1.69.0
+
+- Foundry v12 support
+  - Added migration API for presets. See Mass Edit macro compendium for examples.
+
+**Preset Browser**
+
+- Improved Token snapping in preset preview mode
+- Fixed Token Attacher prefab preview positions not correctly reflecting final ones in certain situations
+- AmbientSounds and Tiles with video sources can now be previewed by hovering over them
+- **Search Bar** now includes a **Tag Selector** pop-up which displays and allows you to select tags to search by
+
 # 1.68.0
 
 **Preset Browser**

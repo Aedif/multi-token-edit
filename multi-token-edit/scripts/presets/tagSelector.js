@@ -3,7 +3,8 @@ import { MassEditPresets } from './forms.js';
 
 export class TagSelector extends FormApplication {
   constructor(presetsApp) {
-    super({}, {});
+    const defaultOptions = TagSelector.defaultOptions;
+    super({}, { left: presetsApp.position.left - defaultOptions.width - 5, top: presetsApp.position.top });
     this.presetsApp = presetsApp;
   }
 

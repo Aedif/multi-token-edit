@@ -706,4 +706,5 @@ nav > a[data-tab='me-pinned'] {
   background: black;
   border: 5px solid darkorange;
   z-index: 9999;
+  pointer-events: none;
 }
