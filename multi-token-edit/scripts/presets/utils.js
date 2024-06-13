@@ -239,6 +239,22 @@ export function getTransformToOrigin(docToData) {
     const c = data[0].c;
     transform.x = -c[0];
     transform.y = -c[1];
+  } else if (name === 'Region') {
+    transform.x = 0;
+    transform.y = 0;
+    data.shapes?.forEach((shape) => {
+      if (shape.points) {
+        for (let i = 0; i < shape.points.length; i += 2) {
+          transform.x = Math.min(transform.x, shape.points[i]);
+          transform.y = Math.min(transform.y, shape.points[i + 1]);
+        }
+      } else {
+        transform.x = Math.min(transform.x, shape.x);
+        transform.y = Math.min(transform.y, shape.y);
+      }
+    });
+    transform.x = -transform.x;
+    transform.y = -transform.y;
   } else {
     transform.x = -data[0].x;
     transform.y = -data[0].y;
@@ -300,6 +316,24 @@ function getDataBounds(documentName, data) {
     } else if (documentName === 'Token') {
       width = data.width * canvas.dimensions.size;
       height = data.height * canvas.dimensions.size;
+    } else if (documentName === 'Region') {
+      data.shapes?.forEach((shape) => {
+        if (shape.points) {
+          for (let i = 0; i < shape.points.length; i += 2) {
+            let x = shape.points[0];
+            let y = shape.points[1];
+            x1 = Math.min(x1, x);
+            y1 = Math.min(y1, y);
+            x2 = Math.max(x2, x);
+            y2 = Math.max(y2, y);
+          }
+        } else {
+          x1 = Math.min(x1, shape.x);
+          y1 = Math.min(y1, shape.y);
+          x2 = Math.max(x2, shape.x + (shape.radiusX ?? shape.width));
+          y2 = Math.max(y2, shape.y + (shape.radiusY ?? shape.height));
+        }
+      });
     } else {
       width = 0;
       height = 0;

@@ -2010,7 +2010,10 @@ export class PresetConfig extends FormApplication {
     const cls = CONFIG[this.presets[0].documentName].documentClass;
 
     for (const p of this.presets) {
-      p.data.forEach((d) => documents.push(new cls(mergePresetDataToDefaultDoc(p, d))));
+      p.data.forEach((d) => {
+        const tempDoc = new cls(mergePresetDataToDefaultDoc(p, d), { parent: canvas.scene });
+        documents.push(tempDoc);
+      });
     }
 
     const app = await showMassEdit(documents, null, {

@@ -127,6 +127,19 @@ export class Picker {
           preview.renderFlags.set({ refresh: true });
           preview.visible = true;
 
+          // TODO improve
+          if (!preview._meVInsert && preview instanceof Region) {
+            Object.defineProperty(preview, 'visible', {
+              get: function () {
+                return true;
+              },
+              set: function () {},
+            });
+            preview._meVInsert = true;
+          } else if (preview instanceof Region) {
+            preview._onUpdate({ shapes: null });
+          }
+
           // Tile z order, to make sure previews are rendered on-top
           // v12
           if (foundry.utils.isNewerVersion(game.version, 12)) {
@@ -339,6 +352,25 @@ export class Picker {
           data.c[1] = parent.y + (data.c[1] - pos.xy.y) * ratio;
           data.c[2] = parent.x + (data.c[2] - pos.xy.x) * ratio;
           data.c[3] = parent.y + (data.c[3] - pos.xy.y) * ratio;
+        } else if (name === 'Region') {
+          data.shapes?.forEach((shape) => {
+            if (shape.type === 'polygon') {
+              for (let i = 0; i < shape.points.length; i += 2) {
+                shape.points[i] = parent.x + (shape.points[i] - pos.xy.x) * ratio;
+                shape.points[i + 1] = parent.y + (shape.points[i + 1] - pos.xy.y) * ratio;
+              }
+            } else {
+              shape.x = parent.x + (shape.x - pos.xy.x) * ratio;
+              shape.y = parent.y + (shape.y - pos.xy.y) * ratio;
+              if (shape.type === 'ellipse') {
+                shape.radiusX *= ratio;
+                shape.radiusY *= ratio;
+              } else if (shape.type === 'rectangle') {
+                shape.width *= ratio;
+                shape.height *= ratio;
+              }
+            }
+          });
         } else {
           data.x = parent.x + (data.x - pos.xy.x) * ratio;
           data.y = parent.y + (data.y - pos.xy.y) * ratio;
@@ -404,6 +436,8 @@ export class DataTransform {
       this.transformAmbientSound(data, origin, transform, preview);
     } else if (documentName === 'Drawing') {
       this.transformDrawing(data, origin, transform, preview);
+    } else if (documentName === 'Region') {
+      this.transformRegion(data, origin, transform, preview);
     } else {
       data.x += transform.x;
       data.y += transform.y;
@@ -412,6 +446,107 @@ export class DataTransform {
         preview.document.x = data.x;
         preview.document.y = data.y;
         if (data.elevation) preview.document.elevation = data.elevation;
+      }
+    }
+  }
+
+  static transformRegion(data, origin, transform, preview) {
+    if (transform.scale != null && data.shapes) {
+      const scale = transform.scale;
+
+      for (const shape of data.shapes) {
+        if (shape.type === 'polygon') {
+          for (let i = 0; i < shape.points.length; i++) {
+            shape.points[i] *= scale;
+          }
+        } else {
+          shape.x *= scale;
+          shape.y *= scale;
+          if (shape.type === 'ellipse') {
+            shape.radiusX *= scale;
+            shape.radiusY *= scale;
+          } else if (shape.type === 'rectangle') {
+            shape.height *= scale;
+            shape.width *= scale;
+          }
+        }
+      }
+    }
+
+    if (data.shapes) {
+      data.shapes.forEach((shape) => {
+        if (shape.type === 'polygon') {
+          for (let i = 0; i < shape.points.length; i += 2) {
+            try {
+              shape.points[i] += transform.x;
+              shape.points[i + 1] += transform.y;
+            } catch (e) {
+              console.log(shape, transform);
+            }
+          }
+        } else {
+          shape.x += transform.x;
+          shape.y += transform.y;
+        }
+      });
+    }
+    if (transform.z) {
+      if (Number.isNumeric(data.elevation?.bottom)) data.elevation.bottom += transform.z;
+      if (Number.isNumeric(data.elevation?.top)) data.elevation.top += transform.z;
+    }
+
+    if (transform.rotation != null && data.shapes) {
+      for (const shape of data.shapes) {
+        if (shape.type === 'polygon') {
+          const dr = Math.toRadians(transform.rotation % 360);
+          for (let i = 0; i < shape.points.length; i += 2) {
+            [shape.points[i], shape.points[i + 1]] = this.rotatePoint(
+              origin.x,
+              origin.y,
+              shape.points[i],
+              shape.points[i + 1],
+              dr
+            );
+          }
+        } else {
+          const dr = Math.toRadians(transform.rotation % 360);
+          let rectCenter = {
+            x: shape.x + (shape.radiusX ?? shape.width) / 2,
+            y: shape.y + (shape.radiusY ?? shape.height) / 2,
+          };
+          [rectCenter.x, rectCenter.y] = this.rotatePoint(origin.x, origin.y, rectCenter.x, rectCenter.y, dr);
+          shape.x = rectCenter.x - (shape.radiusX ?? shape.width) / 2;
+          shape.y = rectCenter.y - (shape.radiusY ?? shape.height) / 2;
+          shape.rotation += Math.toDegrees(dr);
+        }
+      }
+    }
+
+    if (preview) {
+      const doc = preview.document;
+      if (data.elevation) doc.elevation = data.elevation;
+      if (data.shapes) {
+        for (let i = 0; i < data.shapes.length; i++) {
+          const docShape = doc.shapes[i];
+          const dataShape = data.shapes[i];
+
+          if (docShape.type !== dataShape.type) break;
+
+          if (docShape.type === 'polygon') {
+            docShape.points = dataShape.points;
+          } else {
+            docShape.x = dataShape.x;
+            docShape.y = dataShape.y;
+
+            if (docShape.type === 'rectangle') {
+              docShape.width = dataShape.width;
+              docShape.height = dataShape.height;
+            } else if (docShape.type === 'ellipse') {
+              docShape.radiusX = dataShape.radiusX;
+              docShape.radiusY = dataShape.radiusY;
+            }
+          }
+        }
       }
     }
   }
