@@ -693,3 +693,17 @@ nav > a[data-tab='me-pinned'] {
   text-align: center;
   padding-top: 5px;
 }
+
+
+/* ======================== 
+   ===== Video Preview ====
+   ======================== */
+
+.meVideoPreview {
+  position: absolute;
+  top: 25px;
+  left: 25px;
+  background: black;
+  border: 5px solid darkorange;
+  z-index: 9999;
+}

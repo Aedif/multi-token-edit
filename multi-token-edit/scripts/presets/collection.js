@@ -19,6 +19,7 @@ import {
   decodeURIComponentSafely,
   getPresetDataCenterOffset,
   getTransformToOrigin,
+  isVideo,
   mergePresetDataToDefaultDoc,
   modifySpawnData,
   placeableToData,

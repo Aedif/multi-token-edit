@@ -86,7 +86,10 @@ export class Preset {
   }
 
   get thumbnail() {
-    return this.img || CONST.DEFAULT_TOKEN;
+    if (!this.img) return CONST.DEFAULT_TOKEN;
+    else if (isAudio(this.img)) return 'icons/svg/sound.svg';
+    else if (isVideo(this.img)) return 'icons/svg/video.svg';
+    return this.img;
   }
 
   get pages() {
@@ -280,16 +283,14 @@ export class VirtualFilePreset extends Preset {
 
     if (data.documentName === 'Tile') {
       data.data = [{ texture: { src: data.src }, x: 0, y: 0, rotation: 0 }];
-      if (isVideo(data.src)) data.img = 'icons/svg/video.svg';
-      else data.img = data.src;
+      data.img = data.src;
     } else {
       data.data = [{ path: data.src, radius: 20, x: 0, y: 0 }];
-      data.img = 'icons/svg/sound.svg';
+      data.img = data.src;
     }
 
     data.gridSize = 150;
     super(data);
-    this.src = data.src;
   }
 
   get virtual() {
@@ -369,7 +370,6 @@ export class VirtualFilePreset extends Preset {
 
   toJSON() {
     const json = super.toJSON();
-    json.src = this.src;
     return json;
   }
 

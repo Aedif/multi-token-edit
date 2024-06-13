@@ -11,6 +11,7 @@ import {
   TagInput,
   UI_DOCS,
   applyPresetToScene,
+  isAudio,
   localFormat,
   localize,
 } from '../utils.js';
@@ -25,7 +26,13 @@ import {
 import { FileIndexer, IndexerForm } from './fileIndexer.js';
 import { DOC_ICONS, Preset, VirtualFilePreset } from './preset.js';
 import { TagSelector } from './tagSelector.js';
-import { FolderState, mergePresetDataToDefaultDoc, placeableToData, randomizeChildrenFolderColors } from './utils.js';
+import {
+  FolderState,
+  isVideo,
+  mergePresetDataToDefaultDoc,
+  placeableToData,
+  randomizeChildrenFolderColors,
+} from './utils.js';
 
 const SEARCH_MIN_CHAR = 2;
 const SEARCH_FOUND_MAX_COUNT = 1001;
@@ -463,16 +470,40 @@ export class MassEditPresets extends FormApplication {
   }
 
   async _playPreview(event) {
+    clearTimeout(this._previewTimeout);
+    this._previewTimeout = setTimeout(() => this._renderPlayPreview(event), 200);
+  }
+
+  async _renderPlayPreview(event) {
     await this._endPreview();
     const uuid = $(event.currentTarget).data('uuid');
     if (!uuid) return;
 
     const preset = await PresetCollection.get(uuid, { full: false });
     if (preset.documentName === 'AmbientSound') {
-      const src = preset.src ?? (await preset.load()).data[0]?.path;
+      const src = isAudio(preset.img) ? preset.img : (await preset.load()).data[0]?.path;
       if (!src) return;
       const sound = await game.audio.play(src);
       sound._mePreview = true;
+    } else if (preset.documentName === 'Tile' && preset.thumbnail === 'icons/svg/video.svg') {
+      await preset.load();
+      const src = preset.data[0].texture?.src;
+      if (src && isVideo(src)) {
+        if (!this._videoPreviewElement) {
+          this._videoPreviewElement = $('<div class="meVideoPreview"></div>');
+          $(document.body).append(this._videoPreviewElement);
+        } else {
+          this._videoPreviewElement.empty();
+        }
+
+        const ratio = visualViewport.width / 1024;
+        this._videoPreviewElement.append(
+          `<video width="${320 * ratio}" height="${240 * ratio}" autoplay loop><source src="${src}" type="video/${src
+            .split('.')
+            .pop()
+            .toLowerCase()}"></video>`
+        );
+      }
     }
   }
 
@@ -480,6 +511,10 @@ export class MassEditPresets extends FormApplication {
     game.audio.playing.forEach((s) => {
       if (s._mePreview) s.stop();
     });
+    if (this._videoPreviewElement) {
+      this._videoPreviewElement.remove();
+      this._videoPreviewElement = null;
+    }
   }
 
   _folderToggle(folderElement) {
