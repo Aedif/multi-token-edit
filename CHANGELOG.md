@@ -1,3 +1,7 @@
+# 1.69.1
+
+- Fixed errors thrown related to `Regions` on v11 clients
+
 # 1.69.0
 
 - Foundry v12 support

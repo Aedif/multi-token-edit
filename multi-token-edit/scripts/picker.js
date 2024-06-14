@@ -128,7 +128,7 @@ export class Picker {
           preview.visible = true;
 
           // TODO improve
-          if (!preview._meVInsert && preview instanceof Region) {
+          if (!preview._meVInsert && preview.document.documentName === 'Region') {
             Object.defineProperty(preview, 'visible', {
               get: function () {
                 return true;
@@ -136,7 +136,7 @@ export class Picker {
               set: function () {},
             });
             preview._meVInsert = true;
-          } else if (preview instanceof Region) {
+          } else if (preview.document.documentName === 'Region') {
             preview._onUpdate({ shapes: null });
           }
 
