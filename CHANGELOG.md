@@ -1,3 +1,13 @@
+# 1.69.2
+
+**Brush Menu** / **Preset Browser**
+
+- Preset previews should now more consistently render on top of other elements on the screen
+
+**Brush Menu**
+
+- Manually adjusted scale and rotation will now be preserved and applied to the next preset in the sequence
+
 # 1.69.1
 
 - Fixed errors thrown related to `Regions` on v11 clients
