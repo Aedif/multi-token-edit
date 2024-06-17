@@ -30,10 +30,16 @@ export const WithBaseMassEditForm = (cls) => {
 
       BaseMassEditForm._setMEActions(options);
 
-      if (documentName === 'AmbientSound' || documentName === 'AmbientLight') {
+      if (
+        foundry.utils.isNewerVersion(game.version, 12) &&
+        (documentName === 'AmbientSound' || documentName === 'AmbientLight')
+      ) {
         options.document = doc;
         super(options);
-      } else super(doc, options);
+      } else {
+        super(doc, options);
+      }
+
       this.meObjects = docs;
       this.documentName = documentName;
       this.commonData = foundry.utils.flattenObject(options.commonData || {});

@@ -1,3 +1,7 @@
+# 1.69.3
+
+- Fixed Mass Edit forms not opening for AmbientLights and AmbientSounds on v11
+
 # 1.69.2
 
 **Brush Menu** / **Preset Browser**
