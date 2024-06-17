@@ -451,9 +451,9 @@ export class BrushMenu extends FormApplication {
     this._instance.removePreset(id);
   }
 
-  static iterate(forward = true) {
+  static iterate(forward = true, force = false) {
     if (!this._instance) return;
-    this._instance.iterate(forward);
+    this._instance.iterate(forward, force);
   }
 
   static render(presets, settings = {}) {
@@ -939,8 +939,8 @@ export class BrushMenu extends FormApplication {
     else this.render(true);
   }
 
-  async iterate(forward = true) {
-    if (!this._settings.lock) {
+  async iterate(forward = true, force = false) {
+    if (force || !this._settings.lock) {
       if (this._settings.random) this._it = Math.floor(Math.random() * this._index.length);
       else {
         this._it += forward ? 1 : -1;

@@ -1,3 +1,8 @@
+# 1.69.4
+
+- Fixed error thrown when activating a brush via a `Virtual Preset`
+- Manual iteration of the presets within the `Brush Menu` will now ignore `Lock`
+
 # 1.69.3
 
 - Fixed Mass Edit forms not opening for AmbientLights and AmbientSounds on v11

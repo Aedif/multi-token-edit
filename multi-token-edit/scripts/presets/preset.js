@@ -368,13 +368,9 @@ export class VirtualFilePreset extends Preset {
     }
   }
 
-  toJSON() {
-    const json = super.toJSON();
-    return json;
-  }
-
   clone() {
-    const clone = new VirtualFilePreset(this.toJSON());
-    return clone;
+    const data = this.toJSON();
+    data.src = data.img;
+    return new VirtualFilePreset(data);
   }
 }
