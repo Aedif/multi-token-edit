@@ -1,3 +1,7 @@
+# 1.69.5
+
+- Workaround for `Levels` on v11 defining elevation properties as `getters` only
+
 # 1.69.4
 
 - Fixed error thrown when activating a brush via a `Virtual Preset`
