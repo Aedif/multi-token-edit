@@ -32,7 +32,7 @@ export const WithBaseMassEditForm = (cls) => {
 
       if (
         foundry.utils.isNewerVersion(game.version, 12) &&
-        (documentName === 'AmbientSound' || documentName === 'AmbientLight')
+        (documentName === 'AmbientSound' || documentName === 'AmbientLight' || documentName === 'Region')
       ) {
         options.document = doc;
         super(options);
@@ -854,6 +854,7 @@ export const WithBaseMassEditForm = (cls) => {
         actions[action] = this.massUpdateObject;
       });
       options.actions = actions;
+      foundry.utils.setProperty(options, 'form.handler', () => {});
     }
 
     _meGetSubmitButtons() {
@@ -1010,6 +1011,12 @@ export const WithMassEditFormApplicationV2 = (cls) => {
 
     _getHeaderControls() {
       return [].concat(super._getHeaderControls()).concat(this._getMeControls());
+    }
+
+    // Special handling for Regions to prevent insertion of submit buttons
+    async _preparePartContext(partId, context) {
+      if (partId !== 'footer') return super._preparePartContext(partId, context);
+      return context;
     }
 
     async _prepareContext(options) {

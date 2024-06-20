@@ -89,9 +89,12 @@ export class Picker {
             pos = canvas.grid.getSnappedPosition(pos.x, pos.y, layer.gridPrecision);
           }
         }
+
         // calculate transform
-        const fpX = previews[0].document.documentName === 'Wall' ? previews[0].document.c[0] : previews[0].document.x;
-        const fpY = previews[0].document.documentName === 'Wall' ? previews[0].document.c[1] : previews[0].document.y;
+        const pd = previews[0].document;
+        const fpX = pd.x ?? pd.c?.[0] ?? pd.shapes?.[0].x ?? pd.shapes?.[0]?.points[0];
+        const fpY = pd.y ?? pd.c?.[1] ?? pd.shapes?.[0].y ?? pd.shapes?.[0]?.points[1];
+
         let transform = { x: pos.x - fpX - offset.x, y: pos.y - fpY - offset.y };
         if (Picker._rotation != 0) {
           transform.rotation = Picker._rotation;
@@ -346,6 +349,10 @@ export class Picker {
           if (documentName === 'Wall') {
             transform.x = -data.c?.[0] ?? 0;
             transform.y = -data.c?.[1] ?? 0;
+          } else if (documentName === 'Region') {
+            const shape = data.shapes[0];
+            transform.x = -(shape?.x ?? shape.points?.[0] ?? 0);
+            transform.y = -(shape?.y ?? shape.points?.[1] ?? 0);
           } else {
             transform.x = -data.x ?? 0;
             transform.y = -data.y ?? 0;
@@ -564,7 +571,6 @@ export class DataTransform {
           [rectCenter.x, rectCenter.y] = this.rotatePoint(origin.x, origin.y, rectCenter.x, rectCenter.y, dr);
           shape.x = rectCenter.x - (shape.radiusX ?? shape.width) / 2;
           shape.y = rectCenter.y - (shape.radiusY ?? shape.height) / 2;
-          shape.rotation += Math.toDegrees(dr);
         }
       }
     }
@@ -904,6 +910,10 @@ export class DataTransform {
 
 export async function editPreviewPlaceables() {
   const docToPlaceables = new Map();
+
+  const SUPPORTED_PLACEABLES = foundry.utils.isNewerVersion(game.version, 12)
+    ? [...SUPPORTED_PLACEABLES, 'Region']
+    : SUPPORTED_PLACEABLES;
 
   SUPPORTED_PLACEABLES.forEach((documentName) => {
     const controlled = canvas.getLayerByEmbeddedName(documentName).controlled;

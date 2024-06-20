@@ -1,3 +1,4 @@
+import { DataTransform } from './picker.js';
 import { MODULE_ID } from './utils.js';
 
 /**
@@ -40,6 +41,8 @@ export function enableUniversalSelectTool() {
     },
     'OVERRIDE'
   );
+
+  if (foundry.utils.isNewerVersion(game.version, 12)) registerRegionWrappers();
 }
 
 /**
@@ -62,4 +65,74 @@ function _getControlButtons(controls) {
 
 function _placeableRefresh(placeable) {
   if (placeable.controlled) placeable.controlIcon.border.visible = true;
+}
+
+function registerRegionWrappers() {
+  // Enable drag
+  libWrapper.register(
+    MODULE_ID,
+    'Region.prototype._canDrag',
+    function () {
+      return game.user.isGM;
+    },
+    'OVERRIDE'
+  );
+
+  const getRegionXY = function (region) {
+    let x = Infinity;
+    let y = Infinity;
+    region.document.shapes.forEach((shape) => {
+      if (shape.points) {
+        for (let i = 0; i < shape.points.length; i += 2) {
+          x = Math.min(x, shape.points[i]);
+          y = Math.min(y, shape.points[i + 1]);
+        }
+      } else {
+        x = Math.min(x, shape.x);
+        y = Math.min(y, shape.y);
+      }
+    });
+
+    return { x, y };
+  };
+
+  libWrapper.register(
+    MODULE_ID,
+    'Region.prototype._onDragLeftMove',
+    function (event) {
+      canvas._onDragCanvasPan(event);
+      const { clones, destination, origin } = event.interactionData;
+      const { x, y } = getRegionXY(this);
+
+      // Calculate the (snapped) position of the dragged object
+      let position = {
+        x: x + (destination.x - origin.x),
+        y: y + (destination.y - origin.y),
+      };
+
+      if (!event.shiftKey) position = this.layer.getSnappedPoint(position);
+
+      const dx = position.x - x;
+      const dy = position.y - y;
+      for (const c of clones || []) {
+        DataTransform.apply('Region', c.document.toObject(), { x: 0, y: 0 }, { x: dx, y: dy }, c);
+        c.visible = true;
+        c._onUpdate({ shapes: null });
+      }
+    },
+    'OVERRIDE'
+  );
+
+  libWrapper.register(
+    MODULE_ID,
+    'Region.prototype._prepareDragLeftDropUpdates',
+    function (event) {
+      const updates = [];
+      for (const clone of event.interactionData.clones) {
+        updates.push({ _id: clone._original.id, shapes: clone.document.toObject(false).shapes });
+      }
+      return updates;
+    },
+    'OVERRIDE'
+  );
 }

@@ -6,8 +6,10 @@ import {
   createDocuments,
   MODULE_ID,
   resolveCreateDocumentRequest,
+  SUPPORT_SHEET_CONFIGS,
   SUPPORTED_PLACEABLES,
   TagInput,
+  UI_DOCS,
 } from './scripts/utils.js';
 import { GeneralDataAdapter } from './applications/dataAdapters.js';
 import { applyRandomization } from './scripts/randomizer/randomizerUtils.js';
@@ -29,6 +31,15 @@ import {
 
 // Initialize module
 Hooks.once('init', () => {
+  // We need to insert Region into relevant doc groups
+  // TODO: Once we move to a dedicated v12 version of the module we can
+  // make these groups static again
+  if (foundry.utils.isNewerVersion(game.version, 12)) {
+    SUPPORTED_PLACEABLES.push('Region');
+    UI_DOCS.push('Region');
+    SUPPORT_SHEET_CONFIGS.push('Region');
+  }
+
   TagInput.registerHandlebarsHelper();
 
   registerSettings();

@@ -36,6 +36,7 @@ export const DOC_ICONS = {
   AmbientLight: 'fa-regular fa-lightbulb',
   AmbientSound: 'fa-solid fa-music',
   Note: 'fa-solid fa-bookmark',
+  Region: 'fa-regular fa-game-board',
   Actor: 'fas fa-user-alt',
   Scene: 'fas fa-map',
   DEFAULT: 'fa-solid fa-question',

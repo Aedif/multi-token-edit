@@ -240,21 +240,9 @@ export function getTransformToOrigin(docToData) {
     transform.x = -c[0];
     transform.y = -c[1];
   } else if (name === 'Region') {
-    transform.x = 0;
-    transform.y = 0;
-    data.shapes?.forEach((shape) => {
-      if (shape.points) {
-        for (let i = 0; i < shape.points.length; i += 2) {
-          transform.x = Math.min(transform.x, shape.points[i]);
-          transform.y = Math.min(transform.y, shape.points[i + 1]);
-        }
-      } else {
-        transform.x = Math.min(transform.x, shape.x);
-        transform.y = Math.min(transform.y, shape.y);
-      }
-    });
-    transform.x = -transform.x;
-    transform.y = -transform.y;
+    const b = getDataBounds(name, data[0]);
+    transform.x = -b.x1;
+    transform.y = -b.y1;
   } else {
     transform.x = -data[0].x;
     transform.y = -data[0].y;
