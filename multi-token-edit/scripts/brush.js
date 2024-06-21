@@ -73,6 +73,10 @@ export class Brush {
     return wall.line.hitArea.contains(point.x, point.y);
   }
 
+  static _hitTestRegion(point, region) {
+    return region.bounds.contains(point.x, point.y);
+  }
+
   static _hitTestControlIcon(point, placeable) {
     return (
       Number.between(
@@ -266,6 +270,9 @@ export class Brush {
       switch (this.documentName) {
         case 'Wall':
           this.hitTest = this._hitTestWall;
+          break;
+        case 'Region':
+          this.hitTest = this._hitTestRegion;
           break;
         case 'AmbientLight':
         case 'MeasuredTemplate':

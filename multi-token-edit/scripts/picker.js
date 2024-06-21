@@ -1,4 +1,4 @@
-import { getPresetDataCenterOffset } from './presets/utils.js';
+import { getDataBounds, getPresetDataCenterOffset } from './presets/utils.js';
 import { SUPPORTED_PLACEABLES } from './utils.js';
 
 /**
@@ -92,10 +92,9 @@ export class Picker {
 
         // calculate transform
         const pd = previews[0].document;
-        const fpX = pd.x ?? pd.c?.[0] ?? pd.shapes?.[0].x ?? pd.shapes?.[0]?.points[0];
-        const fpY = pd.y ?? pd.c?.[1] ?? pd.shapes?.[0].y ?? pd.shapes?.[0]?.points[1];
+        const b = getDataBounds(pd.documentName, pd);
+        let transform = { x: pos.x - b.x1 - offset.x, y: pos.y - b.y1 - offset.y };
 
-        let transform = { x: pos.x - fpX - offset.x, y: pos.y - fpY - offset.y };
         if (Picker._rotation != 0) {
           transform.rotation = Picker._rotation;
           Picker._rotation = 0;
@@ -201,11 +200,17 @@ export class Picker {
         }
       };
 
+      let lastX = Infinity;
+      let lastY = Infinity;
       pickerOverlay.on('pointermove', (event) => {
-        setPositions(event.data.getLocalPosition(pickerOverlay));
+        const client = event.data.client;
+        if (client.x !== lastX || client.y !== lastY) {
+          lastX = client.x;
+          lastY = client.y;
+          setPositions(event.data.getLocalPosition(pickerOverlay));
+        }
       });
-      setPositions(canvas.mousePosition);
-      setPositions(canvas.mousePosition);
+      //setTimeout(() => setPositions(canvas.mousePosition), 50);
       pickerOverlay.setPositions = setPositions;
     }
 
@@ -791,6 +796,8 @@ export class DataTransform {
       data.elevation = (data.elevation ?? 0) + transform.z;
     }
 
+    // console.log(transform.rotation % 360);
+
     if (transform.rotation != null) {
       const dr = Math.toRadians(transform.rotation % 360);
       let rectCenter = { x: data.x + data.width / 2, y: data.y + data.height / 2 };
@@ -910,10 +917,6 @@ export class DataTransform {
 
 export async function editPreviewPlaceables() {
   const docToPlaceables = new Map();
-
-  const SUPPORTED_PLACEABLES = foundry.utils.isNewerVersion(game.version, 12)
-    ? [...SUPPORTED_PLACEABLES, 'Region']
-    : SUPPORTED_PLACEABLES;
 
   SUPPORTED_PLACEABLES.forEach((documentName) => {
     const controlled = canvas.getLayerByEmbeddedName(documentName).controlled;

@@ -108,7 +108,7 @@ export class MassEditPresets extends FormApplication {
       template: `modules/${MODULE_ID}/templates/preset/presets.html`,
       resizable: true,
       minimizable: true,
-      width: 360,
+      width: 377,
       height: 900,
       scrollY: ['.item-list'],
     });

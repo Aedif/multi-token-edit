@@ -147,6 +147,22 @@ export function mergePresetDataToDefaultDoc(preset, presetData) {
     case 'Wall':
       data = { c: [0, 0, canvas.grid.size, 0] };
       break;
+    case 'Region':
+      data = {
+        name: preset.name,
+        shapes: [
+          {
+            type: 'rectangle',
+            hole: false,
+            x: 0,
+            y: 0,
+            width: (canvas.grid.sizeX ?? canvas.grid.w) * 2,
+            height: (canvas.grid.sizeX ?? canvas.grid.w) * 2,
+            rotation: 0,
+          },
+        ],
+      };
+      break;
     default:
       data = { x: 0, y: 0 };
   }
@@ -282,7 +298,7 @@ export function getPresetDataBounds(docToData) {
  * @param {Object} data
  * @returns
  */
-function getDataBounds(documentName, data) {
+export function getDataBounds(documentName, data) {
   let x1, y1, x2, y2;
 
   if (documentName === 'Wall') {
@@ -305,11 +321,15 @@ function getDataBounds(documentName, data) {
       width = data.width * canvas.dimensions.size;
       height = data.height * canvas.dimensions.size;
     } else if (documentName === 'Region') {
+      x2 = -Infinity;
+      y2 = -Infinity;
+      x1 = Infinity;
+      y1 = Infinity;
       data.shapes?.forEach((shape) => {
         if (shape.points) {
           for (let i = 0; i < shape.points.length; i += 2) {
-            let x = shape.points[0];
-            let y = shape.points[1];
+            let x = shape.points[i];
+            let y = shape.points[i + 1];
             x1 = Math.min(x1, x);
             y1 = Math.min(y1, y);
             x2 = Math.max(x2, x);
@@ -322,6 +342,7 @@ function getDataBounds(documentName, data) {
           y2 = Math.max(y2, shape.y + (shape.radiusY ?? shape.height));
         }
       });
+      return { x1, y1, x2, y2 };
     } else {
       width = 0;
       height = 0;
