@@ -1,3 +1,12 @@
+# 1.70.0
+
+**v12 Region Support**
+
+- Drag & Drop
+- Mass Editing
+- Transform
+- Presets
+
 # 1.69.5
 
 - Workaround for `Levels` on v11 defining elevation properties as `getters` only
