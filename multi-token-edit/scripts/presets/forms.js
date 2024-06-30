@@ -247,6 +247,11 @@ export class MassEditPresets extends FormApplication {
       });
       this.dragData = uuids;
       this.draggedElements = itemList.find('.item.selected');
+
+      if (event.originalEvent.dataTransfer) {
+        event.originalEvent.dataTransfer.clearData();
+        event.originalEvent.dataTransfer.setData('text/plain', JSON.stringify({ uuids }));
+      }
     });
     html.on('dragleave', '.item.sortable', (event) => {
       $(event.target).closest('.item').removeClass('drag-bot').removeClass('drag-top');
@@ -2464,17 +2469,26 @@ class PresetFolderConfig extends FolderConfig {
 }
 
 function checkMouseInWindow(event) {
-  let app = $(event.target).closest('.window-app');
-  var offset = app.offset();
+  let inWindow = false;
+
+  if (ui.sidebar?.element?.length) {
+    inWindow = _coordOverElement(event.pageX, event.pageY, ui.sidebar.element);
+  }
+  if (!inWindow) {
+    inWindow = _coordOverElement(event.pageX, event.pageY, $(event.target).closest('.window-app'));
+  }
+
+  return inWindow;
+}
+
+function _coordOverElement(x, y, element) {
+  var offset = element.offset();
   let appX = offset.left;
   let appY = offset.top;
-  let appW = app.width();
-  let appH = app.height();
+  let appW = element.width();
+  let appH = element.height();
 
-  var mouseX = event.pageX;
-  var mouseY = event.pageY;
-
-  if (mouseX > appX && mouseX < appX + appW && mouseY > appY && mouseY < appY + appH) {
+  if (x > appX && x < appX + appW && y > appY && y < appY + appH) {
     return true;
   }
   return false;

@@ -28,6 +28,7 @@ import {
   performMassSearch,
   performMassUpdate,
 } from './applications/formUtils.js';
+import { registerSideBarPresetDropListener } from './scripts/presets/utils.js';
 
 // Initialize module
 Hooks.once('init', () => {
@@ -39,6 +40,9 @@ Hooks.once('init', () => {
     UI_DOCS.push('Region');
     SUPPORT_SHEET_CONFIGS.push('Region');
   }
+
+  // Allows users to drop AmbientSound presets onto playlists
+  registerSideBarPresetDropListener();
 
   TagInput.registerHandlebarsHelper();
 

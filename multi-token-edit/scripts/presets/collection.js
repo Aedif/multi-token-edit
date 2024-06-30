@@ -517,8 +517,8 @@ export class PresetAPI {
    * @param {Boolean} [options.random]                   If multiple presets are found a random one will be chosen
    * @returns {Preset}
    */
-  static async getPreset({ uuid, name, type, folder, tags, random = false } = {}) {
-    if (uuid) return await PresetCollection.get(uuid);
+  static async getPreset({ uuid, name, type, folder, tags, random = false, full = true } = {}) {
+    if (uuid) return await PresetCollection.get(uuid, { full });
     else if (!name && !type && !folder && !tags)
       throw Error('UUID, Name, Type, and/or Folder required to retrieve a Preset.');
 
@@ -537,8 +537,12 @@ export class PresetAPI {
       }
     );
 
-    const preset = random ? presets[Math.floor(Math.random() * presets.length)] : presets[0];
-    return preset?.clone().load();
+    let preset = random ? presets[Math.floor(Math.random() * presets.length)] : presets[0];
+    if (preset) {
+      preset = preset.clone();
+      if (full) await preset.load();
+    }
+    return preset;
   }
 
   /**
@@ -552,13 +556,13 @@ export class PresetAPI {
    * @param {String} [options.format]                    The form to return placeables in ('preset', 'name', 'nameAndFolder')
    * @returns {Array[Preset]|Array[String]|Array[Object]}
    */
-  static async getPresets({ uuid, name, type, folder, format = 'preset', tags } = {}) {
+  static async getPresets({ uuid, name, type, folder, format = 'preset', tags, full = true } = {}) {
     let presets;
     if (uuid) {
       presets = [];
       const uuids = Array.isArray(uuid) ? uuid : [uuid];
       for (const uuid of uuids) {
-        const preset = await PresetCollection.get(uuid);
+        const preset = await PresetCollection.get(uuid, { full });
         if (preset) presets.push(preset);
       }
     } else if (!name && !type && !folder && !tags) {
@@ -882,6 +886,7 @@ export class PresetAPI {
 
     // Assign ownership to the user who triggered the spawn
     // And hide if necessary
+    const link = foundry.utils.randomID();
     docToData.forEach((dataArr, documentName) => {
       dataArr.forEach((data) => {
         // Assign ownership for Drawings and MeasuredTemplates
@@ -889,6 +894,9 @@ export class PresetAPI {
           if (documentName === 'Drawing') data.author = game.user.id;
           else if (documentName === 'MeasuredTemplate') data.user = game.user.id;
         }
+
+        // Link all spawned objects with a common ID
+        foundry.utils.setProperty(data, `flags.${MODULE_ID}.link`, link);
 
         // Hide
         if (hidden || game.keyboard.downKeys.has('AltLeft')) data.hidden = true;

@@ -234,4 +234,4 @@ https://user-images.githubusercontent.com/7693704/196006020-9d308238-1888-4b98-b
 
 ## Select Tool
 
-Select Tool is added for AmbientLight, AmbientSound, MeasuredTemplate, and Note layers.
+Select Tool is added for AmbientLight, AmbientSound, MeasuredTemplate, Note and Region layers.

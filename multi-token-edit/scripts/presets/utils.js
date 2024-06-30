@@ -1,6 +1,7 @@
 import { showGenericForm } from '../../applications/multiConfig.js';
 import { applyRandomization } from '../randomizer/randomizerUtils.js';
 import { MODULE_ID, SUPPORTED_PLACEABLES } from '../utils.js';
+import { PresetAPI, PresetCollection } from './collection.js';
 import { Preset } from './preset.js';
 
 /**
@@ -306,6 +307,29 @@ export function getDataBounds(documentName, data) {
     y1 = Math.min(data.c[1], data.c[3]);
     x2 = Math.max(data.c[0], data.c[2]);
     y2 = Math.max(data.c[1], data.c[3]);
+  } else if (documentName === 'Region') {
+    x2 = -Infinity;
+    y2 = -Infinity;
+    x1 = Infinity;
+    y1 = Infinity;
+    data.shapes?.forEach((shape) => {
+      if (shape.points) {
+        for (let i = 0; i < shape.points.length; i += 2) {
+          let x = shape.points[i];
+          let y = shape.points[i + 1];
+          x1 = Math.min(x1, x);
+          y1 = Math.min(y1, y);
+          x2 = Math.max(x2, x);
+          y2 = Math.max(y2, y);
+        }
+      } else {
+        x1 = Math.min(x1, shape.x);
+        y1 = Math.min(y1, shape.y);
+        x2 = Math.max(x2, shape.x + (shape.radiusX ?? shape.width));
+        y2 = Math.max(y2, shape.y + (shape.radiusY ?? shape.height));
+      }
+    });
+    return { x1, y1, x2, y2 };
   } else {
     x1 = data.x || 0;
     y1 = data.y || 0;
@@ -320,29 +344,6 @@ export function getDataBounds(documentName, data) {
     } else if (documentName === 'Token') {
       width = data.width * canvas.dimensions.size;
       height = data.height * canvas.dimensions.size;
-    } else if (documentName === 'Region') {
-      x2 = -Infinity;
-      y2 = -Infinity;
-      x1 = Infinity;
-      y1 = Infinity;
-      data.shapes?.forEach((shape) => {
-        if (shape.points) {
-          for (let i = 0; i < shape.points.length; i += 2) {
-            let x = shape.points[i];
-            let y = shape.points[i + 1];
-            x1 = Math.min(x1, x);
-            y1 = Math.min(y1, y);
-            x2 = Math.max(x2, x);
-            y2 = Math.max(y2, y);
-          }
-        } else {
-          x1 = Math.min(x1, shape.x);
-          y1 = Math.min(y1, shape.y);
-          x2 = Math.max(x2, shape.x + (shape.radiusX ?? shape.width));
-          y2 = Math.max(y2, shape.y + (shape.radiusY ?? shape.height));
-        }
-      });
-      return { x1, y1, x2, y2 };
     } else {
       width = 0;
       height = 0;
@@ -389,4 +390,55 @@ export async function readJSONFile(url) {
     return await jQuery.getJSON(url);
   } catch (e) {}
   return null;
+}
+
+/**
+ * Handle dropping of AmbientSound presets onto the sidebar playlists
+ */
+export function registerSideBarPresetDropListener() {
+  if (!game.user.isGM) return;
+  Hooks.on('renderSidebar', (sidebar, html) => {
+    html.on('drop', async (event) => {
+      const playlistId = $(event.target).closest('.directory-item.playlist').data('document-id');
+      if (!playlistId) return;
+      const playlist = game.playlists.get(playlistId);
+      if (!playlist) return;
+
+      let data = event.originalEvent.dataTransfer.getData('text/plain');
+      if (!data) return;
+      data = JSON.parse(data);
+
+      let presets = (await PresetAPI.getPresets({ uuid: data.uuids, full: false })).filter(
+        (p) => p.documentName === 'AmbientSound'
+      );
+
+      for (const p of presets) {
+        await p.load();
+      }
+
+      const updates = [];
+
+      presets.forEach((p) => {
+        p.data.forEach((d) => {
+          if (d.path) {
+            updates.push({
+              name: p.name,
+              path: d.path,
+              channel: 'music',
+              repeat: false,
+              fade: null,
+              description: 'Mass Edit Preset',
+              volume: 0.52,
+              playing: false,
+              pausedTime: null,
+              flags: {},
+            });
+          }
+        });
+      });
+
+      console.log(updates, playlist);
+      PlaylistSound.create(updates, { parent: playlist });
+    });
+  });
 }

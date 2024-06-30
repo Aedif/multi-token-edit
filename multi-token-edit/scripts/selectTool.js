@@ -1,4 +1,5 @@
 import { DataTransform } from './picker.js';
+import { getDataBounds } from './presets/utils.js';
 import { MODULE_ID } from './utils.js';
 
 /**
@@ -78,42 +79,24 @@ function registerRegionWrappers() {
     'OVERRIDE'
   );
 
-  const getRegionXY = function (region) {
-    let x = Infinity;
-    let y = Infinity;
-    region.document.shapes.forEach((shape) => {
-      if (shape.points) {
-        for (let i = 0; i < shape.points.length; i += 2) {
-          x = Math.min(x, shape.points[i]);
-          y = Math.min(y, shape.points[i + 1]);
-        }
-      } else {
-        x = Math.min(x, shape.x);
-        y = Math.min(y, shape.y);
-      }
-    });
-
-    return { x, y };
-  };
-
   libWrapper.register(
     MODULE_ID,
     'Region.prototype._onDragLeftMove',
     function (event) {
       canvas._onDragCanvasPan(event);
       const { clones, destination, origin } = event.interactionData;
-      const { x, y } = getRegionXY(this);
+      const { x1, y1 } = getDataBounds('Region', this.document);
 
       // Calculate the (snapped) position of the dragged object
       let position = {
-        x: x + (destination.x - origin.x),
-        y: y + (destination.y - origin.y),
+        x: x1 + (destination.x - origin.x),
+        y: y1 + (destination.y - origin.y),
       };
 
       if (!event.shiftKey) position = this.layer.getSnappedPoint(position);
 
-      const dx = position.x - x;
-      const dy = position.y - y;
+      const dx = position.x - x1;
+      const dy = position.y - y1;
       for (const c of clones || []) {
         DataTransform.apply('Region', c.document.toObject(), { x: 0, y: 0 }, { x: dx, y: dy }, c);
         c.visible = true;
