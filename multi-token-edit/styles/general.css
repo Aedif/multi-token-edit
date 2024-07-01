@@ -708,3 +708,27 @@ nav > a[data-tab='me-pinned'] {
   z-index: 9999;
   pointer-events: none;
 }
+
+
+
+.mass-edit-linker-menu .links {
+  display: flex;
+  flex-direction: column;
+}
+
+.mass-edit-linker-menu .link {
+  display: flex;
+  margin: 2px;
+}
+
+.mass-edit-linker-menu .link > * {
+  margin: 2px;
+}
+
+.mass-edit-linker-menu .link .linkId {
+  flex: 1;
+}
+
+.mass-edit-linker-menu .active {
+  color: darkorange
+}

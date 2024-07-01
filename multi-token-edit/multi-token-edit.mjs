@@ -4,6 +4,7 @@ import {
   activeEffectPresetSelect,
   applyAddSubtract,
   createDocuments,
+  isResponsibleGM,
   MODULE_ID,
   resolveCreateDocumentRequest,
   SUPPORT_SHEET_CONFIGS,
@@ -29,6 +30,7 @@ import {
   performMassUpdate,
 } from './applications/formUtils.js';
 import { registerSideBarPresetDropListener } from './scripts/presets/utils.js';
+import { LinkerAPI, registerLinkerHooks } from './scripts/presets/linker.js';
 
 // Initialize module
 Hooks.once('init', () => {
@@ -43,6 +45,8 @@ Hooks.once('init', () => {
 
   // Allows users to drop AmbientSound presets onto playlists
   registerSideBarPresetDropListener();
+
+  registerLinkerHooks();
 
   TagInput.registerHandlebarsHelper();
 
@@ -163,11 +167,12 @@ Hooks.once('init', () => {
   game.socket?.on(`module.${MODULE_ID}`, async (message) => {
     const args = message.args;
 
-    if (message.handlerName === 'document' && message.type === 'CREATE') {
-      const isResponsibleGM = !game.users
-        .filter((user) => user.isGM && (user.active || user.isActive))
-        .some((other) => other.id < game.user.id);
-      if (!isResponsibleGM) return;
+    if (message.handlerName === 'document' && message.type === 'UPDATE') {
+      if (!isResponsibleGM()) return;
+
+      game.scenes.get(args.sceneID).updateEmbeddedDocuments(args.documentName, args.updates, args.context);
+    } else if (message.handlerName === 'document' && message.type === 'CREATE') {
+      if (!isResponsibleGM()) return;
 
       const documents = await createDocuments(args.documentName, args.data, args.sceneID);
       const documentIDs = documents.map((d) => d.id);
@@ -221,6 +226,7 @@ Hooks.once('init', () => {
     readCacheFile: FileIndexerAPI.readCacheFile,
     migratePack: (pack, options = {}) => V12Migrator.migratePack(pack, options),
     migrateAllPacks: (options = {}) => V12Migrator.migrateAllPacks(options),
+    linker: LinkerAPI,
   };
 
   game.modules.get(MODULE_ID).api = {

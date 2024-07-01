@@ -886,7 +886,6 @@ export class PresetAPI {
 
     // Assign ownership to the user who triggered the spawn
     // And hide if necessary
-    const link = foundry.utils.randomID();
     docToData.forEach((dataArr, documentName) => {
       dataArr.forEach((data) => {
         // Assign ownership for Drawings and MeasuredTemplates
@@ -894,9 +893,6 @@ export class PresetAPI {
           if (documentName === 'Drawing') data.author = game.user.id;
           else if (documentName === 'MeasuredTemplate') data.user = game.user.id;
         }
-
-        // Link all spawned objects with a common ID
-        foundry.utils.setProperty(data, `flags.${MODULE_ID}.link`, link);
 
         // Hide
         if (hidden || game.keyboard.downKeys.has('AltLeft')) data.hidden = true;

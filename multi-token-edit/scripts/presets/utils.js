@@ -1,7 +1,7 @@
 import { showGenericForm } from '../../applications/multiConfig.js';
 import { applyRandomization } from '../randomizer/randomizerUtils.js';
-import { MODULE_ID, SUPPORTED_PLACEABLES } from '../utils.js';
-import { PresetAPI, PresetCollection } from './collection.js';
+import { MODULE_ID } from '../utils.js';
+import { PresetAPI } from './collection.js';
 import { Preset } from './preset.js';
 
 /**
@@ -396,8 +396,8 @@ export async function readJSONFile(url) {
  * Handle dropping of AmbientSound presets onto the sidebar playlists
  */
 export function registerSideBarPresetDropListener() {
-  if (!game.user.isGM) return;
   Hooks.on('renderSidebar', (sidebar, html) => {
+    if (!game.user.isGM) return;
     html.on('drop', async (event) => {
       const playlistId = $(event.target).closest('.directory-item.playlist').data('document-id');
       if (!playlistId) return;

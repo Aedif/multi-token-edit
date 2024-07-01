@@ -478,6 +478,25 @@ export function resolveCreateDocumentRequest({ requestID, sceneID, documentName,
   delete DOCUMENT_CREATE_REQUESTS[requestID];
 }
 
+export function updateEmbeddedDocumentsViaGM(documentName, updates, context, scene) {
+  if (game.user.isGM) {
+    return scene.updateEmbeddedDocuments(documentName, updates, context);
+  } else {
+    const message = {
+      handlerName: 'document',
+      args: { sceneID: scene.id, documentName, updates, context },
+      type: 'UPDATE',
+    };
+    game.socket.emit(`module.${MODULE_ID}`, message);
+  }
+}
+
+export function isResponsibleGM() {
+  return !game.users
+    .filter((user) => user.isGM && (user.active || user.isActive))
+    .some((other) => other.id < game.user.id);
+}
+
 export function localize(path, moduleLocalization = true) {
   if (moduleLocalization) return game.i18n.localize(`MassEdit.${path}`);
   return game.i18n.localize(path);

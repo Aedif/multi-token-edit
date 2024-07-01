@@ -1,0 +1,19 @@
+<form>
+    <div class="mass-edit-linker-menu">
+
+        <div class="header">
+
+        </div>
+
+        <div class="links" style="display: flex;">
+            {{#each links as |link|}}
+            <div class="link" data-index="{{@index}}">
+                <div class="linkId" contenteditable="true">{{link.id}}</div>
+                <a class="toggle-child {{#if link.child}}active{{/if}}" title="Child"><i class="fas fa-user-friends"></i></a>
+                <a class="remove-link" title="Remove Link from Selected"><i class="fas fa-times fa-lg"></i></a>
+                <a class="apply-link" title="Apply Link to Selected"><i class="fas fa-arrow-circle-right"></i></a>
+            </div>
+            {{/each}}
+        </div>
+    </div>
+</form>

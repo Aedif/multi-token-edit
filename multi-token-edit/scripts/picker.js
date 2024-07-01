@@ -1,5 +1,6 @@
+import { getLinkedPlaceables } from './presets/linker.js';
 import { getDataBounds, getPresetDataCenterOffset } from './presets/utils.js';
-import { SUPPORTED_PLACEABLES } from './utils.js';
+import { MODULE_ID, SUPPORTED_PLACEABLES } from './utils.js';
 
 /**
  * Cross-hair and optional preview image/label that can be activated to allow the user to select
@@ -507,6 +508,8 @@ export class DataTransform {
         if (data.elevation) preview.document.elevation = data.elevation;
       }
     }
+
+    return data;
   }
 
   static transformRegion(data, origin, transform, preview) {
@@ -556,6 +559,26 @@ export class DataTransform {
 
     if (transform.rotation != null && data.shapes) {
       for (const shape of data.shapes) {
+        if (shape.type === 'rectangle') {
+          // Foundry does not support rotation for rectangles
+          // Convert it to a polygon instead
+          shape.type = 'polygon';
+          shape.points = [
+            shape.x,
+            shape.y,
+            shape.x + shape.width,
+            shape.y,
+            shape.x + shape.width,
+            shape.y + shape.height,
+            shape.x,
+            shape.y + shape.height,
+          ];
+          delete shape.width;
+          delete shape.height;
+          delete shape.x;
+          delete shape.y;
+          delete shape.rotation;
+        }
         if (shape.type === 'polygon') {
           const dr = Math.toRadians(transform.rotation % 360);
           for (let i = 0; i < shape.points.length; i += 2) {
@@ -588,9 +611,10 @@ export class DataTransform {
           const docShape = doc.shapes[i];
           const dataShape = data.shapes[i];
 
-          if (docShape.type !== dataShape.type) break;
-
-          if (docShape.type === 'polygon') {
+          if (docShape.type !== dataShape.type) {
+            // We've performed a type change (rectangle -> polygon)
+            doc.shapes[i] = new foundry.data.PolygonShapeData(dataShape);
+          } else if (docShape.type === 'polygon') {
             docShape.points = dataShape.points;
           } else {
             docShape.x = dataShape.x;
@@ -918,14 +942,23 @@ export class DataTransform {
 export async function editPreviewPlaceables() {
   const docToPlaceables = new Map();
 
+  const addPlaceable = function (p) {
+    const documentName = p.document.documentName;
+    if (!docToPlaceables.get(documentName)) docToPlaceables.set(documentName, [p]);
+    else {
+      const placeables = docToPlaceables.get(documentName);
+      if (!placeables.find((po) => po.document.id === p.document.id)) placeables.push(p);
+    }
+  };
+
   SUPPORTED_PLACEABLES.forEach((documentName) => {
     const controlled = canvas.getLayerByEmbeddedName(documentName).controlled;
-    if (controlled.length) {
-      docToPlaceables.set(
-        documentName,
-        controlled.map((p) => p)
-      );
-    }
+
+    controlled.forEach((p) => {
+      addPlaceable(p);
+      const links = p.document.flags[MODULE_ID]?.links;
+      if (links?.length) getLinkedPlaceables(links, p.document.id).forEach((p) => addPlaceable(p));
+    });
   });
 
   if (!docToPlaceables.size) {
@@ -1008,7 +1041,7 @@ export async function editPreviewPlaceables() {
             updates.push(diff);
           }
         }
-        if (updates.length) canvas.scene.updateEmbeddedDocuments(documentName, updates);
+        if (updates.length) canvas.scene.updateEmbeddedDocuments(documentName, updates, { ignoreLinks: true });
       });
     },
     {
