@@ -34,7 +34,7 @@ function processLinks(transform, origin, links, scene, docUpdates, processedLink
     if (linked.length) {
       const updates = [];
       for (const d of linked) {
-        const data = d.toCompendium();
+        const data = d._source;
         let update = foundry.utils.deepClone(data);
 
         DataTransform.apply(documentName, update, origin, transform);
@@ -97,9 +97,13 @@ function preUpdate(document, change, options, userId) {
 function calculateTransform(document, change) {
   let transform;
 
+  // Cannot trust document data as it can be modified by animations
+  // to get real coordinates/dimensions we need to use source
+  const source = document._source;
+
   if (change.hasOwnProperty('shapes') || change.hasOwnProperty('c')) {
     const changeBounds = getDataBounds(document.documentName, change);
-    const currentBounds = getDataBounds(document.documentName, document);
+    const currentBounds = getDataBounds(document.documentName, source);
 
     transform = {
       x: changeBounds.x1 - currentBounds.x1,
@@ -107,20 +111,20 @@ function calculateTransform(document, change) {
     };
   } else {
     transform = {
-      x: change.hasOwnProperty('x') ? change.x - document.x : 0,
-      y: change.hasOwnProperty('y') ? change.y - document.y : 0,
+      x: change.hasOwnProperty('x') ? change.x - source.x : 0,
+      y: change.hasOwnProperty('y') ? change.y - source.y : 0,
     };
   }
 
   const origin = { x: 0, y: 0 };
 
   if (change.hasOwnProperty('rotation')) {
-    const dRotation = change.rotation - document.rotation;
+    const dRotation = change.rotation - source.rotation;
 
     if (dRotation !== 0) {
-      transform.rotation = change.rotation - document.rotation;
+      transform.rotation = change.rotation - source.rotation;
 
-      const { x1, y1, x2, y2 } = getDataBounds(document.documentName, document);
+      const { x1, y1, x2, y2 } = getDataBounds(document.documentName, source);
 
       origin.x = x1 + (x2 - x1) / 2;
       origin.y = y1 + (y2 - y1) / 2;
