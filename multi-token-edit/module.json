@@ -44,5 +44,10 @@
       }
     ]
   },
+  "documentTypes": {
+    "RegionBehavior": {
+      "linkToken": {}
+    }
+  },
   "socket": true
 }

@@ -126,36 +126,62 @@ export function getLinkedPlaceables(links, parentId = null) {
 
 export class LinkerAPI {
   static addLinkToSelected(linkId, child = false) {
-    this._getSelected().forEach((p) => {
-      const links = p.document.flags[MODULE_ID]?.links ?? [];
+    this._getSelected().forEach((p) => this.addLink(p, linkId, child));
+  }
 
-      let link = links.find((l) => l.id === linkId);
-      if (!link) {
-        link = { id: linkId };
-        links.push(link);
-      }
-      if (child) link.child = true;
-      else delete link.child;
+  static hasLink(placeable, linkId) {
+    const document = placeable.document ?? placeable;
+    return Boolean(document.flags[MODULE_ID]?.links?.find((l) => l.id === linkId));
+  }
 
-      p.document.setFlag(MODULE_ID, 'links', links);
-    });
+  static addLink(placeable, linkId, child = false) {
+    const document = placeable.document ?? placeable;
+    const links = document.flags[MODULE_ID]?.links ?? [];
+
+    let link = links.find((l) => l.id === linkId);
+    if (!link) {
+      link = { id: linkId };
+      links.push(link);
+    }
+    if (child) link.child = true;
+    else delete link.child;
+
+    document.setFlag(MODULE_ID, 'links', links);
   }
 
   static removeLinkFromSelected(linkId) {
-    this._getSelected().forEach((p) => {
-      let links = p.document.flags[MODULE_ID]?.links;
-      if (links) {
-        links = links.filter((l) => l.id !== linkId);
-        if (links.length) p.document.setFlag(MODULE_ID, 'links', links);
-        else p.document.unsetFlag(MODULE_ID, 'links');
-      }
-    });
+    this._getSelected().forEach((p) => this.removeLink(p, linkId));
+  }
+
+  static removeLink(placeable, linkId) {
+    const document = placeable.document ?? placeable;
+    let links = document.flags[MODULE_ID]?.links;
+    if (links) {
+      links = links.filter((l) => l.id !== linkId);
+      if (links.length) document.setFlag(MODULE_ID, 'links', links);
+      else document.unsetFlag(MODULE_ID, 'links');
+    }
   }
 
   static removeAllLinksFromSelected() {
     this._getSelected().forEach((p) => {
       let links = p.document.flags[MODULE_ID]?.links;
       if (links) p.document.unsetFlag(MODULE_ID, 'links');
+    });
+  }
+
+  static removeAllLinksOnCurrentScene() {
+    const scene = canvas.scene;
+    if (!scene) return;
+
+    SUPPORTED_PLACEABLES.forEach((documentName) => {
+      const updates = [];
+      scene.getEmbeddedCollection(documentName).forEach((d) => {
+        if (d.flags[MODULE_ID]?.links) {
+          updates.push({ _id: d.id, [`flags.${MODULE_ID}.-=links`]: null });
+        }
+      });
+      if (updates.length) scene.updateEmbeddedDocuments(documentName, updates);
     });
   }
 
@@ -170,8 +196,9 @@ export class LinkerAPI {
 
 export class LinkerMenu extends FormApplication {
   constructor() {
-    const pos = canvas.clientCoordinatesFromCanvas(canvas.mousePosition);
-    super({}, { left: pos.x - 400, top: pos.y });
+    //const pos = canvas.clientCoordinatesFromCanvas(canvas.mousePosition);
+    const pos = ui.controls.element.find('[data-control="me-presets"]').position();
+    super({}, { left: pos.left + 50, top: pos.top });
 
     const links = [];
     LinkerAPI._getSelected().forEach((p) => {

@@ -16,7 +16,12 @@ export class V12Migrator {
         continue;
       }
 
-      this.migratePack({ pack, migrateFunc, coreMigration });
+      try {
+        this.migratePack({ pack, migrateFunc, coreMigration });
+      } catch (e) {
+        console.warn(`Mass Edit - Ran into an issue while migrating ${pack.metadata.label}`);
+        console.error(e);
+      }
     }
   }
 
@@ -86,7 +91,7 @@ export class V12Migrator {
     const cls = getDocumentClass(documentName);
 
     for (const data of dataArr) {
-      if (coreMigration) cls.migrateData(data); // Core Foundry migration
+      if (coreMigration) cls?.migrateData(data); // Core Foundry migration
       if (migrateFunc) migrateFunc(data, documentName); // Custom migration function
 
       // Token Attacher data traversal

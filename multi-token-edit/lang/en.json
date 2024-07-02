@@ -183,5 +183,12 @@
       "attach": "Attach",
       "attached": "Attached"
     }
+  },
+  "TYPES":{
+    "RegionBehavior": {
+      "multi-token-edit": {
+        "linkToken": "Link Token"
+      }
+    }
   }
 }

@@ -34,6 +34,16 @@ import { LinkerAPI, registerLinkerHooks } from './scripts/presets/linker.js';
 
 // Initialize module
 Hooks.once('init', () => {
+  // If we're on v12, register region behaviors
+  if (foundry.utils.isNewerVersion(game.version, 12)) {
+    import('./scripts/behaviors/LinkTokenRegionBehaviorType.js').then((module) => {
+      Object.assign(CONFIG.RegionBehavior.dataModels, {
+        [`${MODULE_ID}.linkToken`]: module.LinkTokenRegionBehaviorType,
+      });
+      CONFIG.RegionBehavior.typeIcons[`${MODULE_ID}.linkToken`] = 'fas fa-link';
+    });
+  }
+
   // We need to insert Region into relevant doc groups
   // TODO: Once we move to a dedicated v12 version of the module we can
   // make these groups static again
