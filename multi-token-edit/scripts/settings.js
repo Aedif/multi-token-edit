@@ -232,6 +232,15 @@ export function registerSettings() {
     default: true,
   });
 
+  game.settings.register(MODULE_ID, 'preSelectAutoApply', {
+    name: 'Pre-Select Auto-apply',
+    hint: 'Should the auto-apply button be ticked by default on Mass Edit forms.',
+    scope: 'world',
+    config: true,
+    type: Boolean,
+    default: false,
+  });
+
   if (game.modules.get('tokenmagic')?.active) {
     game.settings.register(MODULE_ID, 'tmfxFieldsEnable', {
       name: localize('settings.tmfxFieldsEnable.name'),
@@ -267,7 +276,7 @@ export function registerKeybinds() {
     hint: '',
     editable: [
       {
-        key: 'KeyL',
+        key: 'KeyQ',
         modifiers: ['Shift'],
       },
     ],

@@ -667,7 +667,8 @@ export const WithBaseMassEditForm = (cls) => {
     _insertModUpdateCheckboxes(html) {
       if (this.options.massEdit && !this.options.simplified && !this.options.presetEdit) {
         const app = this;
-        html.find('button[type="submit"]').each(function () {
+        const preSelectAutoApply = game.settings.get(MODULE_ID, 'preSelectAutoApply');
+        html.find('button[type="submit"]').each(function (index) {
           const button = $(this);
           const modButton = $(
             `<div class="me-mod-update" title="${localize(
@@ -682,6 +683,10 @@ export const WithBaseMassEditForm = (cls) => {
             app.modUpdate = isChecked;
             app.modUpdateType = $(event.target).data('submit');
           });
+
+          if (index === 0 && preSelectAutoApply) {
+            modButton.find('input[type="checkbox"]').prop('checked', true).trigger('change');
+          }
 
           modButton.insertAfter(button);
         });
