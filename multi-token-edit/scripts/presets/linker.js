@@ -3,13 +3,26 @@
  */
 
 import { DataTransform } from '../picker.js';
+import { libWrapper } from '../shim/shim.js';
 import { MODULE_ID, SUPPORTED_PLACEABLES, updateEmbeddedDocumentsViaGM } from '../utils.js';
 import { getDataBounds } from './utils.js';
 
-const PROCESSED_UPDATES = new Set();
+const PROCESSED_UPDATES = new Map();
 
 export function registerLinkerHooks() {
   SUPPORTED_PLACEABLES.forEach((name) => Hooks.on(`preUpdate${name}`, preUpdate));
+
+  if (foundry.utils.isNewerVersion(12, game.version)) {
+    libWrapper.register(
+      MODULE_ID,
+      'Scene.prototype.updateEmbeddedDocuments',
+      function (wrapped, embeddedName, updates = [], context = {}) {
+        if (!context.modifiedTime) context.modifiedTime = new Date().getTime();
+        return wrapped(embeddedName, updates, context);
+      },
+      'WRAPPER'
+    );
+  }
 }
 
 function processLinks(transform, origin, links, scene, docUpdates, processedLinks, sourceId) {
@@ -44,10 +57,10 @@ function processLinks(transform, origin, links, scene, docUpdates, processedLink
 }
 
 function preUpdate(document, change, options, userId) {
-  if (game.user.id !== userId) return;
+  if (game.user.id !== userId || options.ignoreLinks) return;
 
-  const links = document.flags[MODULE_ID]?.links?.filter((l) => !l.child);
-  if (!(links?.length && !PROCESSED_UPDATES.has(options.modifiedTime) && !options.ignoreLinks)) return;
+  let links = document.flags[MODULE_ID]?.links?.filter((l) => !l.child);
+  if (!links?.length) return;
 
   if (
     change.hasOwnProperty('x') ||
@@ -56,7 +69,17 @@ function preUpdate(document, change, options, userId) {
     change.hasOwnProperty('shapes') ||
     change.hasOwnProperty('c')
   ) {
-    PROCESSED_UPDATES.add(options.modifiedTime);
+    // If an update occurred at the same time we need to check whether
+    // this update has unique links which need to be processed
+    const puLinks = PROCESSED_UPDATES.get(options.modifiedTime);
+    if (puLinks) {
+      links = links.filter((l) => !puLinks.some((l2) => l2.id === l.id));
+      if (!links.length) return;
+      puLinks.push(...links);
+    } else {
+      PROCESSED_UPDATES.set(options.modifiedTime, links);
+      setTimeout(() => PROCESSED_UPDATES.delete(options.modifiedTime), 2000);
+    }
 
     const scene = document.parent;
 
@@ -67,8 +90,6 @@ function preUpdate(document, change, options, userId) {
     docUpdates.forEach((updates, documentName) => {
       updateEmbeddedDocumentsViaGM(documentName, updates, { ignoreLinks: true, animate: false }, scene);
     });
-
-    setTimeout(() => PROCESSED_UPDATES.delete(options.modifiedTime), 2000);
     return;
   }
 }
