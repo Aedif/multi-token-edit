@@ -67,7 +67,8 @@ function preUpdate(document, change, options, userId) {
     change.hasOwnProperty('y') ||
     change.hasOwnProperty('rotation') ||
     change.hasOwnProperty('shapes') ||
-    change.hasOwnProperty('c')
+    change.hasOwnProperty('c') ||
+    change.hasOwnProperty('elevation')
   ) {
     // If an update occurred at the same time we need to check whether
     // this update has unique links which need to be processed
@@ -84,6 +85,7 @@ function preUpdate(document, change, options, userId) {
     const scene = document.parent;
 
     let { transform, origin } = calculateTransform(document, change);
+    console.log(transform);
 
     const docUpdates = new Map();
     processLinks(transform, origin, links, scene, docUpdates, new Set(links.map((l) => l.id)), document.id);
@@ -131,6 +133,14 @@ function calculateTransform(document, change) {
     }
   }
 
+  if (change.hasOwnProperty('elevation')) {
+    if (Number.isNumeric(change.elevation)) {
+      transform.z = change.elevation - source.elevation;
+    } else if (change.elevation.bottom != null) {
+      transform.z = change.elevation.bottom - (source.elevation.bottom ?? 0);
+    }
+  }
+
   return { transform, origin };
 }
 
@@ -150,6 +160,34 @@ export function getLinkedPlaceables(links, parentId = null) {
 }
 
 export class LinkerAPI {
+  /**
+   * Get all documents linked to the passed in placeable/document including the placeable/document itself
+   * @param {PlaceableObject|CanvasDocumentMixin} placeable
+   * @param {Object} meta internal tracking data used by the function
+   * @returns
+   */
+  static getLinkedDocuments(placeable, { processedLinks = new Set(), allLinked = new Set() } = {}) {
+    const document = placeable.document ?? placeable;
+
+    const links = document.flags[MODULE_ID].links.filter((l) => !processedLinks.has(l.id)).map((l) => l.id);
+    if (!links.length) return allLinked;
+
+    processedLinks.add(...links);
+
+    SUPPORTED_PLACEABLES.forEach((documentName) => {
+      const linked = canvas.scene
+        .getEmbeddedCollection(documentName)
+        .filter((t) => t.flags[MODULE_ID]?.links?.some((l1) => links.find((l2) => l2 === l1.id)));
+
+      for (const d of linked) {
+        allLinked.add(d);
+        this.getLinkedDocuments(d, { processedLinks, allLinked });
+      }
+    });
+
+    return allLinked;
+  }
+
   static addLinkToSelected(linkId, child = false) {
     this._getSelected().forEach((p) => this.addLink(p, linkId, child));
   }

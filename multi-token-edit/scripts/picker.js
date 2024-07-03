@@ -1,4 +1,4 @@
-import { getLinkedPlaceables } from './presets/linker.js';
+import { LinkerAPI, getLinkedPlaceables } from './presets/linker.js';
 import { getDataBounds, getPresetDataCenterOffset } from './presets/utils.js';
 import { MODULE_ID, SUPPORTED_PLACEABLES } from './utils.js';
 
@@ -941,28 +941,16 @@ export class DataTransform {
 }
 
 export async function editPreviewPlaceables() {
-  const docToPlaceables = new Map();
-
-  const addPlaceable = function (p) {
-    const documentName = p.document.documentName;
-    if (!docToPlaceables.get(documentName)) docToPlaceables.set(documentName, [p]);
-    else {
-      const placeables = docToPlaceables.get(documentName);
-      if (!placeables.find((po) => po.document.id === p.document.id)) placeables.push(p);
-    }
-  };
+  const controlled = new Set();
 
   SUPPORTED_PLACEABLES.forEach((documentName) => {
-    const controlled = canvas.getLayerByEmbeddedName(documentName).controlled;
-
-    controlled.forEach((p) => {
-      addPlaceable(p);
-      const links = p.document.flags[MODULE_ID]?.links;
-      if (links?.length) getLinkedPlaceables(links, p.document.id).forEach((p) => addPlaceable(p));
+    canvas.getLayerByEmbeddedName(documentName).controlled.forEach((p) => {
+      controlled.add(p.document);
+      LinkerAPI.getLinkedDocuments(p.document).forEach((d) => controlled.add(d));
     });
   });
 
-  if (!docToPlaceables.size) {
+  if (!controlled.size) {
     // Activate picker to define select box
     const coords = await new Promise(async (resolve) => {
       Picker.activate(resolve);
@@ -978,53 +966,56 @@ export async function editPreviewPlaceables() {
     );
 
     SUPPORTED_PLACEABLES.forEach((documentName) => {
-      let insideRect = [];
       canvas.getLayerByEmbeddedName(documentName).placeables.forEach((p) => {
         const c = p.center;
-        if (selectionRect.contains(c.x, c.y)) insideRect.push(p);
+        if (selectionRect.contains(c.x, c.y)) controlled.add(p.document);
       });
-      if (insideRect.length) docToPlaceables.set(documentName, insideRect);
     });
   }
 
-  if (!docToPlaceables.size) return;
+  if (!controlled.size) return;
 
   // Generate data from the selected placeables and pass them to Picker to create previews
   const docToData = new Map();
-  const originalDocTolData = new Map();
 
   let mainDocumentName;
-  docToPlaceables.forEach((placeables, documentName) => {
-    if (SUPPORTED_PLACEABLES.includes(documentName)) {
-      let data = placeables.map((p) => p.document.toCompendium(null, { keepId: true }));
 
-      if (
-        documentName === 'Token' &&
-        game.modules.get('token-attacher')?.active &&
-        tokenAttacher?.generatePrototypeAttached
-      ) {
-        for (const d of data) {
-          const attached = d.flags?.['token-attacher']?.attached || {};
-          if (!foundry.utils.isEmpty(attached)) {
-            const prototypeAttached = tokenAttacher.generatePrototypeAttached(d, attached);
-            foundry.utils.setProperty(d, 'flags.token-attacher.attached', null);
-            foundry.utils.setProperty(d, 'flags.token-attacher.prototypeAttached', prototypeAttached);
-            foundry.utils.setProperty(d, 'flags.token-attacher.grid', {
-              size: canvas.grid.size,
-              w: canvas.grid.sizeX ?? canvas.grid.w, // v12
-              h: canvas.grid.sizeY ?? canvas.grid.h, // v12
-            });
-          }
-        }
+  controlled.forEach((document) => {
+    const documentName = document.documentName;
+    if (!SUPPORTED_PLACEABLES.includes(documentName)) return;
+
+    let data = document.toCompendium(null, { keepId: true });
+
+    if (
+      documentName === 'Token' &&
+      game.modules.get('token-attacher')?.active &&
+      tokenAttacher?.generatePrototypeAttached
+    ) {
+      const attached = data.flags?.['token-attacher']?.attached || {};
+      if (!foundry.utils.isEmpty(attached)) {
+        const prototypeAttached = tokenAttacher.generatePrototypeAttached(data, attached);
+        foundry.utils.setProperty(data, 'flags.token-attacher.attached', null);
+        foundry.utils.setProperty(data, 'flags.token-attacher.prototypeAttached', prototypeAttached);
+        foundry.utils.setProperty(data, 'flags.token-attacher.grid', {
+          size: canvas.grid.size,
+          w: canvas.grid.sizeX ?? canvas.grid.w, // v12
+          h: canvas.grid.sizeY ?? canvas.grid.h, // v12
+        });
       }
-
-      docToData.set(documentName, data);
-      originalDocTolData.set(documentName, foundry.utils.deepClone(data));
-      if (!mainDocumentName) mainDocumentName = documentName;
     }
+
+    if (docToData.get(documentName)) docToData.get(documentName).push(data);
+    else docToData.set(documentName, [data]);
+
+    if (!mainDocumentName) mainDocumentName = documentName;
   });
 
-  if (!docToData.size) return;
+  // Lets create copies of original data so that we can perform a diff after transforms have been
+  // applied by the Picker
+  const originalDocToData = new Map();
+  docToData.forEach((dataArr, documentName) => {
+    originalDocToData.set(documentName, foundry.utils.deepClone(dataArr));
+  });
 
   Picker.activate(
     async (coords) => {
@@ -1033,7 +1024,7 @@ export async function editPreviewPlaceables() {
       docToData.forEach((data, documentName) => {
         let updates = [];
 
-        const originalData = originalDocTolData.get(documentName);
+        const originalData = originalDocToData.get(documentName);
         for (let i = 0; i < originalData.length; i++) {
           const diff = foundry.utils.diffObject(originalData[i], data[i]);
           if (!foundry.utils.isEmpty(diff)) {
