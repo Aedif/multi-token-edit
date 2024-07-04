@@ -160,13 +160,21 @@ export function getLinkedPlaceables(links, parentId = null) {
 
 export class LinkerAPI {
   /**
-   * Get all documents linked to the placeable/document including the placeable/document itself
-   * @param {PlaceableObject|CanvasDocumentMixin} placeable or placeable document
-   * @param {Object} meta internal tracking data used by the function
-   * @returns
+   * Retrieve all linked embedded document
+   * @param {CanvasDocumentMixin|Array<CanvasDocumentMixin>} documents embedded document/s
+   * @returns {Set<CanvasDocumentMixin>}
    */
-  static getLinkedDocuments(placeable, { processedLinks = new Set(), allLinked = new Set() } = {}) {
-    const document = placeable.document ?? placeable;
+  static getLinkedDocuments(documents) {
+    if (!Array.isArray(documents)) documents = [documents];
+
+    const allLinked = new Set();
+    documents.forEach((document) => this._findLinked(document, allLinked));
+    documents.forEach((document) => allLinked.delete(document));
+
+    return allLinked;
+  }
+
+  static _findLinked(document, allLinked, processedLinks = new Set()) {
     allLinked.add(document);
 
     const links = document.flags[MODULE_ID].links.filter((l) => !processedLinks.has(l.id)).map((l) => l.id);
@@ -180,7 +188,7 @@ export class LinkerAPI {
         .filter((t) => t.flags[MODULE_ID]?.links?.some((l1) => links.find((l2) => l2 === l1.id)));
 
       for (const d of linked) {
-        this.getLinkedDocuments(d, { processedLinks, allLinked });
+        this._findLinked(d, allLinked, processedLinks);
       }
     });
 

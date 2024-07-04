@@ -1033,7 +1033,8 @@ export async function editPreviewPlaceables() {
             updates.push(diff);
           }
         }
-        if (updates.length) canvas.scene.updateEmbeddedDocuments(documentName, updates, { ignoreLinks: true });
+        if (updates.length)
+          canvas.scene.updateEmbeddedDocuments(documentName, updates, { ignoreLinks: true, animate: false });
       });
     },
     {

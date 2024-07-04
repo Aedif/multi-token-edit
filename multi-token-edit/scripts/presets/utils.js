@@ -23,11 +23,12 @@ export class FolderState {
  * @returns
  */
 export function placeableToData(placeable) {
-  const data = placeable.document.toCompendium();
+  const document = placeable.document ?? placeable;
+  const data = document.toCompendium();
 
   // Check if `Token Attacher` has attached elements to this token
   if (
-    placeable.document.documentName === 'Token' &&
+    document.documentName === 'Token' &&
     game.modules.get('token-attacher')?.active &&
     tokenAttacher?.generatePrototypeAttached
   ) {

@@ -24,6 +24,7 @@ import {
   PresetFolder,
 } from './collection.js';
 import { FileIndexer, IndexerForm } from './fileIndexer.js';
+import { LinkerAPI } from './linker.js';
 import { DOC_ICONS, Preset, VirtualFilePreset } from './preset.js';
 import { TagSelector } from './tagSelector.js';
 import {
@@ -2030,22 +2031,38 @@ export class PresetConfig extends FormApplication {
   }
 
   async _onAssignDocument() {
-    const layer = canvas.getLayerByEmbeddedName(this.presets[0].documentName);
-    if (!layer) return;
+    const controlled = canvas.getLayerByEmbeddedName(this.presets[0].documentName)?.controlled.map((p) => p.document);
+    if (!controlled?.length) return;
 
-    const data = layer.controlled.map((p) => placeableToData(p));
-    if (data.length) {
-      this.data = data;
-      ui.notifications.info(
-        localFormat('presets.assign', {
-          count: data.length,
-          document: this.presets[0].documentName,
-        })
-      );
-      this.gridSize = canvas.grid.size;
-      this.modifyOnSpawn = [];
-      this.render(true);
+    const linked = LinkerAPI.getLinkedDocuments(controlled);
+    if (linked.size) {
+      const response = await new Promise((resolve) => {
+        Dialog.confirm({
+          title: 'Override `Attached`',
+          content: '<p>Linked placeables have been found. Should these be included and override `Attached`?</p>',
+          yes: () => resolve(true),
+          no: () => resolve(false),
+          defaultYes: false,
+        });
+      });
+      if (response) {
+        this.attached = Array.from(linked).map((l) => {
+          return { documentName: l.documentName, data: placeableToData(l) };
+        });
+      }
     }
+
+    const data = controlled.map((p) => placeableToData(p));
+    this.data = data;
+    ui.notifications.info(
+      localFormat('presets.assign', {
+        count: data.length,
+        document: this.presets[0].documentName,
+      })
+    );
+    this.gridSize = canvas.grid.size;
+    this.modifyOnSpawn = [];
+    this.render(true);
   }
 
   async _onEditDocument() {
