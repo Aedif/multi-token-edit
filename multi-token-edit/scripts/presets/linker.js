@@ -85,7 +85,6 @@ function preUpdate(document, change, options, userId) {
     const scene = document.parent;
 
     let { transform, origin } = calculateTransform(document, change);
-    console.log(transform);
 
     const docUpdates = new Map();
     processLinks(transform, origin, links, scene, docUpdates, new Set(links.map((l) => l.id)), document.id);
@@ -161,13 +160,14 @@ export function getLinkedPlaceables(links, parentId = null) {
 
 export class LinkerAPI {
   /**
-   * Get all documents linked to the passed in placeable/document including the placeable/document itself
-   * @param {PlaceableObject|CanvasDocumentMixin} placeable
+   * Get all documents linked to the placeable/document including the placeable/document itself
+   * @param {PlaceableObject|CanvasDocumentMixin} placeable or placeable document
    * @param {Object} meta internal tracking data used by the function
    * @returns
    */
   static getLinkedDocuments(placeable, { processedLinks = new Set(), allLinked = new Set() } = {}) {
     const document = placeable.document ?? placeable;
+    allLinked.add(document);
 
     const links = document.flags[MODULE_ID].links.filter((l) => !processedLinks.has(l.id)).map((l) => l.id);
     if (!links.length) return allLinked;
@@ -180,7 +180,6 @@ export class LinkerAPI {
         .filter((t) => t.flags[MODULE_ID]?.links?.some((l1) => links.find((l2) => l2 === l1.id)));
 
       for (const d of linked) {
-        allLinked.add(d);
         this.getLinkedDocuments(d, { processedLinks, allLinked });
       }
     });
@@ -259,9 +258,11 @@ export class LinkerAPI {
 
 export class LinkerMenu extends FormApplication {
   constructor() {
-    //const pos = canvas.clientCoordinatesFromCanvas(canvas.mousePosition);
-    const pos = ui.controls.element.find('[data-control="me-presets"]').position();
-    super({}, { left: pos.left + 50, top: pos.top });
+    const pos = canvas.clientCoordinatesFromCanvas(canvas.mousePosition);
+    super({}, { left: Math.max(pos.x - 350, 0), top: pos.y });
+
+    // const pos = ui.controls.element.find('[data-control="me-presets"]').position();
+    // super({}, { left: pos.left + 50, top: pos.top });
 
     const links = [];
     LinkerAPI._getSelected().forEach((p) => {
@@ -324,6 +325,12 @@ export class LinkerMenu extends FormApplication {
     const child = $(event.currentTarget);
     child.toggleClass('active');
     this.links[Number(child.closest('.link').data('index'))].child = child.hasClass('active');
+
+    if (child.hasClass('active')) {
+      child.html('<i class="fa-duotone fa-arrow-up-arrow-down fa-rotate-90"></i>');
+    } else {
+      child.html('<i class="fa-solid fa-arrow-up-arrow-down fa-rotate-90"></i>');
+    }
   }
 
   _linkIdChange(event) {
@@ -334,13 +341,13 @@ export class LinkerMenu extends FormApplication {
   _getHeaderButtons() {
     const buttons = super._getHeaderButtons();
     buttons.unshift({
-      label: 'New Link',
+      label: '',
       class: 'mass-edit-add-link',
-      icon: 'fas fa-plus-circle',
+      icon: 'fa-solid fa-link',
       onclick: () => this._addLink(),
     });
     buttons.unshift({
-      label: 'Delete All Links',
+      label: '',
       class: 'mass-edit-delete-link',
       icon: 'fas fa-trash',
       onclick: () => this._removeAllLinks(),

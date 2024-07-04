@@ -6,12 +6,24 @@
         </div>
 
         <div class="links" style="display: flex;">
+            <div class="link" style="background: dimgray; height: 19px;">
+                <div style="flex: 0.1;"></div>
+                <div>Link ID</div>
+                <div></div>
+                <div></div>
+            </div>
             {{#each links as |link|}}
             <div class="link" data-index="{{@index}}">
+                <a class="toggle-child {{#if link.child}}active{{/if}}" title="One-way / Two-way Link" style="flex: 0.1;">
+                    {{#if link.child}}
+                    <i class="fa-duotone fa-arrow-up-arrow-down fa-rotate-90"></i>
+                    {{else}}
+                    <i class="fa-solid fa-arrow-up-arrow-down fa-rotate-90"></i>
+                    {{/if}}
+                </a>
                 <div class="linkId" contenteditable="true">{{link.id}}</div>
-                <a class="toggle-child {{#if link.child}}active{{/if}}" title="Child"><i class="fas fa-user-friends"></i></a>
-                <a class="remove-link" title="Remove Link from Selected"><i class="fas fa-times fa-lg"></i></a>
-                <a class="apply-link" title="Apply Link to Selected"><i class="fas fa-arrow-circle-right"></i></a>
+                <a class="remove-link" title="Remove Link from Selected"><i class="fa-solid fa-link-slash"></i></a>
+                <a class="apply-link" title="Apply Link to Selected"><i class="fa-solid fa-link"></i></a>
             </div>
             {{/each}}
         </div>

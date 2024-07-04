@@ -728,7 +728,3 @@ nav > a[data-tab='me-pinned'] {
 .mass-edit-linker-menu .link .linkId {
   flex: 1;
 }
-
-.mass-edit-linker-menu .active {
-  color: darkorange
-}
