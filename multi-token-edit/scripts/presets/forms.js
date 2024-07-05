@@ -1653,6 +1653,24 @@ export class MassEditPresets extends FormApplication {
     options.left = this.position.left + this.position.width + 20;
     options.top = this.position.top;
 
+    const linked = LinkerAPI.getLinkedDocuments(placeables.map((p) => p.document));
+    if (linked.size) {
+      const response = await new Promise((resolve) => {
+        Dialog.confirm({
+          title: 'Attach Linked',
+          content: `<p>Linked placeables have been detected [<b>${linked.size}</b>].</p><p>Should they be included as <b>Attached</b>?</p>`,
+          yes: () => resolve(true),
+          no: () => resolve(false),
+          defaultYes: false,
+        });
+      });
+      if (response) {
+        options.attached = Array.from(linked).map((l) => {
+          return { documentName: l.documentName, data: placeableToData(l) };
+        });
+      }
+    }
+
     this._editPresets(presets, options, event);
     this.render(true);
   }
@@ -1797,6 +1815,7 @@ export class PresetConfig extends FormApplication {
     this.presets = presets;
     this.callback = options.callback;
     this.isCreate = options.isCreate;
+    this.attached = options.attached;
   }
 
   /** @inheritdoc */
@@ -2038,8 +2057,8 @@ export class PresetConfig extends FormApplication {
     if (linked.size) {
       const response = await new Promise((resolve) => {
         Dialog.confirm({
-          title: 'Override `Attached`',
-          content: '<p>Linked placeables have been found. Should these be included and override `Attached`?</p>',
+          title: 'Override Attached',
+          content: `<p>Linked placeables have been detected [<b>${linked.size}</b>].</p><p>Should they be included and override <b>Attached</b>?</p>`,
           yes: () => resolve(true),
           no: () => resolve(false),
           defaultYes: false,
@@ -2127,6 +2146,7 @@ export class PresetConfig extends FormApplication {
       if (formData.preSpawnScript != null) update.preSpawnScript = formData.preSpawnScript;
       if (formData.postSpawnScript != null) update.postSpawnScript = formData.postSpawnScript;
       if (formData.spawnRandom != null) update.spawnRandom = formData.spawnRandom;
+      if (formData.regenerateLinks != null) update.regenerateLinks = formData.regenerateLinks;
 
       // If this is a single preset config, we override all tags
       // If not we merge

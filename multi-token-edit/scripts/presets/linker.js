@@ -8,6 +8,11 @@ import { MODULE_ID, SUPPORTED_PLACEABLES, updateEmbeddedDocumentsViaGM } from '.
 import { getDataBounds } from './utils.js';
 
 const PROCESSED_UPDATES = new Map();
+export const LINK_TYPES = {
+  TWO_WAY: 0,
+  RECEIVE: 1,
+  SEND: 2,
+};
 
 export function registerLinkerHooks() {
   SUPPORTED_PLACEABLES.forEach((name) => Hooks.on(`preUpdate${name}`, preUpdate));
@@ -29,7 +34,11 @@ function processLinks(transform, origin, links, scene, docUpdates, processedLink
   SUPPORTED_PLACEABLES.forEach((documentName) => {
     const linked = scene
       .getEmbeddedCollection(documentName)
-      .filter((t) => t.flags[MODULE_ID]?.links?.some((l1) => links.find((l2) => l2.id === l1.id)) && t.id !== sourceId);
+      .filter(
+        (t) =>
+          t.flags[MODULE_ID]?.links?.some((l1) => l1.type < 2 && links.find((l2) => l2.id === l1.id)) &&
+          t.id !== sourceId
+      );
 
     if (linked.length) {
       const updates = [];
@@ -44,7 +53,9 @@ function processLinks(transform, origin, links, scene, docUpdates, processedLink
         updates.push(update);
 
         // Check if the document has unprocessed links and if so chain the update
-        const dLinks = d.flags[MODULE_ID].links.filter((l) => !(l.child || processedLinks.has(l.id)));
+        const dLinks = d.flags[MODULE_ID].links.filter(
+          (l) => !(l.type === LINK_TYPES.RECEIVE || processedLinks.has(l.id))
+        );
         if (dLinks.length) {
           dLinks.forEach((l) => processedLinks.add(l.id));
           processLinks(transform, origin, dLinks, scene, docUpdates, processedLinks, d.id);
@@ -59,7 +70,7 @@ function processLinks(transform, origin, links, scene, docUpdates, processedLink
 function preUpdate(document, change, options, userId) {
   if (game.user.id !== userId || options.ignoreLinks) return;
 
-  let links = document.flags[MODULE_ID]?.links?.filter((l) => !l.child);
+  let links = document.flags[MODULE_ID]?.links?.filter((l) => l.type !== LINK_TYPES.RECEIVE);
   if (!links?.length) return;
 
   if (
@@ -143,21 +154,6 @@ function calculateTransform(document, change) {
   return { transform, origin };
 }
 
-// TODO, get chained links
-export function getLinkedPlaceables(links, parentId = null) {
-  const linked = [];
-  SUPPORTED_PLACEABLES.forEach((documentName) => {
-    canvas.getLayerByEmbeddedName(documentName).placeables.forEach((p) => {
-      if (
-        p.document.flags[MODULE_ID]?.links?.find((l1) => links.find((l2) => l1.id === l2.id)) &&
-        p.document.id !== parentId
-      )
-        linked.push(p);
-    });
-  });
-  return linked;
-}
-
 export class LinkerAPI {
   /**
    * Retrieve all linked embedded document
@@ -195,8 +191,8 @@ export class LinkerAPI {
     return allLinked;
   }
 
-  static addLinkToSelected(linkId, child = false) {
-    this._getSelected().forEach((p) => this.addLink(p, linkId, child));
+  static addLinkToSelected(linkId, type = LINK_TYPES.TWO_WAY) {
+    this._getSelected().forEach((p) => this.addLink(p, linkId, type));
   }
 
   static hasLink(placeable, linkId) {
@@ -204,7 +200,7 @@ export class LinkerAPI {
     return Boolean(document.flags[MODULE_ID]?.links?.find((l) => l.id === linkId));
   }
 
-  static addLink(placeable, linkId, child = false) {
+  static addLink(placeable, linkId, type = LINK_TYPES.TWO_WAY) {
     const document = placeable.document ?? placeable;
     const links = document.flags[MODULE_ID]?.links ?? [];
 
@@ -213,8 +209,7 @@ export class LinkerAPI {
       link = { id: linkId };
       links.push(link);
     }
-    if (child) link.child = true;
-    else delete link.child;
+    link.type = type;
 
     document.setFlag(MODULE_ID, 'links', links);
   }
@@ -295,15 +290,30 @@ export class LinkerMenu extends FormApplication {
   }
 
   async getData(options = {}) {
-    return { links: this.links };
+    return {
+      links: foundry.utils.deepClone(this.links).map((l) => {
+        l.icon = this._getTypeIcon(l.type);
+        return l;
+      }),
+    };
   }
 
   get title() {
     return 'Links';
   }
 
+  _getTypeIcon(type) {
+    if (type === LINK_TYPES.RECEIVE) {
+      return '<i class="fa-duotone fa-arrow-right-arrow-left" title="Receive"></i>';
+    } else if (type === LINK_TYPES.SEND) {
+      return '<i class="fa-duotone fa-arrow-right-arrow-left fa-rotate-180" title="Send"></i>';
+    } else {
+      return '<i class="fa-solid fa-arrow-right-arrow-left" title="Receive & Send"></i>';
+    }
+  }
+
   _addLink() {
-    this.links.push({ id: foundry.utils.randomID() });
+    this.links.push({ id: foundry.utils.randomID(), type: LINK_TYPES.TWO_WAY });
     this.render(true);
   }
 
@@ -313,32 +323,28 @@ export class LinkerMenu extends FormApplication {
   }
 
   _applyLink(event) {
-    const link = $(event.currentTarget).closest('.link');
-    const child = link.find('.toggle-child').hasClass('active');
-    const id = link.find('.linkId').text();
-
-    LinkerAPI.addLinkToSelected(id, child);
-    ui.notifications.info('LINK APPLIED');
+    if (canvas.activeLayer.controlled?.length) {
+      const link = this.links[Number($(event.currentTarget).closest('.link').data('index'))];
+      LinkerAPI.addLinkToSelected(link.id, link.type);
+      ui.notifications.info('LINK APPLIED');
+    }
   }
 
   _removeLink(event) {
-    const link = $(event.currentTarget).closest('.link');
-    const id = link.find('.linkId').text();
-
-    LinkerAPI.removeLinkFromSelected(id);
-    ui.notifications.info('LINK REMOVED');
+    if (canvas.activeLayer.controlled?.length) {
+      const link = this.links[Number($(event.currentTarget).closest('.link').data('index'))];
+      LinkerAPI.removeLinkFromSelected(link.id);
+      ui.notifications.info('LINK REMOVED');
+    }
   }
 
-  _toggleChild(event) {
-    const child = $(event.currentTarget);
-    child.toggleClass('active');
-    this.links[Number(child.closest('.link').data('index'))].child = child.hasClass('active');
+  _toggleType(event) {
+    const typeControl = $(event.currentTarget);
 
-    if (child.hasClass('active')) {
-      child.html('<i class="fa-duotone fa-arrow-up-arrow-down fa-rotate-90"></i>');
-    } else {
-      child.html('<i class="fa-solid fa-arrow-up-arrow-down fa-rotate-90"></i>');
-    }
+    const link = this.links[Number(typeControl.closest('.link').data('index'))];
+    link.type = (link.type + 1) % Object.keys(LINK_TYPES).length;
+
+    typeControl.html(this._getTypeIcon(link.type));
   }
 
   _linkIdChange(event) {
@@ -371,7 +377,7 @@ export class LinkerMenu extends FormApplication {
 
     html.on('click', '.apply-link', this._applyLink.bind(this));
     html.on('click', '.remove-link', this._removeLink.bind(this));
-    html.on('click', '.toggle-child', this._toggleChild.bind(this));
+    html.on('click', '.toggle-type', this._toggleType.bind(this));
     html.find('.linkId').on('input', this._linkIdChange.bind(this));
   }
 }

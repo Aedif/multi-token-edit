@@ -493,6 +493,10 @@ input.me-subtract {
   opacity: 0.5;
 }
 
+#mass-edit-preset-edit input[type="checkbox"]:checked {
+  accent-color: darkorange;
+}
+
 .mass-edit-preset-form .display-hover {
   display: none;
 }

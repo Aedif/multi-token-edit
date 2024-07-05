@@ -1,4 +1,4 @@
-import { LinkerAPI } from '../presets/linker.js';
+import { LINK_TYPES, LinkerAPI } from '../presets/linker.js';
 import { isResponsibleGM } from '../utils.js';
 
 /**
@@ -10,13 +10,17 @@ export class LinkTokenRegionBehaviorType extends foundry.data.regionBehaviors.Re
       linkId: new foundry.data.fields.StringField({
         label: `Link ID`,
         hint: `ID used to establish a link between the region and the token.`,
-        initial: 'LinkTokenBehavior - ' + foundry.utils.randomID(),
+        initial: 'LinkTokenBehavior - ' + foundry.utils.randomID(8),
       }),
-      childLink: new foundry.data.fields.BooleanField({
-        label: `Child`,
-        hint: `Is this a 'child' link? Child links will not transfer updates to parents.`,
-        initial: true,
-      }),
+      // linkType: new foundry.data.fields.NumberField({
+      //   choices: Object.keys(LINK_TYPES).reduce((obj, t) => {
+      //     obj[LINK_TYPES[t]] = t;
+      //     return obj;
+      //   }, {}),
+      //   label: `Link Type`,
+      //   hint: `One-way links will not transfer Token updates back to the region.`,
+      //   initial: LINK_TYPES.RECEIVE,
+      // }),
     };
   }
 
@@ -28,8 +32,8 @@ export class LinkTokenRegionBehaviorType extends foundry.data.regionBehaviors.Re
 
   static async _onTokenEnter(event) {
     if (!isResponsibleGM()) return;
-    if (!LinkerAPI.hasLink(this.region, this.linkId)) LinkerAPI.addLink(this.region, this.linkId);
-    LinkerAPI.addLink(event.data.token, this.linkId, this.childLink);
+    if (!LinkerAPI.hasLink(this.region, this.linkId)) LinkerAPI.addLink(this.region, this.linkId, LINK_TYPES.TWO_WAY);
+    LinkerAPI.addLink(event.data.token, this.linkId, LINK_TYPES.RECEIVE);
     return;
   }
 

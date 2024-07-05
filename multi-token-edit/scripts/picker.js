@@ -1,6 +1,6 @@
-import { LinkerAPI, getLinkedPlaceables } from './presets/linker.js';
+import { LinkerAPI } from './presets/linker.js';
 import { getDataBounds, getPresetDataCenterOffset } from './presets/utils.js';
-import { MODULE_ID, SUPPORTED_PLACEABLES } from './utils.js';
+import { SUPPORTED_PLACEABLES } from './utils.js';
 
 /**
  * Cross-hair and optional preview image/label that can be activated to allow the user to select
@@ -815,13 +815,6 @@ export class DataTransform {
     data.x += transform.x;
     data.y += transform.y;
     if (data.elevation != null) data.elevation += transform.z ?? 0;
-
-    // 3D Support
-    if (transform.z != null) {
-      data.elevation = (data.elevation ?? 0) + transform.z;
-    }
-
-    // console.log(transform.rotation % 360);
 
     if (transform.rotation != null) {
       const dr = Math.toRadians(transform.rotation % 360);

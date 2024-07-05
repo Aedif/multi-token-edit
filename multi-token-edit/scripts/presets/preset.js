@@ -23,6 +23,7 @@ const PRESET_FIELDS = [
   'spawnRandom',
   'attached',
   'tags',
+  'regenerateLinks',
 ];
 
 export const DOC_ICONS = {
@@ -74,6 +75,7 @@ export class Preset {
     this.postSpawnScript = data.postSpawnScript;
     this.attached = data.attached;
     this.spawnRandom = data.spawnRandom;
+    this.regenerateLinks = data.regenerateLinks;
     this._visible = true;
     this._render = true;
   }
@@ -165,6 +167,7 @@ export class Preset {
       this.postSpawnScript = preset.postSpawnScript;
       this.attached = preset.attached;
       this.spawnRandom = preset.spawnRandom;
+      this.regenerateLinks = preset.regenerateLinks ?? true;
       this.tags = preset.tags ?? [];
     }
 

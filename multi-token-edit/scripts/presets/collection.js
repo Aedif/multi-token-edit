@@ -798,6 +798,24 @@ export class PresetAPI {
       }
     }
 
+    // Regenerate links present within preset data. This will ensure uniqueness on the links
+    // when placed on a scene
+    if (preset.regenerateLinks) {
+      const links = new Map();
+      docToData.forEach((data) => {
+        data.forEach((d) => {
+          d.flags?.[MODULE_ID]?.links?.forEach((l) => {
+            let id = links.get(l.id);
+            if (!id) {
+              id = foundry.utils.randomID();
+              links.set(l.id, id);
+            }
+            l.id = id;
+          });
+        });
+      });
+    }
+
     // Scale data relative to grid size
     if (scaleToGrid) {
       const scale = canvas.grid.size / (preset.gridSize || 100);

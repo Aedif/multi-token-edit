@@ -14,13 +14,7 @@
             </div>
             {{#each links as |link|}}
             <div class="link" data-index="{{@index}}">
-                <a class="toggle-child {{#if link.child}}active{{/if}}" title="One-way / Two-way Link" style="flex: 0.1;">
-                    {{#if link.child}}
-                    <i class="fa-duotone fa-arrow-up-arrow-down fa-rotate-90"></i>
-                    {{else}}
-                    <i class="fa-solid fa-arrow-up-arrow-down fa-rotate-90"></i>
-                    {{/if}}
-                </a>
+                <a class="toggle-type" style="flex: 0.1; text-align: center;">{{{link.icon}}}</a>
                 <div class="linkId" contenteditable="true">{{link.id}}</div>
                 <a class="remove-link" title="Remove Link from Selected"><i class="fa-solid fa-link-slash"></i></a>
                 <a class="apply-link" title="Apply Link to Selected"><i class="fa-solid fa-link"></i></a>
