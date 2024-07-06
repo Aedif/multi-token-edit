@@ -1,5 +1,5 @@
 import { LINK_TYPES, LinkerAPI } from '../presets/linker.js';
-import { isResponsibleGM } from '../utils.js';
+import { isResponsibleGM, localize } from '../utils.js';
 
 /**
  * Region behavior to Link token to the region.
@@ -8,8 +8,8 @@ export class LinkTokenRegionBehaviorType extends foundry.data.regionBehaviors.Re
   static defineSchema() {
     return {
       linkId: new foundry.data.fields.StringField({
-        label: `Link ID`,
-        hint: `ID used to establish a link between the region and the token.`,
+        label: localize('behavior.linkToken.linkId.label'),
+        hint: localize('behavior.linkToken.linkId.hint'),
         initial: 'LinkTokenBehavior - ' + foundry.utils.randomID(8),
       }),
       // linkType: new foundry.data.fields.NumberField({

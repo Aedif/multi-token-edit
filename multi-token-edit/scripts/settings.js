@@ -272,8 +272,8 @@ export function registerSettings() {
 
 export function registerKeybinds() {
   game.keybindings.register(MODULE_ID, 'linker', {
-    name: 'Activate Linker Menu',
-    hint: '',
+    name: localize('keybindings.linkerMenu.name'),
+    hint: localize('keybindings.linkerMenu.hint'),
     editable: [
       {
         key: 'KeyQ',
@@ -290,8 +290,8 @@ export function registerKeybinds() {
   });
 
   game.keybindings.register(MODULE_ID, 'placeablePreviewEdit', {
-    name: 'Select Edit Placeables',
-    hint: '',
+    name: localize('keybindings.placeableEdit.name'),
+    hint: localize('keybindings.placeableEdit.hint'),
     editable: [
       {
         key: 'KeyD',
@@ -325,7 +325,7 @@ export function registerKeybinds() {
   });
 
   game.keybindings.register(MODULE_ID, 'copyKey', {
-    name: 'Copy',
+    name: localize('common.copy'),
     hint: '',
     editable: [
       {
@@ -346,7 +346,7 @@ export function registerKeybinds() {
   });
 
   game.keybindings.register(MODULE_ID, 'pasteKey', {
-    name: 'Paste',
+    name: localize('common.paste'),
     hint: '',
     editable: [
       {

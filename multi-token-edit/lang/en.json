@@ -1,5 +1,13 @@
 {
   "MassEdit": {
+    "behavior": {
+      "linkToken": {
+        "linkId": {
+          "label": "Link ID",
+          "hint": "ID used to establish a link between the region and the token."
+        }
+      }
+    },
     "form": {
       "immediate-update-title": "Automatically apply updates on field changes.",
       "global-search-title": "Enable world search.",
@@ -61,6 +69,14 @@
       "genericForm": {
         "name": "Open Generic Multi-Object Edit",
         "hint": "When pressed will open a Configuration window to simultaneously update all selected objects."
+      },
+      "linkerMenu": {
+        "name": "Open Linker Menu",
+        "hint": "A menu where you can apply and delete links between placeables."
+      },
+      "placeableEdit": {
+        "name": "Placeable Preview Editing",
+        "hint": "Selected placeables or placeables selected after keybind activation will enter preview mode allowing mass-transformation."
       }
     },
     "settings": {
@@ -177,6 +193,7 @@
       "swap": "Swap",
       "import": "Import",
       "copy": "Copy",
+      "paste": "Paste",
       "data": "Data",
       "modify": "Modify",
       "placeable": "Placeable",
