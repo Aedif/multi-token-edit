@@ -156,7 +156,7 @@ function calculateTransform(document, change) {
 
 export class LinkerAPI {
   /**
-   * Retrieve all linked embedded document
+   * Retrieve all linked embedded documents
    * @param {CanvasDocumentMixin|Array<CanvasDocumentMixin>} documents embedded document/s
    * @returns {Set<CanvasDocumentMixin>}
    */
@@ -170,13 +170,25 @@ export class LinkerAPI {
     return allLinked;
   }
 
+  static _getLinkedDocumentsUsingLink(link) {
+    const allLinked = new Set();
+    SUPPORTED_PLACEABLES.forEach((documentName) => {
+      canvas.scene.getEmbeddedCollection(documentName).forEach((d) => {
+        if (d.flags[MODULE_ID]?.links?.some((l) => l.id === link.id && l.type === link.type)) {
+          allLinked.add(d);
+        }
+      });
+    });
+    return allLinked;
+  }
+
   static _findLinked(document, allLinked, processedLinks = new Set()) {
     allLinked.add(document);
 
     const links = document.flags[MODULE_ID].links.filter((l) => !processedLinks.has(l.id)).map((l) => l.id);
     if (!links.length) return allLinked;
 
-    processedLinks.add(...links);
+    links.forEach((l) => processedLinks.add(l));
 
     SUPPORTED_PLACEABLES.forEach((documentName) => {
       const linked = canvas.scene
@@ -270,7 +282,7 @@ export class LinkerMenu extends FormApplication {
     const links = [];
     LinkerAPI._getSelected().forEach((p) => {
       p.document.flags[MODULE_ID]?.links?.forEach((l1) => {
-        if (!links.find((l2) => l1.id === l2.id)) links.push(foundry.utils.deepClone(l1));
+        if (!links.find((l2) => l1.id === l2.id && l1.type === l2.type)) links.push(foundry.utils.deepClone(l1));
       });
     });
     this.links = links;
@@ -338,6 +350,43 @@ export class LinkerMenu extends FormApplication {
     }
   }
 
+  _hoverInLink(event) {
+    const dg = canvas.controls.debug;
+    const link = this.links[Number($(event.currentTarget).closest('.link').data('index'))];
+    if (!link) return dg.clear();
+
+    const linked = LinkerAPI._getLinkedDocumentsUsingLink(link);
+    if (!linked) return dg.clear();
+
+    const width = 8;
+    const alpha = 1;
+    linked.forEach((d) => {
+      const bounds = getDataBounds(d.documentName, d);
+      // If the document has point like bounds, expand it to a 54x54 square instead
+      if (bounds.x1 === bounds.x2 && bounds.y1 === bounds.y2) {
+        bounds.x1 -= 30;
+        bounds.y1 -= 30;
+        bounds.x2 += 30;
+        bounds.y2 += 30;
+      }
+
+      dg.lineStyle(width + 2, 0, alpha, 0.5);
+      dg.drawRect(bounds.x1, bounds.y1, bounds.x2 - bounds.x1, bounds.y2 - bounds.y1);
+
+      dg.lineStyle(width, 0x00ff00, alpha, 0.5);
+      dg.drawRect(bounds.x1, bounds.y1, bounds.x2 - bounds.x1, bounds.y2 - bounds.y1);
+    });
+  }
+
+  _hoverOutLink(event) {
+    canvas.controls.debug.clear();
+  }
+
+  async close(options = {}) {
+    canvas.controls?.debug?.clear();
+    return super.close(options);
+  }
+
   _toggleType(event) {
     const typeControl = $(event.currentTarget);
 
@@ -378,6 +427,7 @@ export class LinkerMenu extends FormApplication {
     html.on('click', '.apply-link', this._applyLink.bind(this));
     html.on('click', '.remove-link', this._removeLink.bind(this));
     html.on('click', '.toggle-type', this._toggleType.bind(this));
+    html.find('.link').on('mouseover', this._hoverInLink.bind(this)).on('mouseout', this._hoverOutLink.bind(this));
     html.find('.linkId').on('input', this._linkIdChange.bind(this));
   }
 }
