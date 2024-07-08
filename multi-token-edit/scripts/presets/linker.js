@@ -81,6 +81,11 @@ function preUpdate(document, change, options, userId) {
     change.hasOwnProperty('c') ||
     change.hasOwnProperty('elevation')
   ) {
+    // If control is held during non-rotation update, we want to ignore links
+    if (game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.CONTROL) && change.hasOwnProperty('rotation')) {
+      return;
+    }
+
     // If an update occurred at the same time we need to check whether
     // this update has unique links which need to be processed
     const puLinks = PROCESSED_UPDATES.get(options.modifiedTime);
