@@ -1747,8 +1747,13 @@ export class MassEditPresets extends FormApplication {
     new IndexerForm().render(true);
   }
 
+  /**
+   * Export all working pack presets as as JSON file
+   */
   async _onExport() {
-    const tree = await PresetCollection.getTree();
+    const pack = game.packs.get(PresetCollection.workingPack);
+    await pack.getDocuments();
+    const tree = await PresetCollection.getTree(null, { externalCompendiums: false, virtualDirectory: false });
     exportPresets(tree.allPresets);
   }
 

@@ -81,11 +81,6 @@ function preUpdate(document, change, options, userId) {
     change.hasOwnProperty('c') ||
     change.hasOwnProperty('elevation')
   ) {
-    // If control is held during non-rotation update, we want to ignore links
-    if (game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.CONTROL) && change.hasOwnProperty('rotation')) {
-      return;
-    }
-
     // If an update occurred at the same time we need to check whether
     // this update has unique links which need to be processed
     const puLinks = PROCESSED_UPDATES.get(options.modifiedTime);
@@ -101,6 +96,14 @@ function preUpdate(document, change, options, userId) {
     const scene = document.parent;
 
     let { transform, origin } = calculateTransform(document, change);
+
+    // If control is held during non-rotation update, we want to ignore links
+    if (
+      game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.CONTROL) &&
+      !transform.hasOwnProperty('rotation')
+    ) {
+      return;
+    }
 
     const docUpdates = new Map();
     processLinks(transform, origin, links, scene, docUpdates, new Set(links.map((l) => l.id)), document.id);
@@ -267,6 +270,39 @@ export class LinkerAPI {
     });
   }
 
+  static removeLinkFromScene(link) {
+    const scene = canvas.scene;
+    if (!scene || !link || !link.id) return;
+
+    SUPPORTED_PLACEABLES.forEach((documentName) => {
+      const updates = [];
+      scene.getEmbeddedCollection(documentName).forEach((d) => {
+        let links = d.flags[MODULE_ID]?.links;
+        if (links) {
+          let fLinks = links.filter((l) => l.id !== link.id);
+          if (fLinks.length !== links.length) {
+            updates.push({ _id: d.id, [`flags.${MODULE_ID}.links`]: fLinks });
+          }
+        }
+      });
+      if (updates.length) scene.updateEmbeddedDocuments(documentName, updates);
+    });
+  }
+
+  static deleteLinkedPlaceables(link, scene = canvas.scene) {
+    if (!scene || !link || !link.id || !link.hasOwnProperty('type')) return;
+
+    SUPPORTED_PLACEABLES.forEach((documentName) => {
+      const ids = [];
+      scene.getEmbeddedCollection(documentName).forEach((d) => {
+        if (d.flags[MODULE_ID]?.links?.some((l) => l.id === link.id && l.type === link.type)) {
+          ids.push(d.id);
+        }
+      });
+      if (ids.length) scene.deleteEmbeddedDocuments(documentName, ids);
+    });
+  }
+
   static _getSelected() {
     let selected = [];
     SUPPORTED_PLACEABLES.forEach((documentName) => {
@@ -297,7 +333,7 @@ export class LinkerMenu extends FormApplication {
     return foundry.utils.mergeObject(super.defaultOptions, {
       id: 'mass-edit-linker-menu',
       template: `modules/${MODULE_ID}/templates/linker.html`,
-      classes: ['mass-edit-dark-window', 'mass-edit-window-fill'],
+      classes: ['mass-edit-dark-window', 'mass-edit-window-fill', 'me-allow-overflow'],
       resizable: false,
       minimizable: false,
       width: 300,
@@ -410,14 +446,8 @@ export class LinkerMenu extends FormApplication {
     const buttons = super._getHeaderButtons();
     buttons.unshift({
       label: '',
-      class: 'mass-edit-add-link',
-      icon: 'fa-solid fa-link',
-      onclick: () => this._addLink(),
-    });
-    buttons.unshift({
-      label: '',
       class: 'mass-edit-delete-link',
-      icon: 'fas fa-trash',
+      icon: 'fa-solid fa-link-slash',
       onclick: () => this._removeAllLinks(),
     });
     return buttons;
@@ -432,7 +462,48 @@ export class LinkerMenu extends FormApplication {
     html.on('click', '.apply-link', this._applyLink.bind(this));
     html.on('click', '.remove-link', this._removeLink.bind(this));
     html.on('click', '.toggle-type', this._toggleType.bind(this));
-    html.find('.link').on('mouseover', this._hoverInLink.bind(this)).on('mouseout', this._hoverOutLink.bind(this));
+    html.find('.add-link').on('click', this._addLink.bind(this));
+    html
+      .find('.links .link')
+      .on('mouseover', this._hoverInLink.bind(this))
+      .on('mouseout', this._hoverOutLink.bind(this));
     html.find('.linkId').on('input', this._linkIdChange.bind(this));
+
+    // Setup context menus for links
+    this._contextMenu(html.find('.links'));
+    html.closest('.window-content').addClass('me-allow-overflow'); // Allow context menu overflow
+
+    // Since Foundry doesn't allow to specify hover over text for header buttons, lets add it here
+    html.closest('.window-app').find('header .mass-edit-delete-link').attr('title', 'Remove All Links from Selected');
+  }
+
+  _contextMenu(html) {
+    ContextMenu.create(
+      this,
+      html,
+      '.links .link',
+      [
+        {
+          name: 'Remove Link from Scene',
+          icon: '<i class="fa-solid fa-link-slash"></i>',
+          callback: (linkElement) => {
+            const link = this.links[Number(linkElement.closest('.link').data('index'))];
+            if (link) LinkerAPI.removeLinkFromScene(link);
+          },
+        },
+        {
+          name: 'Delete Linked Placeables',
+          icon: '<i class="fas fa-trash"></i>',
+          callback: (linkElement) => {
+            const link = this.links[Number(linkElement.closest('.link').data('index'))];
+            console.log(link);
+            if (link) LinkerAPI.deleteLinkedPlaceables(link);
+          },
+        },
+      ],
+      {
+        hookName: 'MassEditLinkContext',
+      }
+    );
   }
 }

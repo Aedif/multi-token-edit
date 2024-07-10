@@ -5,13 +5,14 @@
 
         </div>
 
+        <div class="link" style="background: dimgray; height: 19px;">
+            <div style="flex: 0.1;"></div>
+            <div class="linkId">Link ID</div>
+            <div><a class="add-link" title="New Link"><i class="fa-solid fa-plus"></i></a></div>
+            <div></div>
+        </div>
+
         <div class="links" style="display: flex;">
-            <div class="link" style="background: dimgray; height: 19px;">
-                <div style="flex: 0.1;"></div>
-                <div>Link ID</div>
-                <div></div>
-                <div></div>
-            </div>
             {{#each links as |link|}}
             <div class="link" data-index="{{@index}}">
                 <a class="toggle-type" style="flex: 0.1; text-align: center;">{{{link.icon}}}</a>
