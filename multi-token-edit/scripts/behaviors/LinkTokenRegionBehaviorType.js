@@ -26,18 +26,18 @@ export class LinkTokenRegionBehaviorType extends foundry.data.regionBehaviors.Re
 
   /** @override */
   static events = {
-    [CONST.REGION_EVENTS.TOKEN_MOVE_IN]: this._onTokenEnter,
-    [CONST.REGION_EVENTS.TOKEN_MOVE_OUT]: this._onTokenExit,
+    [CONST.REGION_EVENTS.TOKEN_MOVE_IN]: this._onTokenMoveIn,
+    [CONST.REGION_EVENTS.TOKEN_MOVE_OUT]: this._onTokenMoveOut,
   };
 
-  static async _onTokenEnter(event) {
+  static async _onTokenMoveIn(event) {
     if (!isResponsibleGM()) return;
     if (!LinkerAPI.hasLink(this.region, this.linkId)) LinkerAPI.addLink(this.region, this.linkId, LINK_TYPES.TWO_WAY);
     LinkerAPI.addLink(event.data.token, this.linkId, LINK_TYPES.RECEIVE);
     return;
   }
 
-  static async _onTokenExit(event) {
+  static async _onTokenMoveOut(event) {
     if (!isResponsibleGM()) return;
     LinkerAPI.removeLink(event.data.token, this.linkId);
   }

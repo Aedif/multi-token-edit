@@ -1,6 +1,6 @@
 import { DataTransform } from './picker.js';
 import { getDataBounds } from './presets/utils.js';
-import { MODULE_ID } from './utils.js';
+import { MODULE_ID, SUPPORTED_PLACEABLES } from './utils.js';
 
 /**
  * Enable 'Select' tool for layers that do not have it. (AmbientLight, AmbientSound, MeasuredTemplate, and Note)
@@ -14,9 +14,10 @@ export function enableUniversalSelectTool() {
     Hooks.on(`refresh${layer}`, _placeableRefresh);
   });
 
-  Hooks.on('canvasReady', () =>
-    missingLayers.forEach((layer) => (canvas.getLayerByEmbeddedName(layer).options.controllableObjects = true))
-  );
+  Hooks.on('canvasReady', () => {
+    missingLayers.forEach((layer) => (canvas.getLayerByEmbeddedName(layer).options.controllableObjects = true));
+    if (SUPPORTED_PLACEABLES.includes('Region')) canvas.regions.options.rotatableObjects = true;
+  });
 
   Hooks.on('getSceneControlButtons', (controls) => _getControlButtons(controls));
 
@@ -115,6 +116,49 @@ function registerRegionWrappers() {
         updates.push({ _id: clone._original.id, shapes: clone.document.toObject(false).shapes });
       }
       return updates;
+    },
+    'OVERRIDE'
+  );
+
+  // Enable rotation
+  libWrapper.register(
+    MODULE_ID,
+    'Region.prototype.rotate',
+    async function (delta, snap) {
+      if (game.paused && !game.user.isGM) {
+        ui.notifications.warn('GAME.PausedWarning', { localize: true });
+        return this;
+      }
+
+      const data = this.document.toObject();
+      const { x1, y1, x2, y2 } = getDataBounds('Region', data);
+      const origin = {
+        x: x1 + (x2 - x1) / 2,
+        y: y1 + (y2 - y1) / 2,
+      };
+
+      DataTransform.apply('Region', data, origin, { rotation: delta });
+      await this.document.update({ shapes: data.shapes }, { meRotation: delta });
+      return this;
+    },
+    'OVERRIDE'
+  );
+
+  libWrapper.register(
+    MODULE_ID,
+    'RegionLayer.prototype._onMouseWheel',
+    function (event) {
+      // Identify the hovered light source
+      const region = this.hover;
+
+      //TODO check if region has circles
+      if (!region || region.isPreview) return;
+
+      // Determine the incremental angle of rotation from event data
+      const snap = event.shiftKey ? 15 : 3;
+      const delta = snap * Math.sign(event.delta);
+
+      region.rotate(delta, snap);
     },
     'OVERRIDE'
   );

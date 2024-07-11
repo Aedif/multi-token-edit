@@ -95,7 +95,7 @@ function preUpdate(document, change, options, userId) {
 
     const scene = document.parent;
 
-    let { transform, origin } = calculateTransform(document, change);
+    let { transform, origin } = calculateTransform(document, change, options);
 
     // If control is held during non-rotation update, we want to ignore links
     if (
@@ -114,7 +114,7 @@ function preUpdate(document, change, options, userId) {
   }
 }
 
-function calculateTransform(document, change) {
+function calculateTransform(document, change, options) {
   let transform;
 
   // Cannot trust document data as it can be modified by animations
@@ -122,13 +122,17 @@ function calculateTransform(document, change) {
   const source = document._source;
 
   if (change.hasOwnProperty('shapes') || change.hasOwnProperty('c')) {
-    const changeBounds = getDataBounds(document.documentName, change);
-    const currentBounds = getDataBounds(document.documentName, source);
+    if (options.hasOwnProperty('meRotation')) {
+      transform = { x: 0, y: 0 };
+    } else {
+      const changeBounds = getDataBounds(document.documentName, change);
+      const currentBounds = getDataBounds(document.documentName, source);
 
-    transform = {
-      x: changeBounds.x1 - currentBounds.x1,
-      y: changeBounds.y1 - currentBounds.y1,
-    };
+      transform = {
+        x: changeBounds.x1 - currentBounds.x1,
+        y: changeBounds.y1 - currentBounds.y1,
+      };
+    }
   } else {
     transform = {
       x: change.hasOwnProperty('x') ? change.x - source.x : 0,
@@ -138,11 +142,11 @@ function calculateTransform(document, change) {
 
   const origin = { x: 0, y: 0 };
 
-  if (change.hasOwnProperty('rotation')) {
-    const dRotation = change.rotation - source.rotation;
+  if (change.hasOwnProperty('rotation') || options.hasOwnProperty('meRotation')) {
+    const dRotation = options.hasOwnProperty('meRotation') ? options.meRotation : change.rotation - source.rotation;
 
     if (dRotation !== 0) {
-      transform.rotation = change.rotation - source.rotation;
+      transform.rotation = dRotation;
 
       const { x1, y1, x2, y2 } = getDataBounds(document.documentName, source);
 
@@ -193,8 +197,8 @@ export class LinkerAPI {
   static _findLinked(document, allLinked, processedLinks = new Set()) {
     allLinked.add(document);
 
-    const links = document.flags[MODULE_ID].links.filter((l) => !processedLinks.has(l.id)).map((l) => l.id);
-    if (!links.length) return allLinked;
+    const links = document.flags[MODULE_ID]?.links?.filter((l) => !processedLinks.has(l.id)).map((l) => l.id);
+    if (!links?.length) return allLinked;
 
     links.forEach((l) => processedLinks.add(l));
 

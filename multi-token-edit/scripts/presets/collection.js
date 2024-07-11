@@ -747,7 +747,7 @@ export class PresetAPI {
     center = false,
     transform = {},
     previewOnly = false,
-    sceneId,
+    sceneId = canvas.scene.id,
   } = {}) {
     if (!canvas.ready) throw Error("Canvas need to be 'ready' for a preset to be spawned.");
     if (!(uuid || preset || name || type || folder || tags))
@@ -926,7 +926,7 @@ export class PresetAPI {
     const allDocuments = [];
 
     for (const [documentName, dataArr] of docToData.entries()) {
-      const documents = await createDocuments(documentName, dataArr, sceneId ?? canvas.scene.id);
+      const documents = await createDocuments(documentName, dataArr, sceneId);
       documents.forEach((d) => allDocuments.push(d));
     }
 
