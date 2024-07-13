@@ -150,9 +150,7 @@ function registerRegionWrappers() {
     function (event) {
       // Identify the hovered light source
       const region = this.hover;
-
-      //TODO check if region has circles
-      if (!region || region.isPreview) return;
+      if (!region || region.isPreview || region.document.shapes.some((s) => s.type === 'ellipse')) return;
 
       // Determine the incremental angle of rotation from event data
       const snap = event.shiftKey ? 15 : 3;

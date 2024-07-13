@@ -204,7 +204,9 @@
   "TYPES":{
     "RegionBehavior": {
       "multi-token-edit": {
-        "linkToken": "Link Token"
+        "linkToken": "Link Token",
+        "spawnPreset": "Spawn Preset",
+        "deSpawnPreset": "De-Spawn Preset"
       }
     }
   }

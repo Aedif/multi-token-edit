@@ -739,6 +739,7 @@ export class PresetAPI {
     coordPicker = false,
     pickerLabel,
     taPreview,
+    sceneId = canvas.scene.id,
     snapToGrid = true,
     hidden = false,
     layerSwitch = false,
@@ -747,7 +748,7 @@ export class PresetAPI {
     center = false,
     transform = {},
     previewOnly = false,
-    sceneId = canvas.scene.id,
+    flags,
   } = {}) {
     if (!canvas.ready) throw Error("Canvas need to be 'ready' for a preset to be spawned.");
     if (!(uuid || preset || name || type || folder || tags))
@@ -889,7 +890,6 @@ export class PresetAPI {
       posTransform.y += pos.y;
 
       // 3D Support
-
       if (game.Levels3DPreview?._active) {
         if (pos.z == null) posTransform.z = 0;
         else posTransform.z += pos.z;
@@ -902,8 +902,7 @@ export class PresetAPI {
       });
     }
 
-    // Assign ownership to the user who triggered the spawn
-    // And hide if necessary
+    // Assign ownership to the user who triggered the spawn, hide and apply flags if if necessary
     docToData.forEach((dataArr, documentName) => {
       dataArr.forEach((data) => {
         // Assign ownership for Drawings and MeasuredTemplates
@@ -914,9 +913,11 @@ export class PresetAPI {
 
         // Hide
         if (hidden || game.keyboard.downKeys.has('AltLeft')) data.hidden = true;
+        if (flags) data.flags = foundry.utils.mergeObject(data.flags ?? {}, flags);
       });
     });
 
+    // Switch active layer to the preset's base placeable type
     if (layerSwitch) {
       if (game.user.isGM || ['Token', 'MeasuredTemplate', 'Note'].includes(preset.documentName))
         canvas.getLayerByEmbeddedName(preset.documentName)?.activate();

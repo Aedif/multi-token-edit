@@ -34,16 +34,6 @@ import { LinkerAPI, registerLinkerHooks } from './scripts/presets/linker.js';
 
 // Initialize module
 Hooks.once('init', () => {
-  // If we're on v12, register region behaviors
-  if (foundry.utils.isNewerVersion(game.version, 12)) {
-    import('./scripts/behaviors/LinkTokenRegionBehaviorType.js').then((module) => {
-      Object.assign(CONFIG.RegionBehavior.dataModels, {
-        [`${MODULE_ID}.linkToken`]: module.LinkTokenRegionBehaviorType,
-      });
-      CONFIG.RegionBehavior.typeIcons[`${MODULE_ID}.linkToken`] = 'fas fa-link';
-    });
-  }
-
   // We need to insert Region into relevant doc groups
   // TODO: Once we move to a dedicated v12 version of the module we can
   // make these groups static again
@@ -51,18 +41,26 @@ Hooks.once('init', () => {
     SUPPORTED_PLACEABLES.push('Region');
     UI_DOCS.push('Region');
     SUPPORT_SHEET_CONFIGS.push('Region');
+
+    //Register region behaviors
+    import('./scripts/behaviors/behaviors.js').then((module) => module.registerBehaviors());
   }
 
   // Allows users to drop AmbientSound presets onto playlists
   registerSideBarPresetDropListener();
 
+  // Linker related hooks
   registerLinkerHooks();
 
+  // TODO: Replace with core v12 implementation of tag HTML element
   TagInput.registerHandlebarsHelper();
 
+  // Enable select tool for all layers
+  enableUniversalSelectTool();
+
+  // Settings/Keybindings
   registerSettings();
   registerKeybinds();
-  enableUniversalSelectTool(); // Enable select tool for all layers
 
   // Register copy-paste wrappers
   libWrapper.register(
