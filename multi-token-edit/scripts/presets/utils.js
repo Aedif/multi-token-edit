@@ -438,7 +438,6 @@ export function registerSideBarPresetDropListener() {
         });
       });
 
-      console.log(updates, playlist);
       PlaylistSound.create(updates, { parent: playlist });
     });
   });

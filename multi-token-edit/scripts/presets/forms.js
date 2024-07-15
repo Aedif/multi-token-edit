@@ -24,7 +24,7 @@ import {
   PresetFolder,
 } from './collection.js';
 import { FileIndexer, IndexerForm } from './fileIndexer.js';
-import { LinkerAPI } from './linker.js';
+import { LinkerAPI } from '../linker.js';
 import { DOC_ICONS, Preset, VirtualFilePreset } from './preset.js';
 import { TagSelector } from './tagSelector.js';
 import {
@@ -2151,7 +2151,7 @@ export class PresetConfig extends FormApplication {
       if (formData.preSpawnScript != null) update.preSpawnScript = formData.preSpawnScript;
       if (formData.postSpawnScript != null) update.postSpawnScript = formData.postSpawnScript;
       if (formData.spawnRandom != null) update.spawnRandom = formData.spawnRandom;
-      if (formData.regenerateLinks != null) update.regenerateLinks = formData.regenerateLinks;
+      if (formData.preserveLinks != null) update.preserveLinks = formData.preserveLinks;
 
       // If this is a single preset config, we override all tags
       // If not we merge

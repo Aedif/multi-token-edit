@@ -1,4 +1,4 @@
-import { LinkerAPI } from './presets/linker.js';
+import { LinkerAPI } from './linker.js';
 import { getDataBounds, getPresetDataCenterOffset } from './presets/utils.js';
 import { SUPPORTED_PLACEABLES } from './utils.js';
 

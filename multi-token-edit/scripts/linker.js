@@ -2,10 +2,10 @@
  * Manage placeable linking to one another using `links` flag.
  */
 
-import { DataTransform } from '../picker.js';
-import { libWrapper } from '../shim/shim.js';
-import { MODULE_ID, SUPPORTED_PLACEABLES, updateEmbeddedDocumentsViaGM } from '../utils.js';
-import { getDataBounds } from './utils.js';
+import { DataTransform } from './picker.js';
+import { libWrapper } from './shim/shim.js';
+import { MODULE_ID, SUPPORTED_PLACEABLES, updateEmbeddedDocumentsViaGM } from './utils.js';
+import { getDataBounds } from './presets/utils.js';
 
 const PROCESSED_UPDATES = new Map();
 export const LINK_TYPES = {
@@ -108,7 +108,11 @@ function preUpdate(document, change, options, userId) {
     const docUpdates = new Map();
     processLinks(transform, origin, links, scene, docUpdates, new Set(links.map((l) => l.id)), document.id);
     docUpdates.forEach((updates, documentName) => {
-      updateEmbeddedDocumentsViaGM(documentName, updates, { ignoreLinks: true, animate: false }, scene);
+      const options = { ignoreLinks: true, animate: false };
+      if (documentName === 'Token') {
+        options.RidingMovement = true; // 'Auto-Rotate' module compatibility
+      }
+      updateEmbeddedDocumentsViaGM(documentName, updates, options, scene);
     });
     return;
   }
@@ -144,7 +148,6 @@ function calculateTransform(document, change, options) {
 
   if (change.hasOwnProperty('rotation') || options.hasOwnProperty('meRotation')) {
     const dRotation = options.hasOwnProperty('meRotation') ? options.meRotation : change.rotation - source.rotation;
-
     if (dRotation !== 0) {
       transform.rotation = dRotation;
 
@@ -152,6 +155,7 @@ function calculateTransform(document, change, options) {
 
       origin.x = x1 + (x2 - x1) / 2;
       origin.y = y1 + (y2 - y1) / 2;
+      //console.log({ c: change.rotation, s: source.rotation, t: transform.rotation });
     }
   }
 
@@ -325,11 +329,15 @@ export class LinkerMenu extends FormApplication {
     // super({}, { left: pos.left + 50, top: pos.top });
 
     const links = [];
-    LinkerAPI._getSelected().forEach((p) => {
-      p.document.flags[MODULE_ID]?.links?.forEach((l1) => {
-        if (!links.find((l2) => l1.id === l2.id && l1.type === l2.type)) links.push(foundry.utils.deepClone(l1));
+    SUPPORTED_PLACEABLES.forEach((embeddedName) => {
+      canvas.scene.getEmbeddedCollection(embeddedName).forEach((d) => {
+        d.flags[MODULE_ID]?.links?.forEach((l1) => {
+          if (!links.find((l2) => l1.id === l2.id && l1.type === l2.type)) links.push(foundry.utils.deepClone(l1));
+        });
       });
     });
+    links.sort((l1, l2) => l1.id.localeCompare(l2.id));
+
     this.links = links;
   }
 
@@ -370,7 +378,9 @@ export class LinkerMenu extends FormApplication {
   }
 
   _addLink() {
-    this.links.push({ id: foundry.utils.randomID(), type: LINK_TYPES.TWO_WAY });
+    const link = { id: foundry.utils.randomID(), type: LINK_TYPES.TWO_WAY };
+    this.links.push(link);
+    LinkerAPI.addLinkToSelected(link.id, link.type);
     this.render(true);
   }
 
@@ -406,20 +416,13 @@ export class LinkerMenu extends FormApplication {
     const width = 8;
     const alpha = 1;
     linked.forEach((d) => {
-      const bounds = getDataBounds(d.documentName, d);
-      // If the document has point like bounds, expand it to a 54x54 square instead
-      if (bounds.x1 === bounds.x2 && bounds.y1 === bounds.y2) {
-        bounds.x1 -= 30;
-        bounds.y1 -= 30;
-        bounds.x2 += 30;
-        bounds.y2 += 30;
-      }
+      let bounds = d.object.bounds;
 
       dg.lineStyle(width + 2, 0, alpha, 0.5);
-      dg.drawRect(bounds.x1, bounds.y1, bounds.x2 - bounds.x1, bounds.y2 - bounds.y1);
+      dg.drawRect(bounds.x, bounds.y, bounds.width, bounds.height);
 
       dg.lineStyle(width, 0x00ff00, alpha, 0.5);
-      dg.drawRect(bounds.x1, bounds.y1, bounds.x2 - bounds.x1, bounds.y2 - bounds.y1);
+      dg.drawRect(bounds.x, bounds.y, bounds.width, bounds.height);
     });
   }
 
@@ -500,7 +503,6 @@ export class LinkerMenu extends FormApplication {
           icon: '<i class="fas fa-trash"></i>',
           callback: (linkElement) => {
             const link = this.links[Number(linkElement.closest('.link').data('index'))];
-            console.log(link);
             if (link) LinkerAPI.deleteLinkedPlaceables(link);
           },
         },

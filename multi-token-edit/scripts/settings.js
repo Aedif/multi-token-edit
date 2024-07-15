@@ -10,7 +10,7 @@ import {
 import { editPreviewPlaceables } from './picker.js';
 import { PresetCollection } from './presets/collection.js';
 import { MassEditPresets } from './presets/forms.js';
-import { LinkerMenu } from './presets/linker.js';
+import { LinkerMenu } from './linker.js';
 import {
   MODULE_ID,
   SUPPORTED_COLLECTIONS,
