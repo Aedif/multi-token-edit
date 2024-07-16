@@ -1,4 +1,4 @@
-import { LINK_TYPES, LinkerAPI } from '../presets/linker.js';
+import { LINK_TYPES, LinkerAPI } from '../linker/linker.js';
 import { isResponsibleGM, localize } from '../utils.js';
 
 /**

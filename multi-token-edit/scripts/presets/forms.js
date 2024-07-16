@@ -24,7 +24,7 @@ import {
   PresetFolder,
 } from './collection.js';
 import { FileIndexer, IndexerForm } from './fileIndexer.js';
-import { LinkerAPI } from '../linker.js';
+import { LinkerAPI } from '../linker/linker.js';
 import { DOC_ICONS, Preset, VirtualFilePreset } from './preset.js';
 import { TagSelector } from './tagSelector.js';
 import {

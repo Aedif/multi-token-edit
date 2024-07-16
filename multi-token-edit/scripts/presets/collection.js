@@ -801,17 +801,27 @@ export class PresetAPI {
 
     // Regenerate links present within preset data. This will ensure uniqueness on the links
     // when placed on a scene
-    if (preset.regenerateLinks) {
+    if (!preset.preserveLinks) {
       const links = new Map();
+
+      const newLinkId = function (oldId) {
+        let id = links.get(oldId);
+        if (!id) {
+          if (oldId.startsWith('LinkTokenBehavior - ')) {
+            id = 'LinkTokenBehavior - ' + foundry.utils.randomID(8);
+          } else {
+            id = foundry.utils.randomID();
+          }
+          links.set(oldId, id);
+        }
+        return id;
+      };
+
       docToData.forEach((data) => {
         data.forEach((d) => {
-          d.flags?.[MODULE_ID]?.links?.forEach((l) => {
-            let id = links.get(l.id);
-            if (!id) {
-              id = foundry.utils.randomID();
-              links.set(l.id, id);
-            }
-            l.id = id;
+          d.flags?.[MODULE_ID]?.links?.forEach((l) => (l.id = newLinkId(l.id)));
+          d.behaviors?.forEach((b) => {
+            if (b.system?.linkId) b.system.linkId = newLinkId(b.system.linkId);
           });
         });
       });

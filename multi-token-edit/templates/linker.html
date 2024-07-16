@@ -1,26 +1,11 @@
 <form>
-    <div class="mass-edit-linker-menu">
-
-        <div class="header">
+    <div style="height: 100%; display: flex; flex-flow: column;">
+        <div class="controls" style="height: 100px;">
 
         </div>
-
-        <div class="link" style="background: dimgray; height: 19px;">
-            <div style="flex: 0.1;"></div>
-            <div class="linkId">Link ID</div>
-            <div><a class="add-link" title="Create New Link and Apply to Selected"><i class="fa-solid fa-plus"></i></a></div>
-            <div></div>
-        </div>
-
-        <div class="links" style="display: flex;">
-            {{#each links as |link|}}
-            <div class="link" data-index="{{@index}}">
-                <a class="toggle-type" style="flex: 0.1; text-align: center;">{{{link.icon}}}</a>
-                <div class="linkId" contenteditable="true">{{link.id}}</div>
-                <a class="remove-link" title="Remove Link from Selected"><i class="fa-solid fa-link-slash"></i></a>
-                <a class="apply-link" title="Apply Link to Selected"><i class="fa-solid fa-link"></i></a>
-            </div>
-            {{/each}}
+    
+        <div class="graph" style="border: solid 1px white; flex: 1;">
+    
         </div>
     </div>
 </form>

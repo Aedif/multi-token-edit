@@ -30,7 +30,7 @@ import {
   performMassUpdate,
 } from './applications/formUtils.js';
 import { registerSideBarPresetDropListener } from './scripts/presets/utils.js';
-import { LinkerAPI, registerLinkerHooks } from './scripts/presets/linker.js';
+import { LinkerAPI, registerLinkerHooks } from './scripts/linker/linker.js';
 
 // Initialize module
 Hooks.once('init', () => {

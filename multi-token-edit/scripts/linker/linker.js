@@ -2,10 +2,10 @@
  * Manage placeable linking to one another using `links` flag.
  */
 
-import { DataTransform } from './picker.js';
-import { libWrapper } from './shim/shim.js';
-import { MODULE_ID, SUPPORTED_PLACEABLES, updateEmbeddedDocumentsViaGM } from './utils.js';
-import { getDataBounds } from './presets/utils.js';
+import { DataTransform } from '../picker.js';
+import { libWrapper } from '../shim/shim.js';
+import { MODULE_ID, SUPPORTED_PLACEABLES, updateEmbeddedDocumentsViaGM } from '../utils.js';
+import { getDataBounds } from '../presets/utils.js';
 
 const PROCESSED_UPDATES = new Map();
 export const LINK_TYPES = {
@@ -171,6 +171,11 @@ function calculateTransform(document, change, options) {
 }
 
 export class LinkerAPI {
+  static async openMenu() {
+    const module = await import('./menu.js');
+    await module.openLinkerMenu();
+  }
+
   /**
    * Retrieve all linked embedded documents
    * @param {CanvasDocumentMixin|Array<CanvasDocumentMixin>} documents embedded document/s
@@ -186,11 +191,11 @@ export class LinkerAPI {
     return allLinked;
   }
 
-  static _getLinkedDocumentsUsingLink(link) {
+  static _getLinkedDocumentsUsingLink(linkId, type) {
     const allLinked = new Set();
     SUPPORTED_PLACEABLES.forEach((documentName) => {
       canvas.scene.getEmbeddedCollection(documentName).forEach((d) => {
-        if (d.flags[MODULE_ID]?.links?.some((l) => l.id === link.id && l.type === link.type)) {
+        if (d.flags[MODULE_ID]?.links?.some((l) => l.id === linkId && (type == null || l.type === type))) {
           allLinked.add(d);
         }
       });
@@ -317,199 +322,5 @@ export class LinkerAPI {
       selected = selected.concat(canvas.getLayerByEmbeddedName(documentName).controlled);
     });
     return selected;
-  }
-}
-
-export class LinkerMenu extends FormApplication {
-  constructor() {
-    const pos = canvas.clientCoordinatesFromCanvas(canvas.mousePosition);
-    super({}, { left: Math.max(pos.x - 350, 0), top: pos.y });
-
-    // const pos = ui.controls.element.find('[data-control="me-presets"]').position();
-    // super({}, { left: pos.left + 50, top: pos.top });
-
-    const links = [];
-    SUPPORTED_PLACEABLES.forEach((embeddedName) => {
-      canvas.scene.getEmbeddedCollection(embeddedName).forEach((d) => {
-        d.flags[MODULE_ID]?.links?.forEach((l1) => {
-          if (!links.find((l2) => l1.id === l2.id && l1.type === l2.type)) links.push(foundry.utils.deepClone(l1));
-        });
-      });
-    });
-    links.sort((l1, l2) => l1.id.localeCompare(l2.id));
-
-    this.links = links;
-  }
-
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      id: 'mass-edit-linker-menu',
-      template: `modules/${MODULE_ID}/templates/linker.html`,
-      classes: ['mass-edit-dark-window', 'mass-edit-window-fill', 'me-allow-overflow'],
-      resizable: false,
-      minimizable: false,
-      width: 300,
-      height: 'auto',
-      scrollY: ['.links'],
-    });
-  }
-
-  async getData(options = {}) {
-    return {
-      links: foundry.utils.deepClone(this.links).map((l) => {
-        l.icon = this._getTypeIcon(l.type);
-        return l;
-      }),
-    };
-  }
-
-  get title() {
-    return 'Links';
-  }
-
-  _getTypeIcon(type) {
-    if (type === LINK_TYPES.RECEIVE) {
-      return '<i class="fa-duotone fa-arrow-right-arrow-left" title="Receive"></i>';
-    } else if (type === LINK_TYPES.SEND) {
-      return '<i class="fa-duotone fa-arrow-right-arrow-left fa-rotate-180" title="Send"></i>';
-    } else {
-      return '<i class="fa-solid fa-arrow-right-arrow-left" title="Receive & Send"></i>';
-    }
-  }
-
-  _addLink() {
-    const link = { id: foundry.utils.randomID(), type: LINK_TYPES.TWO_WAY };
-    this.links.push(link);
-    LinkerAPI.addLinkToSelected(link.id, link.type);
-    this.render(true);
-  }
-
-  _removeAllLinks() {
-    LinkerAPI.removeAllLinksFromSelected();
-    ui.notifications.info('LINKS REMOVED');
-  }
-
-  _applyLink(event) {
-    if (canvas.activeLayer.controlled?.length) {
-      const link = this.links[Number($(event.currentTarget).closest('.link').data('index'))];
-      LinkerAPI.addLinkToSelected(link.id, link.type);
-      ui.notifications.info('LINK APPLIED');
-    }
-  }
-
-  _removeLink(event) {
-    if (canvas.activeLayer.controlled?.length) {
-      const link = this.links[Number($(event.currentTarget).closest('.link').data('index'))];
-      LinkerAPI.removeLinkFromSelected(link.id);
-      ui.notifications.info('LINK REMOVED');
-    }
-  }
-
-  _hoverInLink(event) {
-    const dg = canvas.controls.debug;
-    const link = this.links[Number($(event.currentTarget).closest('.link').data('index'))];
-    if (!link) return dg.clear();
-
-    const linked = LinkerAPI._getLinkedDocumentsUsingLink(link);
-    if (!linked) return dg.clear();
-
-    const width = 8;
-    const alpha = 1;
-    linked.forEach((d) => {
-      let bounds = d.object.bounds;
-
-      dg.lineStyle(width + 2, 0, alpha, 0.5);
-      dg.drawRect(bounds.x, bounds.y, bounds.width, bounds.height);
-
-      dg.lineStyle(width, 0x00ff00, alpha, 0.5);
-      dg.drawRect(bounds.x, bounds.y, bounds.width, bounds.height);
-    });
-  }
-
-  _hoverOutLink(event) {
-    canvas.controls.debug.clear();
-  }
-
-  async close(options = {}) {
-    canvas.controls?.debug?.clear();
-    return super.close(options);
-  }
-
-  _toggleType(event) {
-    const typeControl = $(event.currentTarget);
-
-    const link = this.links[Number(typeControl.closest('.link').data('index'))];
-    link.type = (link.type + 1) % Object.keys(LINK_TYPES).length;
-
-    typeControl.html(this._getTypeIcon(link.type));
-  }
-
-  _linkIdChange(event) {
-    const id = $(event.currentTarget);
-    this.links[Number(id.closest('.link').data('index'))].id = id.text();
-  }
-
-  _getHeaderButtons() {
-    const buttons = super._getHeaderButtons();
-    buttons.unshift({
-      label: '',
-      class: 'mass-edit-delete-link',
-      icon: 'fa-solid fa-link-slash',
-      onclick: () => this._removeAllLinks(),
-    });
-    return buttons;
-  }
-
-  activateListeners(html) {
-    super.activateListeners(html);
-
-    // Auto-select so that the pre-defined names can be conveniently erased
-    html.find('[name="name"]').select();
-
-    html.on('click', '.apply-link', this._applyLink.bind(this));
-    html.on('click', '.remove-link', this._removeLink.bind(this));
-    html.on('click', '.toggle-type', this._toggleType.bind(this));
-    html.find('.add-link').on('click', this._addLink.bind(this));
-    html
-      .find('.links .link')
-      .on('mouseover', this._hoverInLink.bind(this))
-      .on('mouseout', this._hoverOutLink.bind(this));
-    html.find('.linkId').on('input', this._linkIdChange.bind(this));
-
-    // Setup context menus for links
-    this._contextMenu(html.find('.links'));
-    html.closest('.window-content').addClass('me-allow-overflow'); // Allow context menu overflow
-
-    // Since Foundry doesn't allow to specify hover over text for header buttons, lets add it here
-    html.closest('.window-app').find('header .mass-edit-delete-link').attr('title', 'Remove All Links from Selected');
-  }
-
-  _contextMenu(html) {
-    ContextMenu.create(
-      this,
-      html,
-      '.links .link',
-      [
-        {
-          name: 'Remove Link from Scene',
-          icon: '<i class="fa-solid fa-link-slash"></i>',
-          callback: (linkElement) => {
-            const link = this.links[Number(linkElement.closest('.link').data('index'))];
-            if (link) LinkerAPI.removeLinkFromScene(link);
-          },
-        },
-        {
-          name: 'Delete Linked Placeables',
-          icon: '<i class="fas fa-trash"></i>',
-          callback: (linkElement) => {
-            const link = this.links[Number(linkElement.closest('.link').data('index'))];
-            if (link) LinkerAPI.deleteLinkedPlaceables(link);
-          },
-        },
-      ],
-      {
-        hookName: 'MassEditLinkContext',
-      }
-    );
   }
 }
