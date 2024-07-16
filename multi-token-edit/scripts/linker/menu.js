@@ -77,6 +77,10 @@ class LinkerMenu extends FormApplication {
       canvas.scene.getEmbeddedCollection(embeddedName).forEach((d) => {
         if (d.flags[MODULE_ID]?.links?.length) {
           // Placeable node
+          const coords = {
+            x: d.object.bounds.x,
+            y: -d.object.bounds.y,
+          };
           graph.addNode(d.id, {
             size: 15,
             label: embeddedName,
@@ -85,6 +89,7 @@ class LinkerMenu extends FormApplication {
             image: DOC_ICONS[embeddedName],
             type: 'pictogram',
             document: d,
+            ...coords,
           });
 
           // Link nodes and edges
@@ -99,6 +104,7 @@ class LinkerMenu extends FormApplication {
                 image: NODE_CONFIG.LINK_IMAGE,
                 type: 'pictogram',
                 isLink: true,
+                ...coords,
               });
             }
 
@@ -121,12 +127,6 @@ class LinkerMenu extends FormApplication {
       });
     });
 
-    // Assign coordinates to nodes
-    graph.nodes().forEach((node, i) => {
-      const angle = (i * 2 * Math.PI) / graph.order;
-      graph.setNodeAttribute(node, 'x', 100 * Math.cos(angle));
-      graph.setNodeAttribute(node, 'y', 100 * Math.sin(angle));
-    });
     //const positions = forceAtlas2(graph, { iterations: 50 });
     //forceAtlas2.assign(graph, 50);
 
@@ -208,6 +208,7 @@ class LinkerMenu extends FormApplication {
     });
 
     sigmaInstance.on('clickNode', ({ node }) => this.onClickNode(node));
+    sigmaInstance.on('rightClickNode', ({ node }) => this.onRightClickNode(node));
   }
 
   onClickNode(node) {
@@ -235,99 +236,43 @@ class LinkerMenu extends FormApplication {
     this._sigmaInstance.refresh();
   }
 
+  onRightClickNode(node) {
+    const graph = this._graph;
+
+    if (graph.getNodeAttribute(node, 'isLink')) {
+      // Link node click handling
+
+      // If this link was the sole connection to a placeable,
+      // remove that placeable from the graph
+      graph.forEachNeighbor(node, (n) => {
+        if (graph.edges(n).length === 1) graph.dropNode(n);
+      });
+
+      graph.dropNode(node);
+      LinkerAPI.removeLinkFromScene(node);
+
+      // The link has to have been hovered over. Clear the highlighting
+      canvas.controls.debug.clear();
+    } else {
+      // Placeable note click handling
+      const document = graph.getNodeAttribute(node, 'document');
+      if (document) LinkerAPI.removeLinks(document);
+
+      this._graph.dropNode(node);
+    }
+  }
+
   async getData(options = {}) {
-    return {
-      links: foundry.utils.deepClone(this.links).map((l) => {
-        l.icon = this._getTypeIcon(l.type);
-        return l;
-      }),
-    };
+    return {};
   }
 
   get title() {
     return 'Links';
   }
 
-  _getTypeIcon(type) {
-    if (type === LINK_TYPES.RECEIVE) {
-      return '<i class="fa-duotone fa-arrow-right-arrow-left" title="Receive"></i>';
-    } else if (type === LINK_TYPES.SEND) {
-      return '<i class="fa-duotone fa-arrow-right-arrow-left fa-rotate-180" title="Send"></i>';
-    } else {
-      return '<i class="fa-solid fa-arrow-right-arrow-left" title="Receive & Send"></i>';
-    }
-  }
-
-  _addLink() {
-    const link = { id: foundry.utils.randomID(), type: LINK_TYPES.TWO_WAY };
-    this.links.push(link);
-    LinkerAPI.addLinkToSelected(link.id, link.type);
-    this.render(true);
-  }
-
-  _removeAllLinks() {
-    LinkerAPI.removeAllLinksFromSelected();
-    ui.notifications.info('LINKS REMOVED');
-  }
-
-  _applyLink(event) {
-    if (canvas.activeLayer.controlled?.length) {
-      const link = this.links[Number($(event.currentTarget).closest('.link').data('index'))];
-      LinkerAPI.addLinkToSelected(link.id, link.type);
-      ui.notifications.info('LINK APPLIED');
-    }
-  }
-
-  _removeLink(event) {
-    if (canvas.activeLayer.controlled?.length) {
-      const link = this.links[Number($(event.currentTarget).closest('.link').data('index'))];
-      LinkerAPI.removeLinkFromSelected(link.id);
-      ui.notifications.info('LINK REMOVED');
-    }
-  }
-
-  _hoverInLink(event) {
-    const dg = canvas.controls.debug;
-    const link = this.links[Number($(event.currentTarget).closest('.link').data('index'))];
-    if (!link) return dg.clear();
-
-    const linked = LinkerAPI._getLinkedDocumentsUsingLink(link);
-    if (!linked) return dg.clear();
-
-    const width = 8;
-    const alpha = 1;
-    linked.forEach((d) => {
-      let bounds = d.object.bounds;
-
-      dg.lineStyle(width + 2, 0, alpha, 0.5);
-      dg.drawRect(bounds.x, bounds.y, bounds.width, bounds.height);
-
-      dg.lineStyle(width, 0x00ff00, alpha, 0.5);
-      dg.drawRect(bounds.x, bounds.y, bounds.width, bounds.height);
-    });
-  }
-
-  _hoverOutLink(event) {
-    canvas.controls.debug.clear();
-  }
-
   async close(options = {}) {
     canvas.controls?.debug?.clear();
     return super.close(options);
-  }
-
-  _toggleType(event) {
-    const typeControl = $(event.currentTarget);
-
-    const link = this.links[Number(typeControl.closest('.link').data('index'))];
-    link.type = (link.type + 1) % Object.keys(LINK_TYPES).length;
-
-    typeControl.html(this._getTypeIcon(link.type));
-  }
-
-  _linkIdChange(event) {
-    const id = $(event.currentTarget);
-    this.links[Number(id.closest('.link').data('index'))].id = id.text();
   }
 
   _getHeaderButtons() {
@@ -344,57 +289,8 @@ class LinkerMenu extends FormApplication {
   activateListeners(html) {
     super.activateListeners(html);
 
-    // // Auto-select so that the pre-defined names can be conveniently erased
-    // html.find('[name="name"]').select();
-
-    // html.on('click', '.apply-link', this._applyLink.bind(this));
-    // html.on('click', '.remove-link', this._removeLink.bind(this));
-    // html.on('click', '.toggle-type', this._toggleType.bind(this));
-    // html.find('.add-link').on('click', this._addLink.bind(this));
-    // html
-    //   .find('.links .link')
-    //   .on('mouseover', this._hoverInLink.bind(this))
-    //   .on('mouseout', this._hoverOutLink.bind(this));
-    // html.find('.linkId').on('input', this._linkIdChange.bind(this));
-
-    // // Setup context menus for links
-    // this._contextMenu(html.find('.links'));
-    // html.closest('.window-content').addClass('me-allow-overflow'); // Allow context menu overflow
-
-    // // Since Foundry doesn't allow to specify hover over text for header buttons, lets add it here
-    // html.closest('.window-app').find('header .mass-edit-delete-link').attr('title', 'Remove All Links from Selected');
-
     // Display node graph
     this.activateGraph(html);
-  }
-
-  _contextMenu(html) {
-    ContextMenu.create(
-      this,
-      html,
-      '.links .link',
-      [
-        {
-          name: 'Remove Link from Scene',
-          icon: '<i class="fa-solid fa-link-slash"></i>',
-          callback: (linkElement) => {
-            const link = this.links[Number(linkElement.closest('.link').data('index'))];
-            if (link) LinkerAPI.removeLinkFromScene(link);
-          },
-        },
-        {
-          name: 'Delete Linked Placeables',
-          icon: '<i class="fas fa-trash"></i>',
-          callback: (linkElement) => {
-            const link = this.links[Number(linkElement.closest('.link').data('index'))];
-            if (link) LinkerAPI.deleteLinkedPlaceables(link);
-          },
-        },
-      ],
-      {
-        hookName: 'MassEditLinkContext',
-      }
-    );
   }
 
   async close(options = {}) {

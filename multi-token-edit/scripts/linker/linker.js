@@ -261,6 +261,11 @@ export class LinkerAPI {
     }
   }
 
+  static removeLinks(placeable) {
+    const document = placeable.document ?? placeable;
+    if (document.flags[MODULE_ID]?.links) document.unsetFlag(MODULE_ID, 'links');
+  }
+
   static removeAllLinksFromSelected() {
     this._getSelected().forEach((p) => {
       let links = p.document.flags[MODULE_ID]?.links;
@@ -283,16 +288,16 @@ export class LinkerAPI {
     });
   }
 
-  static removeLinkFromScene(link) {
+  static removeLinkFromScene(linkId) {
     const scene = canvas.scene;
-    if (!scene || !link || !link.id) return;
+    if (!scene || !linkId) return;
 
     SUPPORTED_PLACEABLES.forEach((documentName) => {
       const updates = [];
       scene.getEmbeddedCollection(documentName).forEach((d) => {
         let links = d.flags[MODULE_ID]?.links;
         if (links) {
-          let fLinks = links.filter((l) => l.id !== link.id);
+          let fLinks = links.filter((l) => l.id !== linkId);
           if (fLinks.length !== links.length) {
             updates.push({ _id: d.id, [`flags.${MODULE_ID}.links`]: fLinks });
           }
