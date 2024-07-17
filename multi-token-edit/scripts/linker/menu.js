@@ -6,6 +6,7 @@ import forceAtlas2 from 'graphology-layout-forceatlas2';
 import FA2Layout from 'graphology-layout-forceatlas2/worker';
 import { createNodeImageProgram } from '@sigma/node-image';
 import { createNodeCompoundProgram, NodeCircleProgram } from 'sigma/rendering';
+import ForceSupervisor from 'graphology-layout-force/worker';
 
 export function openLinkerMenu() {
   const menu = Object.values(ui.windows).find((w) => w instanceof LinkerMenu);
@@ -25,12 +26,26 @@ const DOC_ICONS = {
   Region: 'modules/multi-token-edit/images/linker/border-outer.svg',
 };
 
-const NODE_CONFIG = {
-  COLOR: 'white',
-  COLOR_SELECTED: '#7FFF00',
-  LINK_COLOR: 'yellow',
-  LINK_COLOR_SELECTED: '#7FFF00',
-  LINK_IMAGE: 'modules/multi-token-edit/images/linker/link-45deg.svg',
+const GRAPH_CONFIG = {
+  document: {
+    color: 'white',
+    colorSelected: '#7FFF00',
+    pictoColor: 'red',
+    size: 15,
+  },
+  link: {
+    color: 'yellow',
+    colorSelected: '#7FFF00',
+    pictoColor: 'red',
+    image: 'modules/multi-token-edit/images/linker/link-45deg.svg',
+    size: 15,
+  },
+  edge: {
+    arrow: 'orange',
+    line: 'white',
+    hover: '#7FFF00',
+    size: 4,
+  },
 };
 
 class LinkerMenu extends FormApplication {
@@ -72,60 +87,72 @@ class LinkerMenu extends FormApplication {
     const graph = new Graph();
     this._graph = graph;
 
-    // Add nodes and edges
-    SUPPORTED_PLACEABLES.forEach((embeddedName) => {
-      canvas.scene.getEmbeddedCollection(embeddedName).forEach((d) => {
-        if (d.flags[MODULE_ID]?.links?.length) {
-          // Placeable node
-          const coords = {
-            x: d.object.bounds.x,
-            y: -d.object.bounds.y,
-          };
-          graph.addNode(d.id, {
-            size: 15,
-            label: embeddedName,
-            color: NODE_CONFIG.COLOR,
-            pictoColor: 'red',
-            image: DOC_ICONS[embeddedName],
-            type: 'pictogram',
-            document: d,
-            ...coords,
-          });
+    const processDocument = function (d) {
+      if (d.flags[MODULE_ID]?.links?.length) {
+        // Placeable node
+        const coords = {
+          x: d.object.bounds.x,
+          y: -d.object.bounds.y,
+        };
+        graph.addNode(d.id, {
+          size: GRAPH_CONFIG.document.size,
+          label: d.documentName,
+          color: GRAPH_CONFIG.document.color,
+          pictoColor: GRAPH_CONFIG.document.pictoColor,
+          image: DOC_ICONS[d.documentName],
+          type: 'pictogram',
+          document: d,
+          ...coords,
+        });
 
-          // Link nodes and edges
-          d.flags[MODULE_ID].links.forEach((link) => {
-            if (!graph.hasNode(link.id)) {
-              // Link node
-              graph.addNode(link.id, {
-                size: 15,
-                label: 'LINK',
-                color: NODE_CONFIG.LINK_COLOR,
-                pictoColor: 'red',
-                image: NODE_CONFIG.LINK_IMAGE,
-                type: 'pictogram',
-                isLink: true,
-                ...coords,
-              });
-            }
-
-            // Edge
-            let source, target;
-            if (link.type === LINK_TYPES.RECEIVE) {
-              source = link.id;
-              target = d.id;
-            } else {
-              source = d.id;
-              target = link.id;
-            }
-            graph.addEdge(source, target, {
-              size: 4,
-              color: link.type === LINK_TYPES.TWO_WAY ? 'white' : 'green',
-              type: link.type === LINK_TYPES.TWO_WAY ? 'line' : 'arrow',
+        // Link nodes and edges
+        d.flags[MODULE_ID].links.forEach((link) => {
+          if (!graph.hasNode(link.id)) {
+            // Link node
+            graph.addNode(link.id, {
+              size: GRAPH_CONFIG.link.size,
+              label: 'LINK',
+              color: GRAPH_CONFIG.link.color,
+              pictoColor: GRAPH_CONFIG.link.pictoColor,
+              image: GRAPH_CONFIG.link.image,
+              type: 'pictogram',
+              isLink: true,
+              x: coords.x + 40,
+              y: coords.y,
             });
+          }
+
+          // Edge
+          let source, target;
+          if (link.type === LINK_TYPES.RECEIVE) {
+            source = link.id;
+            target = d.id;
+          } else {
+            source = d.id;
+            target = link.id;
+          }
+          graph.addEdge(source, target, {
+            size: GRAPH_CONFIG.edge.size,
+            color: link.type === LINK_TYPES.TWO_WAY ? GRAPH_CONFIG.edge.line : GRAPH_CONFIG.edge.arrow,
+            type: link.type === LINK_TYPES.TWO_WAY ? 'line' : 'arrow',
           });
-        }
+        });
+      }
+    };
+
+    // Add nodes and edges
+    const selected = LinkerAPI._getSelected().map((p) => p.document);
+    if (selected.length) {
+      selected.forEach((d) => processDocument(d));
+      LinkerAPI.getLinkedDocuments(selected).forEach((d) => processDocument(d));
+    } else {
+      // Retrieve links from the whole scene
+      SUPPORTED_PLACEABLES.forEach((embeddedName) => {
+        canvas.scene.getEmbeddedCollection(embeddedName).forEach((d) => {
+          processDocument(d);
+        });
       });
-    });
+    }
 
     //const positions = forceAtlas2(graph, { iterations: 50 });
     //forceAtlas2.assign(graph, 50);
@@ -135,7 +162,7 @@ class LinkerMenu extends FormApplication {
       settings: sensibleSettings,
     });
 
-    // const layout = new ForceSupervisor(graph);
+    // const layout = new ForceSupervisor(graph, { isNodeFixed: (_, attr) => attr.highlighted });
 
     this._graphLayout = layout;
     layout.start();
@@ -151,6 +178,7 @@ class LinkerMenu extends FormApplication {
 
     const sigmaInstance = new Sigma(graph, html.find('.graph')[0], {
       defaultNodeType: 'pictogram',
+      enableEdgeEvents: true,
       nodeProgramClasses: {
         pictogram: NodeProgram,
       },
@@ -180,11 +208,11 @@ class LinkerMenu extends FormApplication {
       const coord = sigmaInstance.viewportToGraph({ x: event.x, y: event.y });
 
       graph.addNode(id, {
-        size: 15,
+        size: GRAPH_CONFIG.link.size,
         label: 'LINK',
-        color: NODE_CONFIG.LINK_COLOR,
-        pictoColor: 'red',
-        image: NODE_CONFIG.LINK_IMAGE,
+        color: GRAPH_CONFIG.link.color,
+        pictoColor: GRAPH_CONFIG.link.pictoColor,
+        image: GRAPH_CONFIG.link.image,
         type: 'pictogram',
         isLink: true,
         x: coord.x,
@@ -208,7 +236,158 @@ class LinkerMenu extends FormApplication {
     });
 
     sigmaInstance.on('clickNode', ({ node }) => this.onClickNode(node));
-    sigmaInstance.on('rightClickNode', ({ node }) => this.onRightClickNode(node));
+    sigmaInstance.on('rightClickNode', ({ node }) => this.removeNode(node));
+
+    // TODO
+    // on enter edge highlight document
+    sigmaInstance.on('enterEdge', ({ edge }) => {
+      graph.setEdgeAttribute(edge, 'color', GRAPH_CONFIG.edge.hover);
+      const document =
+        graph.getNodeAttribute(graph.source(edge), 'document') ??
+        graph.getNodeAttribute(graph.target(edge), 'document');
+      highlightDocs([document]);
+    });
+    sigmaInstance.on('leaveEdge', ({ edge }) => {
+      graph.setEdgeAttribute(
+        edge,
+        'color',
+        graph.getEdgeAttribute(edge, 'type') === 'line' ? GRAPH_CONFIG.edge.line : GRAPH_CONFIG.edge.arrow
+      );
+      canvas.controls.debug.clear();
+    });
+    sigmaInstance.on('clickEdge', ({ edge }) => this.cycleEdgeType(edge));
+    sigmaInstance.on('rightClickEdge', ({ edge }) => this.removeEdge(edge));
+
+    //this.enableNodeDrag();
+  }
+
+  enableNodeDrag() {
+    // State for drag'n'drop
+    let draggedNode = null;
+    let isDragging = false;
+
+    // On mouse down on a node
+    //  - we enable the drag mode
+    //  - save in the dragged node in the state
+    //  - highlight the node
+    //  - disable the camera so its state is not updated
+    this._sigmaInstance.on('downNode', (e) => {
+      isDragging = true;
+      draggedNode = e.node;
+      this._graph.setNodeAttribute(draggedNode, 'highlighted', true);
+    });
+
+    // On mouse move, if the drag mode is enabled, we change the position of the draggedNode
+    this._sigmaInstance.getMouseCaptor().on('mousemovebody', (event) => {
+      if (!isDragging || !draggedNode) return;
+
+      // Get new position of node
+      const pos = this._sigmaInstance.viewportToGraph({ x: event.x, y: event.y });
+
+      this._graph.setNodeAttribute(draggedNode, 'x', pos.x);
+      this._graph.setNodeAttribute(draggedNode, 'y', pos.y);
+
+      // Prevent sigma to move camera:
+      event.preventSigmaDefault();
+      event.original.preventDefault();
+      event.original.stopPropagation();
+    });
+
+    // On mouse up, we reset the autoscale and the dragging mode
+    this._sigmaInstance.getMouseCaptor().on('mouseup', () => {
+      if (draggedNode) {
+        this._graph.removeNodeAttribute(draggedNode, 'highlighted');
+      }
+      isDragging = false;
+      draggedNode = null;
+    });
+  }
+
+  /**
+   * Remove edge from graph and link from the document the edge connects to.
+   * @param {String} edge
+   */
+  removeEdge(edge) {
+    const graph = this._graph;
+    let source = graph.source(edge);
+    let target = graph.target(edge);
+
+    let linkNode;
+    let documentNode;
+    if (graph.getNodeAttribute(source, 'isLink')) {
+      linkNode = source;
+      documentNode = target;
+    } else {
+      linkNode = target;
+      documentNode = source;
+    }
+
+    if (graph.neighbors(documentNode).length === 1) {
+      this.removeNode(documentNode);
+    } else {
+      graph.dropEdge(edge);
+      const document = graph.getNodeAttribute(documentNode, 'document');
+      LinkerAPI.removeLink(document, linkNode);
+    }
+  }
+
+  /**
+   * Cycle edge through link types defined in `LINK_TYPES`. Changing its appearance and
+   * updating the link of the document it connects to.
+   * @param {String} edge
+   */
+  cycleEdgeType(edge) {
+    const graph = this._graph;
+
+    let source = graph.source(edge);
+    let target = graph.target(edge);
+
+    let linkType;
+    if (graph.getEdgeAttribute(edge, 'type') === 'line') {
+      linkType = LINK_TYPES.TWO_WAY;
+    } else if (graph.getNodeAttribute(target, 'isLink')) {
+      linkType = LINK_TYPES.SEND;
+    } else {
+      linkType = LINK_TYPES.RECEIVE;
+    }
+
+    // Cycle link type
+    linkType = (linkType + 1) % Object.keys(LINK_TYPES).length;
+
+    // Update document with new link type
+    LinkerAPI.addLink(
+      graph.getNodeAttribute(source, 'document') ?? graph.getNodeAttribute(target, 'document'),
+      graph.getNodeAttribute(source, 'isLink') ? source : target,
+      linkType
+    );
+
+    // Change edge appearance
+    if (linkType === LINK_TYPES.TWO_WAY) {
+      graph.setEdgeAttribute(edge, 'type', 'line');
+      graph.setEdgeAttribute(edge, 'color', GRAPH_CONFIG.edge.line);
+    } else {
+      graph.dropEdge(edge);
+
+      if (linkType === LINK_TYPES.RECEIVE) {
+        if (!graph.getNodeAttribute(source, 'isLink')) {
+          let tmp = source;
+          source = target;
+          target = tmp;
+        }
+      } else {
+        if (graph.getNodeAttribute(source, 'isLink')) {
+          let tmp = source;
+          source = target;
+          target = tmp;
+        }
+      }
+
+      graph.addEdge(source, target, {
+        size: GRAPH_CONFIG.edge.size,
+        color: GRAPH_CONFIG.edge.arrow,
+        type: 'arrow',
+      });
+    }
   }
 
   onClickNode(node) {
@@ -217,26 +396,27 @@ class LinkerMenu extends FormApplication {
       // Link node click handling
       if (this._selectedLinkNode === node) {
         this._selectedLinkNode = null;
-        graph.setNodeAttribute(node, 'color', NODE_CONFIG.LINK_COLOR);
+        graph.setNodeAttribute(node, 'color', GRAPH_CONFIG.link.color);
       } else {
-        if (this._selectedLinkNode) graph.setNodeAttribute(this._selectedLinkNode, 'color', NODE_CONFIG.LINK_COLOR);
+        if (this._selectedLinkNode) graph.setNodeAttribute(this._selectedLinkNode, 'color', GRAPH_CONFIG.link.color);
         this._selectedLinkNode = node;
-        graph.setNodeAttribute(this._selectedLinkNode, 'color', NODE_CONFIG.LINK_COLOR_SELECTED);
+        graph.setNodeAttribute(this._selectedLinkNode, 'color', GRAPH_CONFIG.link.colorSelected);
       }
     } else {
       // Placeable note click handling
       if (this._selectedNodes.includes(node)) {
         this._selectedNodes = this._selectedNodes.filter((n) => n !== node);
-        graph.setNodeAttribute(node, 'color', NODE_CONFIG.COLOR);
+        graph.setNodeAttribute(node, 'color', GRAPH_CONFIG.document.color);
       } else {
         this._selectedNodes.push(node);
-        graph.setNodeAttribute(node, 'color', NODE_CONFIG.COLOR_SELECTED);
+        graph.setNodeAttribute(node, 'color', GRAPH_CONFIG.document.colorSelected);
       }
     }
     this._sigmaInstance.refresh();
+    this._refreshControlState();
   }
 
-  onRightClickNode(node) {
+  removeNode(node) {
     const graph = this._graph;
 
     if (graph.getNodeAttribute(node, 'isLink')) {
@@ -248,18 +428,23 @@ class LinkerMenu extends FormApplication {
         if (graph.edges(n).length === 1) graph.dropNode(n);
       });
 
+      if (node === this._selectedLinkNode) this._selectedLinkNode = null;
       graph.dropNode(node);
       LinkerAPI.removeLinkFromScene(node);
-
-      // The link has to have been hovered over. Clear the highlighting
-      canvas.controls.debug.clear();
     } else {
       // Placeable note click handling
       const document = graph.getNodeAttribute(node, 'document');
       if (document) LinkerAPI.removeLinks(document);
 
+      this._selectedNodes = this._selectedNodes.filter((n) => n !== node);
+
       this._graph.dropNode(node);
     }
+
+    // The link/placeable has to have been hovered over. Clear the highlighting
+    canvas.controls.debug.clear();
+
+    this._refreshControlState();
   }
 
   async getData(options = {}) {
@@ -289,8 +474,74 @@ class LinkerMenu extends FormApplication {
   activateListeners(html) {
     super.activateListeners(html);
 
+    this._selectedToLinkControl = html
+      .find('.selectedToLink')
+      .on('click', this._onSelectedToLinkControlClick.bind(this));
+    this._nodeToLinkControl = html.find('.nodeToLink').on('click', this._onNodeToLinkControlClick.bind(this));
+
     // Display node graph
     this.activateGraph(html);
+  }
+
+  _onSelectedToLinkControlClick() {
+    if (!this._selectedLinkNode) return;
+
+    const graph = this._graph;
+
+    const attributes = graph.getNodeAttributes(this._selectedLinkNode);
+    const neighbors = this._graph.neighbors(this._selectedLinkNode);
+
+    LinkerAPI._getSelected()
+      .map((p) => p.document)
+      .filter((d) => !neighbors.includes(d.id))
+      .forEach((d) => {
+        // TODO add graph updating to the API itself
+        LinkerAPI.addLink(d, this._selectedLinkNode, LINK_TYPES.TWO_WAY);
+        if (!graph.hasNode(d.id)) {
+          graph.addNode(d.id, {
+            size: GRAPH_CONFIG.document.size,
+            label: d.documentName,
+            color: GRAPH_CONFIG.document.color,
+            pictoColor: GRAPH_CONFIG.document.pictoColor,
+            image: DOC_ICONS[d.documentName],
+            type: 'pictogram',
+            document: d,
+            x: attributes.x + Math.random() * 0.1 - 0.05,
+            y: attributes.y + Math.random() * 0.1 - 0.05,
+          });
+        }
+        graph.addEdge(d.id, this._selectedLinkNode, {
+          size: GRAPH_CONFIG.edge.size,
+          color: GRAPH_CONFIG.edge.line,
+          type: 'line',
+        });
+      });
+  }
+
+  _onNodeToLinkControlClick() {
+    if (!this._selectedLinkNode || !this._selectedNodes.length) return;
+
+    const graph = this._graph;
+
+    const nodes = this._selectedNodes.filter((node) => !graph.neighbors(node).includes(this._selectedLinkNode));
+
+    nodes.forEach((node) => {
+      LinkerAPI.addLink(graph.getNodeAttribute(node, 'document'), this._selectedLinkNode, LINK_TYPES.TWO_WAY);
+
+      graph.addEdge(node, this._selectedLinkNode, {
+        size: GRAPH_CONFIG.edge.size,
+        color: GRAPH_CONFIG.edge.line,
+        type: 'line',
+      });
+    });
+  }
+
+  _refreshControlState() {
+    if (this._selectedLinkNode) this._selectedToLinkControl.removeAttr('disabled');
+    else this._selectedToLinkControl.attr('disabled', 'disabled');
+
+    if (this._selectedLinkNode && this._selectedNodes.length) this._nodeToLinkControl.removeAttr('disabled');
+    else this._nodeToLinkControl.attr('disabled', 'disabled');
   }
 
   async close(options = {}) {

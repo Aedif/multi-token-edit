@@ -1,11 +1,23 @@
-<form>
-    <div style="height: 100%; display: flex; flex-flow: column;">
-        <div class="controls" style="height: 100px;">
-
+<div style="height: 100%; display: flex; flex-flow: column;">
+    <div class="controls" style="display: flex;">
+        <div style="flex: 1;">
+            <button class="selectedToLink" type="button" disabled>Attach Selected to Link</button>
+            <button class="nodeToLink" type="button" disabled>Connect Document/s to Link</button>
         </div>
-    
-        <div class="graph" style="border: solid 1px white; flex: 1;">
-    
-        </div>
+        <!-- <div style="flex: 1;">
+            <button type="button">C</button>
+            <button type="button">D</button>
+        </div> -->
     </div>
-</form>
+
+    <p class="notes">
+        To enable above controls select nodes within the graph by clicking on them.<br>
+        <b>Double-Click</b> empty spot to create a new link.<br>
+        <b>Right-Click</b> nodes or edges to remove them.
+        <b>Click</b> edges to change their type.
+    </p>
+
+    <div class="graph" style="border: solid 1px white; flex: 1;">
+
+    </div>
+</div>

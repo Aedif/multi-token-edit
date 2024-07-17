@@ -122,6 +122,11 @@
   color: white;
 }
 
+.mass-edit-dark-window button:disabled {
+  background: gray;
+  color: white;
+}
+
 .mass-edit-dark-window input,
 .mass-edit-dark-window textarea {
   color: white;
@@ -711,30 +716,4 @@ nav > a[data-tab='me-pinned'] {
   border: 5px solid darkorange;
   z-index: 9999;
   pointer-events: none;
-}
-
-/* ======================== 
-   ====== Linker Menu =====
-   ======================== */
-
-.mass-edit-linker-menu .links {
-  display: flex;
-  flex-direction: column;
-}
-
-.mass-edit-linker-menu .link {
-  display: flex;
-  margin: 2px;
-}
-
-.mass-edit-linker-menu .link > * {
-  margin: 2px;
-}
-
-.mass-edit-linker-menu .link .linkId {
-  flex: 1;
-}
-
-.me-allow-overflow {
-  overflow: visible !important;
 }
