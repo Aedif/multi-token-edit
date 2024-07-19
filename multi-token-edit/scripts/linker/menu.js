@@ -49,6 +49,45 @@ const GRAPH_CONFIG = {
 };
 
 class LinkerMenu extends FormApplication {
+  static registeredHooks = [];
+
+  /**
+   * Highlight nodes on placeable control
+   * @param {PlaceableObject} placeable
+   * @param {Boolean} controlled
+   */
+  static onControl(placeable, controlled) {
+    const document = placeable.document;
+    if (this._graph.hasNode(document.id)) {
+      this._graph.setNodeAttribute(document.id, 'highlighted', controlled);
+    }
+  }
+
+  /**
+   * Register hooks to provide Canvas to LinkerMenu interactivity.
+   * At the moment this is just for placeable control
+   * @param {LinkerMenu} app
+   */
+  static registerHooks(app) {
+    LinkerMenu.unregisterHooks();
+
+    SUPPORTED_PLACEABLES.forEach((embeddedName) => {
+      const hook = `control${embeddedName}`;
+      const id = Hooks.on(hook, LinkerMenu.onControl.bind(app));
+      LinkerMenu.registeredHooks.push({ hook, id });
+    });
+  }
+
+  /**
+   * Removed hooks registered via LinkerMenu.registerHooks
+   */
+  static unregisterHooks() {
+    if (LinkerMenu.registeredHooks.length) {
+      LinkerMenu.registeredHooks.forEach((h) => Hooks.off(h.hook, h.id));
+      LinkerMenu.registeredHooks = [];
+    }
+  }
+
   constructor() {
     // const pos = canvas.clientCoordinatesFromCanvas(canvas.mousePosition);
     // super({}, { left: Math.max(pos.x - 350, 0), top: pos.y });
@@ -68,6 +107,9 @@ class LinkerMenu extends FormApplication {
 
     this.links = links;
     this._selectedNodes = [];
+
+    // Register control hooks for highlighting of currently controlled placeables
+    LinkerMenu.registerHooks(this);
   }
 
   static get defaultOptions() {
@@ -238,14 +280,8 @@ class LinkerMenu extends FormApplication {
     sigmaInstance.on('clickNode', ({ node }) => this.onClickNode(node));
     sigmaInstance.on('rightClickNode', ({ node }) => this.removeNode(node));
 
-    // TODO
-    // on enter edge highlight document
     sigmaInstance.on('enterEdge', ({ edge }) => {
       graph.setEdgeAttribute(edge, 'color', GRAPH_CONFIG.edge.hover);
-      const document =
-        graph.getNodeAttribute(graph.source(edge), 'document') ??
-        graph.getNodeAttribute(graph.target(edge), 'document');
-      highlightDocs([document]);
     });
     sigmaInstance.on('leaveEdge', ({ edge }) => {
       graph.setEdgeAttribute(
@@ -253,7 +289,6 @@ class LinkerMenu extends FormApplication {
         'color',
         graph.getEdgeAttribute(edge, 'type') === 'line' ? GRAPH_CONFIG.edge.line : GRAPH_CONFIG.edge.arrow
       );
-      canvas.controls.debug.clear();
     });
     sigmaInstance.on('clickEdge', ({ edge }) => this.cycleEdgeType(edge));
     sigmaInstance.on('rightClickEdge', ({ edge }) => this.removeEdge(edge));
@@ -455,18 +490,13 @@ class LinkerMenu extends FormApplication {
     return 'Links';
   }
 
-  async close(options = {}) {
-    canvas.controls?.debug?.clear();
-    return super.close(options);
-  }
-
   _getHeaderButtons() {
     const buttons = super._getHeaderButtons();
     buttons.unshift({
       label: '',
       class: 'mass-edit-delete-link',
       icon: 'fa-solid fa-link-slash',
-      onclick: () => this._removeAllLinks(),
+      onclick: () => LinkerAPI.removeAllLinksFromSelected(),
     });
     return buttons;
   }
@@ -547,6 +577,9 @@ class LinkerMenu extends FormApplication {
   async close(options = {}) {
     this._graphLayout?.kill();
     this._sigmaInstance?.kill();
+    canvas.controls?.debug?.clear();
+    LinkerMenu.unregisterHooks();
+
     return super.close(options);
   }
 }

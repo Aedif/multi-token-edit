@@ -38,7 +38,7 @@ Hooks.once('init', () => {
   // TODO: Once we move to a dedicated v12 version of the module we can
   // make these groups static again
   if (foundry.utils.isNewerVersion(game.version, 12)) {
-    SUPPORTED_PLACEABLES.push('Region');
+    SUPPORTED_PLACEABLES.unshift('Region');
     UI_DOCS.push('Region');
     SUPPORT_SHEET_CONFIGS.push('Region');
 

@@ -478,7 +478,7 @@ export function resolveCreateDocumentRequest({ requestID, sceneID, documentName,
   delete DOCUMENT_CREATE_REQUESTS[requestID];
 }
 
-export function updateEmbeddedDocumentsViaGM(documentName, updates, context, scene) {
+export async function updateEmbeddedDocumentsViaGM(documentName, updates, context, scene) {
   if (game.user.isGM) {
     return scene.updateEmbeddedDocuments(documentName, updates, context);
   } else {

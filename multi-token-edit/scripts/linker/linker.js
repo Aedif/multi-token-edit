@@ -4,7 +4,7 @@
 
 import { DataTransform } from '../picker.js';
 import { libWrapper } from '../shim/shim.js';
-import { MODULE_ID, SUPPORTED_PLACEABLES, updateEmbeddedDocumentsViaGM } from '../utils.js';
+import { isResponsibleGM, MODULE_ID, SUPPORTED_PLACEABLES, updateEmbeddedDocumentsViaGM } from '../utils.js';
 import { getDataBounds } from '../presets/utils.js';
 
 const PROCESSED_UPDATES = new Map();
@@ -16,12 +16,13 @@ export const LINK_TYPES = {
 
 export function registerLinkerHooks() {
   SUPPORTED_PLACEABLES.forEach((name) => Hooks.on(`preUpdate${name}`, preUpdate));
+  SUPPORTED_PLACEABLES.forEach((name) => Hooks.on(`update${name}`, update));
 
   if (foundry.utils.isNewerVersion(12, game.version)) {
     libWrapper.register(
       MODULE_ID,
       'Scene.prototype.updateEmbeddedDocuments',
-      function (wrapped, embeddedName, updates = [], context = {}) {
+      async function (wrapped, embeddedName, updates = [], context = {}) {
         if (!context.modifiedTime) context.modifiedTime = new Date().getTime();
         return wrapped(embeddedName, updates, context);
       },
@@ -67,104 +68,161 @@ function processLinks(transform, origin, links, scene, docUpdates, processedLink
   });
 }
 
-function preUpdate(document, change, options, userId) {
-  if (game.user.id !== userId || options.ignoreLinks) return;
+class PromiseQueue {
+  queue = Promise.resolve();
 
-  let links = document.flags[MODULE_ID]?.links?.filter((l) => l.type !== LINK_TYPES.RECEIVE);
-  if (!links?.length) return;
-
-  if (
-    change.hasOwnProperty('x') ||
-    change.hasOwnProperty('y') ||
-    change.hasOwnProperty('rotation') ||
-    change.hasOwnProperty('shapes') ||
-    change.hasOwnProperty('c') ||
-    change.hasOwnProperty('elevation')
-  ) {
-    // If an update occurred at the same time we need to check whether
-    // this update has unique links which need to be processed
-    const puLinks = PROCESSED_UPDATES.get(options.modifiedTime);
-    if (puLinks) {
-      links = links.filter((l) => !puLinks.some((l2) => l2.id === l.id));
-      if (!links.length) return;
-      puLinks.push(...links);
-    } else {
-      PROCESSED_UPDATES.set(options.modifiedTime, links);
-      setTimeout(() => PROCESSED_UPDATES.delete(options.modifiedTime), 2000);
-    }
-
-    const scene = document.parent;
-
-    let { transform, origin } = calculateTransform(document, change, options);
-
-    // If control is held during non-rotation update, we want to ignore links
-    if (
-      game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.CONTROL) &&
-      !transform.hasOwnProperty('rotation')
-    ) {
-      return;
-    }
-
-    const docUpdates = new Map();
-    processLinks(transform, origin, links, scene, docUpdates, new Set(links.map((l) => l.id)), document.id);
-    docUpdates.forEach((updates, documentName) => {
-      const options = { ignoreLinks: true, animate: false };
-      if (documentName === 'Token') {
-        options.RidingMovement = true; // 'Auto-Rotate' module compatibility
-      }
-      updateEmbeddedDocumentsViaGM(documentName, updates, options, scene);
-    });
-    return;
+  add(operation) {
+    this.queue = this.queue.then(operation).catch(() => {});
   }
 }
 
-function calculateTransform(document, change, options) {
-  let transform;
+const updateQueue = new PromiseQueue();
+const doc_sources = {};
 
-  // Cannot trust document data as it can be modified by animations
-  // to get real coordinates/dimensions we need to use source
-  const source = document._source;
+function preUpdate(document, change, options, userId) {
+  if (game.user.id !== userId || options.ignoreLinks) return true;
+
+  let links = document.flags[MODULE_ID]?.links?.filter((l) => l.type !== LINK_TYPES.RECEIVE);
+  if (!links?.length) return true;
+
+  let positionUpdate =
+    change.hasOwnProperty('x') ||
+    change.hasOwnProperty('y') ||
+    change.hasOwnProperty('shapes') ||
+    change.hasOwnProperty('c') ||
+    change.hasOwnProperty('elevation');
+  let rotationUpdate = change.hasOwnProperty('rotation') || options.hasOwnProperty('meRotation');
+  if (!(positionUpdate || rotationUpdate)) return true;
+
+  // If control is held during non-rotation update, we want to ignore links
+  if (game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.ALT)) {
+    return true;
+  }
+
+  // If an update occurred at the same time (likely same drag, or mass update) we need to check whether
+  // this update has unique links which need to be processed
+  const puLinks = PROCESSED_UPDATES.get(options.modifiedTime);
+  if (puLinks) {
+    links = links.filter((l) => !puLinks.some((l2) => l2.id === l.id));
+    if (!links.length) return true;
+    puLinks.push(...links);
+  } else {
+    PROCESSED_UPDATES.set(options.modifiedTime, links);
+    setTimeout(() => PROCESSED_UPDATES.delete(options.modifiedTime), 2000);
+  }
+
+  options.meLinks = links;
+
+  /// TODO
+  // Need to figure out how to clean this up...
+  doc_sources[document.id] = document.toObject();
+
+  return true;
+}
+
+async function update(document, change, options, userId) {
+  if (!options.meLinks || game.user.id !== userId) return true;
+
+  let positionUpdate =
+    change.hasOwnProperty('x') ||
+    change.hasOwnProperty('y') ||
+    change.hasOwnProperty('shapes') ||
+    change.hasOwnProperty('c') ||
+    change.hasOwnProperty('elevation');
+  let rotationUpdate = change.hasOwnProperty('rotation') || options.hasOwnProperty('meRotation');
+  if (!(positionUpdate || rotationUpdate)) return true;
+
+  /// TODO
+  // Need to figure out how to clean this up...
+  const previousSource = foundry.utils.deepClone(doc_sources[document.id]);
+  foundry.utils.mergeObject(doc_sources[document.id], change);
+
+  // console.log(
+  //   'pre',
+  //   previousSource.rotation,
+  //   'pos',
+  //   document.rotation,
+  //   'pos_s',
+  //   document._source.rotation,
+  //   'time',
+  //   options.modifiedTime,
+  //   'change',
+  //   change
+  // );
+
+  const scene = document.parent;
+  let { transform, origin } = calculateTransform(
+    document.documentName,
+    document.toObject(),
+    previousSource,
+    change,
+    options
+  );
+  let links = options.meLinks;
+
+  updateQueue.add(async () => {
+    const docUpdates = new Map();
+    processLinks(transform, origin, links, scene, docUpdates, new Set(links.map((l) => l.id)), document.id);
+
+    for (const [documentName, updates] of docUpdates.entries()) {
+      const options = { ignoreLinks: true, animate: false };
+      if (documentName === 'Token') {
+        options.RidingMovement = true; // 'Auto-Rotate' module compatibility
+        options.forced = true; // Regions
+      }
+      //await scene.updateEmbeddedDocuments(documentName, updates, options);
+      await updateEmbeddedDocumentsViaGM(documentName, updates, options, scene);
+    }
+  });
+}
+
+function calculateTransform(documentName, currentSource, previousSource, change, options) {
+  let transform;
 
   if (change.hasOwnProperty('shapes') || change.hasOwnProperty('c')) {
     if (options.hasOwnProperty('meRotation')) {
       transform = { x: 0, y: 0 };
     } else {
-      const changeBounds = getDataBounds(document.documentName, change);
-      const currentBounds = getDataBounds(document.documentName, source);
+      const previousBounds = getDataBounds(documentName, previousSource);
+      const currentBounds = getDataBounds(documentName, currentSource);
 
       transform = {
-        x: changeBounds.x1 - currentBounds.x1,
-        y: changeBounds.y1 - currentBounds.y1,
+        x: currentBounds.x1 - previousBounds.x1,
+        y: currentBounds.y1 - previousBounds.y1,
       };
     }
   } else {
     transform = {
-      x: change.hasOwnProperty('x') ? change.x - source.x : 0,
-      y: change.hasOwnProperty('y') ? change.y - source.y : 0,
+      x: currentSource.x - previousSource.x,
+      y: currentSource.y - previousSource.y,
     };
   }
 
   const origin = { x: 0, y: 0 };
 
-  if (change.hasOwnProperty('rotation') || options.hasOwnProperty('meRotation')) {
-    const dRotation = options.hasOwnProperty('meRotation') ? options.meRotation : change.rotation - source.rotation;
-    if (dRotation !== 0) {
-      transform.rotation = dRotation;
+  // Calculate rotation delta
+  let dRotation;
+  if (options.hasOwnProperty('meRotation')) dRotation = options.meRotation;
+  else if (currentSource.hasOwnProperty('rotation'))
+    dRotation = (currentSource.rotation - previousSource.rotation) % 360;
 
-      const { x1, y1, x2, y2 } = getDataBounds(document.documentName, source);
+  if (dRotation != null) {
+    transform.rotation = dRotation;
 
-      origin.x = x1 + (x2 - x1) / 2;
-      origin.y = y1 + (y2 - y1) / 2;
-      //console.log({ c: change.rotation, s: source.rotation, t: transform.rotation });
-    }
+    const { x1, y1, x2, y2 } = getDataBounds(documentName, previousSource);
+
+    origin.x = x1 + (x2 - x1) / 2;
+    origin.y = y1 + (y2 - y1) / 2;
   }
 
-  if (change.hasOwnProperty('elevation')) {
-    if (Number.isNumeric(change.elevation)) {
-      transform.z = change.elevation - source.elevation;
-    } else if (change.elevation.bottom != null) {
-      transform.z = change.elevation.bottom - (source.elevation.bottom ?? 0);
+  if (currentSource.hasOwnProperty('elevation')) {
+    let dElevation;
+    if (Number.isNumeric(currentSource.elevation)) {
+      dElevation = currentSource.elevation - previousSource.elevation;
+    } else {
+      dElevation = (currentSource.elevation.bottom ?? 0) - (previousSource.elevation.bottom ?? 0);
     }
+    if (dElevation != 0) transform.z = dElevation;
   }
 
   return { transform, origin };
