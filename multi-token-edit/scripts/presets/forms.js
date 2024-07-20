@@ -1829,6 +1829,8 @@ export class PresetConfig extends FormApplication {
       classes: ['sheet', 'mass-edit-dark-window'],
       template: `modules/${MODULE_ID}/templates/preset/presetEdit.html`,
       width: 360,
+      height: 'auto',
+      tabs: [{ navSelector: '.sheet-tabs', contentSelector: '.content', initial: 'main' }],
     });
   }
 
@@ -1881,7 +1883,6 @@ export class PresetConfig extends FormApplication {
   /** @override */
   async getData(options = {}) {
     const data = {};
-    data.advancedOpen = this.advancedOpen;
 
     data.virtual = this.presets[0] instanceof VirtualFilePreset;
 
@@ -1960,11 +1961,6 @@ export class PresetConfig extends FormApplication {
       });
     });
 
-    // Advanced Options tracking between renders
-    html.find('details').on('toggle', (event) => {
-      this.advancedOpen = Boolean($(event.target).attr('open'));
-    });
-
     //Hover
     const hoverOverlay = html.closest('.window-content').find('.drag-drop-overlay');
     html
@@ -2016,8 +2012,6 @@ export class PresetConfig extends FormApplication {
    * @param {Event} event
    */
   async dropPlaceable(placeables, event) {
-    this.advancedOpen = true;
-
     if (!this.attached) this.attached = foundry.utils.deepClone(this.presets[0].attached ?? []);
     placeables.forEach((p) =>
       this.attached.push({

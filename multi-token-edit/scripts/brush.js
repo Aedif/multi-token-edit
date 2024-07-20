@@ -37,7 +37,8 @@ export class Brush {
 
   static _performBrushDocumentUpdate(placeable) {
     this.preset.callPostSpawnHooks({ objects: [placeable], documents: [placeable.document] });
-    if (!this.preset.isEmpty) pasteDataUpdate([placeable], this.preset, true, true, this.transform);
+    if (!this.preset.isEmpty)
+      pasteDataUpdate([placeable], this.preset, true, true, this.spawner ? this.transform : null);
     this.updatedPlaceables.set(placeable.id, placeable);
     BrushMenu.iterate();
   }
@@ -995,8 +996,6 @@ export class BrushMenu extends FormApplication {
       const stepsInRange = (settings.rotation[1] - settings.rotation[0] + 1) / 1;
       transform.rotation = Math.floor(Math.random() * stepsInRange) * 1 + settings.rotation[0];
     }
-
-    if (transform.scale === 1 && transform.rotation === 0) return null;
 
     return transform;
   }
