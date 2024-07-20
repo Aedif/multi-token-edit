@@ -32,8 +32,9 @@ export class LinkTokenRegionBehaviorType extends foundry.data.regionBehaviors.Re
 
   static async _onTokenMoveIn(event) {
     if (!isResponsibleGM()) return;
-    if (!LinkerAPI.hasLink(this.region, this.linkId)) LinkerAPI.addLink(this.region, this.linkId, LINK_TYPES.TWO_WAY);
-    LinkerAPI.addLink(event.data.token, this.linkId, LINK_TYPES.RECEIVE);
+    if (!LinkerAPI.hasLink(this.region, this.linkId))
+      LinkerAPI.addLink(this.region, this.linkId, LINK_TYPES.TWO_WAY, 'LinkTokenBehavior');
+    LinkerAPI.addLink(event.data.token, this.linkId, LINK_TYPES.RECEIVE, 'LinkTokenBehavior');
     return;
   }
 

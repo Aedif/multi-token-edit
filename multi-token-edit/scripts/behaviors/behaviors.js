@@ -7,15 +7,16 @@ import { SpawnPresetBehaviorType } from './SpawnPresetRegionBehaviorType.js';
  * Register custom behaviors
  */
 export function registerBehaviors() {
+  // TODO: Re-enable spawn/de-spawn behaviors once they're feature complete
   Object.assign(CONFIG.RegionBehavior.dataModels, {
     [`${MODULE_ID}.linkToken`]: LinkTokenRegionBehaviorType,
-    [`${MODULE_ID}.spawnPreset`]: SpawnPresetBehaviorType,
-    [`${MODULE_ID}.deSpawnPreset`]: DeSpawnPresetBehaviorType,
+    // [`${MODULE_ID}.spawnPreset`]: SpawnPresetBehaviorType,
+    // [`${MODULE_ID}.deSpawnPreset`]: DeSpawnPresetBehaviorType,
   });
 
   Object.assign(CONFIG.RegionBehavior.typeIcons, {
     [`${MODULE_ID}.linkToken`]: 'fas fa-link',
-    [`${MODULE_ID}.spawnPreset`]: 'fa-solid fa-books',
-    [`${MODULE_ID}.deSpawnPreset`]: 'fa-duotone fa-books',
+    // [`${MODULE_ID}.spawnPreset`]: 'fa-solid fa-books',
+    //[`${MODULE_ID}.deSpawnPreset`]: 'fa-duotone fa-books',
   });
 }

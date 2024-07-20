@@ -717,3 +717,22 @@ nav > a[data-tab='me-pinned'] {
   z-index: 9999;
   pointer-events: none;
 }
+
+/* ======================== 
+   ====== Linker Menu =====
+   ======================== */
+
+#mass-edit-linker-menu {
+  min-width: 270px;
+  min-height: 270px;
+}
+
+#mass-edit-linker-menu .controls .control {
+  font-size: 28px;
+  text-align: center;
+  margin-bottom: 11px;
+}
+
+#mass-edit-linker-menu .controls a[disabled].control {
+  color:black
+}

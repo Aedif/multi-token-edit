@@ -4,7 +4,7 @@
 
 import { DataTransform } from '../picker.js';
 import { libWrapper } from '../shim/shim.js';
-import { isResponsibleGM, MODULE_ID, SUPPORTED_PLACEABLES, updateEmbeddedDocumentsViaGM } from '../utils.js';
+import { MODULE_ID, SUPPORTED_PLACEABLES, updateEmbeddedDocumentsViaGM } from '../utils.js';
 import { getDataBounds } from '../presets/utils.js';
 
 const PROCESSED_UPDATES = new Map();
@@ -104,24 +104,23 @@ function preUpdate(document, change, options, userId) {
   const puLinks = PROCESSED_UPDATES.get(options.modifiedTime);
   if (puLinks) {
     links = links.filter((l) => !puLinks.some((l2) => l2.id === l.id));
-    if (!links.length) return true;
-    puLinks.push(...links);
+    if (!links.length) return false;
+    links.forEach((l) => puLinks.push(l));
   } else {
     PROCESSED_UPDATES.set(options.modifiedTime, links);
     setTimeout(() => PROCESSED_UPDATES.delete(options.modifiedTime), 2000);
+    foundry.utils.setProperty(options, `links.${document.id}`, links);
+    /// TODO
+    // Need to figure out how to clean this up...
+    doc_sources[document.id] = document.toObject();
+    return true;
   }
 
-  options.meLinks = links;
-
-  /// TODO
-  // Need to figure out how to clean this up...
-  doc_sources[document.id] = document.toObject();
-
-  return true;
+  return false;
 }
 
 async function update(document, change, options, userId) {
-  if (!options.meLinks || game.user.id !== userId) return true;
+  if (!options.links?.[document.id] || options.ignoreLinks || game.user.id !== userId) return true;
 
   let positionUpdate =
     change.hasOwnProperty('x') ||
@@ -131,6 +130,8 @@ async function update(document, change, options, userId) {
     change.hasOwnProperty('elevation');
   let rotationUpdate = change.hasOwnProperty('rotation') || options.hasOwnProperty('meRotation');
   if (!(positionUpdate || rotationUpdate)) return true;
+
+  // console.log(document.id, options.links[document.id], options.modifiedTime);
 
   /// TODO
   // Need to figure out how to clean this up...
@@ -158,7 +159,7 @@ async function update(document, change, options, userId) {
     change,
     options
   );
-  let links = options.meLinks;
+  let links = options.links[document.id];
 
   updateQueue.add(async () => {
     const docUpdates = new Map();
@@ -249,7 +250,204 @@ export class LinkerAPI {
     return allLinked;
   }
 
-  static _getLinkedDocumentsUsingLink(linkId, type) {
+  // TODO: Remove?
+  // static addLinkToSelected(linkId, type = LINK_TYPES.TWO_WAY) {
+  //   this._getSelected().forEach((p) => this.addLink(p, linkId, type));
+  // }
+
+  static hasLink(placeable, linkId) {
+    const document = placeable.document ?? placeable;
+    return Boolean(document.flags[MODULE_ID]?.links?.find((l) => l.id === linkId));
+  }
+
+  static addLink(placeable, linkId, type = LINK_TYPES.TWO_WAY, label = null) {
+    if (!Object.values(LINK_TYPES).includes(type)) throw Error(`Invalid link type: ${type}`);
+
+    const document = placeable.document ?? placeable;
+    const links = document.flags[MODULE_ID]?.links ?? [];
+
+    let link = links.find((l) => l.id === linkId);
+    if (!link) {
+      link = { id: linkId, type };
+      if (label) link.label = label;
+      links.push(link);
+    } else if (link.type !== type || (label && link.label !== label)) {
+      link.type = type;
+      if (label) link.label = label;
+    } else {
+      return;
+    }
+
+    document.setFlag(MODULE_ID, 'links', links);
+    Hooks.call(`${MODULE_ID}.addLink`, document.documentName, document.id, linkId, type, label);
+  }
+
+  static removeLinkFromSelected(linkId) {
+    this._getSelected().forEach((p) => this.removeLink(p, linkId));
+  }
+
+  static removeLink(placeable, linkId) {
+    const document = placeable.document ?? placeable;
+    let links = document.flags[MODULE_ID]?.links;
+    if (links) {
+      links = links.filter((l) => l.id !== linkId);
+      if (links.length) document.setFlag(MODULE_ID, 'links', links);
+      else document.unsetFlag(MODULE_ID, 'links');
+      Hooks.call(`${MODULE_ID}.removeLink`, document.id, linkId);
+    }
+  }
+
+  /**
+   * Remove all links from the given placeable/document
+   * @param {*} placeable
+   */
+  static removeLinks(placeable) {
+    const document = placeable.document ?? placeable;
+    if (document.flags[MODULE_ID]?.links) {
+      document.unsetFlag(MODULE_ID, 'links');
+      Hooks.call(`${MODULE_ID}.removeNode`, document.id);
+    }
+  }
+
+  /**
+   * Remove all links from selected placeables
+   */
+  static removeAllLinksFromSelected() {
+    LinkerAPI._getSelected().forEach((p) => LinkerAPI.removeLinks(p));
+  }
+
+  /**
+   * Delete selected placeable and all other placeables they are linked to
+   */
+  static deleteSelectedLinkedPlaceables() {
+    const selected = LinkerAPI._getSelected().map((s) => s.document);
+    const linked = LinkerAPI.getLinkedDocuments(selected);
+    selected.forEach((s) => linked.add(s));
+
+    const toDelete = new Map();
+
+    linked.forEach((d) => {
+      if (!toDelete.get(d.documentName)) toDelete.set(d.documentName, [d.id]);
+      else toDelete.get(d.documentName).push(d.id);
+    });
+
+    const scene = canvas.scene;
+    toDelete.forEach((ids, documentName) => {
+      scene.deleteEmbeddedDocuments(documentName, ids);
+    });
+  }
+
+  /**
+   * Remove all links on the current scene.
+   * @returns
+   */
+  static removeAllLinksOnCurrentScene() {
+    const scene = canvas.scene;
+    if (!scene) return;
+
+    SUPPORTED_PLACEABLES.forEach((documentName) => {
+      const updates = [];
+      scene.getEmbeddedCollection(documentName).forEach((d) => {
+        if (d.flags[MODULE_ID]?.links) {
+          updates.push({ _id: d.id, [`flags.${MODULE_ID}.-=links`]: null });
+        }
+      });
+      if (updates.length) scene.updateEmbeddedDocuments(documentName, updates);
+    });
+  }
+
+  static updateLinkLabelOnCurrentScene(linkId, label) {
+    if (!linkId) return;
+
+    const scene = canvas.scene;
+    if (!scene) return;
+
+    let updated = false;
+    SUPPORTED_PLACEABLES.forEach((documentName) => {
+      const updates = [];
+      scene.getEmbeddedCollection(documentName).forEach((d) => {
+        const link = d.flags[MODULE_ID]?.links?.find((l) => l.id === linkId);
+        if (link && link.label != label) {
+          if (!label) delete link.label;
+          else link.label = label;
+
+          updates.push({ _id: d.id, [`flags.${MODULE_ID}.links`]: d.flags[MODULE_ID]?.links });
+        }
+      });
+      if (updates.length) {
+        scene.updateEmbeddedDocuments(documentName, updates);
+        updated = true;
+      }
+    });
+
+    if (updated) {
+      Hooks.call(`${MODULE_ID}.linkLabelChange`, linkId, label);
+    }
+  }
+
+  /**
+   * Remove a link from all placeables on the current scene
+   * @param {String} linkId
+   * @returns
+   */
+  static removeLinkFromScene(linkId) {
+    const scene = canvas.scene;
+    if (!scene || !linkId) return;
+
+    SUPPORTED_PLACEABLES.forEach((documentName) => {
+      const updates = [];
+      scene.getEmbeddedCollection(documentName).forEach((d) => {
+        let links = d.flags[MODULE_ID]?.links;
+        if (links) {
+          let fLinks = links.filter((l) => l.id !== linkId);
+          if (fLinks.length !== links.length) {
+            updates.push({ _id: d.id, [`flags.${MODULE_ID}.links`]: fLinks });
+          }
+        }
+      });
+      if (updates.length) scene.updateEmbeddedDocuments(documentName, updates);
+    });
+
+    Hooks.call(`${MODULE_ID}.removeNode`, linkId);
+  }
+
+  // TODO: Remove?
+  // static deleteLinkedPlaceables(link, scene = canvas.scene) {
+  //   if (!scene || !link || !link.id || !link.hasOwnProperty('type')) return;
+
+  //   SUPPORTED_PLACEABLES.forEach((documentName) => {
+  //     const ids = [];
+  //     scene.getEmbeddedCollection(documentName).forEach((d) => {
+  //       if (d.flags[MODULE_ID]?.links?.some((l) => l.id === link.id && l.type === link.type)) {
+  //         ids.push(d.id);
+  //       }
+  //     });
+  //     if (ids.length) scene.deleteEmbeddedDocuments(documentName, ids);
+  //   });
+  // }
+
+  /**
+   * Private Utils
+   */
+
+  /**
+   * Returns all selected placeables
+   * @returns
+   */
+  static _getSelected() {
+    const activeLayer = canvas.activeLayer;
+    if (!SUPPORTED_PLACEABLES.includes(activeLayer.options.objectClass.embeddedName)) return [];
+    return [...canvas.activeLayer.controlled];
+  }
+
+  /**
+   * Returns all documents on the current scene matching the provided linkId and type
+   * @param {String} linkId
+   * @param {LINK_TYPES|null} type
+   * @returns
+   */
+  static _getLinkedDocumentsUsingLink(linkId, type = null) {
+    if (type != null && !Object.values(LINK_TYPES).includes(type)) throw Error(`Invalid link type: ${type}`);
     const allLinked = new Set();
     SUPPORTED_PLACEABLES.forEach((documentName) => {
       canvas.scene.getEmbeddedCollection(documentName).forEach((d) => {
@@ -261,6 +459,13 @@ export class LinkerAPI {
     return allLinked;
   }
 
+  /**
+   * Utility for LinkerAPI.getLinkedDocuments
+   * @param {*} document
+   * @param {*} allLinked
+   * @param {*} processedLinks
+   * @returns
+   */
   static _findLinked(document, allLinked, processedLinks = new Set()) {
     allLinked.add(document);
 
@@ -280,110 +485,5 @@ export class LinkerAPI {
     });
 
     return allLinked;
-  }
-
-  static addLinkToSelected(linkId, type = LINK_TYPES.TWO_WAY) {
-    this._getSelected().forEach((p) => this.addLink(p, linkId, type));
-  }
-
-  static hasLink(placeable, linkId) {
-    const document = placeable.document ?? placeable;
-    return Boolean(document.flags[MODULE_ID]?.links?.find((l) => l.id === linkId));
-  }
-
-  static addLink(placeable, linkId, type = LINK_TYPES.TWO_WAY) {
-    const document = placeable.document ?? placeable;
-    const links = document.flags[MODULE_ID]?.links ?? [];
-
-    let link = links.find((l) => l.id === linkId);
-    if (!link) {
-      link = { id: linkId };
-      links.push(link);
-    }
-    link.type = type;
-
-    document.setFlag(MODULE_ID, 'links', links);
-  }
-
-  static removeLinkFromSelected(linkId) {
-    this._getSelected().forEach((p) => this.removeLink(p, linkId));
-  }
-
-  static removeLink(placeable, linkId) {
-    const document = placeable.document ?? placeable;
-    let links = document.flags[MODULE_ID]?.links;
-    if (links) {
-      links = links.filter((l) => l.id !== linkId);
-      if (links.length) document.setFlag(MODULE_ID, 'links', links);
-      else document.unsetFlag(MODULE_ID, 'links');
-    }
-  }
-
-  static removeLinks(placeable) {
-    const document = placeable.document ?? placeable;
-    if (document.flags[MODULE_ID]?.links) document.unsetFlag(MODULE_ID, 'links');
-  }
-
-  static removeAllLinksFromSelected() {
-    this._getSelected().forEach((p) => {
-      let links = p.document.flags[MODULE_ID]?.links;
-      if (links) p.document.unsetFlag(MODULE_ID, 'links');
-    });
-  }
-
-  static removeAllLinksOnCurrentScene() {
-    const scene = canvas.scene;
-    if (!scene) return;
-
-    SUPPORTED_PLACEABLES.forEach((documentName) => {
-      const updates = [];
-      scene.getEmbeddedCollection(documentName).forEach((d) => {
-        if (d.flags[MODULE_ID]?.links) {
-          updates.push({ _id: d.id, [`flags.${MODULE_ID}.-=links`]: null });
-        }
-      });
-      if (updates.length) scene.updateEmbeddedDocuments(documentName, updates);
-    });
-  }
-
-  static removeLinkFromScene(linkId) {
-    const scene = canvas.scene;
-    if (!scene || !linkId) return;
-
-    SUPPORTED_PLACEABLES.forEach((documentName) => {
-      const updates = [];
-      scene.getEmbeddedCollection(documentName).forEach((d) => {
-        let links = d.flags[MODULE_ID]?.links;
-        if (links) {
-          let fLinks = links.filter((l) => l.id !== linkId);
-          if (fLinks.length !== links.length) {
-            updates.push({ _id: d.id, [`flags.${MODULE_ID}.links`]: fLinks });
-          }
-        }
-      });
-      if (updates.length) scene.updateEmbeddedDocuments(documentName, updates);
-    });
-  }
-
-  static deleteLinkedPlaceables(link, scene = canvas.scene) {
-    if (!scene || !link || !link.id || !link.hasOwnProperty('type')) return;
-
-    SUPPORTED_PLACEABLES.forEach((documentName) => {
-      const ids = [];
-      scene.getEmbeddedCollection(documentName).forEach((d) => {
-        if (d.flags[MODULE_ID]?.links?.some((l) => l.id === link.id && l.type === link.type)) {
-          ids.push(d.id);
-        }
-      });
-      if (ids.length) scene.deleteEmbeddedDocuments(documentName, ids);
-    });
-  }
-
-  static _getSelected() {
-    let selected = [];
-    SUPPORTED_PLACEABLES.forEach((documentName) => {
-      selected = selected.concat(canvas.getLayerByEmbeddedName(documentName).controlled);
-    });
-    return selected;
   }
 }

@@ -1,23 +1,31 @@
-<div style="height: 100%; display: flex; flex-flow: column;">
-    <div class="controls" style="display: flex;">
-        <div style="flex: 1;">
-            <button class="selectedToLink" type="button" disabled>Attach Selected to Link</button>
-            <button class="nodeToLink" type="button" disabled>Connect Document/s to Link</button>
-        </div>
-        <!-- <div style="flex: 1;">
-            <button type="button">C</button>
-            <button type="button">D</button>
-        </div> -->
-    </div>
+<div style="height: 100%; display: flex; flex-flow: row;">
+    <div class="controls" style="flex: 0 0 50px; display: flex; padding-left: 2px; padding-right: 4px;">
 
-    <p class="notes">
-        To enable above controls select nodes within the graph by clicking on them.<br>
-        <b>Double-Click</b> empty spot to create a new link.<br>
-        <b>Right-Click</b> nodes or edges to remove them.
-        <b>Click</b> edges to change their type.
-    </p>
+        <div style="flex: 1; display: flex; flex-direction: column;">
+            <a class="control selectedToLink" disabled data-tooltip="Attach Selected to Link"><i class="fa-duotone fa-solid fa-square-dashed-circle-plus"></i></a>
+            <a class="control pickerSelectToLink" disabled data-tooltip="Attach Multi-Layer Select to Link"><i class="fa-solid fa-layer-plus"></i></a>
+            <a class="control nodeToLink" disabled data-tooltip="Connect Graph Node to Link"><i class="fa-duotone fa-solid fa-circle-nodes"></i></a>
+
+            <div style="flex: 1; display: flex; flex-direction: column-reverse; justify-content: flex-start;">
+                <a class="control removeSelectedAndLinked" data-tooltip="Delete selected and all linked placeables."><i class="fa-solid fa-trash"></i></a>
+                <a class="control removeLinksSelected" data-tooltip="Remove ALL links from selected placeables.">
+                    <i class="fa-duotone fa-solid minus fa-square-dashed-circle-plus">
+                        <i style="position: absolute; font-size: 17px; right: -1px; bottom: 0px; font-weight: 600;" class="fa-solid fa-circle-minus"></i>
+                    </i>
+                </a>
+            </div>
+        </div>
+    </div>
 
     <div class="graph" style="border: solid 1px white; flex: 1;">
 
     </div>
+
+        <i 
+            class="fa-solid fa-circle-question"
+            style="font-size: 19px; position: absolute; right: 7px; top: 45px; color: gray;"
+            title="[Double-Click] an empty spot to create a new link.&#013;[Right-Click] nodes or edges to remove them.&#013;[Click] edges to change their type."
+        ></i>
+
+
 </div>

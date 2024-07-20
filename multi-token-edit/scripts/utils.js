@@ -1,4 +1,5 @@
 import { GeneralDataAdapter } from '../applications/dataAdapters.js';
+import { Picker } from './picker.js';
 import { MassEditPresets } from './presets/forms.js';
 import { applyRandomization } from './randomizer/randomizerUtils.js';
 
@@ -715,4 +716,34 @@ export class TagInput {
       change?.(newTags);
     });
   }
+}
+
+/**
+ * Activates Picker allowing drag selection of document across all placeables layers
+ * @returns {Array[CanvasDocumentMixin]}
+ */
+export async function pickerSelectMultiLayerDocuments() {
+  // Activate picker to define select box
+  const coords = await new Promise(async (resolve) => {
+    Picker.activate(resolve);
+  });
+  if (!coords) return [];
+
+  // Selects placeables within the bounding box
+  const selectionRect = new PIXI.Rectangle(
+    coords.start.x,
+    coords.start.y,
+    coords.end.x - coords.start.x,
+    coords.end.y - coords.start.y
+  );
+
+  let selected = [];
+  SUPPORTED_PLACEABLES.forEach((documentName) => {
+    canvas.getLayerByEmbeddedName(documentName).placeables.forEach((p) => {
+      const c = p.center;
+      if (selectionRect.contains(c.x, c.y)) selected.push(p.document);
+    });
+  });
+
+  return selected;
 }

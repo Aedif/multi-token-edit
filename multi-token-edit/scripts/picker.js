@@ -1,6 +1,6 @@
 import { LinkerAPI } from './linker/linker.js';
 import { getDataBounds, getPresetDataCenterOffset } from './presets/utils.js';
-import { SUPPORTED_PLACEABLES } from './utils.js';
+import { pickerSelectMultiLayerDocuments, SUPPORTED_PLACEABLES } from './utils.js';
 
 /**
  * Cross-hair and optional preview image/label that can be activated to allow the user to select
@@ -944,26 +944,8 @@ export async function editPreviewPlaceables() {
   });
 
   if (!controlled.size) {
-    // Activate picker to define select box
-    const coords = await new Promise(async (resolve) => {
-      Picker.activate(resolve);
-    });
-    if (!coords) return;
-
-    // Selects placeables within the bounding box
-    const selectionRect = new PIXI.Rectangle(
-      coords.start.x,
-      coords.start.y,
-      coords.end.x - coords.start.x,
-      coords.end.y - coords.start.y
-    );
-
-    SUPPORTED_PLACEABLES.forEach((documentName) => {
-      canvas.getLayerByEmbeddedName(documentName).placeables.forEach((p) => {
-        const c = p.center;
-        if (selectionRect.contains(c.x, c.y)) controlled.add(p.document);
-      });
-    });
+    const pickerSelected = await pickerSelectMultiLayerDocuments();
+    pickerSelected.forEach((d) => controlled.add(d));
   }
 
   if (!controlled.size) return;

@@ -1,12 +1,11 @@
 import { LINK_TYPES, LinkerAPI } from './linker.js';
-import { MODULE_ID, SUPPORTED_PLACEABLES } from '../utils';
+import { MODULE_ID, pickerSelectMultiLayerDocuments, SUPPORTED_PLACEABLES } from '../utils';
 import Graph from 'graphology';
 import { Sigma } from 'sigma';
 import forceAtlas2 from 'graphology-layout-forceatlas2';
 import FA2Layout from 'graphology-layout-forceatlas2/worker';
 import { createNodeImageProgram } from '@sigma/node-image';
 import { createNodeCompoundProgram, NodeCircleProgram } from 'sigma/rendering';
-import ForceSupervisor from 'graphology-layout-force/worker';
 
 export function openLinkerMenu() {
   const menu = Object.values(ui.windows).find((w) => w instanceof LinkerMenu);
@@ -64,6 +63,130 @@ class LinkerMenu extends FormApplication {
   }
 
   /**
+   * Remove nodes on placeable destroy
+   * @param {*} document
+   */
+  static onDelete(document) {
+    if (document.parent.id === canvas.scene.id) LinkerMenu.removeNode.call(this, document.id);
+  }
+
+  /**
+   * Add nodes for created documents
+   * @param {*} document
+   */
+  static onCreate(document) {
+    if (document.object) this._processDocument(document);
+  }
+
+  static addLink(documentName, documentId, linkId, linkType, linkLabel) {
+    const graph = this._graph;
+
+    if (!graph.hasNode(linkId)) this._addLinkNode(linkId, { x: 0.5, y: 0.5 }, linkLabel);
+
+    if (!graph.hasNode(documentId)) {
+      const position = { x: graph.getNodeAttribute(linkId, 'x'), y: graph.getNodeAttribute(linkId, 'y') };
+
+      position.x += Math.random() * 0.1 - 0.05;
+      position.y += Math.random() * 0.01 - 0.005;
+
+      this._addDocumentNode(documentName, documentId, null, position);
+    }
+
+    let edge = graph.edges(documentId).find((edge) => graph.source(edge) === linkId || graph.target(edge) === linkId);
+
+    if (!edge) return this._addEdge(documentId, linkId, linkType);
+
+    // Need to manually change the edge appearance
+    if (linkType === LINK_TYPES.TWO_WAY) {
+      graph.setEdgeAttribute(edge, 'type', 'line');
+      graph.setEdgeAttribute(edge, 'color', GRAPH_CONFIG.edge.line);
+    } else {
+      graph.dropEdge(edge);
+      this._addEdge(documentId, linkId, linkType);
+    }
+  }
+
+  /**
+   * Update graph state in response to link being removed from a document
+   * @param {String} documentId
+   * @param {String} linkId
+   * @returns
+   */
+  static removeLink(documentId, linkId) {
+    const graph = this._graph;
+    if (!(graph.hasNode(documentId) || graph.hasNode(linkId))) return;
+
+    // Find edge connecting doc and link nodes
+    const edge = graph.edges(documentId).find((edge) => graph.source(edge) === linkId || graph.target(edge) === linkId);
+    if (!edge) return;
+
+    const docNeighbors = graph.neighbors(documentId);
+    // const linkNeighbors = graph.neighbors(linkId);
+
+    if (docNeighbors.length < 2) LinkerMenu.removeNode.call(this, documentId);
+    else {
+      graph.dropEdge(edge);
+      canvas.controls.debug.clear();
+      this._refreshControlState();
+    }
+  }
+
+  /**
+   * Update graph state in response all document links being removed, or a link being removed from the whole scene
+   * @param {String} node document/link id
+   * @returns
+   */
+  static removeNode(node) {
+    const graph = this._graph;
+    if (!graph.hasNode(node)) return;
+
+    if (graph.getNodeAttribute(node, 'isLink')) {
+      // Link node handling
+
+      // If this link was the sole connection to a document,
+      // remove that document from the graph
+      graph.forEachNeighbor(node, (n) => {
+        if (graph.edges(n).length === 1) {
+          graph.dropNode(n);
+        }
+      });
+
+      graph.dropNode(node);
+
+      // If this node was selected, reset the selection
+      if (node === this._selectedLinkNode) this._selectedLinkNode = null;
+    } else {
+      // Document node handling
+
+      // If this was the only document with an edge to a link, remove the link node
+      graph.neighbors(node).forEach((node) => {
+        if (graph.edges(node).length === 1) {
+          graph.dropNode(node);
+          // If this node was selected, reset the selection
+          if (node === this._selectedLinkNode) this._selectedLinkNode = null;
+        }
+      });
+
+      graph.dropNode(node);
+
+      // If this node was selected, remove it from selections
+      this._selectedNodes = this._selectedNodes.filter((n) => n !== node);
+    }
+
+    // Refresh highlights and controls
+    canvas.controls.debug.clear();
+    this._refreshControlState();
+  }
+
+  static onCanvasReady() {
+    this.close(true);
+  }
+
+  static linkLabelChange(linkId, label) {
+    if (this._graph.hasNode(linkId)) this._graph.setNodeAttribute(linkId, 'label', label ?? 'LINK');
+  }
+
+  /**
    * Register hooks to provide Canvas to LinkerMenu interactivity.
    * At the moment this is just for placeable control
    * @param {LinkerMenu} app
@@ -71,10 +194,44 @@ class LinkerMenu extends FormApplication {
   static registerHooks(app) {
     LinkerMenu.unregisterHooks();
 
+    // Control hooks
     SUPPORTED_PLACEABLES.forEach((embeddedName) => {
-      const hook = `control${embeddedName}`;
-      const id = Hooks.on(hook, LinkerMenu.onControl.bind(app));
-      LinkerMenu.registeredHooks.push({ hook, id });
+      LinkerMenu.registeredHooks.push({
+        hook: `control${embeddedName}`,
+        id: Hooks.on(`control${embeddedName}`, LinkerMenu.onControl.bind(app)),
+      });
+      LinkerMenu.registeredHooks.push({
+        hook: `delete${embeddedName}`,
+        id: Hooks.on(`delete${embeddedName}`, LinkerMenu.onDelete.bind(app)),
+      });
+      LinkerMenu.registeredHooks.push({
+        hook: `create${embeddedName}`,
+        id: Hooks.on(`create${embeddedName}`, LinkerMenu.onCreate.bind(app)),
+      });
+    });
+
+    // API hooks
+    LinkerMenu.registeredHooks.push({
+      hook: `${MODULE_ID}.removeLink`,
+      id: Hooks.on(`${MODULE_ID}.removeLink`, LinkerMenu.removeLink.bind(app)),
+    });
+    LinkerMenu.registeredHooks.push({
+      hook: `${MODULE_ID}.removeNode`,
+      id: Hooks.on(`${MODULE_ID}.removeNode`, LinkerMenu.removeNode.bind(app)),
+    });
+    LinkerMenu.registeredHooks.push({
+      hook: `${MODULE_ID}.addLink`,
+      id: Hooks.on(`${MODULE_ID}.addLink`, LinkerMenu.addLink.bind(app)),
+    });
+    LinkerMenu.registeredHooks.push({
+      hook: `${MODULE_ID}.linkLabelChange`,
+      id: Hooks.on(`${MODULE_ID}.linkLabelChange`, LinkerMenu.linkLabelChange.bind(app)),
+    });
+
+    // Close window on canvasReady (scene change)
+    LinkerMenu.registeredHooks.push({
+      hook: `canvasReady`,
+      id: Hooks.on(`canvasReady`, LinkerMenu.onCanvasReady.bind(app)),
     });
   }
 
@@ -82,10 +239,8 @@ class LinkerMenu extends FormApplication {
    * Removed hooks registered via LinkerMenu.registerHooks
    */
   static unregisterHooks() {
-    if (LinkerMenu.registeredHooks.length) {
-      LinkerMenu.registeredHooks.forEach((h) => Hooks.off(h.hook, h.id));
-      LinkerMenu.registeredHooks = [];
-    }
+    LinkerMenu.registeredHooks.forEach((h) => Hooks.off(h.hook, h.id));
+    LinkerMenu.registeredHooks = [];
   }
 
   constructor() {
@@ -125,73 +280,86 @@ class LinkerMenu extends FormApplication {
     });
   }
 
+  _addDocumentNode(documentName, documentId, doc = null, position = null) {
+    const document = doc ?? canvas.scene.getEmbeddedDocument(documentName, documentId);
+    if (!document) return;
+
+    const coords = position ?? {
+      x: document.object.bounds.x,
+      y: -document.object.bounds.y,
+    };
+
+    this._graph.addNode(documentId, {
+      size: GRAPH_CONFIG.document.size,
+      label: documentName,
+      color: GRAPH_CONFIG.document.color,
+      pictoColor: GRAPH_CONFIG.document.pictoColor,
+      image: DOC_ICONS[documentName],
+      type: 'pictogram',
+      document,
+      ...coords,
+    });
+
+    return coords;
+  }
+
+  _addLinkNode(linkId, coords, label = null) {
+    this._graph.addNode(linkId, {
+      size: GRAPH_CONFIG.link.size,
+      label: label ?? 'LINK',
+      color: GRAPH_CONFIG.link.color,
+      pictoColor: GRAPH_CONFIG.link.pictoColor,
+      image: GRAPH_CONFIG.link.image,
+      type: 'pictogram',
+      isLink: true,
+      ...coords,
+    });
+  }
+
+  _addEdge(documentId, linkId, linkType) {
+    let source, target;
+    if (linkType === LINK_TYPES.RECEIVE) {
+      source = linkId;
+      target = documentId;
+    } else {
+      source = documentId;
+      target = linkId;
+    }
+    return this._graph.addEdge(source, target, {
+      size: GRAPH_CONFIG.edge.size,
+      color: linkType === LINK_TYPES.TWO_WAY ? GRAPH_CONFIG.edge.line : GRAPH_CONFIG.edge.arrow,
+      type: linkType === LINK_TYPES.TWO_WAY ? 'line' : 'arrow',
+    });
+  }
+
+  _processDocument(d) {
+    if (d.flags[MODULE_ID]?.links?.length) {
+      const coords = this._addDocumentNode(d.documentName, d.id, d);
+
+      // Link nodes and edges
+      d.flags[MODULE_ID].links.forEach((link) => {
+        if (!this._graph.hasNode(link.id)) {
+          this._addLinkNode(link.id, { x: coords.x + 40, y: coords.y + 40 }, link.label);
+        }
+        this._addEdge(d.id, link.id, link.type);
+      });
+    }
+  }
+
   async activateGraph(html) {
     const graph = new Graph();
     this._graph = graph;
 
-    const processDocument = function (d) {
-      if (d.flags[MODULE_ID]?.links?.length) {
-        // Placeable node
-        const coords = {
-          x: d.object.bounds.x,
-          y: -d.object.bounds.y,
-        };
-        graph.addNode(d.id, {
-          size: GRAPH_CONFIG.document.size,
-          label: d.documentName,
-          color: GRAPH_CONFIG.document.color,
-          pictoColor: GRAPH_CONFIG.document.pictoColor,
-          image: DOC_ICONS[d.documentName],
-          type: 'pictogram',
-          document: d,
-          ...coords,
-        });
-
-        // Link nodes and edges
-        d.flags[MODULE_ID].links.forEach((link) => {
-          if (!graph.hasNode(link.id)) {
-            // Link node
-            graph.addNode(link.id, {
-              size: GRAPH_CONFIG.link.size,
-              label: 'LINK',
-              color: GRAPH_CONFIG.link.color,
-              pictoColor: GRAPH_CONFIG.link.pictoColor,
-              image: GRAPH_CONFIG.link.image,
-              type: 'pictogram',
-              isLink: true,
-              x: coords.x + 40,
-              y: coords.y,
-            });
-          }
-
-          // Edge
-          let source, target;
-          if (link.type === LINK_TYPES.RECEIVE) {
-            source = link.id;
-            target = d.id;
-          } else {
-            source = d.id;
-            target = link.id;
-          }
-          graph.addEdge(source, target, {
-            size: GRAPH_CONFIG.edge.size,
-            color: link.type === LINK_TYPES.TWO_WAY ? GRAPH_CONFIG.edge.line : GRAPH_CONFIG.edge.arrow,
-            type: link.type === LINK_TYPES.TWO_WAY ? 'line' : 'arrow',
-          });
-        });
-      }
-    };
-
     // Add nodes and edges
     const selected = LinkerAPI._getSelected().map((p) => p.document);
     if (selected.length) {
-      selected.forEach((d) => processDocument(d));
-      LinkerAPI.getLinkedDocuments(selected).forEach((d) => processDocument(d));
+      selected.forEach((d) => this._processDocument(d));
+      LinkerAPI.getLinkedDocuments(selected).forEach((d) => this._processDocument(d));
     } else {
       // Retrieve links from the whole scene
       SUPPORTED_PLACEABLES.forEach((embeddedName) => {
         canvas.scene.getEmbeddedCollection(embeddedName).forEach((d) => {
-          processDocument(d);
+          this._processDocument(d);
         });
       });
     }
@@ -292,50 +460,6 @@ class LinkerMenu extends FormApplication {
     });
     sigmaInstance.on('clickEdge', ({ edge }) => this.cycleEdgeType(edge));
     sigmaInstance.on('rightClickEdge', ({ edge }) => this.removeEdge(edge));
-
-    //this.enableNodeDrag();
-  }
-
-  enableNodeDrag() {
-    // State for drag'n'drop
-    let draggedNode = null;
-    let isDragging = false;
-
-    // On mouse down on a node
-    //  - we enable the drag mode
-    //  - save in the dragged node in the state
-    //  - highlight the node
-    //  - disable the camera so its state is not updated
-    this._sigmaInstance.on('downNode', (e) => {
-      isDragging = true;
-      draggedNode = e.node;
-      this._graph.setNodeAttribute(draggedNode, 'highlighted', true);
-    });
-
-    // On mouse move, if the drag mode is enabled, we change the position of the draggedNode
-    this._sigmaInstance.getMouseCaptor().on('mousemovebody', (event) => {
-      if (!isDragging || !draggedNode) return;
-
-      // Get new position of node
-      const pos = this._sigmaInstance.viewportToGraph({ x: event.x, y: event.y });
-
-      this._graph.setNodeAttribute(draggedNode, 'x', pos.x);
-      this._graph.setNodeAttribute(draggedNode, 'y', pos.y);
-
-      // Prevent sigma to move camera:
-      event.preventSigmaDefault();
-      event.original.preventDefault();
-      event.original.stopPropagation();
-    });
-
-    // On mouse up, we reset the autoscale and the dragging mode
-    this._sigmaInstance.getMouseCaptor().on('mouseup', () => {
-      if (draggedNode) {
-        this._graph.removeNodeAttribute(draggedNode, 'highlighted');
-      }
-      isDragging = false;
-      draggedNode = null;
-    });
   }
 
   /**
@@ -357,18 +481,11 @@ class LinkerMenu extends FormApplication {
       documentNode = source;
     }
 
-    if (graph.neighbors(documentNode).length === 1) {
-      this.removeNode(documentNode);
-    } else {
-      graph.dropEdge(edge);
-      const document = graph.getNodeAttribute(documentNode, 'document');
-      LinkerAPI.removeLink(document, linkNode);
-    }
+    LinkerAPI.removeLink(graph.getNodeAttribute(documentNode, 'document'), linkNode);
   }
 
   /**
-   * Cycle edge through link types defined in `LINK_TYPES`. Changing its appearance and
-   * updating the link of the document it connects to.
+   * Cycle edge through link types defined in `LINK_TYPES`.
    * @param {String} edge
    */
   cycleEdgeType(edge) {
@@ -395,34 +512,6 @@ class LinkerMenu extends FormApplication {
       graph.getNodeAttribute(source, 'isLink') ? source : target,
       linkType
     );
-
-    // Change edge appearance
-    if (linkType === LINK_TYPES.TWO_WAY) {
-      graph.setEdgeAttribute(edge, 'type', 'line');
-      graph.setEdgeAttribute(edge, 'color', GRAPH_CONFIG.edge.line);
-    } else {
-      graph.dropEdge(edge);
-
-      if (linkType === LINK_TYPES.RECEIVE) {
-        if (!graph.getNodeAttribute(source, 'isLink')) {
-          let tmp = source;
-          source = target;
-          target = tmp;
-        }
-      } else {
-        if (graph.getNodeAttribute(source, 'isLink')) {
-          let tmp = source;
-          source = target;
-          target = tmp;
-        }
-      }
-
-      graph.addEdge(source, target, {
-        size: GRAPH_CONFIG.edge.size,
-        color: GRAPH_CONFIG.edge.arrow,
-        type: 'arrow',
-      });
-    }
   }
 
   onClickNode(node) {
@@ -455,31 +544,12 @@ class LinkerMenu extends FormApplication {
     const graph = this._graph;
 
     if (graph.getNodeAttribute(node, 'isLink')) {
-      // Link node click handling
-
-      // If this link was the sole connection to a placeable,
-      // remove that placeable from the graph
-      graph.forEachNeighbor(node, (n) => {
-        if (graph.edges(n).length === 1) graph.dropNode(n);
-      });
-
-      if (node === this._selectedLinkNode) this._selectedLinkNode = null;
-      graph.dropNode(node);
       LinkerAPI.removeLinkFromScene(node);
     } else {
       // Placeable note click handling
       const document = graph.getNodeAttribute(node, 'document');
       if (document) LinkerAPI.removeLinks(document);
-
-      this._selectedNodes = this._selectedNodes.filter((n) => n !== node);
-
-      this._graph.dropNode(node);
     }
-
-    // The link/placeable has to have been hovered over. Clear the highlighting
-    canvas.controls.debug.clear();
-
-    this._refreshControlState();
   }
 
   async getData(options = {}) {
@@ -487,91 +557,69 @@ class LinkerMenu extends FormApplication {
   }
 
   get title() {
-    return 'Links';
-  }
-
-  _getHeaderButtons() {
-    const buttons = super._getHeaderButtons();
-    buttons.unshift({
-      label: '',
-      class: 'mass-edit-delete-link',
-      icon: 'fa-solid fa-link-slash',
-      onclick: () => LinkerAPI.removeAllLinksFromSelected(),
-    });
-    return buttons;
+    return 'Mass Edit: Linker';
   }
 
   activateListeners(html) {
     super.activateListeners(html);
 
-    this._selectedToLinkControl = html
-      .find('.selectedToLink')
-      .on('click', this._onSelectedToLinkControlClick.bind(this));
-    this._nodeToLinkControl = html.find('.nodeToLink').on('click', this._onNodeToLinkControlClick.bind(this));
+    this._conditionalControls = [
+      {
+        element: html.find('.selectedToLink').on('click', this._onSelectedToLinkControlClick.bind(this)),
+        condition: () => this._selectedLinkNode,
+      },
+      {
+        element: html.find('.pickerSelectToLink').on('click', this._onPickerSelectToLink.bind(this)),
+        condition: () => this._selectedLinkNode && !game.Levels3DPreview?._active,
+      },
+      {
+        element: html.find('.nodeToLink').on('click', this._onNodeToLinkControlClick.bind(this)),
+        condition: () => this._selectedLinkNode && this._selectedNodes.length,
+      },
+    ];
+
+    html.find('.removeLinksSelected').on('click', LinkerAPI.removeAllLinksFromSelected);
+    html.find('.removeSelectedAndLinked').on('click', LinkerAPI.deleteSelectedLinkedPlaceables);
 
     // Display node graph
     this.activateGraph(html);
   }
 
+  async _onPickerSelectToLink() {
+    if (!this._selectedLinkNode) return;
+
+    const neighbors = this._graph.neighbors(this._selectedLinkNode);
+    const selected = await pickerSelectMultiLayerDocuments();
+    selected
+      .filter((d) => !neighbors.includes(d.id))
+      .forEach((d) => LinkerAPI.addLink(d, this._selectedLinkNode, LINK_TYPES.TWO_WAY));
+  }
+
   _onSelectedToLinkControlClick() {
     if (!this._selectedLinkNode) return;
 
-    const graph = this._graph;
-
-    const attributes = graph.getNodeAttributes(this._selectedLinkNode);
     const neighbors = this._graph.neighbors(this._selectedLinkNode);
-
     LinkerAPI._getSelected()
       .map((p) => p.document)
       .filter((d) => !neighbors.includes(d.id))
-      .forEach((d) => {
-        // TODO add graph updating to the API itself
-        LinkerAPI.addLink(d, this._selectedLinkNode, LINK_TYPES.TWO_WAY);
-        if (!graph.hasNode(d.id)) {
-          graph.addNode(d.id, {
-            size: GRAPH_CONFIG.document.size,
-            label: d.documentName,
-            color: GRAPH_CONFIG.document.color,
-            pictoColor: GRAPH_CONFIG.document.pictoColor,
-            image: DOC_ICONS[d.documentName],
-            type: 'pictogram',
-            document: d,
-            x: attributes.x + Math.random() * 0.1 - 0.05,
-            y: attributes.y + Math.random() * 0.1 - 0.05,
-          });
-        }
-        graph.addEdge(d.id, this._selectedLinkNode, {
-          size: GRAPH_CONFIG.edge.size,
-          color: GRAPH_CONFIG.edge.line,
-          type: 'line',
-        });
-      });
+      .forEach((d) => LinkerAPI.addLink(d, this._selectedLinkNode, LINK_TYPES.TWO_WAY));
   }
 
   _onNodeToLinkControlClick() {
     if (!this._selectedLinkNode || !this._selectedNodes.length) return;
 
     const graph = this._graph;
-
     const nodes = this._selectedNodes.filter((node) => !graph.neighbors(node).includes(this._selectedLinkNode));
-
     nodes.forEach((node) => {
       LinkerAPI.addLink(graph.getNodeAttribute(node, 'document'), this._selectedLinkNode, LINK_TYPES.TWO_WAY);
-
-      graph.addEdge(node, this._selectedLinkNode, {
-        size: GRAPH_CONFIG.edge.size,
-        color: GRAPH_CONFIG.edge.line,
-        type: 'line',
-      });
     });
   }
 
   _refreshControlState() {
-    if (this._selectedLinkNode) this._selectedToLinkControl.removeAttr('disabled');
-    else this._selectedToLinkControl.attr('disabled', 'disabled');
-
-    if (this._selectedLinkNode && this._selectedNodes.length) this._nodeToLinkControl.removeAttr('disabled');
-    else this._nodeToLinkControl.attr('disabled', 'disabled');
+    this._conditionalControls.forEach((control) => {
+      if (control.condition()) control.element.removeAttr('disabled');
+      else control.element.attr('disabled', 'disabled');
+    });
   }
 
   async close(options = {}) {
