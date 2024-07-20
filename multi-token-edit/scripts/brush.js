@@ -94,16 +94,21 @@ export class Brush {
 
   static _hitTestTile(point, placeable) {
     const foreground = ui.controls.control.foreground ?? false;
-    if (placeable.document.overhead !== foreground) return false;
-    return this._hitTestArea(point, placeable);
+    // V12, to be removed
+    if (placeable.document.hasOwnProperty('elevation')) {
+      if (placeable.document.elevation && !foreground) return false;
+    } else {
+      if (placeable.document.overhead !== foreground) return false;
+    }
+    return placeable.bounds.contains(point.x, point.y);
   }
 
   static _hoverTestArea(placeable) {
-    return (
-      this.hoveredPlaceable &&
-      this.hoveredPlaceable.hitArea.width * this.hoveredPlaceable.hitArea.height >
-        placeable.hitArea.width * placeable.hitArea.height
-    );
+    if (!this.hoveredPlaceable) return false;
+
+    const hBounds = this.hoveredPlaceable.bounds;
+    const pBounds = placeable.bounds;
+    return hBounds.width * hBounds.height > pBounds.width * pBounds.height;
   }
 
   static _hitTestArea(point, placeable) {
@@ -990,6 +995,8 @@ export class BrushMenu extends FormApplication {
       const stepsInRange = (settings.rotation[1] - settings.rotation[0] + 1) / 1;
       transform.rotation = Math.floor(Math.random() * stepsInRange) * 1 + settings.rotation[0];
     }
+
+    if (transform.scale === 1 && transform.rotation === 0) return null;
 
     return transform;
   }

@@ -1,5 +1,5 @@
 import { LINK_TYPES, LinkerAPI } from './linker.js';
-import { MODULE_ID, pickerSelectMultiLayerDocuments, SUPPORTED_PLACEABLES } from '../utils';
+import { localize, MODULE_ID, pickerSelectMultiLayerDocuments, SUPPORTED_PLACEABLES } from '../utils';
 import Graph from 'graphology';
 import { Sigma } from 'sigma';
 import forceAtlas2 from 'graphology-layout-forceatlas2';
@@ -447,6 +447,13 @@ class LinkerMenu extends FormApplication {
 
     sigmaInstance.on('clickNode', ({ node }) => this.onClickNode(node));
     sigmaInstance.on('rightClickNode', ({ node }) => this.removeNode(node));
+    sigmaInstance.on('doubleClickNode', ({ event, node }) => {
+      event.preventSigmaDefault();
+      event.original.preventDefault();
+      event.original.stopPropagation();
+
+      this.editLinkLabel(node);
+    });
 
     sigmaInstance.on('enterEdge', ({ edge }) => {
       graph.setEdgeAttribute(edge, 'color', GRAPH_CONFIG.edge.hover);
@@ -460,6 +467,35 @@ class LinkerMenu extends FormApplication {
     });
     sigmaInstance.on('clickEdge', ({ edge }) => this.cycleEdgeType(edge));
     sigmaInstance.on('rightClickEdge', ({ edge }) => this.removeEdge(edge));
+  }
+
+  /**
+   * Show a dialog to edit link node label
+   * @param {String} node
+   * @returns
+   */
+  editLinkLabel(node) {
+    const graph = this._graph;
+    if (!graph.getNodeAttribute(node, 'isLink')) return;
+
+    const currentLabel = graph.getNodeAttribute(node, 'label');
+    new Dialog({
+      title: `Edit: Link Label`,
+      content: `<input class="label" type="text" value="${currentLabel}"></input>`,
+      buttons: {
+        save: {
+          label: localize('Save', false),
+          callback: (html) => {
+            if (!graph.hasNode(node)) return;
+
+            const updatedLabel = html.find('.label').val();
+            if (updatedLabel && updatedLabel != currentLabel) {
+              LinkerAPI.updateLinkLabelOnCurrentScene(node, updatedLabel);
+            }
+          },
+        },
+      },
+    }).render(true);
   }
 
   /**
@@ -576,6 +612,10 @@ class LinkerMenu extends FormApplication {
         element: html.find('.nodeToLink').on('click', this._onNodeToLinkControlClick.bind(this)),
         condition: () => this._selectedLinkNode && this._selectedNodes.length,
       },
+      {
+        element: html.find('.cycleLinkType').on('click', this._onCycleLinkType.bind(this)),
+        condition: () => this._selectedLinkNode,
+      },
     ];
 
     html.find('.removeLinksSelected').on('click', LinkerAPI.removeAllLinksFromSelected);
@@ -583,6 +623,37 @@ class LinkerMenu extends FormApplication {
 
     // Display node graph
     this.activateGraph(html);
+  }
+
+  _onCycleLinkType() {
+    if (!this._selectedLinkNode) return;
+
+    const graph = this._graph;
+
+    const edges = graph.edges(this._selectedLinkNode);
+    if (!edges.length) return;
+
+    // Use the first found edge to determine the type to be used for cycling
+    const edge = edges[0];
+    const target = graph.target(edge);
+
+    let linkType;
+    if (graph.getEdgeAttribute(edge, 'type') === 'line') {
+      linkType = LINK_TYPES.TWO_WAY;
+    } else if (graph.getNodeAttribute(target, 'isLink')) {
+      linkType = LINK_TYPES.SEND;
+    } else {
+      linkType = LINK_TYPES.RECEIVE;
+    }
+
+    // Cycle link type
+    linkType = (linkType + 1) % Object.keys(LINK_TYPES).length;
+
+    // Update all neighbors
+    graph.neighbors(this._selectedLinkNode).forEach((node) => {
+      const document = graph.getNodeAttribute(node, 'document');
+      if (document) LinkerAPI.addLink(document, this._selectedLinkNode, linkType);
+    });
   }
 
   async _onPickerSelectToLink() {
