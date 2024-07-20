@@ -1,3 +1,35 @@
+# 1.71.0
+
+**Linker**
+
+- Links can now be established between placeables to allow movement and rotation of entire linked groups
+- New Keybinding: `Open Linker Menu`
+  - Opens a menu from which you can add and remove links on selected placeables
+- If `Alt` is held during linked placeable drag or rotation, the links will be momentarily ignored
+
+**Region Behaviors**
+
+- New behavior added: `Link Token`
+  - Tokens upon moving into and out of the region will be linked and un-linked from the region
+
+**Preset Browser**
+
+- Preset Edit form is now separated into tabs
+- New options on Preset Edit forms: `Preserve Links`
+  - By default the module will generate unique links for all placeables contained within the preset to allow independent movement of the presets on the scene.
+  - If enabled links will be preserved meaning if preset is spawned multiple times all placeables will be part of the same link group
+- Preset browser will now detect links on dropped in placeables and prompt for linked placeable inclusion in the created preset
+- `Assign` on preset edit forms will now detect links on selected placeables and prompt for their inclusion and override of existing `Attached` elements
+- `AmbientSound` presets can now be dropped on Playlists to create new sounds
+- Improved the processing speed of working pack export to JSON
+
+**Misc**
+
+- New setting: `Pre-Select Auto-apply`
+  - When enabled `Auto-apply` checkboxes will be pre-selected on Mass Edit forms
+- `Select Edit Placeable` keybinding will now detect links on selected placeables and include them within preview edit mode
+- Added ability to rotate Rectangle & Polygon Regions in the same manner as Tokens, Tiles, etc.
+
 # 1.70.0
 
 **v12 Region Support**
