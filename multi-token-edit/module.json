@@ -2,10 +2,10 @@
   "id": "multi-token-edit",
   "title": "Baileywiki Mass Edit",
   "description": "Search and edit multiple placeables at the same time.",
-  "version": "1.71.0",
+  "version": "1.71.0.11",
   "download": "https://github.com/Aedif/multi-token-edit/releases/download/1.71.0.11/multi-token-edit.zip",
   "url": "https://github.com/Aedif/multi-token-edit",
-  "manifest": "https://github.com/Aedif/multi-token-edit/releases/latest/download/module.json",
+  "manifest": "https://raw.githubusercontent.com/Aedif/multi-token-edit/v11/multi-token-edit/module.json",
   "author": "Aedif",
   "authors": [
     {
