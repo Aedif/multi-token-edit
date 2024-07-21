@@ -378,8 +378,12 @@ export function pasteDataUpdate(docs, preset, suppressNotif = false, excludePosi
     if (!foundry.utils.isEmpty(preset.randomize)) context.randomizeFields = preset.randomize;
     if (!foundry.utils.isEmpty(preset.addSubtract)) context.addSubtractFields = preset.addSubtract;
 
-    let data = foundry.utils.deepClone(preset.data[Math.floor(Math.random() * preset.data.length)]);
-    if (transform) DataTransform.apply(documentName, data, { x: 0, y: 0 }, transform);
+    const ogData = preset.data[Math.floor(Math.random() * preset.data.length)];
+    let data = foundry.utils.deepClone(ogData);
+    if (transform) {
+      DataTransform.apply(documentName, data, { x: 0, y: 0 }, transform);
+      data = foundry.utils.mergeObject(ogData, data, { insertKeys: false, inplace: false });
+    }
     if (excludePosition) {
       delete data.x;
       delete data.y;

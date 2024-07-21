@@ -37,8 +37,7 @@ export class Brush {
 
   static _performBrushDocumentUpdate(placeable) {
     this.preset.callPostSpawnHooks({ objects: [placeable], documents: [placeable.document] });
-    if (!this.preset.isEmpty)
-      pasteDataUpdate([placeable], this.preset, true, true, this.spawner ? this.transform : null);
+    if (!this.preset.isEmpty) pasteDataUpdate([placeable], this.preset, true, true, this.transform);
     this.updatedPlaceables.set(placeable.id, placeable);
     BrushMenu.iterate();
   }

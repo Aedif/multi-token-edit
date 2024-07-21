@@ -728,11 +728,26 @@ nav > a[data-tab='me-pinned'] {
 }
 
 #mass-edit-linker-menu .controls .control {
-  font-size: 28px;
+  font-size: 24px;
+  margin-bottom: 4px;
+  box-shadow: 0 0 3px dimgray;
+  color: white;
   text-align: center;
-  margin-bottom: 11px;
+  border: 1px solid var(--color-border-dark);
+  border-radius: 5px;
+  cursor: pointer;
+  pointer-events: all;
+  place-content: center;
+  line-height: 40px;
 }
 
 #mass-edit-linker-menu .controls a[disabled].control {
-  color:black
+  color:black;
+  pointer-events: none;
+}
+
+#mass-edit-linker-menu .controls .control:hover {
+  border: 1px solid var(--color-border-highlight-alt);
+  border-bottom: 1px solid var(--color-border-highlight);
+  box-shadow: 0 0 3px var(--color-shadow-highlight);
 }
