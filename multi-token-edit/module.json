@@ -15,7 +15,8 @@
   ],
   "compatibility": {
     "minimum": 11,
-    "verified": "11"
+    "verified": 11,
+    "maximum": 11
   },
   "esmodules": ["bundle.js"],
   "styles": ["styles/slider.css", "styles/general.css"],
