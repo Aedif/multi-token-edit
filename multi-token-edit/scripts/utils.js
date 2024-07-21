@@ -339,7 +339,6 @@ export function flattenToDepth(obj, d = 0) {
   return flat;
 }
 
-// TODO
 export function activeEffectPresetSelect(aeConfig) {
   const showPresetGeneric = function (documentName) {
     new MassEditPresets(

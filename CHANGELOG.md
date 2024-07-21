@@ -1,3 +1,7 @@
+# 1.71.1
+
+- Slight `Linker Menu` UI improvements
+
 # 1.71.0
 
 **Linker**

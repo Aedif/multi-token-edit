@@ -250,11 +250,6 @@ export class LinkerAPI {
     return allLinked;
   }
 
-  // TODO: Remove?
-  // static addLinkToSelected(linkId, type = LINK_TYPES.TWO_WAY) {
-  //   this._getSelected().forEach((p) => this.addLink(p, linkId, type));
-  // }
-
   static hasLink(placeable, linkId) {
     const document = placeable.document ?? placeable;
     return Boolean(document.flags[MODULE_ID]?.links?.find((l) => l.id === linkId));
@@ -410,21 +405,6 @@ export class LinkerAPI {
 
     Hooks.call(`${MODULE_ID}.removeNode`, linkId);
   }
-
-  // TODO: Remove?
-  // static deleteLinkedPlaceables(link, scene = canvas.scene) {
-  //   if (!scene || !link || !link.id || !link.hasOwnProperty('type')) return;
-
-  //   SUPPORTED_PLACEABLES.forEach((documentName) => {
-  //     const ids = [];
-  //     scene.getEmbeddedCollection(documentName).forEach((d) => {
-  //       if (d.flags[MODULE_ID]?.links?.some((l) => l.id === link.id && l.type === link.type)) {
-  //         ids.push(d.id);
-  //       }
-  //     });
-  //     if (ids.length) scene.deleteEmbeddedDocuments(documentName, ids);
-  //   });
-  // }
 
   /**
    * Private Utils

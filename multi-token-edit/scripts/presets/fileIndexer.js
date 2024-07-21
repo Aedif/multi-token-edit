@@ -658,7 +658,6 @@ export class IndexerForm extends FormApplication {
       if (!selection) return;
       if (!selection.bucket) delete selection.bucket;
 
-      // TODO add support for s3
       if (!['data', 'public', 'forge-bazaar', 'forgevtt', 's3'].includes(selection.source)) {
         ui.notifications.warn(`${selection.source} is not a supported source.`);
         return;
