@@ -8,7 +8,7 @@ import {
   showMassSelect,
 } from '../applications/multiConfig.js';
 import { LinkerAPI } from './linker/linker.js';
-import { editPreviewPlaceables } from './picker.js';
+import { editPreviewPlaceables, Picker } from './picker.js';
 import { PresetCollection } from './presets/collection.js';
 import { MassEditPresets } from './presets/forms.js';
 import {
@@ -287,6 +287,22 @@ export function registerKeybinds() {
     precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
   });
 
+  game.keybindings.register(MODULE_ID, 'deleteAllLinked', {
+    name: 'Delete Selected & Linked',
+    hint: 'Deletes currently selected placeable and all placeables linked to it via the `Linker Menu`',
+    editable: [
+      {
+        key: 'Delete',
+        modifiers: ['Shift'],
+      },
+    ],
+    onDown: () => {
+      LinkerAPI.deleteSelectedLinkedPlaceables();
+    },
+    restricted: true,
+    precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
+  });
+
   game.keybindings.register(MODULE_ID, 'placeablePreviewEdit', {
     name: localize('keybindings.placeableEdit.name'),
     hint: localize('keybindings.placeableEdit.hint'),
@@ -297,6 +313,34 @@ export function registerKeybinds() {
       },
     ],
     onDown: editPreviewPlaceables,
+    restricted: true,
+    precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
+  });
+
+  game.keybindings.register(MODULE_ID, 'mirrorX', {
+    name: 'Mirror Preview Horizontally',
+    hint: '',
+    editable: [
+      {
+        key: 'KeyH',
+        modifiers: [],
+      },
+    ],
+    onDown: () => Picker.mirrorX(),
+    restricted: true,
+    precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
+  });
+
+  game.keybindings.register(MODULE_ID, 'mirrorY', {
+    name: 'Mirror Preview Vertically',
+    hint: '',
+    editable: [
+      {
+        key: 'KeyV',
+        modifiers: [],
+      },
+    ],
+    onDown: () => Picker.mirrorY(),
     restricted: true,
     precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
   });

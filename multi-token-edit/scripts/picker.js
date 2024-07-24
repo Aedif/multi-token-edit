@@ -38,6 +38,16 @@ export class Picker {
     return foundry.utils.deepClone(this._transformAccumulator);
   }
 
+  static mirrorX() {
+    this._mirrorX = true;
+    this.pickerOverlay?.setPositions?.(canvas.mousePosition);
+  }
+
+  static mirrorY() {
+    this._mirrorY = true;
+    this.pickerOverlay?.setPositions?.(canvas.mousePosition);
+  }
+
   /**
    * Activates the picker overlay.
    * @param {Function} callback callback function with coordinates returned as starting and ending bounds of a rectangles
@@ -67,6 +77,8 @@ export class Picker {
       let { previews, layer, previewDocuments } = await this._genPreviews(preview);
       this._rotation = preview.rotation ?? 0;
       this._scale = preview.scale ?? 1;
+      this._mirrorX = false;
+      this._mirrorY = false;
 
       const levelsActive = game.modules.get('levels')?.active;
 
@@ -96,6 +108,7 @@ export class Picker {
         const b = getDataBounds(pd.documentName, pd);
         let transform = { x: pos.x - b.x1 - offset.x, y: pos.y - b.y1 - offset.y };
 
+        // Instant transforms
         if (Picker._rotation != 0) {
           transform.rotation = Picker._rotation;
           Picker._rotation = 0;
@@ -104,6 +117,12 @@ export class Picker {
           transform.scale = Picker._scale;
           Picker._scale = 1;
         }
+
+        transform.mirrorX = Picker._mirrorX;
+        Picker._mirrorX = false;
+
+        transform.mirrorY = Picker._mirrorY;
+        Picker._mirrorY = false;
 
         for (const preview of previews) {
           const doc = preview.document;
@@ -497,15 +516,6 @@ export class DataTransform {
       this.transformDrawing(data, origin, transform, preview);
     } else if (documentName === 'Region') {
       this.transformRegion(data, origin, transform, preview);
-    } else {
-      data.x += transform.x;
-      data.y += transform.y;
-      if (data.elevation != null) data.elevation += transform.z ?? 0;
-      if (preview) {
-        preview.document.x = data.x;
-        preview.document.y = data.y;
-        if (data.elevation) preview.document.elevation = data.elevation;
-      }
     }
 
     return data;
@@ -602,6 +612,36 @@ export class DataTransform {
       }
     }
 
+    if (transform.mirrorX || transform.mirrorY) {
+      for (const shape of data.shapes) {
+        if (shape.type === 'rectangle' || shape.type === 'ellipse') {
+          const rectCenter = {
+            x: shape.x + (shape.width ?? shape.radiusX) / 2,
+            y: shape.y + (shape.height ?? shape.radiusY) / 2,
+          };
+          if (transform.mirrorX) {
+            rectCenter.x = origin.x - (rectCenter.x - origin.x);
+            shape.x = rectCenter.x - (shape.width ?? shape.radiusX) / 2;
+          }
+          if (transform.mirrorY) {
+            rectCenter.y = origin.y - (rectCenter.y - origin.y);
+            shape.y = rectCenter.y - (shape.height ?? shape.radiusY) / 2;
+          }
+        } else if (shape.type === 'polygon') {
+          if (transform.mirrorX) {
+            for (let i = 0; i < shape.points.length; i += 2) {
+              shape.points[i] = origin.x - (shape.points[i] - origin.x);
+            }
+          }
+          if (transform.mirrorY) {
+            for (let i = 1; i < shape.points.length; i += 2) {
+              shape.points[i] = origin.y - (shape.points[i] - origin.y);
+            }
+          }
+        }
+      }
+    }
+
     if (preview) {
       const doc = preview.document;
       if (data.elevation) doc.elevation = data.elevation;
@@ -648,6 +688,13 @@ export class DataTransform {
       [data.x, data.y] = this.rotatePoint(origin.x, origin.y, data.x, data.y, dr);
     }
 
+    if (transform.mirrorX) {
+      data.x = origin.x - (data.x - origin.x);
+    }
+    if (transform.mirrorY) {
+      data.y = origin.y - (data.y - origin.y);
+    }
+
     if (preview) {
       preview.document.x = data.x;
       preview.document.y = data.y;
@@ -684,6 +731,13 @@ export class DataTransform {
       [data.x, data.y] = this.rotatePoint(origin.x, origin.y, data.x, data.y, dr);
     }
 
+    if (transform.mirrorX) {
+      data.x = origin.x - (data.x - origin.x);
+    }
+    if (transform.mirrorY) {
+      data.y = origin.y - (data.y - origin.y);
+    }
+
     if (preview) {
       const doc = preview.document;
       doc.x = data.x;
@@ -715,6 +769,15 @@ export class DataTransform {
       [c[2], c[3]] = this.rotatePoint(origin.x, origin.y, c[2], c[3], dr);
     }
 
+    if (transform.mirrorX) {
+      c[0] = origin.x - (c[0] - origin.x);
+      c[2] = origin.x - (c[2] - origin.x);
+    }
+    if (transform.mirrorY) {
+      c[1] = origin.y - (c[1] - origin.y);
+      c[3] = origin.y - (c[3] - origin.y);
+    }
+
     data.c = c;
     if (preview) preview.document.c = c;
   }
@@ -738,6 +801,18 @@ export class DataTransform {
       const dr = Math.toRadians(transform.rotation % 360);
       [data.x, data.y] = this.rotatePoint(origin.x, origin.y, data.x, data.y, dr);
       data.direction += Math.toDegrees(dr);
+    }
+
+    if (transform.mirrorX || transform.mirrorY) {
+      if (transform.mirrorX) {
+        data.x = origin.x - (data.x - origin.x);
+        if (data.direction > 180) data.direction = 360 - (data.direction - 180);
+        else data.direction = 180 - data.direction;
+      }
+      if (transform.mirrorY) {
+        data.y = origin.y - (data.y - origin.y);
+        data.direction = 180 - (data.direction - 180);
+      }
     }
 
     if (preview) {
@@ -779,6 +854,18 @@ export class DataTransform {
       const dr = Math.toRadians(transform.rotation % 360);
       [data.x, data.y] = this.rotatePoint(origin.x, origin.y, data.x, data.y, dr);
       data.rotation += Math.toDegrees(dr);
+    }
+
+    if (transform.mirrorX || transform.mirrorY) {
+      if (transform.mirrorX) {
+        data.x = origin.x - (data.x - origin.x);
+        data.rotation = 180 - (data.rotation - 180);
+      }
+      if (transform.mirrorY) {
+        data.y = origin.y - (data.y - origin.y);
+        if (data.rotation > 180) data.rotation = 360 - (data.rotation - 180);
+        else data.rotation = 180 - data.rotation;
+      }
     }
 
     if (preview) {
@@ -823,6 +910,21 @@ export class DataTransform {
       data.rotation += Math.toDegrees(dr);
     }
 
+    if (transform.mirrorX || transform.mirrorY) {
+      let rectCenter = { x: data.x + data.width / 2, y: data.y + data.height / 2 };
+      if (transform.mirrorX) {
+        rectCenter.x = origin.x - (rectCenter.x - origin.x);
+        data.texture.scaleX *= -1;
+        data.x = rectCenter.x - data.width / 2;
+      }
+      if (transform.mirrorY) {
+        rectCenter.y = origin.y - (rectCenter.y - origin.y);
+        data.texture.scaleY *= -1;
+        data.y = rectCenter.y - data.height / 2;
+      }
+      data.rotation = 180 - (data.rotation - 180);
+    }
+
     if (preview) {
       const doc = preview.document;
       doc.x = data.x;
@@ -830,6 +932,8 @@ export class DataTransform {
       doc.width = data.width;
       doc.height = data.height;
       doc.rotation = data.rotation;
+      doc.texture.scaleX = data.texture.scaleX;
+      doc.texture.scaleY = data.texture.scaleY;
       if (data.elevation) doc.elevation = data.elevation;
     }
   }
@@ -860,6 +964,34 @@ export class DataTransform {
       data.x = rectCenter.x - data.shape.width / 2;
       data.y = rectCenter.y - data.shape.height / 2;
       data.rotation += Math.toDegrees(dr);
+    }
+
+    if (transform.mirrorX || transform.mirrorY) {
+      const rectCenter = { x: data.x + data.shape.width / 2, y: data.y + data.shape.height / 2 };
+
+      if (transform.mirrorX) {
+        data.x = origin.x - (rectCenter.x - origin.x);
+        if (data.shape.points) {
+          const points = data.shape.points;
+          for (let i = 0; i < points.length; i += 2) {
+            points[i] = data.shape.width / 2 - (points[i] - data.shape.width / 2);
+          }
+        }
+        data.x = rectCenter.x - data.shape.width / 2;
+      }
+
+      if (transform.mirrorY) {
+        data.y = origin.y - (rectCenter.y - origin.y);
+        if (data.shape.points) {
+          const points = data.shape.points;
+          for (let i = 1; i < points.length; i += 2) {
+            points[i] = data.shape.height / 2 - (points[i] - data.shape.height / 2);
+          }
+        }
+        data.y = rectCenter.y - data.shape.height / 2;
+      }
+
+      data.rotation = 180 - (data.rotation - 180);
     }
 
     if (preview) {
@@ -903,6 +1035,24 @@ export class DataTransform {
       data.rotation = (data.rotation + Math.toDegrees(dr)) % 360;
     }
 
+    if (transform.mirrorX || transform.mirrorY) {
+      let rectCenter = {
+        x: data.x + (data.width * (grid.sizeX ?? grid.w)) / 2,
+        y: data.y + (data.height * (grid.sizeY ?? grid.h)) / 2,
+      };
+      if (transform.mirrorX) {
+        rectCenter.x = origin.x - (rectCenter.x - origin.x);
+        data.texture.scaleX *= -1;
+        data.x = rectCenter.x - (data.width * (grid.sizeX ?? grid.w)) / 2;
+      }
+      if (transform.mirrorY) {
+        rectCenter.y = origin.y - (rectCenter.y - origin.y);
+        data.texture.scaleY *= -1;
+        data.y = rectCenter.y - (data.height * (grid.sizeY ?? grid.h)) / 2;
+      }
+      data.rotation = 180 - (data.rotation - 180);
+    }
+
     if (preview) {
       const doc = preview.document;
       doc.x = data.x;
@@ -911,6 +1061,8 @@ export class DataTransform {
       doc.rotation = data.rotation;
       doc.width = data.width;
       doc.height = data.height;
+      doc.texture.scaleX = data.texture.scaleX;
+      doc.texture.scaleY = data.texture.scaleY;
       if (data.elevation) doc.elevation = data.elevation;
     }
   }

@@ -1,3 +1,14 @@
+# 1.71.3
+
+- New keybindings
+  - **Delete Selected & Linked**
+    - Default: `Shift+Delete`
+    - Deletes currently selected placeable and all placeables linked to it via the `Linker Menu`
+  - **Mirror Preview Horizontally**
+  - **Mirror Preview Vertically**
+    - Default: `H` and `V`
+    - Mirrors previews activated via `Preset Browser`, `Placeable Preview Editing` keybinding, or `MassEdit.spawnPreset(...)` API
+
 # 1.71.1
 
 - Slight `Linker Menu` UI improvements
