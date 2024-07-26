@@ -529,14 +529,6 @@ export class BrushMenu extends FormApplication {
     this.preset = p.clone();
     if (index.hasOwnProperty('dI')) this.preset.data = [this.preset.data[index.dI]];
 
-    // Place tiles above others on the scene
-    if (this.preset.documentName === 'Tile' && canvas.tiles.placeables.length) {
-      const maxZ = Math.max(...canvas.tiles.placeables.map((p) => p.document.z));
-      this.preset.data.forEach((d) => {
-        d.z = maxZ;
-      });
-    }
-
     // Apply Color
     await this._applyColor();
 

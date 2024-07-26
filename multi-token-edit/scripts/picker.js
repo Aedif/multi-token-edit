@@ -163,44 +163,26 @@ export class Picker {
           preview.renderFlags.set({ refresh: true });
 
           // TODO: improve _meSort, _meElevation
-          if (foundry.utils.isNewerVersion(game.version, 12)) {
-            // Elevation, sort, and z order hacks to make sure previews are always rendered on-top
-            if (doc.sort != null) {
-              if (!preview._meSort) preview._meSort = doc.sort;
-              doc.sort = preview._meSort + 10000;
-            }
+          // Elevation, sort, and z order hacks to make sure previews are always rendered on-top
+          if (doc.sort != null) {
+            if (!preview._meSort) preview._meSort = doc.sort;
+            doc.sort = preview._meSort + 10000;
+          }
 
-            if (doc.elevation != null) {
-              if (!preview._meElevation) preview._meElevation = doc.elevation;
-              doc.elevation = preview._meElevation + 10000;
-            }
+          if (doc.elevation != null) {
+            if (!preview._meElevation) preview._meElevation = doc.elevation;
+            doc.elevation = preview._meElevation + 10000;
+          }
 
-            // Special position update conditions
-            // - Region: We need to simulate doc update via `_onUpdate` call
-            // - AmbientLight and AmbientSound sources need to be re-initialized to have their fields properly rendered
-            if (documentName === 'Region') {
-              preview._onUpdate({ shapes: null });
-            } else if (documentName === 'AmbientLight') {
-              preview.initializeLightSource();
-            } else if (documentName === 'AmbientSound') {
-              preview.initializeSoundSource();
-            }
-          } else {
-            if (!preview.z) preview.z = doc.z;
-            if (preview.z) doc.z = preview.z + 10000;
-
-            if (documentName === 'Token') {
-              if (!preview._meElevation) preview._meElevation = doc.elevation;
-              doc.elevation = preview._meElevation + 10000;
-            } else if (levelsActive) {
-              if (!preview._meElevation)
-                preview._meElevation = foundry.utils.getProperty('flags.levels.rangeBottom') ?? 0;
-              foundry.utils.setProperty(doc, 'flags.levels.rangeBottom', preview._meElevation + 10000);
-              doc.overhead = true;
-            }
-
-            // AmbientLight and AmbientSound sources need to be re-initialized to have their fields properly rendered
-            if (preview.source) preview.updateSource();
+          // Special position update conditions
+          // - Region: We need to simulate doc update via `_onUpdate` call
+          // - AmbientLight and AmbientSound sources need to be re-initialized to have their fields properly rendered
+          if (documentName === 'Region') {
+            preview._onUpdate({ shapes: null });
+          } else if (documentName === 'AmbientLight') {
+            preview.initializeLightSource();
+          } else if (documentName === 'AmbientSound') {
+            preview.initializeSoundSource();
           }
 
           // End of Hacks
@@ -1109,7 +1091,7 @@ export async function editPreviewPlaceables() {
     const documentName = document.documentName;
     if (!SUPPORTED_PLACEABLES.includes(documentName)) return;
 
-    let data = document.toCompendium(null, { keepId: true });
+    let data = document.toObject();
 
     if (
       documentName === 'Token' &&

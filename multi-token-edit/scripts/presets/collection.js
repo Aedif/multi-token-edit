@@ -927,6 +927,15 @@ export class PresetAPI {
       });
     });
 
+    // We need to make sure that newly spawned tiles are displayed above currently places ones
+    if (docToData.get('Tile')) {
+      const maxSort = Math.max(0, ...game.scenes.get(sceneId).tiles.map((d) => d.sort)) + 1;
+      docToData
+        .get('Tile')
+        .sort((t1, t2) => (t1.sort ?? 0) - (t2.sort ?? 0))
+        .forEach((d, i) => (d.sort = maxSort + i));
+    }
+
     // Switch active layer to the preset's base placeable type
     if (layerSwitch) {
       if (game.user.isGM || ['Token', 'MeasuredTemplate', 'Note'].includes(preset.documentName))

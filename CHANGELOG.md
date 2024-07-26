@@ -1,3 +1,8 @@
+# 1.71.4
+
+- Fixed Tile sort order not being preserved when creating presets
+- Tile sort order will now be set to scene maximum + 1 (and incremented from there for multi-tile presets) when being spawned via API, Brush, or Preset Browser
+
 # 1.71.3
 
 - New keybindings

@@ -24,7 +24,7 @@ export class FolderState {
  */
 export function placeableToData(placeable) {
   const document = placeable.document ?? placeable;
-  const data = document.toCompendium();
+  const data = document.toObject();
 
   // Check if `Token Attacher` has attached elements to this token
   if (
