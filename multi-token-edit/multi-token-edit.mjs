@@ -12,7 +12,6 @@ import {
   TagInput,
   UI_DOCS,
 } from './scripts/utils.js';
-import { GeneralDataAdapter } from './applications/dataAdapters.js';
 import { applyRandomization } from './scripts/randomizer/randomizerUtils.js';
 import { libWrapper } from './scripts/shim/shim.js';
 import { enableUniversalSelectTool } from './scripts/selectTool.js';
@@ -196,6 +195,9 @@ Hooks.once('init', () => {
         type: 'RESOLVE',
       };
       game.socket.emit(`module.${MODULE_ID}`, message);
+    } else if (message.handlerName === 'document' && message.type === 'DELETE') {
+      if (!isResponsibleGM()) return;
+      game.scenes.get(args.sceneId).deleteEmbeddedDocuments(args.embedName, args.ids);
     } else if (message.handlerName === 'document' && message.type === 'RESOLVE') {
       resolveCreateDocumentRequest(args);
     }
@@ -217,7 +219,6 @@ Hooks.once('init', () => {
   });
 
   globalThis.MassEdit = {
-    GeneralDataAdapter,
     MassEditGenericForm,
     showGenericForm,
     performMassUpdate,

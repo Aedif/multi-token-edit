@@ -53,7 +53,7 @@ export class SpawnPresetBehaviorType extends foundry.data.regionBehaviors.Region
 
   /** @override */
   async _handleRegionEvent(event) {
-    if (!isResponsibleGM()) return;
+    if (!event.user.isSelf) return;
 
     if (this.once) this.parent.update({ disabled: true });
 
@@ -84,13 +84,12 @@ export class SpawnPresetBehaviorType extends foundry.data.regionBehaviors.Region
     });
 
     scenes.forEach((destinations, sceneId) => {
-      if (SpawnPresetBehaviorType.isSpawned(this.behavior.id, sceneId)) {
-        scenes.delete(scene.id);
-      }
+      if (SpawnPresetBehaviorType.isSpawned(this.behavior.id, sceneId)) scenes.delete(sceneId);
     });
 
     if (!scenes.size) return;
 
+    // Wait for token animation to stop
     const token = event.data.token;
     if (token.object) {
       const animation = CanvasAnimation.getAnimation(token.object.animationName);

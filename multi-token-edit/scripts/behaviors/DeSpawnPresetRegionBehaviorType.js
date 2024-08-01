@@ -36,8 +36,6 @@ export class DeSpawnPresetBehaviorType extends foundry.data.regionBehaviors.Regi
 
   /** @override */
   async _handleRegionEvent(event) {
-    if (!isResponsibleGM()) return;
-
     if (!(this.presetUuids || this.all)) return;
 
     const token = event.data.token;
@@ -73,7 +71,7 @@ export class DeSpawnPresetBehaviorType extends foundry.data.regionBehaviors.Regi
           else if (d.flags[MODULE_ID].spawnPreset.regionId === originRegionId) ids.push(d.id);
         }
       });
-      if (ids.length) scene.deleteEmbeddedDocuments(embedName, ids);
+      if (ids.length) DeSpawnPresetBehaviorType.deleteEmbeddedDocuments(scene, embedName, ids);
     });
   }
 
@@ -89,7 +87,20 @@ export class DeSpawnPresetBehaviorType extends foundry.data.regionBehaviors.Regi
         const regionId = d.flags[MODULE_ID]?.spawnPreset?.regionId;
         if (regionId && (!originRegionId || regionId === originRegionId)) ids.push(d.id);
       });
-      if (ids.length) scene.deleteEmbeddedDocuments(embedName, ids);
+      if (ids.length) DeSpawnPresetBehaviorType.deleteEmbeddedDocuments(scene, embedName, ids);
     });
+  }
+
+  static deleteEmbeddedDocuments(scene, embedName, ids) {
+    if (game.user.isGM) {
+      scene.deleteEmbeddedDocuments(embedName, ids);
+    } else {
+      const message = {
+        handlerName: 'document',
+        args: { sceneId: scene.id, embedName, ids },
+        type: 'DELETE',
+      };
+      game.socket.emit(`module.${MODULE_ID}`, message);
+    }
   }
 }

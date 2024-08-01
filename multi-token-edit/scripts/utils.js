@@ -492,9 +492,7 @@ export async function updateEmbeddedDocumentsViaGM(documentName, updates, contex
 }
 
 export function isResponsibleGM() {
-  return !game.users
-    .filter((user) => user.isGM && (user.active || user.isActive))
-    .some((other) => other.id < game.user.id);
+  return game.users.filter((u) => u.active && u.isGM).sort((a, b) => b.role - a.role || a.id.compare(b.id))[0]?.isSelf;
 }
 
 export function localize(path, moduleLocalization = true) {
