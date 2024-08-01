@@ -175,7 +175,7 @@ export async function performMassUpdate(data, objects, documentName, applyType) 
   } else if (documentName === 'PlaylistSound') {
     for (let i = 0; i < objects.length; i++) {
       delete updates[i]._id;
-      objects[i].update(updates[i], context);
+      objects[i].update(updates[i]);
     }
   } else if (documentName === 'Note') {
     // Notes can be updated across different scenes

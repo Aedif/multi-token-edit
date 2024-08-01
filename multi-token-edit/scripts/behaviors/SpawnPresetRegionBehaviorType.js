@@ -8,7 +8,7 @@ import { PresetField } from './fields.js';
  */
 export class SpawnPresetBehaviorType extends foundry.data.regionBehaviors.RegionBehaviorType {
   static defineSchema() {
-    return {
+    const schema = {
       events: this._createEventsField({
         events: [
           CONST.REGION_EVENTS.TOKEN_ENTER,
@@ -19,38 +19,77 @@ export class SpawnPresetBehaviorType extends foundry.data.regionBehaviors.Region
           CONST.REGION_EVENTS.TOKEN_TURN_END,
         ],
       }),
-      presetUuids: new PresetField({
-        label: 'Presets',
-      }),
-      destination: new foundry.data.fields.DocumentUUIDField({ label: 'Target Region', type: 'Region' }),
-      random: new foundry.data.fields.BooleanField({
-        label: 'Random Position',
-        hint: 'Randomized position will be chosen within the bounds of the region.',
-        initial: false,
-      }),
       once: new foundry.data.fields.BooleanField({
         label: 'Once',
         hint: "Disable the behavior after the first time it's triggered",
         initial: false,
       }),
+      presetUuids: new PresetField({
+        label: 'Presets',
+      }),
+      destination: new foundry.data.fields.DocumentUUIDField({ label: 'Target Region UUID', type: 'Region' }),
     };
+
+    if (game.modules.get('tagger')?.active) {
+      schema.destinationTags = new foundry.data.fields.SetField(new foundry.data.fields.StringField({}), {
+        label: 'Target Region Tags',
+        hint: '',
+      });
+      schema.destinationSpawnInAll = new foundry.data.fields.BooleanField({
+        label: 'All Regions',
+        hint: 'When enabled the preset will be spawned in all regions if multiple have been found as valid destinations.',
+        initial: true,
+      });
+    }
+
+    schema.random = new foundry.data.fields.BooleanField({
+      label: 'Randomize Position',
+      hint: 'Randomized position will be chosen within the bounds of the target region.',
+      initial: false,
+    });
+
+    return schema;
   }
 
   /** @override */
   async _handleRegionEvent(event) {
     if (!isResponsibleGM()) return;
 
-    if (this.once) {
-      // noinspection ES6MissingAwait
-      this.parent.update({ disabled: true });
+    if (this.once) this.parent.update({ disabled: true });
+
+    if (event.data.forced) return;
+
+    let destinations = [];
+
+    // Get destination by UUID
+    const destination = fromUuidSync(this.destination);
+    if (destination instanceof RegionDocument) destinations.push(destination);
+
+    // Get destinations by tags
+    if (this.destinationTags?.size && game.modules.get('tagger')?.active) {
+      const taggedDestinations = Tagger.getByTag(Array.from(this.destinationTags), {
+        matchAny: true,
+        allScenes: false,
+      }).filter((d) => d instanceof RegionDocument);
+      if (taggedDestinations.length) destinations = destinations.concat(taggedDestinations);
     }
 
-    if (!this.destination || event.data.forced) return;
-    const destination = fromUuidSync(this.destination);
-    if (!(destination instanceof RegionDocument)) {
-      console.error(`${this.destination} does not exist`);
-      return;
-    }
+    if (!destinations.length) return;
+
+    // Check if presets are already spawned on destination scenes
+    const scenes = new Map();
+    destinations.forEach((d) => {
+      if (!scenes.get(d.parent.id)) scenes.set(d.parent.id, [d]);
+      else scenes.get(d.parent.id).push(d);
+    });
+
+    scenes.forEach((destinations, sceneId) => {
+      if (SpawnPresetBehaviorType.isSpawned(this.behavior.id, sceneId)) {
+        scenes.delete(scene.id);
+      }
+    });
+
+    if (!scenes.size) return;
 
     const token = event.data.token;
     if (token.object) {
@@ -58,6 +97,7 @@ export class SpawnPresetBehaviorType extends foundry.data.regionBehaviors.Region
       if (animation) await animation.promise;
     }
 
+    // Pick random preset
     const uuids = this.presetUuids.split(',');
     const presetUuid = uuids[Math.floor(Math.random() * uuids.length)];
 
@@ -67,42 +107,57 @@ export class SpawnPresetBehaviorType extends foundry.data.regionBehaviors.Region
       return;
     }
 
-    if (SpawnPresetBehaviorType.isSpawned(preset, destination.parent)) {
-      return;
+    destinations = [];
+    scenes.forEach((ds) => (destinations = destinations.concat(ds)));
+
+    if (!this.destinationSpawnInAll) {
+      destinations = [destinations[Math.floor(Math.random() * destinations.length)]];
     }
 
-    // TODO destroy after spawn
-    const destinationRegionObject = destination.object ?? new CONFIG.Region.objectClass(destination);
-    SpawnPresetBehaviorType.spawnPreset(preset, destinationRegionObject, this.random);
+    for (const destination of destinations) {
+      const destinationRegionObject = destination.object ?? new CONFIG.Region.objectClass(destination);
+      SpawnPresetBehaviorType.spawnPreset(
+        this.region.id,
+        this.behavior.id,
+        preset,
+        destinationRegionObject,
+        this.random
+      ).then(() => {
+        if (!destination.object) destinationRegionObject.destroy({ children: true });
+      });
+    }
 
     return;
   }
 
   /**
-   * Check if given preset is already spawned on the scene
-   * @param {Preset} preset
-   * @param {Scene} scene
+   * Check if a preset has already been spawned on the scene by this behavior
+   * @param {String} behaviorId
+   * @param {Scene} sceneId
    * @returns
    */
-  static isSpawned(preset, scene) {
+  static isSpawned(behaviorId, sceneId) {
+    const scene = game.scenes.get(sceneId);
     return SUPPORTED_PLACEABLES.some((embedName) =>
-      scene.getEmbeddedCollection(embedName).some((d) => d.flags[MODULE_ID]?.spawnPreset?.uuid === preset.uuid)
+      scene.getEmbeddedCollection(embedName).some((d) => d.flags[MODULE_ID]?.spawnPreset?.behaviorId === behaviorId)
     );
   }
 
   /**
    * Spawn given preset within the bounds of the region.
-   * @param {*} preset
-   * @param {*} region
-   * @param {*} center
+   * @param {String} regionId
+   * @param {String} behaviorId
+   * @param {Preset} preset
+   * @param {Region} region
+   * @param {object} center
    */
-  static async spawnPreset(preset, region, random = true) {
+  static async spawnPreset(regionId, behaviorId, preset, region, random = true) {
     const position = random ? getRandomPosition(region) : SpawnPresetBehaviorType.getCenterPosition(region);
     if (position) {
-      // Tracker flags for preset de-spawn behavior
+      // Tracker flags for 'isSpawned' check and preset de-spawn behavior
       const flags = {
         [MODULE_ID]: {
-          spawnPreset: { uuid: preset.uuid, name: preset.name },
+          spawnPreset: { uuid: preset.uuid, behaviorId, regionId },
         },
       };
 

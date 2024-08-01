@@ -16,6 +16,7 @@ import { FileIndexer } from './fileIndexer.js';
 import { Preset, VirtualFilePreset } from './preset.js';
 import {
   FolderState,
+  applyTaggerTagRules,
   decodeURIComponentSafely,
   getPresetDataCenterOffset,
   getTransformToOrigin,
@@ -924,6 +925,14 @@ export class PresetAPI {
         // Hide
         if (hidden || game.keyboard.downKeys.has('AltLeft')) data.hidden = true;
         if (flags) data.flags = foundry.utils.mergeObject(data.flags ?? {}, flags);
+
+        // Apply Tagger rules for Spawn Preset behaviors
+        if (documentName === 'Region' && data.behaviors) {
+          data.behaviors.forEach((b) => {
+            if (b.system?.destinationTags?.length)
+              b.system.destinationTags = applyTaggerTagRules(b.system.destinationTags);
+          });
+        }
       });
     });
 

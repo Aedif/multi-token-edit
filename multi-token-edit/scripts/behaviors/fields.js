@@ -6,8 +6,8 @@ export class PresetField extends foundry.data.fields.DocumentUUIDField {
   /** @inheritdoc */
   static get _defaults() {
     return Object.assign(super._defaults, {
-      required: true,
-      blank: false,
+      required: false,
+      blank: true,
       nullable: true,
       initial: null,
       type: 'JournalEntry',

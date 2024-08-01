@@ -49,6 +49,82 @@ export function placeableToData(placeable) {
 }
 
 /**
+ * Portions of code taken from Tagger (https://github.com/fantasycalendar/FoundryVTT-Tagger)
+ * Applies Tagger module's tag rules
+ * @param {Array[String]} tags
+ * @returns {Array[String]}
+ */
+export function applyTaggerTagRules(tags) {
+  if (game.modules.get('tagger')?.active) {
+    const rules = {
+      /**
+       * Replaces a portion of the tag with a number based on how many objects in this scene has the same numbered tag
+       * @private
+       */
+      '{#}': (tag, regx) => {
+        const findTag = new RegExp('^' + tag.replace(regx, '([1-9]+[0-9]*)') + '$');
+        const existingDocuments = Tagger.getByTag(findTag);
+        if (!existingDocuments.length) return tag.replace(regx, 1);
+
+        const numbers = existingDocuments.map((existingDocument) => {
+          return Number(
+            Tagger.getTags(existingDocument)
+              .find((tag) => {
+                return tag.match(findTag);
+              })
+              .match(findTag)[1]
+          );
+        });
+
+        const length = Math.max(...numbers) + 1;
+        for (let i = 1; i <= length; i++) {
+          if (!numbers.includes(i)) {
+            return tag.replace(regx, i);
+          }
+        }
+      },
+
+      /**
+       *  Replaces the section of the tag with a random ID
+       *  @private
+       */
+      '{id}': (tag, regx, index) => {
+        let id = temporaryIds?.[tag]?.[index];
+        if (!id) {
+          if (!temporaryIds?.[tag]) {
+            temporaryIds[tag] = [];
+          }
+          id = foundry.utils.randomID();
+          temporaryIds[tag].push(id);
+        }
+        return tag.replace(regx, id);
+      },
+    };
+
+    const tagRules = Object.entries(rules).filter((entry) => {
+      entry[0] = new RegExp(`${entry[0]}`, 'g');
+      return entry;
+    });
+
+    tags = Tagger._validateTags(tags, 'TaggerHandler');
+
+    tags = tags.map((tag, index) => {
+      const applicableTagRules = tagRules.filter(([regx]) => {
+        return tag.match(regx);
+      });
+      if (!applicableTagRules.length) return tag;
+
+      applicableTagRules.forEach(([regx, method]) => {
+        tag = method(tag, regx, index);
+      });
+
+      return tag;
+    });
+  }
+  return tags;
+}
+
+/**
  * Opens a GenericMassEdit form to modify specific fields within the provided data
  * @param {Object} data            data to be modified
  * @param {Array[String]} toModify fields within data to be modified

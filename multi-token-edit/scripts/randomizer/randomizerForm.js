@@ -488,7 +488,7 @@ export function showRandomizeDialog(formGroup, configApp) {
 
       if (type === 'SELECT') {
         _showRandomSelectDialog($(this), configApp, label);
-      } else if (['INPUT', 'COLOR-PICKER', 'RANGE-PICKER'].includes(type)) {
+      } else if (['INPUT', 'COLOR-PICKER', 'RANGE-PICKER', 'FILE-PICKER'].includes(type)) {
         _processInput(type, $(this), configApp, label, singleInput);
       } else {
         console.log(label, type);
@@ -508,7 +508,7 @@ function _processInput(nodeName, input, configApp, label, singleInput) {
     _showRandomBoolDialog(input, configApp, label, singleInput);
   } else if (nodeName === 'COLOR-PICKER' || (type === 'text' && input.hasClass('color'))) {
     _showRandomColorDialog(input, configApp, label);
-  } else if (type === 'text' && input.hasClass('image')) {
+  } else if ((nodeName === 'FILE-PICKER' && type.startsWith('image')) || (type === 'text' && input.hasClass('image'))) {
     _showRandomImageDialog(input, configApp, label);
   } else if (type === 'text') {
     _showRandomTextDialog(input, configApp, label);
