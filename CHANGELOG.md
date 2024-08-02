@@ -1,3 +1,11 @@
+# 1.72.0
+
+- Fixed file-picker image fields not being recognized as such by the randomizer on right-click
+- Fixed PlaylistSound Mass Editing not working on v12
+- New behaviors:
+  - Spawn Preset
+  - De-Spawn Preset
+
 # 1.71.4
 
 - Fixed Tile sort order not being preserved when creating presets
