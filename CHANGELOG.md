@@ -1,3 +1,7 @@
+# 1.72.1
+
+- Copy UUID option added to Preset context menu options
+
 # 1.72.0
 
 - Fixed file-picker image fields not being recognized as such by the randomizer on right-click

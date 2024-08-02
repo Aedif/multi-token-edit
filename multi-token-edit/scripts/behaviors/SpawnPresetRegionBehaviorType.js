@@ -35,12 +35,13 @@ export class SpawnPresetBehaviorType extends foundry.data.regionBehaviors.Region
         label: 'Target Region Tags',
         hint: '',
       });
-      schema.destinationSpawnInAll = new foundry.data.fields.BooleanField({
-        label: 'All Regions',
-        hint: 'When enabled the preset will be spawned in all regions if multiple have been found as valid destinations.',
-        initial: true,
-      });
     }
+
+    schema.destinationSpawnInAll = new foundry.data.fields.BooleanField({
+      label: 'All Regions',
+      hint: 'When enabled the preset will be spawned in all regions if multiple have been found as valid destinations.',
+      initial: true,
+    });
 
     schema.random = new foundry.data.fields.BooleanField({
       label: 'Randomize Position',

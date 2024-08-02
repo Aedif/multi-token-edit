@@ -693,6 +693,11 @@ export class MassEditPresets extends FormApplication {
         callback: (item) => this._onOpenJournal(item),
       },
       {
+        name: 'Copy UUID',
+        icon: '<i class="fa-solid fa-passport"></i>',
+        callback: (item) => this._onCopyUUID(item),
+      },
+      {
         name: localize('presets.apply-to-selected'),
         icon: '<i class="fas fa-arrow-circle-right"></i>',
         condition: (item) =>
@@ -950,6 +955,19 @@ export class MassEditPresets extends FormApplication {
       editableOnly: false,
     });
     selected.forEach((p) => p.openJournal());
+  }
+
+  _onCopyUUID(item) {
+    item.data('uuid');
+
+    game.clipboard.copyPlainText(item.data('uuid'));
+    ui.notifications.info(
+      game.i18n.format('DOCUMENT.IdCopiedClipboard', {
+        label: item.attr('name'),
+        type: 'uuid',
+        id: item.data('uuid'),
+      })
+    );
   }
 
   async _onApplyToSelected(item) {
