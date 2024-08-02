@@ -1,5 +1,6 @@
 import { CUSTOM_CONTROLS } from '../../data/custom-controls.js';
-import { MODULE_ID, getCommonData, localize } from '../../scripts/utils.js';
+import { MODULE_ID } from '../../scripts/constants.js';
+import { getCommonData, localize } from '../../scripts/utils.js';
 import { WithMassConfig } from '../forms.js';
 import { showMassEdit } from '../multiConfig.js';
 import { constructNav, isColorField } from './navGenerator.js';

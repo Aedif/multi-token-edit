@@ -1,5 +1,6 @@
+import { MODULE_ID, SUPPORTED_COLLECTIONS, SUPPORTED_PLACEABLES } from '../scripts/constants.js';
 import { generateMacro, hasSpecialField } from '../scripts/macro/generator.js';
-import { MODULE_ID, SUPPORTED_COLLECTIONS, SUPPORTED_PLACEABLES, localFormat, localize } from '../scripts/utils.js';
+import { localFormat, localize } from '../scripts/utils.js';
 import { GeneralDataAdapter } from './dataAdapters.js';
 
 export default class MacroForm extends FormApplication {

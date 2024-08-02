@@ -1,6 +1,7 @@
+import { MODULE_ID, SUPPORTED_COLLECTIONS, SUPPORTED_SHEET_CONFIGS } from '../scripts/constants.js';
 import { showPlaceableTypeSelectDialog } from '../scripts/dialogs.js';
 import { PresetAPI } from '../scripts/presets/collection.js';
-import { getData, getDocumentName, MODULE_ID, SUPPORT_SHEET_CONFIGS, SUPPORTED_COLLECTIONS } from '../scripts/utils.js';
+import { getData, getDocumentName } from '../scripts/utils.js';
 import { getClipboardData, pasteDataUpdate } from './formUtils.js';
 import { WithMassConfig } from './forms.js';
 import { MassEditGenericForm } from './generic/genericForm.js';
@@ -148,7 +149,7 @@ export function showMassSelect(basePlaceable) {
     documentName: documentName,
   };
 
-  if (SUPPORT_SHEET_CONFIGS.includes(documentName) && documentName !== 'Actor') {
+  if (SUPPORTED_SHEET_CONFIGS.includes(documentName) && documentName !== 'Actor') {
     const MassConfig = WithMassConfig(documentName);
     new MassConfig(target, selected, options).render(true, {});
   } else if (SUPPORTED_COLLECTIONS.includes(documentName)) {
@@ -173,7 +174,7 @@ export async function showMassEdit(found = null, documentName, options = {}) {
   // Display modified config window
   if (!documentName) documentName = getDocumentName(target);
   options = { ...options, massEdit: true, documentName };
-  if (SUPPORT_SHEET_CONFIGS.includes(documentName)) {
+  if (SUPPORTED_SHEET_CONFIGS.includes(documentName)) {
     if (documentName === 'Actor') {
       target = target.prototypeToken;
       selected = selected.map((s) => s.prototypeToken);

@@ -1,6 +1,7 @@
+import { SUPPORTED_PLACEABLES } from './constants.js';
 import { LinkerAPI } from './linker/linker.js';
 import { getDataBounds, getPresetDataCenterOffset } from './presets/utils.js';
-import { pickerSelectMultiLayerDocuments, SUPPORTED_PLACEABLES } from './utils.js';
+import { pickerSelectMultiLayerDocuments } from './utils.js';
 
 /**
  * Cross-hair and optional preview image/label that can be activated to allow the user to select

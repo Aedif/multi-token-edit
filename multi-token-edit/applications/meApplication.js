@@ -1,19 +1,11 @@
 import { Brush } from '../scripts/brush.js';
+import { MODULE_ID, SUPPORTED_COLLECTIONS, SUPPORTED_PLACEABLES } from '../scripts/constants.js';
 import { injectVisibility } from '../scripts/fieldInjector.js';
 import { MassEditPresets } from '../scripts/presets/forms.js';
 import { Preset } from '../scripts/presets/preset.js';
 import { selectRandomizerFields } from '../scripts/randomizer/randomizerUtils.js';
 import { getDDTint } from '../scripts/tmfx.js';
-import {
-  MODULE_ID,
-  SUPPORTED_COLLECTIONS,
-  SUPPORTED_PLACEABLES,
-  getDocumentName,
-  hasFlagRemove,
-  localFormat,
-  localize,
-  selectAddSubtractFields,
-} from '../scripts/utils.js';
+import { getDocumentName, hasFlagRemove, localFormat, localize, selectAddSubtractFields } from '../scripts/utils.js';
 import { getInUseStyle } from './cssEdit.js';
 import { GeneralDataAdapter, TokenDataAdapter } from './dataAdapters.js';
 import { copyToClipboard, getCommonDocData, onInputChange, performMassSearch, performMassUpdate } from './formUtils.js';

@@ -1,18 +1,11 @@
 import { pasteData, showMassEdit, showGenericForm } from './applications/multiConfig.js';
-import { MassEditGenericForm } from './applications/generic/genericForm.js';
 import {
   activeEffectPresetSelect,
-  applyAddSubtract,
   createDocuments,
   isResponsibleGM,
-  MODULE_ID,
   resolveCreateDocumentRequest,
-  SUPPORT_SHEET_CONFIGS,
-  SUPPORTED_PLACEABLES,
   TagInput,
-  UI_DOCS,
 } from './scripts/utils.js';
-import { applyRandomization } from './scripts/randomizer/randomizerUtils.js';
 import { libWrapper } from './scripts/shim/shim.js';
 import { enableUniversalSelectTool } from './scripts/selectTool.js';
 import { META_INDEX_ID, PresetAPI, PresetCollection } from './scripts/presets/collection.js';
@@ -20,16 +13,11 @@ import { MassEditPresets, PresetConfig } from './scripts/presets/forms.js';
 import { registerKeybinds, registerSettings } from './scripts/settings.js';
 import { Picker } from './scripts/picker.js';
 import { BrushMenu, activateBrush, deactivateBush, openBrushMenu } from './scripts/brush.js';
-import { FileIndexer, FileIndexerAPI } from './scripts/presets/fileIndexer.js';
 import { V12Migrator } from './scripts/presets/migration.js';
-import {
-  checkApplySpecialFields,
-  deleteFromClipboard,
-  performMassSearch,
-  performMassUpdate,
-} from './applications/formUtils.js';
+import { deleteFromClipboard, performMassSearch, performMassUpdate } from './applications/formUtils.js';
 import { registerSideBarPresetDropListener } from './scripts/presets/utils.js';
 import { LinkerAPI, registerLinkerHooks } from './scripts/linker/linker.js';
+import { MODULE_ID, SUPPORTED_SHEET_CONFIGS, SUPPORTED_PLACEABLES, UI_DOCS } from './scripts/constants.js';
 
 // Initialize module
 Hooks.once('init', () => {
@@ -39,7 +27,7 @@ Hooks.once('init', () => {
   if (foundry.utils.isNewerVersion(game.version, 12)) {
     SUPPORTED_PLACEABLES.unshift('Region');
     UI_DOCS.push('Region');
-    SUPPORT_SHEET_CONFIGS.push('Region');
+    SUPPORTED_SHEET_CONFIGS.push('Region');
 
     //Register region behaviors
     import('./scripts/behaviors/behaviors.js').then((module) => module.registerBehaviors());
@@ -219,7 +207,6 @@ Hooks.once('init', () => {
   });
 
   globalThis.MassEdit = {
-    MassEditGenericForm,
     showGenericForm,
     performMassUpdate,
     performMassSearch,
@@ -231,8 +218,6 @@ Hooks.once('init', () => {
     activateBrush: activateBrush,
     deactivateBrush: deactivateBush,
     openBrushMenu: openBrushMenu,
-    buildDirectoryIndex: (options) => FileIndexer.buildIndex(options),
-    readCacheFile: FileIndexerAPI.readCacheFile,
     migratePack: (pack, options = {}) => V12Migrator.migratePack(pack, options),
     migrateAllPacks: (options = {}) => V12Migrator.migrateAllPacks(options),
     linker: LinkerAPI,
@@ -240,9 +225,6 @@ Hooks.once('init', () => {
 
   game.modules.get(MODULE_ID).api = {
     ...globalThis.MassEdit,
-    applyRandomization, // Deprecated
-    applyAddSubtract, // Deprecated
-    checkApplySpecialFields, // Deprecated
   };
 });
 

@@ -1,4 +1,4 @@
-import { MODULE_ID } from '../utils.js';
+import { MODULE_ID } from '../constants.js';
 import { META_INDEX_ID, PresetCollection } from './collection.js';
 
 export class V12Migrator {

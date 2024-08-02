@@ -1,9 +1,10 @@
 import { pasteDataUpdate } from '../applications/formUtils.js';
+import { MODULE_ID } from './constants.js';
 import { Picker } from './picker.js';
 import { PresetAPI } from './presets/collection.js';
 import { Preset } from './presets/preset.js';
 import { applyRandomization } from './randomizer/randomizerUtils.js';
-import { MODULE_ID, TagInput } from './utils.js';
+import { TagInput } from './utils.js';
 
 export class Brush {
   static app;

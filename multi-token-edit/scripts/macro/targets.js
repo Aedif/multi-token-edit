@@ -1,4 +1,4 @@
-import { SUPPORTED_PLACEABLES } from '../utils.js';
+import { SUPPORTED_PLACEABLES } from '../constants.js';
 import { objToString } from './generator.js';
 
 export function genTargets(options, documentName, selected) {

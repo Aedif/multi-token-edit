@@ -1,4 +1,5 @@
-import { MODULE_ID, SUPPORTED_PLACEABLES, isImage, isAudio } from '../utils.js';
+import { MODULE_ID, SUPPORTED_PLACEABLES } from '../constants.js';
+import { isImage, isAudio } from '../utils.js';
 import { META_INDEX_FIELDS, META_INDEX_ID, PresetTree } from './collection.js';
 import { FileIndexer } from './fileIndexer.js';
 import { decodeURIComponentSafely, isVideo, placeableToData } from './utils.js';

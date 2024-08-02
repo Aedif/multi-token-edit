@@ -1,6 +1,6 @@
+import { MODULE_ID, SUPPORTED_PLACEABLES } from './constants.js';
 import { DataTransform } from './picker.js';
 import { getDataBounds } from './presets/utils.js';
-import { MODULE_ID, SUPPORTED_PLACEABLES } from './utils.js';
 
 /**
  * Enable 'Select' tool for layers that do not have it. (AmbientLight, AmbientSound, MeasuredTemplate, and Note)

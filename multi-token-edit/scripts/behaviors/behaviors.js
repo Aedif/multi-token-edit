@@ -1,4 +1,4 @@
-import { MODULE_ID } from '../utils.js';
+import { MODULE_ID } from '../constants.js';
 import { DeSpawnPresetBehaviorType } from './DeSpawnPresetRegionBehaviorType.js';
 import { LinkTokenRegionBehaviorType } from './LinkTokenRegionBehaviorType.js';
 import { SpawnPresetBehaviorType } from './SpawnPresetRegionBehaviorType.js';

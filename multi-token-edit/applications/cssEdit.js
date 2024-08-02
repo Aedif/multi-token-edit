@@ -1,4 +1,4 @@
-import { MODULE_ID } from '../scripts/utils.js';
+import { MODULE_ID } from '../scripts/constants.js';
 
 export function getInUseStyle() {
   const styleInUse = game.settings.get(MODULE_ID, 'cssStyle');

@@ -5,16 +5,7 @@ import { countFolderItems, trackProgress } from '../../applications/progressDial
 import { BrushMenu } from '../brush.js';
 import { importPresetFromJSONDialog } from '../dialogs.js';
 import { SortingHelpersFixed } from '../fixedSort.js';
-import {
-  MODULE_ID,
-  SUPPORTED_PLACEABLES,
-  TagInput,
-  UI_DOCS,
-  applyPresetToScene,
-  isAudio,
-  localFormat,
-  localize,
-} from '../utils.js';
+import { TagInput, applyPresetToScene, isAudio, localFormat, localize } from '../utils.js';
 import {
   VirtualFileFolder,
   META_INDEX_ID,
@@ -34,6 +25,7 @@ import {
   placeableToData,
   randomizeChildrenFolderColors,
 } from './utils.js';
+import { MODULE_ID, SUPPORTED_PLACEABLES, UI_DOCS } from '../constants.js';
 
 const SEARCH_MIN_CHAR = 2;
 const SEARCH_FOUND_MAX_COUNT = 1001;

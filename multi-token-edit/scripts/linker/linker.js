@@ -4,8 +4,9 @@
 
 import { DataTransform } from '../picker.js';
 import { libWrapper } from '../shim/shim.js';
-import { MODULE_ID, SUPPORTED_PLACEABLES, updateEmbeddedDocumentsViaGM } from '../utils.js';
+import { updateEmbeddedDocumentsViaGM } from '../utils.js';
 import { getDataBounds } from '../presets/utils.js';
+import { MODULE_ID, SUPPORTED_PLACEABLES } from '../constants.js';
 
 const PROCESSED_UPDATES = new Map();
 export const LINK_TYPES = {

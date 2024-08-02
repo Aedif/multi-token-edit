@@ -1,4 +1,5 @@
-import { MODULE_ID, SUPPORTED_COLLECTIONS, localFormat } from '../utils.js';
+import { MODULE_ID, SUPPORTED_COLLECTIONS } from '../constants.js';
+import { localFormat } from '../utils.js';
 import { genAction } from './action.js';
 import { genTargets } from './targets.js';
 

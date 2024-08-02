@@ -1,4 +1,4 @@
-import { MODULE_ID } from '../utils.js';
+import { MODULE_ID } from '../constants.js';
 import { MassEditPresets } from './forms.js';
 
 export class TagSelector extends FormApplication {

@@ -1,4 +1,4 @@
-import { isResponsibleGM, MODULE_ID, SUPPORTED_PLACEABLES } from '../utils.js';
+import { MODULE_ID, SUPPORTED_PLACEABLES } from '../constants.js';
 import { PresetField } from './fields.js';
 
 /**

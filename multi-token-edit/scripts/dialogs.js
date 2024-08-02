@@ -1,5 +1,6 @@
 import { LAYER_MAPPINGS, showMassSelect } from '../applications/multiConfig.js';
-import { SUPPORTED_COLLECTIONS, SUPPORTED_PLACEABLES, localFormat, localize } from './utils.js';
+import { SUPPORTED_COLLECTIONS, SUPPORTED_PLACEABLES } from './constants.js';
+import { localFormat, localize } from './utils.js';
 
 export function showPlaceableTypeSelectDialog() {
   let content = '';

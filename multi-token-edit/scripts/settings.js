@@ -7,18 +7,12 @@ import {
   showMassEdit,
   showMassSelect,
 } from '../applications/multiConfig.js';
+import { MODULE_ID, SUPPORTED_COLLECTIONS, SUPPORTED_PLACEABLES } from './constants.js';
 import { LinkerAPI } from './linker/linker.js';
 import { editPreviewPlaceables, Picker } from './picker.js';
 import { PresetCollection } from './presets/collection.js';
 import { MassEditPresets } from './presets/forms.js';
-import {
-  MODULE_ID,
-  SUPPORTED_COLLECTIONS,
-  SUPPORTED_PLACEABLES,
-  activeEffectPresetSelect,
-  getDocumentName,
-  localize,
-} from './utils.js';
+import { activeEffectPresetSelect, getDocumentName, localize } from './utils.js';
 
 export function registerSettings() {
   // Register Settings

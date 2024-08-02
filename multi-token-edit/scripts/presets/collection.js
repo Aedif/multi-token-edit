@@ -1,17 +1,9 @@
 import { checkApplySpecialFields } from '../../applications/formUtils.js';
 import { Brush } from '../brush.js';
+import { MODULE_ID, SUPPORTED_PLACEABLES, UI_DOCS } from '../constants.js';
 import { DataTransform, Picker } from '../picker.js';
 import { applyRandomization } from '../randomizer/randomizerUtils.js';
-import {
-  MODULE_ID,
-  SUPPORTED_PLACEABLES,
-  SeededRandom,
-  UI_DOCS,
-  applyPresetToScene,
-  createDocuments,
-  executeScript,
-  localize,
-} from '../utils.js';
+import { SeededRandom, applyPresetToScene, createDocuments, executeScript, localize } from '../utils.js';
 import { FileIndexer } from './fileIndexer.js';
 import { Preset, VirtualFilePreset } from './preset.js';
 import {
@@ -21,11 +13,10 @@ import {
   getPresetDataCenterOffset,
   getTransformToOrigin,
   mergePresetDataToDefaultDoc,
-  modifySpawnData,
   placeableToData,
 } from './utils.js';
 
-export const DEFAULT_PACK = 'world.mass-edit-presets-main';
+const DEFAULT_PACK = 'world.mass-edit-presets-main';
 export const META_INDEX_ID = 'MassEditMetaData';
 export const META_INDEX_FIELDS = ['id', 'img', 'documentName', 'tags'];
 
@@ -1248,4 +1239,52 @@ export class PresetTree {
       }
     }
   }
+}
+
+/**
+ * Opens a GenericMassEdit form to modify specific fields within the provided data
+ * @param {Object} data            data to be modified
+ * @param {Array[String]} toModify fields within data to be modified
+ * @returns modified data or null if form was canceled
+ */
+async function modifySpawnData(data, toModify) {
+  const fields = {};
+  const flatData = foundry.utils.flattenObject(data);
+  for (const field of toModify) {
+    if (field in flatData) {
+      if (flatData[field] == null) fields[field] = '';
+      else fields[field] = flatData[field];
+    }
+  }
+
+  if (!foundry.utils.isEmpty(fields)) {
+    await new Promise((resolve) => {
+      showGenericForm(fields, 'PresetFieldModify', {
+        callback: (modified) => {
+          if (foundry.utils.isEmpty(modified)) {
+            if (modified == null) data = null;
+            resolve();
+            return;
+          }
+
+          for (const [k, v] of Object.entries(modified)) {
+            flatData[k] = v;
+          }
+
+          const tmpData = foundry.utils.expandObject(flatData);
+
+          const reorganizedData = [];
+          for (let i = 0; i < data.length; i++) {
+            reorganizedData.push(tmpData[i]);
+          }
+          data = reorganizedData;
+          resolve();
+        },
+        simplified: true,
+        noTabs: true,
+      });
+    });
+  }
+
+  return data;
 }

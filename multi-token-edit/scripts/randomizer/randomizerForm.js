@@ -1,8 +1,9 @@
+import { MODULE_ID } from '../constants.js';
 import { SPECIES_GENERATORS } from '../generator/fantasticSpeciesGenerator.js';
 import { GROUP_GENERATORS } from '../generator/groupNamesGenerator.js';
 import { NAME_GENERATOR } from '../generator/nameGenerator.js';
 import { TAVERN_GENERATOR } from '../generator/tavernGenerator.js';
-import { MODULE_ID, isImage, isVideo, recursiveTraverse } from '../utils.js';
+import { isImage, isVideo, recursiveTraverse } from '../utils.js';
 import { deselectField, nearestStep, selectField } from './randomizerUtils.js';
 
 export default class RandomizerForm extends FormApplication {

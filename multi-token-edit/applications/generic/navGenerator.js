@@ -1,4 +1,5 @@
-import { MODULE_ID, localize } from '../../scripts/utils.js';
+import { MODULE_ID } from '../../scripts/constants.js';
+import { localize } from '../../scripts/utils.js';
 
 export function constructNav(allData, documentName, customControls, pins = true) {
   const nav = {

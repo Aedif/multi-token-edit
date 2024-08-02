@@ -1,6 +1,6 @@
+import { MODULE_ID, SUPPORTED_PLACEABLES } from '../constants.js';
 import { PresetAPI } from '../presets/collection.js';
 import { getDataBounds } from '../presets/utils.js';
-import { isResponsibleGM, MODULE_ID, SUPPORTED_PLACEABLES } from '../utils.js';
 import { PresetField } from './fields.js';
 
 /**

@@ -1,11 +1,12 @@
 import { LINK_TYPES, LinkerAPI } from './linker.js';
-import { localize, MODULE_ID, pickerSelectMultiLayerDocuments, SUPPORTED_PLACEABLES } from '../utils';
+import { localize, pickerSelectMultiLayerDocuments } from '../utils';
 import Graph from 'graphology';
 import { Sigma } from 'sigma';
 import forceAtlas2 from 'graphology-layout-forceatlas2';
 import FA2Layout from 'graphology-layout-forceatlas2/worker';
 import { createNodeImageProgram } from '@sigma/node-image';
 import { createNodeCompoundProgram, NodeCircleProgram } from 'sigma/rendering';
+import { MODULE_ID, SUPPORTED_PLACEABLES } from '../constants.js';
 
 export function openLinkerMenu() {
   const menu = Object.values(ui.windows).find((w) => w instanceof LinkerMenu);

@@ -1,4 +1,5 @@
-import { FILE_EXTENSIONS, MODULE_ID, TagInput } from '../utils.js';
+import { FILE_EXTENSIONS, MODULE_ID } from '../constants.js';
+import { TagInput } from '../utils.js';
 import { PresetTree, VirtualFileFolder } from './collection.js';
 import { VirtualFilePreset } from './preset.js';
 import { encodeURIComponentSafely, readJSONFile } from './utils.js';
