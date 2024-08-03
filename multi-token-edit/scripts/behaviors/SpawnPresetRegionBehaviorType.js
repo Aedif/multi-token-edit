@@ -98,7 +98,9 @@ export class SpawnPresetBehaviorType extends foundry.data.regionBehaviors.Region
     }
 
     // Pick random preset
-    const uuids = this.presetUuids.split(',');
+    if (!this.presetUuids?.size) return;
+
+    const uuids = Array.from(this.presetUuids);
     const presetUuid = uuids[Math.floor(Math.random() * uuids.length)];
 
     const preset = await PresetAPI.getPreset({ uuid: presetUuid });

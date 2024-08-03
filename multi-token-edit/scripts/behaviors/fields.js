@@ -2,7 +2,11 @@
  * Field Type for referencing Mass Edit presets
  * Both virtual and JournalEntry
  */
-export class PresetField extends foundry.data.fields.DocumentUUIDField {
+export class PresetField extends foundry.data.fields.SetField {
+  constructor(...args) {
+    super(new foundry.data.fields.StringField({}), ...args);
+  }
+
   /** @inheritdoc */
   static get _defaults() {
     return Object.assign(super._defaults, {
@@ -10,21 +14,39 @@ export class PresetField extends foundry.data.fields.DocumentUUIDField {
       blank: true,
       nullable: true,
       initial: null,
-      type: 'JournalEntry',
+      type: null,
       embedded: undefined,
     });
   }
 
   /** @override */
-  _validateType(value) {
-    if (value.startsWith('virtual@')) return true;
-    const p = foundry.utils.parseUuid(value);
-    if (p.type !== this.type) throw new Error(`Invalid document type "${p.type}" which must be a "Preset"`);
-  }
-
-  /** @override */
   _toInput(config) {
-    Object.assign(config, { type: this.type, single: false });
-    return foundry.applications.elements.HTMLDocumentTagsElement.create(config);
+    return CustomStringElement.create(config);
   }
 }
+
+class CustomStringElement extends foundry.applications.elements.HTMLStringTagsElement {
+  /** @override */
+  static tagName = 'preset-tags';
+
+  /** @override */
+  static labels = {
+    add: 'ELEMENTS.TAGS.Add',
+    remove: 'ELEMENTS.TAGS.Remove',
+    placeholder: 'Enter UUID',
+  };
+
+  /** @override */
+  static renderTag(tag, label, editable = true) {
+    if (tag.startsWith('virtual@')) {
+      label = tag.split('\\').pop().split('/').pop();
+    } else {
+      const record = fromUuidSync(tag);
+      if (record) label = record.name ?? tag;
+    }
+
+    return super.renderTag(tag, label, editable);
+  }
+}
+
+window.customElements.define(CustomStringElement.tagName, CustomStringElement);

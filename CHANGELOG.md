@@ -1,3 +1,7 @@
+# 1.72.2
+
+- Fixed `Presets` field within `Spawn Preset` and `De-Spawn Preset` behaviors not allowing insertion of Preset UUIDs on Foundry versions `12.329` and `12.330`
+
 # 1.72.1
 
 - Copy UUID option added to Preset context menu options

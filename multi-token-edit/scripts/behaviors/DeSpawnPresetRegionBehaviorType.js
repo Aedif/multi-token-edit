@@ -47,8 +47,8 @@ export class DeSpawnPresetBehaviorType extends foundry.data.regionBehaviors.Regi
     if (this.all) {
       DeSpawnPresetBehaviorType.deSpawnAllPresets(this.parent.scene, this.originRegionOnly ? this.region.id : null);
     } else {
-      const uuids = this.presetUuids.split(',');
-      if (!uuids.length) return;
+      if (!this.presetUuids?.size) return;
+      const uuids = Array.from(this.presetUuids);
       DeSpawnPresetBehaviorType.deSpawnPresets(uuids, this.parent.scene, this.originRegionOnly ? this.region.id : null);
     }
     return;

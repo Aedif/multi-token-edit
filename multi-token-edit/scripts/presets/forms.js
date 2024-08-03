@@ -693,11 +693,6 @@ export class MassEditPresets extends FormApplication {
         callback: (item) => this._onOpenJournal(item),
       },
       {
-        name: 'Copy UUID',
-        icon: '<i class="fa-solid fa-passport"></i>',
-        callback: (item) => this._onCopyUUID(item),
-      },
-      {
         name: localize('presets.apply-to-selected'),
         icon: '<i class="fas fa-arrow-circle-right"></i>',
         condition: (item) =>
@@ -726,6 +721,11 @@ export class MassEditPresets extends FormApplication {
         icon: '<i class="fa-solid fa-copy"></i>',
         condition: (item) => $(this.form).find('.item-list').find('.item.selected').length === 1,
         callback: (item) => this._onCopyPresetToClipboard(),
+      },
+      {
+        name: 'Copy UUID',
+        icon: '<i class="fa-solid fa-passport"></i>',
+        callback: (item) => this._onCopyUUID(item),
       },
       {
         name: localize('presets.export-as-json'),
