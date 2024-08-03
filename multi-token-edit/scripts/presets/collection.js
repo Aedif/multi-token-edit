@@ -924,6 +924,11 @@ export class PresetAPI {
               b.system.destinationTags = applyTaggerTagRules(b.system.destinationTags);
           });
         }
+
+        // TODO: REMOVE once Foundry implements bug fix for null flag override
+        if (documentName === 'Token' && data.flags?.['token-attacher']?.attached === null) {
+          delete data.flags['token-attacher'].attached;
+        }
       });
     });
 
