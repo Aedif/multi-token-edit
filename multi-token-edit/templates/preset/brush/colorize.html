@@ -1,5 +1,5 @@
 <div style="display: flex; margin-top: 10px; margin-bottom: 5px;">
-    {{colorPicker name="color" value=color}}
+    <color-picker name="color" value="{{color}}" placeholder=""></color-picker>
     <div class="color-controls" style="display: flex; flex-direction: column; margin-top: -5px; margin-left: 6px;">
         {{#if tmfxActive}}
         <a class="toggle-button {{#if ddTint}}active{{/if}}" data-name="ddTint" title="TokenMagicFX DDTint"><i class="fa-solid fa-f fa-sm"></i><i class="fa-solid fa-x fa-sm"></i></a>

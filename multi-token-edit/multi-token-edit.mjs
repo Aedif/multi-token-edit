@@ -1,4 +1,4 @@
-import { pasteData, showMassEdit, showGenericForm } from './applications/multiConfig.js';
+import { pasteData, showMassEdit, showGenericForm, getMassEditForm } from './applications/multiConfig.js';
 import {
   activeEffectPresetSelect,
   createDocuments,
@@ -56,7 +56,7 @@ Hooks.once('init', () => {
     function (wrapped, ...args) {
       if (window.getSelection().toString() === '') {
         // Check if a Mass Config form is open and if so copy data from there
-        const meForm = Object.values(ui.windows).find((app) => app.meObjects != null);
+        const meForm = getMassEditForm();
         if (meForm?.performMassCopy()) return true;
       }
 

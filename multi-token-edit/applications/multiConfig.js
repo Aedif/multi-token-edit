@@ -242,3 +242,14 @@ export function showGenericForm(data, name = 'GenericData', options) {
     }).render(true);
   });
 }
+
+/**
+ * Get the instance of an open Mass Edit form
+ * @returns
+ */
+export function getMassEditForm() {
+  return (
+    Object.values(ui.windows).find((app) => app.meObjects != null) ??
+    Array.from(foundry.applications.instances.values()).find((app) => app.meObjects != null)
+  );
+}

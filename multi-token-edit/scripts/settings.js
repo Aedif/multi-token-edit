@@ -1,6 +1,7 @@
 import CSSEdit, { STYLES } from '../applications/cssEdit.js';
 import { MassEditGenericForm } from '../applications/generic/genericForm.js';
 import {
+  getMassEditForm,
   getSelected,
   pasteData,
   showMassActorForm,
@@ -349,7 +350,7 @@ export function registerKeybinds() {
       },
     ],
     onDown: () => {
-      const app = Object.values(ui.windows).find((w) => w.meObjects);
+      const app = getMassEditForm();
       if (app) {
         app.close();
         return;
