@@ -1,3 +1,11 @@
+# 1.73.0
+
+- Fixed unresponsive Brush color controls
+- `attached` element data is now accessible in the Preset Pre-Spawn Script
+- `Delete Selected & Linked` control will now only delete placeables linked using **TWO_WAY** and **SEND** link types
+- Linked walls will no longer affect other linked placeables when only a single wall segment has been moved
+- 3D spawn preview improvements
+
 # 1.72.3
 
 - Workaround for prefab spawn failing due to Foundry null flag override bug

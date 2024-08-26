@@ -775,19 +775,20 @@ export class PresetAPI {
     await checkApplySpecialFields(preset.documentName, presetData, presetData); // Apply Special fields (TMFX)
     presetData = presetData.map((d) => foundry.utils.expandObject(d));
 
+    let presetAttached = foundry.utils.deepClone(preset.attached);
+
     if (preset.preSpawnScript) {
-      await executeScript(preset.preSpawnScript, { data: presetData });
+      await executeScript(preset.preSpawnScript, { data: presetData, attached: presetAttached });
     }
 
     // Lets sort the preset data as well as any attached placeable data into document groups
     // documentName -> data array
     const docToData = new Map();
     docToData.set(preset.documentName, presetData);
-    if (preset.attached) {
-      for (const attached of preset.attached) {
+    if (presetAttached) {
+      for (const attached of presetAttached) {
         if (!docToData.get(attached.documentName)) docToData.set(attached.documentName, []);
-        const data = foundry.utils.deepClone(attached.data);
-        docToData.get(attached.documentName).push(data);
+        docToData.get(attached.documentName).push(attached.data);
       }
     }
 
@@ -874,16 +875,7 @@ export class PresetAPI {
       let pos = { x, y };
 
       if (snapToGrid && !game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.SHIFT)) {
-        // v12
-        if (canvas.grid.getSnappedPoint) {
-          pos = canvas.getLayerByEmbeddedName(preset.documentName).getSnappedPoint(pos);
-        } else {
-          pos = canvas.grid.getSnappedPosition(
-            pos.x,
-            pos.y,
-            canvas.getLayerByEmbeddedName(preset.documentName).gridPrecision
-          );
-        }
+        pos = canvas.getLayerByEmbeddedName(preset.documentName).getSnappedPoint(pos);
       }
       pos.z = z;
 

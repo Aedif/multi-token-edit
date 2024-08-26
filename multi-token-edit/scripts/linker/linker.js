@@ -16,20 +16,32 @@ export const LINK_TYPES = {
 };
 
 export function registerLinkerHooks() {
-  SUPPORTED_PLACEABLES.forEach((name) => Hooks.on(`preUpdate${name}`, preUpdate));
-  SUPPORTED_PLACEABLES.forEach((name) => Hooks.on(`update${name}`, update));
+  SUPPORTED_PLACEABLES.forEach((name) => {
+    Hooks.on(`preUpdate${name}`, preUpdate);
+    Hooks.on(`update${name}`, update);
+  });
 
-  if (foundry.utils.isNewerVersion(12, game.version)) {
-    libWrapper.register(
-      MODULE_ID,
-      'Scene.prototype.updateEmbeddedDocuments',
-      async function (wrapped, embeddedName, updates = [], context = {}) {
-        if (!context.modifiedTime) context.modifiedTime = new Date().getTime();
-        return wrapped(embeddedName, updates, context);
-      },
-      'WRAPPER'
-    );
-  }
+  // UNDO linked document delete operation
+  libWrapper.register(
+    MODULE_ID,
+    'PlaceablesLayer.prototype.undoHistory',
+    async function (wrapped, ...args) {
+      const type = this.history[this.history.length - 1]?.type;
+      const undone = await wrapped(...args);
+      if (type === 'delete' && undone?.length) {
+        const event = LinkerAPI.history.find((h) => undone.find((d) => d.id === h.id));
+
+        if (event) {
+          event.data.forEach((data, documentName) => {
+            canvas.scene.createEmbeddedDocuments(documentName, data, { isUndo: true, keepId: true });
+          });
+          LinkerAPI.history = LinkerAPI.history.filter((h) => !undone.find((d) => d.id === h.id));
+        }
+      }
+      return undone;
+    },
+    'WRAPPER'
+  );
 }
 
 function processLinks(transform, origin, links, scene, docUpdates, processedLinks, sourceId) {
@@ -95,6 +107,17 @@ function preUpdate(document, change, options, userId) {
   let rotationUpdate = change.hasOwnProperty('rotation') || options.hasOwnProperty('meRotation');
   if (!(positionUpdate || rotationUpdate)) return true;
 
+  // Special handling for walls.
+  // We do not want to perform linked placeable translation if only a single wall segment is moved.
+  if (change.c) {
+    if (
+      (change.c[0] === document.c[0] && change.c[1] === document.c[1]) ||
+      (change.c[2] === document.c[2] && change.c[3] === document.c[3])
+    ) {
+      return true;
+    }
+  }
+
   // If control is held during non-rotation update, we want to ignore links
   if (game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.ALT)) {
     return true;
@@ -113,6 +136,7 @@ function preUpdate(document, change, options, userId) {
     foundry.utils.setProperty(options, `links.${document.id}`, links);
     /// TODO
     // Need to figure out how to clean this up...
+    // Put this in options? need to pass it as ID as well because options object is shared in simultaneous multi-update
     doc_sources[document.id] = document.toObject();
     return true;
   }
@@ -132,25 +156,10 @@ async function update(document, change, options, userId) {
   let rotationUpdate = change.hasOwnProperty('rotation') || options.hasOwnProperty('meRotation');
   if (!(positionUpdate || rotationUpdate)) return true;
 
-  // console.log(document.id, options.links[document.id], options.modifiedTime);
-
   /// TODO
   // Need to figure out how to clean this up...
   const previousSource = foundry.utils.deepClone(doc_sources[document.id]);
   foundry.utils.mergeObject(doc_sources[document.id], change);
-
-  // console.log(
-  //   'pre',
-  //   previousSource.rotation,
-  //   'pos',
-  //   document.rotation,
-  //   'pos_s',
-  //   document._source.rotation,
-  //   'time',
-  //   options.modifiedTime,
-  //   'change',
-  //   change
-  // );
 
   const scene = document.parent;
   let { transform, origin } = calculateTransform(
@@ -251,6 +260,16 @@ export class LinkerAPI {
     return allLinked;
   }
 
+  static getHardLinkedDocuments(documents) {
+    if (!Array.isArray(documents)) documents = [documents];
+
+    const allLinked = new Set();
+    documents.forEach((document) => this._findHardLinked(document, allLinked));
+    documents.forEach((document) => allLinked.delete(document));
+
+    return allLinked;
+  }
+
   static hasLink(placeable, linkId) {
     const document = placeable.document ?? placeable;
     return Boolean(document.flags[MODULE_ID]?.links?.find((l) => l.id === linkId));
@@ -312,25 +331,41 @@ export class LinkerAPI {
     LinkerAPI._getSelected().forEach((p) => LinkerAPI.removeLinks(p));
   }
 
+  static history = [];
+
   /**
    * Delete selected placeable and all other placeables they are linked to
    */
   static deleteSelectedLinkedPlaceables() {
     const selected = LinkerAPI._getSelected().map((s) => s.document);
-    const linked = LinkerAPI.getLinkedDocuments(selected);
-    selected.forEach((s) => linked.add(s));
+    if (!selected.length) return;
+    const linked = LinkerAPI.getHardLinkedDocuments(selected).filter((l) => !selected.find((s) => s.id === l.id));
 
+    // Delete linked
     const toDelete = new Map();
-
     linked.forEach((d) => {
-      if (!toDelete.get(d.documentName)) toDelete.set(d.documentName, [d.id]);
-      else toDelete.get(d.documentName).push(d.id);
+      if (!toDelete.get(d.documentName)) toDelete.set(d.documentName, [d.toObject()]);
+      else toDelete.get(d.documentName).push(d.toObject());
     });
 
     const scene = canvas.scene;
-    toDelete.forEach((ids, documentName) => {
-      scene.deleteEmbeddedDocuments(documentName, ids);
+    toDelete.forEach((data, documentName) => {
+      scene.deleteEmbeddedDocuments(
+        documentName,
+        data.map((d) => d._id),
+        { isUndo: true } // Hack to prevent history tracking
+      );
     });
+
+    // Track history
+    LinkerAPI.history.push({ id: selected[0].id, data: toDelete });
+    if (LinkerAPI.history.length > 10) LinkerAPI.history.shift();
+
+    // Delete selected
+    scene.deleteEmbeddedDocuments(
+      selected[0].documentName,
+      selected.map((s) => s.id)
+    );
   }
 
   /**
@@ -462,6 +497,31 @@ export class LinkerAPI {
 
       for (const d of linked) {
         this._findLinked(d, allLinked, processedLinks);
+      }
+    });
+
+    return allLinked;
+  }
+
+  static _findHardLinked(document, allLinked, processedLinks = new Set()) {
+    allLinked.add(document);
+
+    const links = document.flags[MODULE_ID]?.links
+      ?.filter((l) => l.type !== LINK_TYPES.RECEIVE && !processedLinks.has(l.id))
+      .map((l) => l.id);
+    if (!links?.length) return allLinked;
+
+    links.forEach((l) => processedLinks.add(l));
+
+    SUPPORTED_PLACEABLES.forEach((documentName) => {
+      const linked = canvas.scene
+        .getEmbeddedCollection(documentName)
+        .filter((t) =>
+          t.flags[MODULE_ID]?.links?.some((l1) => links.find((l2) => l2 === l1.id && l1.type !== LINK_TYPES.SEND))
+        );
+
+      for (const d of linked) {
+        this._findHardLinked(d, allLinked, processedLinks);
       }
     });
 

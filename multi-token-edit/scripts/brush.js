@@ -1,5 +1,6 @@
 import { pasteDataUpdate } from '../applications/formUtils.js';
 import { MODULE_ID } from './constants.js';
+import { Mouse3D } from './mouse3d.js';
 import { Picker } from './picker.js';
 import { PresetAPI } from './presets/collection.js';
 import { Preset } from './presets/preset.js';
@@ -23,14 +24,6 @@ export class Brush {
   static active = false;
   static hitTest;
 
-  static registered3dListener = false;
-  // Trick to keep consistent signatures for bound 3d brush callbacks
-  // Required to be able to remove these function once the 3d brush is deactivated
-  static {
-    this._boundOn3DBrushClick = this._on3DBrushClick.bind(this);
-    this._boundOn3dMouseMove = this._on3dMouseMove.bind(this);
-  }
-
   static _checkDensity(pos) {
     const d = canvas.grid.size * this.spawnDensity;
     return this.spawnPoints.every((p) => Math.sqrt((p.x - pos.x) ** 2 + (p.y - pos.y) ** 2) >= d);
@@ -47,19 +40,11 @@ export class Brush {
     const now = new Date().getTime();
     if (!this.lastSpawnTime || now - this.lastSpawnTime > 100) {
       this.lastSpawnTime = now;
-      if (pos.z == null) {
-        if (!this._checkDensity(pos)) return;
-        Picker.resolve(pos);
-        this.spawnPoints.push(pos);
-      } else {
-        PresetAPI.spawnPreset({
-          preset: this.preset,
-          ...pos,
-          center: true,
-          snapToGrid: this.snap,
-          scaleToGrid: this.scaleToGrid,
-        });
-      }
+
+      if (!this._checkDensity(pos)) return;
+      Picker.resolve(pos);
+      this.spawnPoints.push(pos);
+
       BrushMenu.iterate();
     }
   }
@@ -163,22 +148,15 @@ export class Brush {
     }
   }
 
-  static _on3DBrushClick(event) {
-    if (this.brush3d) {
-      if (this.spawner) {
-        if (this.brush3d?.position) {
-          const posVec = game.Levels3DPreview.ruler.constructor.pos3DToCanvas(this.brush3d.position);
-          this._performBrushDocumentCreate({ x: posVec.x, y: posVec.y, z: posVec.z });
-        }
-      } else {
-        const p = game.Levels3DPreview.interactionManager.currentHover?.placeable;
-        if (p && p.document.documentName === this.documentName) {
-          game.Levels3DPreview.interactionManager._downCameraPosition.set(0, 0, 0);
-          if (this.eraser) this._performBrushDocumentDelete(p);
-          else this._performBrushDocumentUpdate(p);
-        }
-        this.updatedPlaceables.clear();
+  static _on3DBrushClick({ x, y, z, placeable } = {}) {
+    if (this.spawner) {
+      this._performBrushDocumentCreate({ x, y, z });
+    } else {
+      if (placeable && placeable.document.documentName === this.documentName) {
+        if (this.eraser) this._performBrushDocumentDelete(placeable);
+        else this._performBrushDocumentUpdate(placeable);
       }
+      this.updatedPlaceables.clear();
     }
   }
 
@@ -194,18 +172,16 @@ export class Brush {
   }
 
   static async genPreview() {
-    // TODO: 3D Preview
-    if (!game.Levels3DPreview?._active)
-      PresetAPI.spawnPreset({
-        preset: this.preset,
-        coordPicker: true,
-        previewOnly: true,
-        center: true,
-        taPreview: 'ALL',
-        transform: this.transform,
-        snapToGrid: this.snap,
-        scaleToGrid: this.scaleToGrid,
-      });
+    PresetAPI.spawnPreset({
+      preset: this.preset,
+      coordPicker: true,
+      previewOnly: true,
+      center: true,
+      taPreview: 'ALL',
+      transform: this.transform,
+      snapToGrid: this.snap,
+      scaleToGrid: this.scaleToGrid,
+    });
   }
 
   /**
@@ -265,6 +241,7 @@ export class Brush {
     this.refreshPreset();
 
     if (game.Levels3DPreview?._active) {
+      if (this.spawner) this.genPreview();
       return this._activate3d();
     }
 
@@ -342,77 +319,12 @@ export class Brush {
     return true;
   }
 
-  static brush3dDelayMoveTimer;
-
-  static _on3dMouseMove() {
-    if (!this.brush3d || this.brush3dDelayMoveTimer) return;
-
-    const brush = this;
-    this.brush3dDelayMoveTimer = setTimeout(function () {
-      const mPos = game.Levels3DPreview.interactionManager.canvas3dMousePosition;
-      const cPos = game.Levels3DPreview.interactionManager.camera.position;
-
-      const intersects = game.Levels3DPreview.interactionManager.computeSightCollisionFrom3DPositions(
-        cPos,
-        mPos,
-        'collision',
-        false,
-        false,
-        false,
-        true
-      );
-
-      if (intersects[0]) {
-        const intersect = intersects[0];
-        brush.brush3d.position.set(intersect.point.x, intersect.point.y, intersect.point.z);
-        // TODO: 3D Preview
-        // const posVec = game.Levels3DPreview.ruler.constructor.pos3DToCanvas(brush.brush3d.position);
-        // Picker.feedPos({ x: posVec.x, y: posVec.y, z: posVec.z });
-      }
-      brush.brush3dDelayMoveTimer = null;
-    }, 100); // Will do the ajax stuff after 1000 ms, or 1 s
-  }
-
-  static deactivate3DListeners() {
-    game.Levels3DPreview.renderer.domElement.removeEventListener('click', this._boundOn3DBrushClick, false);
-    game.Levels3DPreview.renderer.domElement.removeEventListener('mousemove', this._boundOn3dMouseMove, false);
-  }
-
-  static _activate3DListeners() {
-    // Remove listeners if they are already set
-    this.deactivate3DListeners();
-
-    game.Levels3DPreview.renderer.domElement.addEventListener('click', this._boundOn3DBrushClick, false);
-    game.Levels3DPreview.renderer.domElement.addEventListener('mousemove', this._boundOn3dMouseMove, false);
-  }
-
   static _activate3d() {
-    const THREE = game.Levels3DPreview.THREE;
-
-    if (!this.brush3d) {
-      this.brush3d = new THREE.Mesh(
-        new THREE.SphereGeometry(0.01, 8, 8),
-        new THREE.MeshBasicMaterial({
-          opacity: 0.5,
-          transparent: true,
-          color: 0x00ff00,
-          wireframe: true,
-        })
-      );
-
-      this.brush3d.userData.interactive = false;
-      this.brush3d.userData.ignoreHover = true;
-
-      const mPos = game.Levels3DPreview.interactionManager.canvas3dMousePosition;
-      this.brush3d.position.set(mPos.x, mPos.y, mPos.z);
-
-      game.Levels3DPreview.scene.add(this.brush3d);
-      if (this.spawner) this.genPreview();
-    }
-
-    // Activate listeners
-    this._activate3DListeners();
-
+    Mouse3D.activate({
+      mouseMoveCallback: Picker.feedPos.bind(Picker),
+      mouseClickCallback: this._on3DBrushClick.bind(this),
+      mouseWheelClickCallback: this.deactivate.bind(this),
+    });
     return true;
   }
 
@@ -421,11 +333,6 @@ export class Brush {
       canvas.mouseInteractionManager.permissions.clickLeft = true;
       //canvas.mouseInteractionManager.permissions.longPress = true;
       if (this.brushOverlay) this.brushOverlay.parent?.removeChild(this.brushOverlay);
-      if (this.brush3d && game.Levels3DPreview?._active) {
-        game.Levels3DPreview.scene.remove(this.brush3d);
-        this.brush3d = null;
-        this.deactivate3DListeners();
-      }
       this.active = false;
 
       if (!refresh) {
@@ -444,6 +351,7 @@ export class Brush {
       this.transform = null;
       return true;
     }
+    Mouse3D.deactivate();
   }
 }
 
@@ -558,6 +466,10 @@ export class BrushMenu extends FormApplication {
       const documentName = this.preset.documentName;
       if (documentName === 'Token' || documentName === 'Tile') pPath = 'texture.tint';
       else if (documentName === 'AmbientLight') pPath = 'config.color';
+
+      if (game.Levels3DPreview?._active) {
+        if (documentName === 'Token' || documentName === 'Tile') pPath = 'flags.levels-3d-preview.color';
+      }
 
       if (pPath) {
         if (this._settings.randomColor) {
@@ -726,8 +638,8 @@ export class BrushMenu extends FormApplication {
 
     // Colorize
     html.on('click', '.randomize-color', this._onRandomizeColor.bind(this));
-    html.on('change', 'input[type="color"]', this._onColorChange.bind(this));
-    html.on('input paste', '.color', this._onColorChange.bind(this));
+    html.on('change', 'color-picker', this._onColorChange.bind(this));
+    html.on('input paste', 'color-picker input[type="text"]', this._onColorChange.bind(this));
     html.find('.colorizeControl').on('click', this._onColorMenu.bind(this));
 
     html.find('.tmfxPresetControl').on('click', () => {

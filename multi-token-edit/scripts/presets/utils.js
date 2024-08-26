@@ -268,7 +268,7 @@ export function getPresetDataCenterOffset(docToData) {
   const b = getPresetDataBounds(docToData);
   const center = { x: b.x + b.width / 2, y: b.y + b.height / 2 };
   const transform = getTransformToOrigin(docToData);
-  return { x: center.x + transform.x, y: center.y + transform.y };
+  return { x: center.x + transform.x, y: center.y + transform.y, z: 0 };
 }
 
 /**
@@ -283,17 +283,16 @@ export function getTransformToOrigin(docToData) {
     const c = data[0].c;
     transform.x = -c[0];
     transform.y = -c[1];
+    transform.z = 0;
   } else if (name === 'Region') {
     const b = getDataBounds(name, data[0]);
     transform.x = -b.x1;
     transform.y = -b.y1;
+    transform.z = -b.z1;
   } else {
     transform.x = -data[0].x;
     transform.y = -data[0].y;
-    if (game.Levels3DPreview?._active) {
-      const height = data[0].elevation ?? data[0].flags?.levels?.rangeBottom ?? 0;
-      transform.z = -height;
-    }
+    transform.z = -(data[0].elevation ?? 0);
   }
   return transform;
 }
@@ -327,18 +326,22 @@ export function getPresetDataBounds(docToData) {
  * @returns
  */
 export function getDataBounds(documentName, data) {
-  let x1, y1, x2, y2;
+  let x1, y1, x2, y2, z1, z2;
 
   if (documentName === 'Wall') {
     x1 = Math.min(data.c[0], data.c[2]);
     y1 = Math.min(data.c[1], data.c[3]);
     x2 = Math.max(data.c[0], data.c[2]);
     y2 = Math.max(data.c[1], data.c[3]);
+    z1 = 0;
+    z2 = 0;
   } else if (documentName === 'Region') {
     x2 = -Infinity;
     y2 = -Infinity;
     x1 = Infinity;
     y1 = Infinity;
+    z1 = data.elevation?.bottom ?? 0;
+    z2 = data.elevation?.top ?? 0;
     data.shapes?.forEach((shape) => {
       if (shape.points) {
         for (let i = 0; i < shape.points.length; i += 2) {
@@ -356,10 +359,11 @@ export function getDataBounds(documentName, data) {
         y2 = Math.max(y2, shape.y + (shape.radiusY ?? shape.height));
       }
     });
-    return { x1, y1, x2, y2 };
+    return { x1, y1, x2, y2, z1, z2 };
   } else {
     x1 = data.x || 0;
     y1 = data.y || 0;
+    z1 = data.elevation ?? 0;
 
     let width, height;
     if (documentName === 'Tile') {
@@ -378,8 +382,9 @@ export function getDataBounds(documentName, data) {
 
     x2 = x1 + (width || 0);
     y2 = y1 + (height || 0);
+    z2 = z1;
   }
-  return { x1, y1, x2, y2 };
+  return { x1, y1, x2, y2, z1, z2 };
 }
 
 export function isImage(path) {

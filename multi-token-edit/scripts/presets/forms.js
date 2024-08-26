@@ -1,6 +1,6 @@
 import { TokenDataAdapter } from '../../applications/dataAdapters.js';
 import { copyToClipboard, pasteDataUpdate } from '../../applications/formUtils.js';
-import { showMassEdit } from '../../applications/multiConfig.js';
+import { getMassEditForm, showMassEdit } from '../../applications/multiConfig.js';
 import { countFolderItems, trackProgress } from '../../applications/progressDialog.js';
 import { BrushMenu } from '../brush.js';
 import { importPresetFromJSONDialog } from '../dialogs.js';
@@ -622,8 +622,7 @@ export class MassEditPresets extends FormApplication {
 
   async _onDoubleClickPreset(event) {
     BrushMenu.close();
-    // TODO: 3D Preview
-    if (game.Levels3DPreview?._active) return;
+
     const item = $(event.target).closest('.item');
     const uuid = item.data('uuid');
     if (!uuid) return;
@@ -2673,5 +2672,7 @@ function hoverMassEditForm(mouseX, mouseY, documentName) {
     return false;
   };
 
-  return Object.values(ui.windows).find((app) => app.meForm && app.documentName === documentName && hitTest(app));
+  const app = getMassEditForm();
+  if (app && app.documentName === documentName && hitTest(app)) return app;
+  return null;
 }
