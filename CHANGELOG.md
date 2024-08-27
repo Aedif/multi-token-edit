@@ -1,3 +1,7 @@
+# 1.73.1
+
+- Copy/Paste keybindings will now allow to copy both selected and placeables they're linked to and paste them as a group
+
 # 1.73.0
 
 - Fixed unresponsive Brush color controls

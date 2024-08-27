@@ -812,7 +812,9 @@ export class PresetAPI {
 
       docToData.forEach((data) => {
         data.forEach((d) => {
-          d.flags?.[MODULE_ID]?.links?.forEach((l) => (l.id = newLinkId(l.id)));
+          d.flags?.[MODULE_ID]?.links?.forEach((l) => {
+            l.id = newLinkId(l.id);
+          });
           d.behaviors?.forEach((b) => {
             if (b.system?.linkId) b.system.linkId = newLinkId(b.system.linkId);
           });

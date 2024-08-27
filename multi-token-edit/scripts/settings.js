@@ -1,4 +1,5 @@
 import CSSEdit, { STYLES } from '../applications/cssEdit.js';
+import { copyToClipboard } from '../applications/formUtils.js';
 import { MassEditGenericForm } from '../applications/generic/genericForm.js';
 import {
   getMassEditForm,
@@ -13,6 +14,7 @@ import { LinkerAPI } from './linker/linker.js';
 import { editPreviewPlaceables, Picker } from './picker.js';
 import { PresetCollection } from './presets/collection.js';
 import { MassEditPresets } from './presets/forms.js';
+import { Preset } from './presets/preset.js';
 import { activeEffectPresetSelect, getDocumentName, localize } from './utils.js';
 
 export function registerSettings() {
@@ -363,7 +365,7 @@ export function registerKeybinds() {
 
   game.keybindings.register(MODULE_ID, 'copyKey', {
     name: localize('common.copy'),
-    hint: '',
+    hint: 'Copy data from within an opened Mass Edit form OR the selected and all linked placeables.',
     editable: [
       {
         key: 'KeyC',
@@ -373,9 +375,25 @@ export function registerKeybinds() {
     onDown: () => {
       // Check if a Mass Config form is open and if so copy data from there
       if (window.getSelection().toString() === '') {
-        Object.values(ui.windows)
-          .find((app) => app.meObjects != null)
-          ?.performMassCopy();
+        const app = Object.values(ui.windows).find((app) => app.meObjects != null);
+        if (app) return app.performMassCopy();
+      }
+
+      // If no form is open attempt to copy the selected placeable and its linked placeables
+      const selected = LinkerAPI._getSelected().map((s) => s.document);
+      if (selected.length) {
+        const linked = Array.from(
+          LinkerAPI.getHardLinkedDocuments(selected).filter((l) => !selected.find((s) => s.id === l.id))
+        );
+
+        const preset = new Preset({
+          documentName: selected[0].documentName,
+          data: selected.map((s) => s.toObject()),
+          attached: linked.map((l) => {
+            return { documentName: l.documentName, data: l.toObject() };
+          }),
+        });
+        copyToClipboard(preset);
       }
     },
     restricted: true,
@@ -384,7 +402,7 @@ export function registerKeybinds() {
 
   game.keybindings.register(MODULE_ID, 'pasteKey', {
     name: localize('common.paste'),
-    hint: '',
+    hint: 'Paste data onto selected placeables or spawn it as a new placeable.',
     editable: [
       {
         key: 'KeyV',
