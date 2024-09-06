@@ -2676,3 +2676,98 @@ function hoverMassEditForm(mouseX, mouseY, documentName) {
   if (app && app.documentName === documentName && hitTest(app)) return app;
   return null;
 }
+
+export function registerPresetBrowserHooks() {
+  // Intercept and prevent certain placeable drag and drop if they are hovering over the MassEditPresets form
+  // passing on the placeable to it to perform preset creation.
+  const dragDropHandler = function (wrapped, ...args) {
+    if (MassEditPresets.objectHover || PresetConfig.objectHover) {
+      this.mouseInteractionManager.cancel(...args);
+      const app = Object.values(ui.windows).find(
+        (x) =>
+          (MassEditPresets.objectHover && x instanceof MassEditPresets) ||
+          (PresetConfig.objectHover && x instanceof PresetConfig)
+      );
+      if (app) {
+        const placeables = canvas.activeLayer.controlled.length ? [...canvas.activeLayer.controlled] : [this];
+        app.dropPlaceable(placeables, ...args);
+      }
+      // Pass in a fake event that hopefully is enough to allow other modules to function
+      this._onDragLeftCancel(...args);
+    } else {
+      return wrapped(...args);
+    }
+  };
+
+  SUPPORTED_PLACEABLES.forEach((name) => {
+    libWrapper.register(MODULE_ID, `${name}.prototype._onDragLeftDrop`, dragDropHandler, 'MIXED');
+  });
+
+  // Scene Control to open preset browser
+  Hooks.on('renderSceneControls', (sceneControls, html, options) => {
+    if (!game.user.isGM) return;
+    if (!game.settings.get(MODULE_ID, 'presetSceneControl')) return;
+
+    const presetControl = $(`
+<li class="scene-control mass-edit-scene-control" data-control="me-presets" aria-label="Mass Edit: Presets" role="tab" data-tooltip="Mass Edit: Presets">
+  <i class="fa-solid fa-books"></i>
+</li>
+  `);
+
+    presetControl.on('click', () => {
+      let documentName = canvas.activeLayer.constructor.documentName;
+      if (!SUPPORTED_PLACEABLES.includes(documentName)) documentName = 'ALL';
+
+      const presetForm = Object.values(ui.windows).find((app) => app instanceof MassEditPresets);
+      if (presetForm) {
+        presetForm.close();
+        return;
+      }
+
+      new MassEditPresets(null, null, documentName, {
+        left: presetControl.position().left + presetControl.width() + 40,
+      }).render(true);
+    });
+
+    html.find('.control-tools').find('.scene-control').last().after(presetControl);
+  });
+
+  // Change default behavior of JournalEntry click and context menu within the CompendiumDirectory
+  libWrapper.register(
+    MODULE_ID,
+    'CompendiumDirectory.prototype._getEntryContextOptions',
+    function (wrapped, ...args) {
+      const options = wrapped(...args);
+      options.push({
+        name: 'Open Journal Compendium',
+        icon: '<i class="fas fa-book-open"></i>',
+        condition: (li) => {
+          const pack = game.packs.get(li.data('pack'));
+          return pack.metadata.type === 'JournalEntry' && pack.index.get(META_INDEX_ID);
+        },
+        callback: (li) => {
+          const pack = game.packs.get(li.data('pack'));
+          pack.render(true);
+        },
+      });
+      console.log(options);
+      return options;
+    },
+    'WRAPPER'
+  );
+  libWrapper.register(
+    MODULE_ID,
+    'CompendiumDirectory.prototype._onClickEntryName',
+    async function (wrapped, event) {
+      const element = event.currentTarget;
+      const packId = element.closest('[data-pack]').dataset.pack;
+      const pack = game.packs.get(packId);
+      if (pack.metadata.type === 'JournalEntry' && pack.index.get(META_INDEX_ID)) {
+        new MassEditPresets(null, null, 'ALL').render(true);
+        return;
+      }
+      return wrapped(event);
+    },
+    'MIXED'
+  );
+}

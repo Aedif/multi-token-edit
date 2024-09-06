@@ -90,21 +90,21 @@ class PromiseQueue {
 }
 
 const updateQueue = new PromiseQueue();
-const doc_sources = {};
 
 function preUpdate(document, change, options, userId) {
   if (game.user.id !== userId || options.ignoreLinks) return true;
 
+  // If the document does not contain links do nothing
   let links = document.flags[MODULE_ID]?.links?.filter((l) => l.type !== LINK_TYPES.RECEIVE);
   if (!links?.length) return true;
 
-  let positionUpdate =
+  const positionUpdate =
     change.hasOwnProperty('x') ||
     change.hasOwnProperty('y') ||
     change.hasOwnProperty('shapes') ||
     change.hasOwnProperty('c') ||
     change.hasOwnProperty('elevation');
-  let rotationUpdate = change.hasOwnProperty('rotation') || options.hasOwnProperty('meRotation');
+  const rotationUpdate = change.hasOwnProperty('rotation') || options.hasOwnProperty('meRotation');
   if (!(positionUpdate || rotationUpdate)) return true;
 
   // Special handling for walls.
@@ -118,7 +118,7 @@ function preUpdate(document, change, options, userId) {
     }
   }
 
-  // If control is held during non-rotation update, we want to ignore links
+  // If control is held during a non-rotation update, we want to ignore links
   if (game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.ALT)) {
     return true;
   }
@@ -134,10 +134,7 @@ function preUpdate(document, change, options, userId) {
     PROCESSED_UPDATES.set(options.modifiedTime, links);
     setTimeout(() => PROCESSED_UPDATES.delete(options.modifiedTime), 2000);
     foundry.utils.setProperty(options, `links.${document.id}`, links);
-    /// TODO
-    // Need to figure out how to clean this up...
-    // Put this in options? need to pass it as ID as well because options object is shared in simultaneous multi-update
-    doc_sources[document.id] = document.toObject();
+    foundry.utils.setProperty(options, `linkSources.${document.id}`, document.toObject());
     return true;
   }
 
@@ -147,29 +144,27 @@ function preUpdate(document, change, options, userId) {
 async function update(document, change, options, userId) {
   if (!options.links?.[document.id] || options.ignoreLinks || game.user.id !== userId) return true;
 
-  let positionUpdate =
+  const positionUpdate =
     change.hasOwnProperty('x') ||
     change.hasOwnProperty('y') ||
     change.hasOwnProperty('shapes') ||
     change.hasOwnProperty('c') ||
     change.hasOwnProperty('elevation');
-  let rotationUpdate = change.hasOwnProperty('rotation') || options.hasOwnProperty('meRotation');
+  const rotationUpdate = change.hasOwnProperty('rotation') || options.hasOwnProperty('meRotation');
   if (!(positionUpdate || rotationUpdate)) return true;
 
-  /// TODO
-  // Need to figure out how to clean this up...
-  const previousSource = foundry.utils.deepClone(doc_sources[document.id]);
-  foundry.utils.mergeObject(doc_sources[document.id], change);
+  const previousSource = foundry.utils.deepClone(options.linkSources[document.id]);
+  foundry.utils.mergeObject(options.linkSources[document.id], change);
 
   const scene = document.parent;
-  let { transform, origin } = calculateTransform(
+  const { transform, origin } = calculateTransform(
     document.documentName,
     document.toObject(),
     previousSource,
     change,
     options
   );
-  let links = options.links[document.id];
+  const links = options.links[document.id];
 
   updateQueue.add(async () => {
     const docUpdates = new Map();
@@ -240,9 +235,13 @@ function calculateTransform(documentName, currentSource, previousSource, change,
 }
 
 export class LinkerAPI {
+  /**
+   * Open Linker Menu window
+   * @returns
+   */
   static async openMenu() {
     const module = await import('./menu.js');
-    await module.openLinkerMenu();
+    return module.openLinkerMenu();
   }
 
   /**
@@ -260,6 +259,11 @@ export class LinkerAPI {
     return allLinked;
   }
 
+  /**
+   * Retrieve TWO_WAY and SEND linked embedded documents
+   * @param {Array<CanvasDocumentMixin>} documents
+   * @returns
+   */
   static getHardLinkedDocuments(documents) {
     if (!Array.isArray(documents)) documents = [documents];
 
@@ -270,11 +274,25 @@ export class LinkerAPI {
     return allLinked;
   }
 
+  /**
+   * Returns true if the placeable has the provided linkId
+   * @param {Placeable} placeable
+   * @param {String} linkId
+   * @returns
+   */
   static hasLink(placeable, linkId) {
     const document = placeable.document ?? placeable;
     return Boolean(document.flags[MODULE_ID]?.links?.find((l) => l.id === linkId));
   }
 
+  /**
+   * Add a link to the provided placeable
+   * @param {Placeable} placeable
+   * @param {String} linkId
+   * @param {String} type LINK_TYPES
+   * @param {String} label hover text displayed within the Linker Menu
+   * @returns
+   */
   static addLink(placeable, linkId, type = LINK_TYPES.TWO_WAY, label = null) {
     if (!Object.values(LINK_TYPES).includes(type)) throw Error(`Invalid link type: ${type}`);
 
@@ -297,10 +315,11 @@ export class LinkerAPI {
     Hooks.call(`${MODULE_ID}.addLink`, document.documentName, document.id, linkId, type, label);
   }
 
-  static removeLinkFromSelected(linkId) {
-    this._getSelected().forEach((p) => this.removeLink(p, linkId));
-  }
-
+  /**
+   * Remove link from the provided placeable
+   * @param {Placeable} placeable
+   * @param {String} linkId
+   */
   static removeLink(placeable, linkId) {
     const document = placeable.document ?? placeable;
     let links = document.flags[MODULE_ID]?.links;
@@ -327,7 +346,7 @@ export class LinkerAPI {
   /**
    * Remove all links from selected placeables
    */
-  static removeAllLinksFromSelected() {
+  static removeLinksFromSelected() {
     LinkerAPI._getSelected().forEach((p) => LinkerAPI.removeLinks(p));
   }
 
@@ -387,6 +406,12 @@ export class LinkerAPI {
     });
   }
 
+  /**
+   * Update linkId on the current scene with the provided label
+   * @param {String} linkId
+   * @param {String} label
+   * @returns
+   */
   static updateLinkLabelOnCurrentScene(linkId, label) {
     if (!linkId) return;
 
@@ -503,6 +528,13 @@ export class LinkerAPI {
     return allLinked;
   }
 
+  /**
+   * Utility for LinkerAPI.getHardLinkedDocuments
+   * @param {*} document
+   * @param {*} allLinked
+   * @param {*} processedLinks
+   * @returns
+   */
   static _findHardLinked(document, allLinked, processedLinks = new Set()) {
     allLinked.add(document);
 

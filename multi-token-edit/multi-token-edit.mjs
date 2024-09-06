@@ -9,7 +9,7 @@ import {
 import { libWrapper } from './scripts/shim/shim.js';
 import { enableUniversalSelectTool } from './scripts/selectTool.js';
 import { META_INDEX_ID, PresetAPI, PresetCollection } from './scripts/presets/collection.js';
-import { MassEditPresets, PresetConfig } from './scripts/presets/forms.js';
+import { registerPresetBrowserHooks } from './scripts/presets/forms.js';
 import { registerKeybinds, registerSettings } from './scripts/settings.js';
 import { Picker } from './scripts/picker.js';
 import { BrushMenu, activateBrush, deactivateBush, openBrushMenu } from './scripts/brush.js';
@@ -132,30 +132,7 @@ Hooks.once('init', () => {
     );
   }
 
-  // Intercept and prevent certain placeable drag and drop if they are hovering over the MassEditPresets form
-  // passing on the placeable to it to perform preset creation.
-  const dragDropHandler = function (wrapped, ...args) {
-    if (MassEditPresets.objectHover || PresetConfig.objectHover) {
-      this.mouseInteractionManager.cancel(...args);
-      const app = Object.values(ui.windows).find(
-        (x) =>
-          (MassEditPresets.objectHover && x instanceof MassEditPresets) ||
-          (PresetConfig.objectHover && x instanceof PresetConfig)
-      );
-      if (app) {
-        const placeables = canvas.activeLayer.controlled.length ? [...canvas.activeLayer.controlled] : [this];
-        app.dropPlaceable(placeables, ...args);
-      }
-      // Pass in a fake event that hopefully is enough to allow other modules to function
-      this._onDragLeftCancel(...args);
-    } else {
-      return wrapped(...args);
-    }
-  };
-
-  SUPPORTED_PLACEABLES.forEach((name) => {
-    libWrapper.register(MODULE_ID, `${name}.prototype._onDragLeftDrop`, dragDropHandler, 'MIXED');
-  });
+  registerPresetBrowserHooks();
 
   // Handle broadcasts
   // Needed to allow players to spawn Presets by delegating create document request to GMs
@@ -233,35 +210,6 @@ Hooks.once('init', () => {
 Hooks.on('canvasReady', () => {
   if (BrushMenu.isActive()) BrushMenu.close();
   else if (Picker.isActive()) Picker.destroy();
-});
-
-// Preset Scene Control
-Hooks.on('renderSceneControls', (sceneControls, html, options) => {
-  if (!game.user.isGM) return;
-  if (!game.settings.get(MODULE_ID, 'presetSceneControl')) return;
-
-  const presetControl = $(`
-<li class="scene-control mass-edit-scene-control" data-control="me-presets" aria-label="Mass Edit: Presets" role="tab" data-tooltip="Mass Edit: Presets">
-  <i class="fa-solid fa-books"></i>
-</li>
-  `);
-
-  presetControl.on('click', () => {
-    let documentName = canvas.activeLayer.constructor.documentName;
-    if (!SUPPORTED_PLACEABLES.includes(documentName)) documentName = 'ALL';
-
-    const presetForm = Object.values(ui.windows).find((app) => app instanceof MassEditPresets);
-    if (presetForm) {
-      presetForm.close();
-      return;
-    }
-
-    new MassEditPresets(null, null, documentName, {
-      left: presetControl.position().left + presetControl.width() + 40,
-    }).render(true);
-  });
-
-  html.find('.control-tools').find('.scene-control').last().after(presetControl);
 });
 
 // Attach Mass Config buttons to Token and Tile HUDs
