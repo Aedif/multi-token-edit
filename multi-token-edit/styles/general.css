@@ -719,6 +719,16 @@ nav > a[data-tab='me-pinned'] {
 }
 
 /* ======================== 
+   ====== Smart Link ======
+   ======================== */
+
+.smart-linker-menu .image {
+  flex: 1;
+  border: none;
+  padding-right: 10px;
+}
+
+/* ======================== 
    ====== Linker Menu =====
    ======================== */
 
@@ -727,7 +737,14 @@ nav > a[data-tab='me-pinned'] {
   min-height: 270px;
 }
 
-#mass-edit-linker-menu .controls .control {
+.mass-edit-linker .controls {
+  flex: 0 0 46px;
+  display: flex;
+  padding-left: 2px;
+  padding-right: 4px;
+}
+
+.mass-edit-linker .controls .control {
   font-size: 24px;
   margin-bottom: 4px;
   box-shadow: 0 0 3px dimgray;
@@ -741,12 +758,12 @@ nav > a[data-tab='me-pinned'] {
   line-height: 40px;
 }
 
-#mass-edit-linker-menu .controls a[disabled].control {
+.mass-edit-linker .controls a[disabled].control {
   color:black;
   pointer-events: none;
 }
 
-#mass-edit-linker-menu .controls .control:hover {
+.mass-edit-linker .controls .control:hover {
   border: 1px solid var(--color-border-highlight-alt);
   border-bottom: 1px solid var(--color-border-highlight);
   box-shadow: 0 0 3px var(--color-shadow-highlight);

@@ -1,4 +1,5 @@
 import { checkApplySpecialFields } from '../../applications/formUtils.js';
+import { showGenericForm } from '../../applications/multiConfig.js';
 import { Brush } from '../brush.js';
 import { MODULE_ID, SUPPORTED_PLACEABLES, UI_DOCS } from '../constants.js';
 import { DataTransform, Picker } from '../picker.js';

@@ -1,3 +1,19 @@
+# 1.74.0
+
+**Linker**
+
+- Bug fixes
+- New keybinding: `Smart Link`
+  - When pressed will either automatically link selected placeables or initiate a multi-layer select to link box selected placeables across all layers
+- New keybinding: `Smart Un-Link`
+  - When pressed will either remove links from selected placeables or initiate a multi-layer select to un-link box selected placeables across all layers
+
+**Misc**
+
+- Fixed `Modify` field breaking Preset spawning
+- Changed default click behavior for Mass Edit Preset compendiums to open the Preset Browser instead of Journal compendium
+  - Journal compendiums can still be accessed via right-click context menu
+
 # 1.73.1
 
 - Copy/Paste keybindings will now allow to copy both selected and placeables they're linked to and paste them as a group

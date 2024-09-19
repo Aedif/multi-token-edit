@@ -4,7 +4,7 @@
 
 import { DataTransform } from '../picker.js';
 import { libWrapper } from '../shim/shim.js';
-import { updateEmbeddedDocumentsViaGM } from '../utils.js';
+import { pickerSelectMultiLayerDocuments, updateEmbeddedDocumentsViaGM } from '../utils.js';
 import { getDataBounds } from '../presets/utils.js';
 import { MODULE_ID, SUPPORTED_PLACEABLES } from '../constants.js';
 
@@ -244,6 +244,42 @@ export class LinkerAPI {
     return module.openLinkerMenu();
   }
 
+  static async smartLink({ multi = false } = {}) {
+    let selected;
+    if (multi) selected = await pickerSelectMultiLayerDocuments();
+    else selected = this._getSelected().map((p) => p.document);
+
+    if (!selected.length) return;
+
+    if (!this._smartLink) {
+      let link;
+      for (const d of selected) {
+        link = (this.getLinks(d) ?? []).find((l) => l.type === LINK_TYPES.TWO_WAY);
+        if (link) break;
+      }
+      if (!link) link = { id: foundry.utils.randomID(), type: LINK_TYPES.TWO_WAY, label: 'S_LINK' };
+      this._smartLink = link;
+
+      // Open menu window
+      const module = await import('./smartMenu.js');
+      return module.openSmartLinkMenu(selected[0]);
+    }
+
+    const { id, type, label } = this._smartLink;
+    let numUpdates = 0;
+    for (const d of selected) {
+      if (await this.addLink(d, id, type, label)) numUpdates++;
+    }
+    if (numUpdates) {
+      ui.notifications.info(`Mass Edit: ${numUpdates} documents have been linked.`);
+    }
+  }
+
+  static getLinks(document) {
+    document = document.document ?? document;
+    return document.flags[MODULE_ID]?.links;
+  }
+
   /**
    * Retrieve all linked embedded documents
    * @param {CanvasDocumentMixin|Array<CanvasDocumentMixin>} documents embedded document/s
@@ -293,7 +329,7 @@ export class LinkerAPI {
    * @param {String} label hover text displayed within the Linker Menu
    * @returns
    */
-  static addLink(placeable, linkId, type = LINK_TYPES.TWO_WAY, label = null) {
+  static async addLink(placeable, linkId, type = LINK_TYPES.TWO_WAY, label = null) {
     if (!Object.values(LINK_TYPES).includes(type)) throw Error(`Invalid link type: ${type}`);
 
     const document = placeable.document ?? placeable;
@@ -308,11 +344,13 @@ export class LinkerAPI {
       link.type = type;
       if (label) link.label = label;
     } else {
-      return;
+      return false;
     }
 
     document.setFlag(MODULE_ID, 'links', links);
     Hooks.call(`${MODULE_ID}.addLink`, document.documentName, document.id, linkId, type, label);
+
+    return true;
   }
 
   /**
@@ -340,14 +378,24 @@ export class LinkerAPI {
     if (document.flags[MODULE_ID]?.links) {
       document.unsetFlag(MODULE_ID, 'links');
       Hooks.call(`${MODULE_ID}.removeNode`, document.id);
+      return true;
     }
+    return false;
   }
 
   /**
    * Remove all links from selected placeables
    */
-  static removeLinksFromSelected() {
-    LinkerAPI._getSelected().forEach((p) => LinkerAPI.removeLinks(p));
+  static async removeLinksFromSelected({ multiLayer = false, notification = false } = {}) {
+    let selected;
+    if (multiLayer) selected = await pickerSelectMultiLayerDocuments();
+    else selected = LinkerAPI._getSelected();
+
+    let numRemoved = 0;
+    for (const s of selected) {
+      if (LinkerAPI.removeLinks(s)) numRemoved++;
+    }
+    if (notification && numRemoved) ui.notifications.info(`Mass Edit: Links removed from ${numRemoved} documents.`);
   }
 
   static history = [];

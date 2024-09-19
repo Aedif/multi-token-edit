@@ -151,7 +151,6 @@ export class MassEditPresets extends FormApplication {
     data.searchMode = SEARCH_MODES[game.settings.get(MODULE_ID, 'presetSearchMode')];
     data.displayDragDropMessage =
       data.allowDocumentSwap && !(this.tree.presets.length || this.tree.folders.length || data.extFolders);
-    data.canvas3dActive = Boolean(game.Levels3DPreview?._active);
 
     data.lastSearch = MassEditPresets.lastSearch;
 

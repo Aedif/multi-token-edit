@@ -284,6 +284,38 @@ export function registerKeybinds() {
     precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
   });
 
+  game.keybindings.register(MODULE_ID, 'smartLink', {
+    name: 'Smart Link',
+    hint: 'Initiate smart document linking.',
+    editable: [
+      {
+        key: 'KeyL',
+        modifiers: [],
+      },
+    ],
+    onDown: () => {
+      LinkerAPI.smartLink({ multi: !Boolean(LinkerAPI._getSelected().length) });
+    },
+    restricted: true,
+    precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
+  });
+
+  game.keybindings.register(MODULE_ID, 'smartUnlink', {
+    name: 'Un-Link',
+    hint: 'Initiate smart document un-linking.',
+    editable: [
+      {
+        key: 'KeyU',
+        modifiers: [],
+      },
+    ],
+    onDown: () => {
+      LinkerAPI.removeLinksFromSelected({ notification: true, multiLayer: !Boolean(LinkerAPI._getSelected().length) });
+    },
+    restricted: true,
+    precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
+  });
+
   game.keybindings.register(MODULE_ID, 'deleteAllLinked', {
     name: 'Delete Selected & Linked',
     hint: 'Deletes currently selected placeable and all placeables linked to it via the `Linker Menu`',

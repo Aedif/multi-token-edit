@@ -6,25 +6,13 @@ import forceAtlas2 from 'graphology-layout-forceatlas2';
 import FA2Layout from 'graphology-layout-forceatlas2/worker';
 import { createNodeImageProgram } from '@sigma/node-image';
 import { createNodeCompoundProgram, NodeCircleProgram } from 'sigma/rendering';
-import { MODULE_ID, SUPPORTED_PLACEABLES } from '../constants.js';
+import { LINKER_DOC_ICONS, MODULE_ID, SUPPORTED_PLACEABLES } from '../constants.js';
 
 export function openLinkerMenu() {
   const menu = Object.values(ui.windows).find((w) => w instanceof LinkerMenu);
   if (menu) menu.close();
   else new LinkerMenu().render(true);
 }
-
-const DOC_ICONS = {
-  Token: 'modules/multi-token-edit/images/linker/person-fill.svg',
-  MeasuredTemplate: 'modules/multi-token-edit/images/linker/rulers.svg',
-  Tile: 'modules/multi-token-edit/images/linker/boxes.svg',
-  Drawing: 'modules/multi-token-edit/images/linker/pencil-fill.svg',
-  Wall: 'modules/multi-token-edit/images/linker/bricks.svg',
-  AmbientLight: 'modules/multi-token-edit/images/linker/lightbulb-fill.svg',
-  AmbientSound: 'modules/multi-token-edit/images/linker/music-note-beamed.svg',
-  Note: 'modules/multi-token-edit/images/linker/bookmark-fill.svg',
-  Region: 'modules/multi-token-edit/images/linker/border-outer.svg',
-};
 
 const GRAPH_CONFIG = {
   document: {
@@ -272,12 +260,11 @@ class LinkerMenu extends FormApplication {
     return foundry.utils.mergeObject(super.defaultOptions, {
       id: 'mass-edit-linker-menu',
       template: `modules/${MODULE_ID}/templates/linker.html`,
-      classes: ['mass-edit-dark-window', 'mass-edit-window-fill', 'me-allow-overflow'],
+      classes: ['mass-edit-linker', 'mass-edit-dark-window', 'mass-edit-window-fill'],
       resizable: true,
       minimizable: false,
       width: 325,
       height: 325,
-      scrollY: ['.links'],
     });
   }
 
@@ -295,7 +282,7 @@ class LinkerMenu extends FormApplication {
       label: documentName,
       color: GRAPH_CONFIG.document.color,
       pictoColor: GRAPH_CONFIG.document.pictoColor,
-      image: DOC_ICONS[documentName],
+      image: LINKER_DOC_ICONS[documentName],
       type: 'pictogram',
       document,
       ...coords,
