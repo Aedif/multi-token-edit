@@ -294,14 +294,14 @@ export function registerKeybinds() {
       },
     ],
     onDown: () => {
-      LinkerAPI.smartLink({ multi: !Boolean(LinkerAPI._getSelected().length) });
+      LinkerAPI.smartLink({ multiLayer: !Boolean(LinkerAPI._getSelected().length) });
     },
     restricted: true,
     precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
   });
 
   game.keybindings.register(MODULE_ID, 'smartUnlink', {
-    name: 'Un-Link',
+    name: 'Smart Un-Link',
     hint: 'Initiate smart document un-linking.',
     editable: [
       {

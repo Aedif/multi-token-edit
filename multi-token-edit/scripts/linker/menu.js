@@ -115,7 +115,7 @@ class LinkerMenu extends FormApplication {
     if (docNeighbors.length < 2) LinkerMenu.removeNode.call(this, documentId);
     else {
       graph.dropEdge(edge);
-      canvas.controls.debug.clear();
+      LinkerAPI._clearHighlight();
       this._refreshControlState();
     }
   }
@@ -163,7 +163,7 @@ class LinkerMenu extends FormApplication {
     }
 
     // Refresh highlights and controls
-    canvas.controls.debug.clear();
+    LinkerAPI._clearHighlight();
     this._refreshControlState();
   }
 
@@ -383,23 +383,6 @@ class LinkerMenu extends FormApplication {
     });
     this._sigmaInstance = sigmaInstance;
 
-    const highlightDocs = function (docs) {
-      const dg = canvas.controls.debug;
-      dg.clear();
-
-      const width = 8;
-      const alpha = 1;
-      docs.forEach((d) => {
-        let bounds = d.object.bounds;
-
-        dg.lineStyle(width + 2, 0, alpha, 0.5);
-        dg.drawRect(bounds.x, bounds.y, bounds.width, bounds.height);
-
-        dg.lineStyle(width, 0x00ff00, alpha, 0.5);
-        dg.drawRect(bounds.x, bounds.y, bounds.width, bounds.height);
-      });
-    };
-
     sigmaInstance.on('doubleClickStage', ({ event }) => {
       const id = foundry.utils.randomID();
 
@@ -425,13 +408,11 @@ class LinkerMenu extends FormApplication {
 
     sigmaInstance.on('enterNode', ({ node }) => {
       const document = graph.getNodeAttribute(node, 'document');
-      if (document) highlightDocs([document]);
-      else highlightDocs(LinkerAPI._getLinkedDocumentsUsingLink(node));
+      if (document) LinkerAPI._highlightDocuments([document]);
+      else LinkerAPI._highlightDocuments(LinkerAPI._getLinkedDocumentsUsingLink(node));
     });
 
-    sigmaInstance.on('leaveNode', () => {
-      canvas.controls.debug.clear();
-    });
+    sigmaInstance.on('leaveNode', LinkerAPI._clearHighlight);
 
     sigmaInstance.on('clickNode', ({ node }) => this.onClickNode(node));
     sigmaInstance.on('rightClickNode', ({ node }) => this.removeNode(node));
@@ -684,7 +665,7 @@ class LinkerMenu extends FormApplication {
   async close(options = {}) {
     this._graphLayout?.kill();
     this._sigmaInstance?.kill();
-    canvas.controls?.debug?.clear();
+    LinkerAPI._clearHighlight();
     LinkerMenu.unregisterHooks();
 
     return super.close(options);

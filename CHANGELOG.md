@@ -1,3 +1,11 @@
+# 1.74.1
+
+**Linker**
+
+- Smart Linker menu will now highlight linked placeables when hovering over the menu
+- Smart Linker menu will now automatically close if the representative placeable has been unlinked via `Smart Un-Link` keybind
+- Fixed `Smart Link` keybind not working under certain scenarios
+
 # 1.74.0
 
 **Linker**

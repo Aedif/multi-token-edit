@@ -244,9 +244,9 @@ export class LinkerAPI {
     return module.openLinkerMenu();
   }
 
-  static async smartLink({ multi = false } = {}) {
+  static async smartLink({ multiLayer = false } = {}) {
     let selected;
-    if (multi) selected = await pickerSelectMultiLayerDocuments();
+    if (multiLayer) selected = await pickerSelectMultiLayerDocuments();
     else selected = this._getSelected().map((p) => p.document);
 
     if (!selected.length) return;
@@ -262,7 +262,7 @@ export class LinkerAPI {
 
       // Open menu window
       const module = await import('./smartMenu.js');
-      return module.openSmartLinkMenu(selected[0]);
+      module.openSmartLinkMenu(selected[0]);
     }
 
     const { id, type, label } = this._smartLink;
@@ -396,6 +396,11 @@ export class LinkerAPI {
       if (LinkerAPI.removeLinks(s)) numRemoved++;
     }
     if (notification && numRemoved) ui.notifications.info(`Mass Edit: Links removed from ${numRemoved} documents.`);
+
+    // Inform Smart Link menu of removed links
+    Object.values(ui.windows)
+      .find((w) => w.unlink)
+      ?.unlink(selected);
   }
 
   static history = [];
@@ -606,5 +611,26 @@ export class LinkerAPI {
     });
 
     return allLinked;
+  }
+
+  static _highlightDocuments(docs) {
+    const dg = canvas.controls.debug;
+    dg.clear();
+
+    const width = 8;
+    const alpha = 1;
+    docs.forEach((d) => {
+      let bounds = d.object.bounds;
+
+      dg.lineStyle(width + 2, 0, alpha, 0.5);
+      dg.drawRect(bounds.x, bounds.y, bounds.width, bounds.height);
+
+      dg.lineStyle(width, 0x00ff00, alpha, 0.5);
+      dg.drawRect(bounds.x, bounds.y, bounds.width, bounds.height);
+    });
+  }
+
+  static _clearHighlight() {
+    canvas.controls.debug.clear();
   }
 }

@@ -42,8 +42,18 @@ class SmartMenu extends FormApplication {
   activateListeners(html) {
     super.activateListeners(html);
 
-    html.find('.selectedToLink').on('click', () => LinkerAPI.smartLink({ multi: false }));
-    html.find('.pickerSelectToLink').on('click', () => LinkerAPI.smartLink({ multi: true }));
+    html.find('.selectedToLink').on('click', () => LinkerAPI.smartLink({ multiLayer: false }));
+    html.find('.pickerSelectToLink').on('click', () => LinkerAPI.smartLink({ multiLayer: true }));
+    html
+      .find('.image img')
+      .on('mouseenter', () => {
+        LinkerAPI._highlightDocuments(LinkerAPI.getLinkedDocuments(this.placeable).add(this.placeable));
+      })
+      .on('mouseleave', LinkerAPI._clearHighlight);
+  }
+
+  unlink(placeables) {
+    if (placeables.find((p) => p.id === this.placeable.id)) this.close(true);
   }
 
   get title() {
@@ -52,6 +62,7 @@ class SmartMenu extends FormApplication {
 
   async close(options = {}) {
     LinkerAPI._smartLink = null;
+    LinkerAPI._clearHighlight();
     return super.close(options);
   }
 }
