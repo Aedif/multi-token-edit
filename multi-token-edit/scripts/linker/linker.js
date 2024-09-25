@@ -2,11 +2,11 @@
  * Manage placeable linking to one another using `links` flag.
  */
 
-import { DataTransform } from '../picker.js';
 import { libWrapper } from '../shim/shim.js';
 import { pickerSelectMultiLayerDocuments, updateEmbeddedDocumentsViaGM } from '../utils.js';
 import { getDataBounds } from '../presets/utils.js';
 import { MODULE_ID, SUPPORTED_PLACEABLES } from '../constants.js';
+import { DataTransformer } from '../data/transformer.js';
 
 const PROCESSED_UPDATES = new Map();
 export const LINK_TYPES = {
@@ -60,7 +60,7 @@ function processLinks(transform, origin, links, scene, docUpdates, processedLink
         const data = d._source;
         let update = foundry.utils.deepClone(data);
 
-        DataTransform.apply(documentName, update, origin, transform);
+        DataTransformer.apply(documentName, update, origin, transform);
         update = foundry.utils.diffObject(data, update);
 
         update._id = d.id;

@@ -286,11 +286,12 @@ export class VirtualFilePreset extends Preset {
     data.uuid = 'virtual@' + data.src;
     data.documentName = isAudio(data.src) ? 'AmbientSound' : 'Tile';
 
-    if (data.documentName === 'Tile') {
-      data.data = [{ texture: { src: data.src }, x: 0, y: 0, rotation: 0 }];
-      data.img = data.src;
-    } else {
-      data.data = [{ path: data.src, radius: 20, x: 0, y: 0 }];
+    if (!data.data) {
+      if (data.documentName === 'Tile') {
+        data.data = [{ texture: { src: data.src }, x: 0, y: 0, rotation: 0 }];
+      } else {
+        data.data = [{ path: data.src, radius: 20, x: 0, y: 0 }];
+      }
       data.img = data.src;
     }
 

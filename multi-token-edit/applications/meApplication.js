@@ -7,7 +7,7 @@ import { selectRandomizerFields } from '../scripts/randomizer/randomizerUtils.js
 import { getDDTint } from '../scripts/tmfx.js';
 import { getDocumentName, hasFlagRemove, localFormat, localize, selectAddSubtractFields } from '../scripts/utils.js';
 import { getInUseStyle } from './cssEdit.js';
-import { GeneralDataAdapter, TokenDataAdapter } from './dataAdapters.js';
+import { GeneralDataAdapter, TokenDataAdapter } from '../scripts/data/adapters.js';
 import { copyToClipboard, getCommonDocData, onInputChange, performMassSearch, performMassUpdate } from './formUtils.js';
 import { WithMassPermissions } from './forms.js';
 import MacroForm from './macro.js';

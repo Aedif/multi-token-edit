@@ -1,5 +1,5 @@
 import { MODULE_ID, SUPPORTED_PLACEABLES } from './constants.js';
-import { DataTransform } from './picker.js';
+import { DataTransformer } from './data/transformer.js';
 import { getDataBounds } from './presets/utils.js';
 
 /**
@@ -99,7 +99,7 @@ function registerRegionWrappers() {
       const dx = position.x - x1;
       const dy = position.y - y1;
       for (const c of clones || []) {
-        DataTransform.apply('Region', c.document.toObject(), { x: 0, y: 0 }, { x: dx, y: dy }, c);
+        DataTransformer.apply('Region', c.document.toObject(), { x: 0, y: 0 }, { x: dx, y: dy }, c);
         c.visible = true;
         c._onUpdate({ shapes: null });
       }
@@ -137,7 +137,7 @@ function registerRegionWrappers() {
         y: y1 + (y2 - y1) / 2,
       };
 
-      DataTransform.apply('Region', data, origin, { rotation: delta });
+      DataTransformer.apply('Region', data, origin, { rotation: delta });
       await this.document.update({ shapes: data.shapes }, { meRotation: delta });
       return this;
     },

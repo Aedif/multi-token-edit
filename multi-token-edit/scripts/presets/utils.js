@@ -271,6 +271,13 @@ export function getPresetDataCenterOffset(docToData) {
   return { x: center.x + transform.x, y: center.y + transform.y, z: 0 };
 }
 
+export function getPresetDataBottomOffset(docToData) {
+  const b = getPresetDataBounds(docToData);
+  const bottom = { x: b.x + b.width / 2, y: b.y + b.height };
+  const transform = getTransformToOrigin(docToData);
+  return { x: bottom.x + transform.x, y: bottom.y + transform.y, z: 0 };
+}
+
 /**
  * Returns a transform that return first element to x:0, y:0 (z: 0)
  * @param {Map<String, Array[Object]>} docToData
@@ -307,6 +314,8 @@ export function getPresetDataBounds(docToData) {
   let y1 = Number.MAX_SAFE_INTEGER;
   let x2 = Number.MIN_SAFE_INTEGER;
   let y2 = Number.MIN_SAFE_INTEGER;
+  let z1 = Number.MAX_SAFE_INTEGER;
+  let z2 = Number.MIN_SAFE_INTEGER;
   docToData.forEach((dataArr, documentName) => {
     for (const data of dataArr) {
       const b = getDataBounds(documentName, data);
@@ -314,9 +323,11 @@ export function getPresetDataBounds(docToData) {
       if (b.y1 < y1) y1 = b.y1;
       if (b.x2 > x2) x2 = b.x2;
       if (b.y2 > y2) y2 = b.y2;
+      if (b.z1 < z1) z1 = b.z1;
+      if (b.z2 > z2) z2 = b.z2;
     }
   });
-  return { x: x1, y: y1, width: x2 - x1, height: y2 - y1 };
+  return { x: x1, y: y1, width: x2 - x1, height: y2 - y1, elevation: { bottom: z1, top: z2 } };
 }
 
 /**

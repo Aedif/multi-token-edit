@@ -1,4 +1,4 @@
-import { TokenDataAdapter } from '../../applications/dataAdapters.js';
+import { TokenDataAdapter } from '../data/adapters.js';
 import { copyToClipboard, pasteDataUpdate } from '../../applications/formUtils.js';
 import { getMassEditForm, showMassEdit } from '../../applications/multiConfig.js';
 import { countFolderItems, trackProgress } from '../../applications/progressDialog.js';

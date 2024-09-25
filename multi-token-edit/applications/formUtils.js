@@ -1,5 +1,4 @@
 import { MODULE_ID, SUPPORTED_COLLECTIONS, SUPPORTED_PLACEABLES } from '../scripts/constants.js';
-import { DataTransform } from '../scripts/picker.js';
 import { applyRandomization } from '../scripts/randomizer/randomizerUtils.js';
 import { applyDDTint, applyTMFXPreset } from '../scripts/tmfx.js';
 import {
@@ -12,8 +11,9 @@ import {
   panToFitPlaceables,
   wildcardStringMatch,
 } from '../scripts/utils.js';
-import { GeneralDataAdapter, TokenDataAdapter } from './dataAdapters.js';
+import { GeneralDataAdapter, TokenDataAdapter } from '../scripts/data/adapters.js';
 import { SCENE_DOC_MAPPINGS, showMassEdit } from './multiConfig.js';
+import { DataTransformer } from '../scripts/data/transformer.js';
 
 export function performMassSearch(
   command,
@@ -438,13 +438,14 @@ export function pasteDataUpdate(docs, preset, suppressNotif = false, excludePosi
     const ogData = preset.data[Math.floor(Math.random() * preset.data.length)];
     let data = foundry.utils.deepClone(ogData);
     if (transform) {
-      DataTransform.apply(documentName, data, { x: 0, y: 0 }, transform);
+      DataTransformer.apply(documentName, data, { x: 0, y: 0 }, transform);
       data = foundry.utils.mergeObject(ogData, data, { insertKeys: false, inplace: false });
     }
     if (excludePosition) {
       delete data.x;
       delete data.y;
       delete data.c;
+      delete data.elevation;
     }
 
     performMassUpdate.call(context, foundry.utils.flattenObject(data), docs, preset.documentName, applyType);

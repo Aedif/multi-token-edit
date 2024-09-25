@@ -2,7 +2,8 @@ import { checkApplySpecialFields } from '../../applications/formUtils.js';
 import { showGenericForm } from '../../applications/multiConfig.js';
 import { Brush } from '../brush.js';
 import { MODULE_ID, SUPPORTED_PLACEABLES, UI_DOCS } from '../constants.js';
-import { DataTransform, Picker } from '../picker.js';
+import { DataTransformer } from '../data/transformer.js';
+import { Picker } from '../picker.js';
 import { applyRandomization } from '../randomizer/randomizerUtils.js';
 import { SeededRandom, applyPresetToScene, createDocuments, executeScript, localize } from '../utils.js';
 import { FileIndexer } from './fileIndexer.js';
@@ -827,7 +828,9 @@ export class PresetAPI {
     if (scaleToGrid) {
       const scale = canvas.grid.size / (preset.gridSize || 100);
       docToData.forEach((dataArr, documentName) => {
-        dataArr.forEach((data) => DataTransform.apply(documentName, data, { x: 0, y: 0 }, { scale, gridScale: true }));
+        dataArr.forEach((data) =>
+          DataTransformer.apply(documentName, data, { x: 0, y: 0 }, { scale, gridScale: true })
+        );
       });
     }
 
@@ -894,7 +897,7 @@ export class PresetAPI {
 
       docToData.forEach((dataArr, documentName) => {
         dataArr.forEach((data) => {
-          DataTransform.apply(documentName, data, { x: 0, y: 0 }, posTransform);
+          DataTransformer.apply(documentName, data, { x: 0, y: 0 }, posTransform);
         });
       });
     }

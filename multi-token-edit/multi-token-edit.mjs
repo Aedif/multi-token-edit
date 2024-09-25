@@ -18,6 +18,7 @@ import { deleteFromClipboard, performMassSearch, performMassUpdate } from './app
 import { registerSideBarPresetDropListener } from './scripts/presets/utils.js';
 import { LinkerAPI, registerLinkerHooks } from './scripts/linker/linker.js';
 import { MODULE_ID, SUPPORTED_SHEET_CONFIGS, SUPPORTED_PLACEABLES, UI_DOCS } from './scripts/constants.js';
+import { registerSceneScapeHooks } from './scripts/scenescape.js';
 
 // Initialize module
 Hooks.once('init', () => {
@@ -38,6 +39,9 @@ Hooks.once('init', () => {
 
   // Linker related hooks
   registerLinkerHooks();
+
+  // SceneScape
+  registerSceneScapeHooks();
 
   // TODO: Replace with core v12 implementation of tag HTML element
   TagInput.registerHandlebarsHelper();
