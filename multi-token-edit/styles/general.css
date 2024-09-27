@@ -464,11 +464,13 @@
 }
 
 input.me-add {
-  background-color: greenyellow;
+  background-color: greenyellow !important;
+  color: black !important;
 }
 
 input.me-subtract {
-  background-color: orangered;
+  background-color: orangered !important;
+  color:black !important;
 }
 
 .preset-field-select .item {

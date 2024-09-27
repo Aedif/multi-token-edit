@@ -29,3 +29,15 @@ export const LINKER_DOC_ICONS = {
   Note: 'modules/multi-token-edit/images/linker/bookmark-fill.svg',
   Region: 'modules/multi-token-edit/images/linker/border-outer.svg',
 };
+
+export const LINKER_DOC_COLORS = {
+  Token: 0xcec66e,
+  MeasuredTemplate: 0xff0000,
+  Tile: 0x23e230,
+  Drawing: 0xe223ce,
+  Wall: 0xb7b7b7,
+  AmbientLight: 0xffff00,
+  AmbientSound: 0x00e3ff,
+  Note: 0xffffff,
+  Region: 0xdc006b,
+};

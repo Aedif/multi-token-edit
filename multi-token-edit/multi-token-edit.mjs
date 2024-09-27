@@ -18,7 +18,7 @@ import { deleteFromClipboard, performMassSearch, performMassUpdate } from './app
 import { registerSideBarPresetDropListener } from './scripts/presets/utils.js';
 import { LinkerAPI, registerLinkerHooks } from './scripts/linker/linker.js';
 import { MODULE_ID, SUPPORTED_SHEET_CONFIGS, SUPPORTED_PLACEABLES, UI_DOCS } from './scripts/constants.js';
-import { registerSceneScapeHooks } from './scripts/scenescape.js';
+import { registerSceneScapeHooks } from './scripts/scenescape/scenescape.js';
 
 // Initialize module
 Hooks.once('init', () => {

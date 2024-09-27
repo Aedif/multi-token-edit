@@ -5,7 +5,7 @@
 import { libWrapper } from '../shim/shim.js';
 import { pickerSelectMultiLayerDocuments, updateEmbeddedDocumentsViaGM } from '../utils.js';
 import { getDataBounds } from '../presets/utils.js';
-import { MODULE_ID, SUPPORTED_PLACEABLES } from '../constants.js';
+import { LINKER_DOC_COLORS, MODULE_ID, SUPPORTED_PLACEABLES } from '../constants.js';
 import { DataTransformer } from '../data/transformer.js';
 
 const PROCESSED_UPDATES = new Map();
@@ -625,7 +625,7 @@ export class LinkerAPI {
       dg.lineStyle(width + 2, 0, alpha, 0.5);
       dg.drawRect(bounds.x, bounds.y, bounds.width, bounds.height);
 
-      dg.lineStyle(width, 0x00ff00, alpha, 0.5);
+      dg.lineStyle(width, LINKER_DOC_COLORS[d.documentName], alpha, 0.5);
       dg.drawRect(bounds.x, bounds.y, bounds.width, bounds.height);
     });
   }

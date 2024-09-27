@@ -1,5 +1,5 @@
 import { MODULE_ID } from '../constants';
-import { SceneScape } from '../scenescape';
+import { SceneScape } from '../scenescape/scenescape';
 
 export class DataTransformer {
   /**

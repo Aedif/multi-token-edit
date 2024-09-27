@@ -8,7 +8,7 @@ import {
   getPresetDataBounds,
   getPresetDataCenterOffset,
 } from './presets/utils.js';
-import { SceneScape } from './scenescape.js';
+import { SceneScape } from './scenescape/scenescape.js';
 import { pickerSelectMultiLayerDocuments } from './utils.js';
 
 /**
@@ -320,8 +320,8 @@ export class Picker {
 
     // Since we do elevation manipulation to force previews to be rendered on top
     // we don't want the user to see these temporary values
-    //if (object.tooltip) object.tooltip.renderable = false;
-    //if (object.controlIcon?.tooltip) object.controlIcon.tooltip.renderable = false;
+    if (object.tooltip) object.tooltip.renderable = false;
+    if (object.controlIcon?.tooltip) object.controlIcon.tooltip.renderable = false;
 
     // Foundry as well as various modules might have complex `isVisible` and 'visible' conditions
     // lets simplify by overriding this function to make sure the preview is always visible
