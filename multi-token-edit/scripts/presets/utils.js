@@ -268,14 +268,7 @@ export function getPresetDataCenterOffset(docToData) {
   const b = getPresetDataBounds(docToData);
   const center = { x: b.x + b.width / 2, y: b.y + b.height / 2 };
   const transform = getTransformToOrigin(docToData);
-  return { x: center.x + transform.x, y: center.y + transform.y, z: 0 };
-}
-
-export function getPresetDataBottomOffset(docToData) {
-  const b = getPresetDataBounds(docToData);
-  const bottom = { x: b.x + b.width / 2, y: b.y + b.height };
-  const transform = getTransformToOrigin(docToData);
-  return { x: bottom.x + transform.x, y: bottom.y + transform.y, z: 0 };
+  return { x: center.x + transform.x, y: center.y + transform.y, z: 0, b };
 }
 
 /**

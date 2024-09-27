@@ -2,12 +2,7 @@ import { SUPPORTED_PLACEABLES } from './constants.js';
 import { DataTransformer } from './data/transformer.js';
 import { LinkerAPI } from './linker/linker.js';
 import { Mouse3D } from './mouse3d.js';
-import {
-  getDataBounds,
-  getPresetDataBottomOffset,
-  getPresetDataBounds,
-  getPresetDataCenterOffset,
-} from './presets/utils.js';
+import { getPresetDataBounds } from './presets/utils.js';
 import { SceneScape } from './scenescape/scenescape.js';
 import { pickerSelectMultiLayerDocuments } from './utils.js';
 
@@ -100,37 +95,34 @@ export class Picker {
       this._mirrorX = false;
       this._mirrorY = false;
 
-      const calcOffset = () => {
-        if (SceneScape.active) {
-          return getPresetDataBottomOffset(preview.previewData);
-        } else if (preview.center && !(layer.name === 'TokenLayer' && preview.previewData.size === 1)) {
-          return getPresetDataCenterOffset(preview.previewData);
-        }
-        return { x: 0, y: 0, z: 0 };
-      };
-
       // Position offset to center preview over the mouse
-      let offset = calcOffset();
-
-      if (!game.Levels3DPreview?._active) delete offset.z; // We don't want to perform z axis transform if not on 3D canvas
-
       const setPositions = function (pos) {
         if (!pos) return;
-        offset = calcOffset();
+
+        // Snap mouse if needed
         if (preview.snap && layer && !game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.SHIFT)) {
           const snapped = layer.getSnappedPoint(pos);
           snapped.z = pos.z;
           pos = snapped;
         }
 
-        // calculate transform
-        const pd = previews[0].document;
-        const b = getDataBounds(pd.documentName, pd);
-        let transform = { x: pos.x - b.x1 - offset.x, y: pos.y - b.y1 - offset.y };
-        if (pos.z != null) transform.z = pos.z - b.z1 - offset.z;
+        // Place top-left preview corner on the mouse
+        const b = getPresetDataBounds(preview.previewData);
+        let transform = { x: pos.x - b.x, y: pos.y - b.y };
+        if (pos.z != null) transform.z = pos.z - b.elevation.bottom;
 
-        // Instant transforms
+        // Change preview position
+        if (SceneScape.active) {
+          // Bottom
+          transform.x -= b.width / 2;
+          transform.y -= b.height;
+        } else if (preview.center && !(layer.name === 'TokenLayer' && preview.previewData.size === 1)) {
+          // Center
+          transform.x -= b.width / 2;
+          transform.y -= b.height / 2;
+        }
 
+        // Dynamic scenescape scaling
         if (SceneScape.active) {
           const params = SceneScape.getParallaxParameters(canvas.mousePosition);
           if (params.scale !== Picker._paraScale) {
@@ -140,6 +132,7 @@ export class Picker {
           }
         }
 
+        // Transforms that are applied in response to keybind presses
         if (Picker._rotation != 0) {
           transform.rotation = Picker._rotation;
           Picker._rotation = 0;
@@ -155,6 +148,9 @@ export class Picker {
         transform.mirrorY = Picker._mirrorY;
         Picker._mirrorY = false;
 
+        // - end of transform calculations
+
+        // Apply transformations
         for (const preview of previews) {
           const doc = preview.document;
           const documentName = doc.documentName;
@@ -165,19 +161,19 @@ export class Picker {
           // =====
           preview.renderFlags.set({ refresh: true });
 
+          // Elevation, sort, and z order hacks to make sure previews are always rendered on-top
+          // TODO: improve _meSort, _meElevation
+          if (doc.sort != null) {
+            if (!preview._meSort) preview._meSort = doc.sort;
+            doc.sort = preview._meSort + 10000;
+          }
           if (!SceneScape.active) {
-            // TODO: improve _meSort, _meElevation
-            // Elevation, sort, and z order hacks to make sure previews are always rendered on-top
-            if (doc.sort != null) {
-              if (!preview._meSort) preview._meSort = doc.sort;
-              doc.sort = preview._meSort + 10000;
-            }
-
             if (!game.Levels3DPreview?._active && doc.elevation != null) {
               if (!preview._meElevation) preview._meElevation = doc.elevation;
               doc.elevation = preview._meElevation + 10000;
             }
           }
+          // end of sort hacks
 
           // For some reason collision bool is refreshed after creation of the preview
           if (preview._l3dPreview) preview._l3dPreview.collision = false;

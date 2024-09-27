@@ -118,7 +118,7 @@ function preUpdate(document, change, options, userId) {
     }
   }
 
-  // If control is held during a non-rotation update, we want to ignore links
+  // If alt is held during during the update, we want to ignore links
   if (game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.ALT)) {
     return true;
   }
