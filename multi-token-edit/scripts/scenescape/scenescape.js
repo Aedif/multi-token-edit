@@ -25,9 +25,12 @@ export function registerSceneScapeHooks() {
     app.setPosition({ height: 'auto' });
   });
 
+  Hooks.on('updateScene', (scene) => {
+    if (scene.id === canvas.scene?.id) ScenescapeControls.register();
+  });
+
   Hooks.on('canvasInit', (canvas) => {
-    if (canvas.scene.getFlag(MODULE_ID, 'scenescape')) ScenescapeControls.registerLibWrappers();
-    else ScenescapeControls.unregisterLibWrappers();
+    ScenescapeControls.register();
   });
 }
 
@@ -37,6 +40,11 @@ export function registerSceneScapeHooks() {
  */
 class ScenescapeControls {
   static _wrapperIds = [];
+
+  static register() {
+    if (SceneScape.active) ScenescapeControls.registerLibWrappers();
+    else ScenescapeControls.unregisterLibWrappers();
+  }
 
   static unregisterLibWrappers() {
     this._wrapperIds.forEach((id) => {
@@ -196,7 +204,7 @@ class HorizonSelector {
     overlay.addChild(new PIXI.Graphics());
 
     overlay.on('mouseup', (event) => {
-      if (event.nativeEvent.which == 1) this._save(event.data.getLocalPosition(overlay));
+      if (event.nativeEvent.which == 1) this._save(this.pos);
       this._exit();
     });
     overlay.on('contextmenu', () => {
@@ -204,7 +212,11 @@ class HorizonSelector {
     });
 
     overlay.on('pointermove', (event) => {
-      this._drawLine(event.data.getLocalPosition(overlay));
+      const pos = event.data.getLocalPosition(overlay);
+      const dimensions = canvas.dimensions;
+      pos.y = Math.clamp(pos.y, dimensions.sceneY, dimensions.sceneY + dimensions.sceneHeight);
+      this._drawLine(pos);
+      this.pos = pos;
     });
 
     canvas.stage.addChild(overlay);
