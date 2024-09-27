@@ -26,20 +26,19 @@ export function registerSceneScapeHooks() {
   });
 
   Hooks.on('canvasInit', (canvas) => {
-    if (canvas.scene.getFlag(MODULE_ID, 'scenescape')) TokenControls.registerLibWrappers();
-    else TokenControls.unregisterLibWrappers();
+    if (canvas.scene.getFlag(MODULE_ID, 'scenescape')) ScenescapeControls.registerLibWrappers();
+    else ScenescapeControls.unregisterLibWrappers();
   });
 }
 
 /**
  * Class to manage registering and un-registering of wrapper functions to change
- * token control behavior on Scenescapes
+ * token and tile control behavior on Scenescapes
  */
-class TokenControls {
+class ScenescapeControls {
   static _wrapperIds = [];
 
   static unregisterLibWrappers() {
-    console.log('un-registering wrappers');
     this._wrapperIds.forEach((id) => {
       libWrapper.unregister(MODULE_ID, id);
     });
@@ -47,7 +46,6 @@ class TokenControls {
   }
 
   static registerLibWrappers() {
-    console.log('registering wrappers');
     if (this._wrapperIds.length) return;
 
     // Hide token elevation tooltip
@@ -62,83 +60,16 @@ class TokenControls {
     );
     this._wrapperIds.push(id);
 
-    id = libWrapper.register(
-      MODULE_ID,
-      'TokenLayer.prototype.moveMany',
-      async function ({ dx = 0, dy = 0, rotate = false, ids, includeLocked = false } = {}) {
-        if (dx === 0 && dy === 0) return [];
+    id = libWrapper.register(MODULE_ID, 'TokenLayer.prototype.moveMany', this._moveMany, 'OVERRIDE');
+    this._wrapperIds.push(id);
 
-        const objects = this._getMovableObjects(ids, includeLocked);
-        if (!objects.length) return objects;
-
-        // Conceal any active HUD
-        this.hud?.clear();
-
-        const updateData = objects.map((obj) => {
-          let update = { _id: obj.id };
-
-          const size = obj.getSize();
-          const bottom = { x: obj.document.x + size.width / 2, y: obj.document.y + size.height };
-          const params = SceneScape.getParallaxParameters(bottom);
-          const dimensions = canvas.dimensions;
-
-          if (dx !== 0) {
-            update.x = obj.document.x + params.scale * dimensions.size * dx;
-            bottom.x = update.x + size.width / 2;
-          }
-
-          if (dy !== 0) {
-            bottom.y +=
-              dimensions.size * (game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.SHIFT) ? 0.35 : 1.0) * dy;
-
-            // Bound within top and bottom of the scene
-            if (bottom.y < dimensions.sceneY) bottom.y = dimensions.sceneY;
-            if (bottom.y > dimensions.sceneY + dimensions.sceneHeight)
-              bottom.y = dimensions.sceneY + dimensions.sceneHeight;
-
-            const nParams = SceneScape.getParallaxParameters(bottom);
-            const deltaScale = nParams.scale / params.scale;
-
-            update.width = (size.width * deltaScale) / dimensions.size;
-            update.height = (size.height * deltaScale) / dimensions.size;
-
-            update.flags = {
-              [MODULE_ID]: {
-                width: update.width,
-                height: update.height,
-              },
-            };
-
-            update.elevation = SceneScape.getDepth() * nParams.scale;
-            update.x = bottom.x - (update.width * dimensions.size) / 2;
-            update.y = bottom.y - update.height * dimensions.size;
-
-            // Prevent foundry validation errors
-            // We attempt to keep TokenDocument and the width/height flag as close as possible where we can
-            // but we have to diverge at this threshold
-            if (update.width < 0.3 || update.height < 0.3) {
-              delete update.width;
-              delete update.height;
-            }
-          }
-
-          return update;
-        });
-
-        await canvas.scene.updateEmbeddedDocuments(this.constructor.documentName, updateData, { teleport: true });
-        return objects;
-      },
-      'OVERRIDE'
-    );
+    id = libWrapper.register(MODULE_ID, 'TilesLayer.prototype.moveMany', this._moveMany, 'OVERRIDE');
     this._wrapperIds.push(id);
 
     id = libWrapper.register(
       MODULE_ID,
       'Token.prototype.getSize',
-      function (wrapped, ...args) {
-        // _pData is set by Mass Edit in previews
-        if (this._pData) return wrapped(...args);
-
+      function (...args) {
         let { width, height } = this.document;
 
         if (this.document.flags?.[MODULE_ID]?.width != null) width = this.document.flags[MODULE_ID].width;
@@ -149,7 +80,7 @@ class TokenControls {
         height *= grid.sizeY;
         return { width, height };
       },
-      'MIXED'
+      'OVERRIDE'
     );
     this._wrapperIds.push(id);
 
@@ -168,6 +99,86 @@ class TokenControls {
       'WRAPPER'
     );
     this._wrapperIds.push(id);
+  }
+
+  static async _moveMany({ dx = 0, dy = 0, rotate = false, ids, includeLocked = false } = {}) {
+    if (dx === 0 && dy === 0) return [];
+
+    const objects = this._getMovableObjects(ids, includeLocked);
+    if (!objects.length) return objects;
+
+    // Conceal any active HUD
+    this.hud?.clear();
+
+    const documentName = this.constructor.documentName;
+
+    const updateData = objects.map((obj) => {
+      let update = { _id: obj.id };
+
+      const size = documentName === 'Token' ? obj.getSize() : obj.document;
+      const bottom = { x: obj.document.x + size.width / 2, y: obj.document.y + size.height };
+      const params = SceneScape.getParallaxParameters(bottom);
+      const dimensions = canvas.dimensions;
+
+      if (dx !== 0) {
+        update.x =
+          obj.document.x +
+          params.scale *
+            (game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.SHIFT) ? 0.35 : 1.0) *
+            dimensions.size *
+            dx;
+        bottom.x = update.x + size.width / 2;
+      }
+
+      if (dy !== 0) {
+        bottom.y +=
+          dimensions.size * (game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.SHIFT) ? 0.35 : 1.0) * dy;
+
+        // Bound within top and bottom of the scene
+        if (bottom.y < dimensions.sceneY) bottom.y = dimensions.sceneY;
+        if (bottom.y > dimensions.sceneY + dimensions.sceneHeight)
+          bottom.y = dimensions.sceneY + dimensions.sceneHeight;
+
+        const nParams = SceneScape.getParallaxParameters(bottom);
+        const deltaScale = nParams.scale / params.scale;
+
+        if (documentName === 'Token') {
+          update.width = (size.width * deltaScale) / dimensions.size;
+          update.height = (size.height * deltaScale) / dimensions.size;
+
+          update.flags = {
+            [MODULE_ID]: {
+              width: update.width,
+              height: update.height,
+            },
+          };
+
+          update.x = bottom.x - (update.width * dimensions.size) / 2;
+          update.y = bottom.y - update.height * dimensions.size;
+
+          // Prevent foundry validation errors
+          // We attempt to keep TokenDocument and the width/height flag as close as possible where we can
+          // but we have to diverge at this threshold
+          if (update.width < 0.5 || update.height < 0.5) {
+            update.width = 0.5;
+            update.height = 0.5;
+          }
+        } else {
+          update.width = size.width * deltaScale;
+          update.height = size.height * deltaScale;
+
+          update.x = bottom.x - update.width / 2;
+          update.y = bottom.y - update.height;
+        }
+
+        update.elevation = SceneScape.getDepth() * nParams.scale;
+      }
+
+      return update;
+    });
+
+    await canvas.scene.updateEmbeddedDocuments(documentName, updateData, { teleport: true });
+    return objects;
   }
 }
 
@@ -230,7 +241,7 @@ export class SceneScape {
   }
 
   static getDepth() {
-    return 100; // Make this a scene flag or use the foreground elevation
+    return canvas.scene.foregroundElevation - 1 || 100;
   }
 
   static getParallaxParameters(pos) {

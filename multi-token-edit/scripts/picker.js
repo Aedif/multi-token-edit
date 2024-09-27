@@ -313,8 +313,10 @@ export class Picker {
     const object = new CONFIG[documentName].objectClass(document);
     document._object = object;
     object.eventMode = 'none';
-    object.document.alpha = 0.4;
-    if (object.document.occlusion) object.document.occlusion.alpha = 0.4;
+    if (!SceneScape.active) {
+      object.document.alpha = 0.4;
+      if (object.document.occlusion) object.document.occlusion.alpha = 0.4;
+    }
     this.preview.addChild(object);
     await object.draw();
 

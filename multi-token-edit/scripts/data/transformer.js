@@ -607,6 +607,10 @@ export class DataTransformer {
       doc.rotation = data.rotation;
       doc.width = data.width;
       doc.height = data.height;
+      if (SceneScape.active) {
+        if (data.width != null) foundry.utils.setProperty(doc, `flags.${MODULE_ID}.width`, data.width);
+        if (data.height != null) foundry.utils.setProperty(doc, `flags.${MODULE_ID}.height`, data.height);
+      }
       doc.texture.scaleX = data.texture.scaleX;
       doc.texture.scaleY = data.texture.scaleY;
       if (data.elevation) doc.elevation = data.elevation;
