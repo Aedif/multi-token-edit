@@ -949,7 +949,7 @@ export class PresetAPI {
     const allDocuments = [];
 
     for (const [documentName, dataArr] of docToData.entries()) {
-      const documents = await createDocuments(documentName, dataArr, sceneId);
+      const documents = await createDocuments(documentName, dataArr, sceneId, { spawnPreset: true });
       documents.forEach((d) => allDocuments.push(d));
     }
 

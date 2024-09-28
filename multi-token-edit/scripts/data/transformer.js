@@ -433,7 +433,6 @@ export class DataTransformer {
 
     if (transform.mirrorX || transform.mirrorY) {
       let rectCenter = { x: data.x + data.width / 2, y: data.y + data.height / 2 };
-      console.log(rectCenter);
       if (transform.mirrorX) {
         rectCenter.x = origin.x - (rectCenter.x - origin.x);
         data.texture.scaleX *= -1;

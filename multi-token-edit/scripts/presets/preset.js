@@ -1,5 +1,5 @@
 import { MODULE_ID, SUPPORTED_PLACEABLES } from '../constants.js';
-import { isImage, isAudio } from '../utils.js';
+import { isAudio, loadImageVideoDimensions } from '../utils.js';
 import { META_INDEX_FIELDS, META_INDEX_ID, PresetTree } from './collection.js';
 import { FileIndexer } from './fileIndexer.js';
 import { decodeURIComponentSafely, isVideo, placeableToData } from './utils.js';
@@ -288,7 +288,7 @@ export class VirtualFilePreset extends Preset {
 
     if (!data.data) {
       if (data.documentName === 'Tile') {
-        data.data = [{ texture: { src: data.src }, x: 0, y: 0, rotation: 0 }];
+        data.data = [{ texture: { src: data.src, scaleY: 1, scaleX: 1 }, x: 0, y: 0, rotation: 0 }];
       } else {
         data.data = [{ path: data.src, radius: 20, x: 0, y: 0 }];
       }
@@ -316,50 +316,10 @@ export class VirtualFilePreset extends Preset {
     // Load image/video metadata to retrieve the width/height
     const src = this.data[0].texture?.src;
 
-    let width, height;
-    let prom;
-    if (isImage(src)) {
-      const img = new Image();
-      prom = new Promise((resolve) => {
-        img.onload = resolve;
-        img.src = src;
-      });
+    let { width, height } = await loadImageVideoDimensions(src);
 
-      await Promise.race([
-        prom,
-        (async () => {
-          await new Promise((res) => setTimeout(res, 1000));
-        })(),
-      ]);
-
-      if (!img.complete || img.naturalWidth === 0) {
-        console.log('Image Load failed', src);
-        return null;
-      }
-
-      width = img.naturalWidth;
-      height = img.naturalHeight;
-    } else {
-      const video = document.createElement('video');
-      prom = new Promise((resolve) => {
-        video.onloadedmetadata = resolve;
-        video.src = src;
-        video.load();
-      });
-
-      await Promise.race([
-        prom,
-        (async () => {
-          await new Promise((res) => setTimeout(res, 1000));
-        })(),
-      ]);
-
-      width = video.videoWidth;
-      height = video.videoHeight;
-    }
-
-    this.data[0].width = width;
-    this.data[0].height = height;
+    this.data[0].width = width ?? 100;
+    this.data[0].height = height ?? 100;
 
     return this;
   }

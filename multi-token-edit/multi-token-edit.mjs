@@ -150,7 +150,7 @@ Hooks.once('init', () => {
     } else if (message.handlerName === 'document' && message.type === 'CREATE') {
       if (!isResponsibleGM()) return;
 
-      const documents = await createDocuments(args.documentName, args.data, args.sceneID);
+      const documents = await createDocuments(args.documentName, args.data, args.sceneID, args.options);
       const documentIDs = documents.map((d) => d.id);
 
       const message = {
