@@ -134,6 +134,7 @@ export class ScenescapeControls {
     this.hud?.clear();
 
     const documentName = this.constructor.documentName;
+    const incrementScale = game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.SHIFT) ? 0.5 : 1.0;
 
     const updateData = objects.map((obj) => {
       let update = { _id: obj.id };
@@ -143,59 +144,43 @@ export class ScenescapeControls {
       const params = SceneScape.getParallaxParameters(bottom);
       const dimensions = canvas.dimensions;
 
-      if (dx !== 0) {
-        update.x =
-          obj.document.x +
-          params.scale *
-            (game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.SHIFT) ? 0.35 : 1.0) *
-            dimensions.size *
-            dx;
-        bottom.x = update.x + size.width / 2;
-      }
+      const nBottom = SceneScape.moveCoordinate(bottom, dx * incrementScale, dy * incrementScale);
+      const nParams = SceneScape.getParallaxParameters(nBottom);
 
-      if (dy !== 0) {
-        bottom.y +=
-          dimensions.size * (game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.SHIFT) ? 0.35 : 1.0) * dy;
+      const deltaScale = nParams.scale / params.scale;
 
-        // Bound within top and bottom of the scene
-        if (bottom.y < dimensions.sceneY) bottom.y = dimensions.sceneY;
-        if (bottom.y > dimensions.sceneY + dimensions.sceneHeight)
-          bottom.y = dimensions.sceneY + dimensions.sceneHeight;
+      if (documentName === 'Token') {
+        update.width = (size.width * deltaScale) / dimensions.size;
+        update.height = (size.height * deltaScale) / dimensions.size;
 
-        const nParams = SceneScape.getParallaxParameters(bottom);
-        const deltaScale = nParams.scale / params.scale;
+        update.flags = {
+          [MODULE_ID]: {
+            width: update.width,
+            height: update.height,
+          },
+        };
 
-        if (documentName === 'Token') {
-          update.width = (size.width * deltaScale) / dimensions.size;
-          update.height = (size.height * deltaScale) / dimensions.size;
+        update.x = nBottom.x - (update.width * dimensions.size) / 2;
+        update.y = nBottom.y - update.height * dimensions.size;
 
-          update.flags = {
-            [MODULE_ID]: {
-              width: update.width,
-              height: update.height,
-            },
-          };
-
-          update.x = bottom.x - (update.width * dimensions.size) / 2;
-          update.y = bottom.y - update.height * dimensions.size;
-
-          // Prevent foundry validation errors
-          // We attempt to keep TokenDocument and the width/height flag as close as possible where we can
-          // but we have to diverge at this threshold
-          if (update.width < 0.5 || update.height < 0.5) {
-            update.width = 0.5;
-            update.height = 0.5;
-          }
-        } else {
-          update.width = size.width * deltaScale;
-          update.height = size.height * deltaScale;
-
-          update.x = bottom.x - update.width / 2;
-          update.y = bottom.y - update.height;
+        // Prevent foundry validation errors
+        // We attempt to keep TokenDocument and the width/height flag as close as possible where we can
+        // but we have to diverge at this threshold
+        if (update.width < 0.5 || update.height < 0.5) {
+          update.width = 0.5;
+          update.height = 0.5;
         }
+      } else {
+        update.width = size.width * deltaScale;
+        update.height = size.height * deltaScale;
 
-        update.elevation = SceneScape.getDepth() * nParams.scale;
+        update.x = nBottom.x - update.width / 2;
+        update.y = nBottom.y - update.height;
       }
+
+      update.elevation = nParams.elevation;
+
+      console.log(update);
 
       return update;
     });

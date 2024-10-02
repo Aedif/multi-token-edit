@@ -264,6 +264,8 @@ export class DataTransformer {
   }
 
   static transformWall(data, origin, transform, preview) {
+    if (!data.c) return;
+
     const c = foundry.utils.deepClone(data.c);
 
     if (transform.scale != null) {
@@ -411,10 +413,12 @@ export class DataTransformer {
       data.height *= scale;
 
       // 3D Support
-      const depth = data.flags?.['levels-3d-preview']?.depth;
-      if (depth != null && depth != '') data.flags['levels-3d-preview'].depth = depth * scale;
-      if (data.elevation != null) {
-        data.elevation *= scale;
+      if (game.Levels3DPreview?._active) {
+        const depth = data.flags?.['levels-3d-preview']?.depth;
+        if (depth != null && depth != '') data.flags['levels-3d-preview'].depth = depth * scale;
+        if (data.elevation != null) {
+          data.elevation *= scale;
+        }
       }
     }
 

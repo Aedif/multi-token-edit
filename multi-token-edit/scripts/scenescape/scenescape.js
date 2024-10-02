@@ -1,4 +1,5 @@
 import { MODULE_ID } from '../constants.js';
+import { updateEmbeddedDocumentsViaGM } from '../utils.js';
 import { ScenescapeControls } from './controls.js';
 
 export function registerSceneScapeHooks() {
@@ -9,23 +10,96 @@ export function registerSceneScapeHooks() {
     <div class="form-fields">
         <label class="checkbox">
             Is this scene a Scenescape?
-            <input type="checkbox" name="flags.${MODULE_ID}.scenescape" ${
-      app.object.getFlag(MODULE_ID, 'scenescape') ? 'checked' : ''
+            <input type="checkbox" name="flags.${MODULE_ID}.scenescape.active" ${
+      app.object.getFlag(MODULE_ID, 'scenescape')?.active ? 'checked' : ''
     }>
         </label>
         <button class="selectHorizon" type="button" data-tooltip="Define the horizon line.">
             <i class="fa-solid fa-reflect-horizontal fa-rotate-90"></i>
         </button>
+        <button class="lockScale" type="button" data-tooltip="Lock scale.">
+            <i class="fa-solid fa-arrows-from-dotted-line"></i>
+        </button>
     </div>
 </div>
         `);
     element.on('click', '.selectHorizon', () => HorizonSelector.select(app));
+    element.on('click', '.lockScale', () => ScenescapeScaler.lockScale());
 
     html.find('.initial-position').after(element);
     app.setPosition({ height: 'auto' });
   });
 
   ScenescapeControls.registerMainHooks();
+}
+
+class ScenescapeScaler {
+  static distanceRatio = 400 / 2;
+
+  static lockScale() {
+    // TODO replace realHeight with scale?
+
+    // Retrieve marker tiles from the scene and sort them on the y-axis
+    const markers = canvas.tiles.placeables
+      .filter((p) => p.document.getFlag(MODULE_ID, 'scenescape')?.control)
+      .map((p) => {
+        const size = p.document.getFlag(MODULE_ID, 'scenescape').size;
+        return {
+          x: p.document.x + p.document.width / 2,
+          y: p.document.y + p.document.height,
+          size,
+          height: p.document.height,
+          realHeight: 100 * (size / 6),
+        };
+      })
+      .sort((c1, c2) => c1.y - c2.y);
+
+    // To simplify processing later, lets insert markers at y=0 and y=scene height
+    if (markers.length) {
+      if (markers[0].y > 0) {
+        markers.unshift({ ...markers[0], y: 0, virtual: true });
+      }
+      if (markers[markers.length - 1].y < canvas.dimensions.height) {
+        markers.push({ ...markers[markers.length - 1], y: canvas.dimensions.height, virtual: true });
+      }
+    }
+
+    // Calculate and assign elevation to each marker
+    if (markers.length) {
+      let elevation = 0;
+      markers[0].elevation = 0;
+      for (let i = 1; i < markers.length; i++) {
+        let m1 = markers[i - 1];
+        let m2 = markers[i];
+
+        let scale1 = m1.height / m1.realHeight;
+        let scale2 = m2.height / m2.realHeight;
+
+        let distance;
+        if (scale1 < scale2) {
+          distance = this.distanceRatio * (scale2 / scale1) * (6 / 100);
+        } else if (scale1 > scale2) {
+          distance = this.distanceRatio * (scale1 / scale2) * (6 / 100);
+        } else {
+          distance = (m1.size / m1.height) * (m2.y - m1.y); // TODO test
+        }
+
+        elevation += distance;
+
+        markers[i].elevation = elevation;
+      }
+    }
+
+    let update = {};
+    if (!markers.length) update[`flags.${MODULE_ID}.scenescape.-=markers`] = null;
+    else {
+      update[`flags.${MODULE_ID}.scenescape.markers`] = markers;
+      const lastM = markers[markers.length - 1];
+      update.foregroundElevation =
+        Math.round(lastM.elevation + (lastM.size / lastM.height) * (canvas.dimensions.height - lastM.y)) + 1;
+    }
+    canvas.scene.update(update);
+  }
 }
 
 class HorizonSelector {
@@ -87,30 +161,86 @@ class HorizonSelector {
 
 export class SceneScape {
   static get active() {
-    return canvas.scene.getFlag(MODULE_ID, 'scenescape');
+    return canvas.scene.getFlag(MODULE_ID, 'scenescape')?.active;
   }
 
-  static getDepth() {
-    return canvas.scene.foregroundElevation - 1 || 100;
+  static getStepSize() {
+    return 1;
   }
 
   static getParallaxParameters(pos) {
-    const dimensions = canvas.dimensions;
-    const horizonY = canvas.scene.getFlag(MODULE_ID, 'horizon') ?? dimensions.y;
-    let foreground = true;
-    let scale;
-    if (pos.y >= horizonY) {
-      // Foreground / Below horizon
-      scale = Math.min(
-        Math.max((pos.y - horizonY) / (dimensions.sceneY + dimensions.sceneHeight - horizonY), 0.01),
-        1.0
-      );
-    } else {
-      // Background / Above horizon
-      scale = 1 - Math.min(Math.max((pos.y - dimensions.sceneY) / (horizonY - dimensions.sceneY), 0.0), 0.9);
-      foreground = false;
+    const markers = canvas.scene.getFlag(MODULE_ID, 'scenescape')?.markers;
+    if (!markers) return { scale: 1, elevation: 0 };
+
+    const y = Math.clamp(pos.y, 0, canvas.dimensions.height);
+    const { m1, m2 } = this._getBoundingMarkers(y, 'y');
+
+    if (m1 == m2) return { scale: m1.height / m1.realHeight, elevation: m1.elevation };
+
+    // Percentage wise where is pos between the markers
+    const r = (y - m1.y) / (m2.y - m1.y);
+
+    // Assume linear change in scale between the markers
+    let scale1 = m1.height / m1.realHeight;
+    let scale2 = m2.height / m2.realHeight;
+    let scale = (scale2 - scale1) * r + scale1;
+
+    let elevation = (m2.elevation - m1.elevation) * r + m1.elevation;
+
+    return { scale, elevation };
+  }
+
+  /**
+   * Retrieves markers that bound the provided value with param as the value's name
+   * @param {number} val y coordinate or elevation
+   * @param {String} param 'y' | 'elevation'
+   * @param {object} markers
+   * @returns
+   */
+  static _getBoundingMarkers(val, param, markers = canvas.scene.getFlag(MODULE_ID, 'scenescape')?.markers) {
+    if (!markers) return {};
+
+    // Find the 2 markers pos is between
+    let i = markers.length - 1;
+    while (markers[i][param] > val) i--;
+    let m1 = markers[i];
+
+    i = 0;
+    while (markers[i][param] < val) i++;
+    let m2 = markers[i];
+
+    return { m1, m2 };
+  }
+
+  static moveCoordinate(pos, dx, dy) {
+    if (dx === 0 && dy === 0) return pos;
+
+    let nX = pos.x;
+    let nY = pos.y;
+
+    let { scale, elevation } = this.getParallaxParameters(pos);
+
+    if (dx !== 0) {
+      dx = this.getStepSize() * dx;
+      nX += (100 / 6) * scale * dx;
+      nX = Math.clamp(nX, 0, canvas.dimensions.width);
     }
 
-    return { scale, elevation: this.getDepth() * scale, foreground };
+    if (dy !== 0) {
+      dy = this.getStepSize() * dy;
+      const markers = canvas.scene.getFlag(MODULE_ID, 'scenescape')?.markers;
+
+      let nElevation = Math.clamp(elevation + dy, 0, markers[markers.length - 1].elevation);
+      let { m1, m2 } = this._getBoundingMarkers(nElevation, 'elevation', markers);
+
+      if (m1 == m2) return { x: nX, y: m1.y };
+
+      // Percentage wise where is new elevation between the markers
+      const r = (nElevation - m1.elevation) / (m2.elevation - m1.elevation);
+
+      nY = (m2.y - m1.y) * r + m1.y;
+    }
+
+    return { x: nX, y: nY };
   }
 }

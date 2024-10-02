@@ -2749,7 +2749,6 @@ export function registerPresetBrowserHooks() {
           pack.render(true);
         },
       });
-      console.log(options);
       return options;
     },
     'WRAPPER'

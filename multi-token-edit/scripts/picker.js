@@ -80,13 +80,7 @@ export class Picker {
 
       if (SceneScape.active) {
         preview.snap = false;
-        // Set initial parallax scale according to current position of the data
-        const bounds = getPresetDataBounds(preview.previewData);
-        const params = SceneScape.getParallaxParameters({
-          x: bounds.x + bounds.width / 2,
-          y: bounds.y + bounds.height,
-        });
-        Picker._paraScale = params.scale;
+        Picker._paraScale = 1;
       }
 
       let { previews, layer, previewDocuments } = await this._genPreviews(preview);
@@ -109,7 +103,6 @@ export class Picker {
         // Place top-left preview corner on the mouse
         const b = getPresetDataBounds(preview.previewData);
         let transform = { x: pos.x - b.x, y: pos.y - b.y };
-        if (pos.z != null) transform.z = pos.z - b.elevation.bottom;
 
         // Change preview position
         if (SceneScape.active) {
@@ -128,9 +121,11 @@ export class Picker {
           if (params.scale !== Picker._paraScale) {
             Picker._scale *= params.scale / Picker._paraScale;
             Picker._paraScale = params.scale;
-            pos.z = SceneScape.getDepth() * params.scale; // TODO: might need to find a way to set exact z value instead of increment/decrement
           }
+          pos.z = params.elevation;
         }
+
+        if (pos.z != null) transform.z = pos.z - b.elevation.bottom;
 
         // Transforms that are applied in response to keybind presses
         if (Picker._rotation != 0) {
@@ -400,6 +395,11 @@ export class Picker {
 
         if (preview.taPreview && documentName === 'Token') {
           this._genTAPreviews(data, preview.taPreview, data, toCreate);
+        }
+
+        if (documentName === 'Tile' && SceneScape.active) {
+          // TODO: move setting of these fields somewhere else
+          foundry.utils.setProperty(data, 'restrictions.light', true);
         }
       }
     }
