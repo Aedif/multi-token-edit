@@ -113,9 +113,12 @@ export class Spawner {
       }
     }
 
-    // Regenerate links present within preset data. This will ensure uniqueness on the links
-    // when placed on a scene
-    if (!preset.preserveLinks) this._regenerateLinks(docToData);
+    // Assign ownership to the user who triggered the spawn call, hide, apply flags, and re-generate links
+    this._autoModifyData(docToData, hidden, flags, preset.preserveLinks, sceneId);
+
+    // =======================
+    // Spawn position handling
+    // =======================
 
     if (!preview) {
       const pos = this._determineSpawnPosition(x, y, z, preset.documentName, snapToGrid);
@@ -175,42 +178,9 @@ export class Spawner {
       if (coords == null) return [];
     }
 
-    // Assign ownership to the user who triggered the spawn, hide and apply flags if if necessary
-    docToData.forEach((dataArr, documentName) => {
-      dataArr.forEach((data) => {
-        // Assign ownership for Drawings and MeasuredTemplates
-        if (['Drawing', 'MeasuredTemplate'].includes(documentName)) {
-          if (documentName === 'Drawing') data.author = game.user.id;
-          else if (documentName === 'MeasuredTemplate') data.user = game.user.id;
-        }
-
-        // Hide
-        if (hidden || game.keyboard.downKeys.has('AltLeft')) data.hidden = true;
-        if (flags) data.flags = foundry.utils.mergeObject(data.flags ?? {}, flags);
-
-        // Apply Tagger rules for Spawn Preset behaviors
-        if (documentName === 'Region' && data.behaviors) {
-          data.behaviors.forEach((b) => {
-            if (b.system?.destinationTags?.length)
-              b.system.destinationTags = applyTaggerTagRules(b.system.destinationTags);
-          });
-        }
-
-        // TODO: REMOVE once Foundry implements bug fix for null flag override
-        if (documentName === 'Token' && data.flags?.['token-attacher']?.attached === null) {
-          delete data.flags['token-attacher'].attached;
-        }
-      });
-    });
-
-    // We need to make sure that newly spawned tiles are displayed above currently places ones
-    if (docToData.get('Tile')) {
-      const maxSort = Math.max(0, ...game.scenes.get(sceneId).tiles.map((d) => d.sort)) + 1;
-      docToData
-        .get('Tile')
-        .sort((t1, t2) => (t1.sort ?? 0) - (t2.sort ?? 0))
-        .forEach((d, i) => (d.sort = maxSort + i));
-    }
+    // ================================
+    // end of - Spawn position handling
+    // ================================
 
     // Switch active layer to the preset's base placeable type
     if (layerSwitch) {
@@ -218,7 +188,9 @@ export class Spawner {
         canvas.getLayerByEmbeddedName(preset.documentName)?.activate();
     }
 
+    // ================
     // Create Documents
+    // ================
     const allDocuments = [];
 
     for (const [documentName, dataArr] of docToData.entries()) {
@@ -293,5 +265,54 @@ export class Spawner {
       y = pos.y;
     }
     return { x, y, z };
+  }
+
+  /**
+   * Assign ownership to the user who triggered the spawn, hide and apply flags if if necessary
+   * @param {*} docToData
+   */
+  static _autoModifyData(docToData, hidden, flags, preserveLinks, sceneId) {
+    hidden = hidden || game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.ALT);
+
+    docToData.forEach((dataArr, documentName) => {
+      dataArr.forEach((data) => {
+        // Assign ownership for Drawings and MeasuredTemplates
+        if (['Drawing', 'MeasuredTemplate'].includes(documentName)) {
+          if (documentName === 'Drawing') data.author = game.user.id;
+          else if (documentName === 'MeasuredTemplate') data.user = game.user.id;
+        }
+
+        // Hide
+        if (hidden) data.hidden = true;
+
+        // Apply flags
+        if (flags) data.flags = foundry.utils.mergeObject(data.flags ?? {}, flags);
+
+        // Apply Tagger rules for Spawn Preset behaviors
+        if (documentName === 'Region' && data.behaviors) {
+          data.behaviors.forEach((b) => {
+            if (b.system?.destinationTags?.length)
+              b.system.destinationTags = applyTaggerTagRules(b.system.destinationTags);
+          });
+        }
+
+        // TODO: REMOVE once Foundry implements bug fix for null flag override
+        if (documentName === 'Token' && data.flags?.['token-attacher']?.attached === null) {
+          delete data.flags['token-attacher'].attached;
+        }
+      });
+    });
+
+    // We need to make sure that newly spawned tiles are displayed above currently places ones
+    if (docToData.get('Tile')) {
+      const maxSort = Math.max(0, ...game.scenes.get(sceneId).tiles.map((d) => d.sort)) + 1;
+      docToData
+        .get('Tile')
+        .sort((t1, t2) => (t1.sort ?? 0) - (t2.sort ?? 0))
+        .forEach((d, i) => (d.sort = maxSort + i));
+    }
+
+    // Regenerate Linker links to ensure uniqueness on the spawned in scene
+    if (!preserveLinks) this._regenerateLinks(docToData);
   }
 }
