@@ -25,7 +25,9 @@ import {
   placeableToData,
   randomizeChildrenFolderColors,
 } from './utils.js';
-import { MODULE_ID, SUPPORTED_PLACEABLES, UI_DOCS } from '../constants.js';
+import { MODULE_ID, PIVOTS, SUPPORTED_PLACEABLES, UI_DOCS } from '../constants.js';
+import { SceneScape } from '../scenescape/scenescape.js';
+import { Spawner } from './spawner.js';
 
 const SEARCH_MIN_CHAR = 2;
 const SEARCH_FOUND_MAX_COUNT = 1001;
@@ -640,13 +642,12 @@ export class MassEditPresets extends FormApplication {
     ui.notifications.info(`Mass Edit: ${localize('presets.spawning')} [${preset.name}]`);
 
     this._setInteractivityState(false);
-    await PresetAPI.spawnPreset({
+    await Spawner.spawnPreset({
       preset,
-      coordPicker: true,
-      taPreview: 'ALL',
+      preview: true,
       layerSwitch: game.settings.get(MODULE_ID, 'presetLayerSwitch'),
-      scaleToGrid: game.settings.get(MODULE_ID, 'presetScaling'),
-      center: true,
+      scaleToGrid: game.settings.get(MODULE_ID, 'presetScaling') || SceneScape.active,
+      pivot: PIVOTS.CENTER,
     });
     this._setInteractivityState(true);
   }
@@ -1455,7 +1456,7 @@ export class MassEditPresets extends FormApplication {
       }
     }
 
-    PresetAPI.spawnPreset({
+    Spawner.spawnPreset({
       preset,
       x: mouseX,
       y: mouseY,

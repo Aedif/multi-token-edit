@@ -1,8 +1,8 @@
-import { SUPPORTED_PLACEABLES } from './constants.js';
+import { PIVOTS, SUPPORTED_PLACEABLES } from './constants.js';
 import { DataTransformer } from './data/transformer.js';
 import { LinkerAPI } from './linker/linker.js';
 import { Mouse3D } from './mouse3d.js';
-import { getPresetDataBounds } from './presets/utils.js';
+import { getPivotOffset, getPresetDataBounds } from './presets/utils.js';
 import { SceneScape } from './scenescape/scenescape.js';
 import { pickerSelectMultiLayerDocuments } from './utils.js';
 
@@ -59,7 +59,6 @@ export class Picker {
    * @param {Object}  preview
    * @param {String}  preview.documentName (optional) preview placeables document name
    * @param {Map[String,Array]}  preview.previewData    (req) preview placeables data
-   * @param {String}  preview.taPreview            (optional) Designates the preview placeable when spawning a `Token Attacher` prefab.
    *                                                e.g. "Tile", "Tile.1", "MeasuredTemplate.3"
    * @param {Boolean} preview.snap                  (optional) if true returned coordinates will be snapped to grid
    * @param {String}  preview.label                  (optional) preview placeables document name
@@ -104,16 +103,10 @@ export class Picker {
         const b = getPresetDataBounds(preview.previewData);
         let transform = { x: pos.x - b.x, y: pos.y - b.y };
 
-        // Change preview position
-        if (SceneScape.active) {
-          // Bottom
-          transform.x -= b.width / 2;
-          transform.y -= b.height;
-        } else if (preview.center && !(layer.name === 'TokenLayer' && preview.previewData.size === 1)) {
-          // Center
-          transform.x -= b.width / 2;
-          transform.y -= b.height / 2;
-        }
+        // Change preview position relative to the mouse
+        const offset = getPivotOffset(SceneScape.active ? PIVOTS.BOTTOM : preview.pivot, null, b);
+        transform.x -= offset.x;
+        transform.y -= offset.y;
 
         // Dynamic scenescape scaling
         if (SceneScape.active) {
@@ -196,7 +189,7 @@ export class Picker {
 
         // Changing scaling offsets the center position
         // Let's immediately reposition back to it
-        if (preview.center && transform.scale != null) {
+        if (transform.scale != null) {
           setPositions(pos);
         }
       };
@@ -313,8 +306,8 @@ export class Picker {
 
     // Since we do elevation manipulation to force previews to be rendered on top
     // we don't want the user to see these temporary values
-    if (object.tooltip) object.tooltip.renderable = false;
-    if (object.controlIcon?.tooltip) object.controlIcon.tooltip.renderable = false;
+    // if (object.tooltip) object.tooltip.renderable = false;
+    // if (object.controlIcon?.tooltip) object.controlIcon.tooltip.renderable = false;
 
     // Foundry as well as various modules might have complex `isVisible` and 'visible' conditions
     // lets simplify by overriding this function to make sure the preview is always visible
@@ -393,8 +386,8 @@ export class Picker {
 
         toCreate.push({ documentName, data });
 
-        if (preview.taPreview && documentName === 'Token') {
-          this._genTAPreviews(data, preview.taPreview, data, toCreate);
+        if (documentName === 'Token') {
+          this._genTAPreviews(data, data, toCreate);
         }
 
         if (documentName === 'Tile' && SceneScape.active) {
@@ -419,7 +412,7 @@ export class Picker {
     return { previews, layer: canvas.getLayerByEmbeddedName(preview.documentName), previewDocuments };
   }
 
-  static _genTAPreviews(data, taPreview, parent, toCreate) {
+  static _genTAPreviews(data, parent, toCreate) {
     if (!game.modules.get('token-attacher')?.active) return;
 
     const attached = foundry.utils.getProperty(data, 'flags.token-attacher.prototypeAttached');
@@ -429,9 +422,8 @@ export class Picker {
     if (!(attached && pos && grid)) return;
 
     const ratio = canvas.grid.size / grid.size;
-    const attachedData = this._parseTAPreview(taPreview, attached);
 
-    for (const [name, dataList] of Object.entries(attachedData)) {
+    for (const [name, dataList] of Object.entries(attached)) {
       for (let data of dataList) {
         if (['Token', 'Tile', 'Drawing'].includes(name)) {
           data.width *= ratio;
@@ -470,29 +462,6 @@ export class Picker {
         toCreate.push({ documentName: name, data });
       }
     }
-  }
-
-  static _parseTAPreview(taPreview, attached) {
-    if (taPreview === 'ALL') return attached;
-
-    const attachedData = {};
-    taPreview = taPreview.split(',');
-
-    for (const taIndex of taPreview) {
-      let [name, index] = taIndex.trim().split('.');
-      if (!attached[name]) continue;
-
-      if (index == null) {
-        attachedData[name] = attached[name];
-      } else {
-        if (attached[name][index]) {
-          if (!attachedData[name]) attachedData[name] = [];
-          attachedData[name].push(attached[name][index]);
-        }
-      }
-    }
-
-    return attachedData;
   }
 }
 
@@ -582,8 +551,7 @@ export async function editPreviewPlaceables() {
       documentName: mainDocumentName,
       previewData: docToData,
       snap: true,
-      taPreview: 'ALL',
-      center: true,
+      pivot: PIVOTS.CENTER,
     }
   );
 }

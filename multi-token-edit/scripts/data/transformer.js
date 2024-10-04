@@ -14,6 +14,8 @@ export class DataTransformer {
     if (transform.x == null) transform.x = 0;
     if (transform.y == null) transform.y = 0;
 
+    this._3dActive = game.Levels3DPreview?._active;
+
     if (documentName === 'Wall') {
       this.transformWall(data, origin, transform, preview);
     } else if (documentName === 'Tile') {
@@ -35,6 +37,12 @@ export class DataTransformer {
     }
 
     return data;
+  }
+
+  static applyToMap(docToData, origin, transform) {
+    docToData.forEach((dataArr, documentName) => {
+      dataArr.forEach((data) => DataTransformer.apply(documentName, data, origin, transform));
+    });
   }
 
   static transformRegion(data, origin, transform, preview) {
@@ -227,8 +235,7 @@ export class DataTransformer {
         data.radius *= scale;
       }
 
-      if (data.elevation != null) {
-        data.elevation *= scale;
+      if (this._3dActive && data.elevation != null) {
         data.elevation *= scale;
       }
     }
@@ -354,7 +361,7 @@ export class DataTransformer {
         data.config.bright *= scale;
       }
 
-      if (data.elevation != null) {
+      if (this._3dActive && data.elevation != null) {
         data.elevation *= scale;
       }
     }
@@ -413,7 +420,7 @@ export class DataTransformer {
       data.height *= scale;
 
       // 3D Support
-      if (game.Levels3DPreview?._active) {
+      if (this._3dActive) {
         const depth = data.flags?.['levels-3d-preview']?.depth;
         if (depth != null && depth != '') data.flags['levels-3d-preview'].depth = depth * scale;
         if (data.elevation != null) {
@@ -558,7 +565,7 @@ export class DataTransformer {
       if (!transform.gridScale) {
         data.width *= scale;
         data.height *= scale;
-        data.elevation *= scale;
+        if (this._3dActive) data.elevation *= scale;
       }
     }
 

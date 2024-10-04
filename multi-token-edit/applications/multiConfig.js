@@ -1,6 +1,6 @@
 import { MODULE_ID, SUPPORTED_COLLECTIONS, SUPPORTED_SHEET_CONFIGS } from '../scripts/constants.js';
 import { showPlaceableTypeSelectDialog } from '../scripts/dialogs.js';
-import { PresetAPI } from '../scripts/presets/collection.js';
+import { Spawner } from '../scripts/presets/spawner.js';
 import { getData, getDocumentName } from '../scripts/utils.js';
 import { getClipboardData, pasteDataUpdate } from './formUtils.js';
 import { WithMassConfig } from './forms.js';
@@ -219,7 +219,7 @@ export function pasteData() {
     let documentName = canvas.activeLayer.constructor.documentName;
     const preset = getClipboardData(documentName);
     if (preset) {
-      PresetAPI.spawnPreset({ preset });
+      Spawner.spawnPreset({ preset });
       return true;
     }
   }

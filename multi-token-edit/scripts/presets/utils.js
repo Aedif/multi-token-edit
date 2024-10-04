@@ -1,4 +1,4 @@
-import { MODULE_ID } from '../constants.js';
+import { MODULE_ID, PIVOTS } from '../constants.js';
 import { applyRandomization } from '../randomizer/randomizerUtils.js';
 import { PresetAPI } from './collection.js';
 
@@ -259,19 +259,6 @@ export async function randomizeChildrenFolderColors(uuid, tree, callback) {
 }
 
 /**
- * Calculates the necessary x and y offsets to place the mouse within the center of the preset data
- * assuming the mouse is on the top-left corner of the first element
- * @param {Map<String, Array[Object]>} docToData
- * @returns
- */
-export function getPresetDataCenterOffset(docToData) {
-  const b = getPresetDataBounds(docToData);
-  const center = { x: b.x + b.width / 2, y: b.y + b.height / 2 };
-  const transform = getTransformToOrigin(docToData);
-  return { x: center.x + transform.x, y: center.y + transform.y, z: 0, b };
-}
-
-/**
  * Returns a transform that return first element to x:0, y:0 (z: 0)
  * @param {Map<String, Array[Object]>} docToData
  * @returns
@@ -476,4 +463,30 @@ export function registerSideBarPresetDropListener() {
       PlaylistSound.create(updates, { parent: playlist });
     });
   });
+}
+
+export function getPivotOffset(pivot, docToData, bounds) {
+  const { width, height } = bounds ?? getPresetDataBounds(docToData);
+  switch (pivot) {
+    case PIVOTS.TOP_LEFT:
+      return { x: 0, y: 0 };
+    case PIVOTS.TOP:
+      return { x: width / 2, y: 0 };
+    case PIVOTS.TOP_RIGHT:
+      return { x: width, y: 0 };
+    case PIVOTS.LEFT:
+      return { x: 0, y: height / 2 };
+    case PIVOTS.CENTER:
+      return { x: width / 2, y: height / 2 };
+    case PIVOTS.RIGHT:
+      return { x: height, y: height / 2 };
+    case PIVOTS.BOTTOM_LEFT:
+      return { x: 0, y: height };
+    case PIVOTS.BOTTOM:
+      return { x: width / 2, y: height };
+    case PIVOTS.BOTTOM_RIGHT:
+      return { x: width, y: height };
+  }
+
+  return { x: 0, y: 0 };
 }

@@ -8,6 +8,7 @@ export const SUPPORTED_PLACEABLES = [
   'AmbientLight',
   'AmbientSound',
   'Note',
+  'Region',
 ];
 export const UI_DOCS = ['FAVORITES', 'ALL', ...SUPPORTED_PLACEABLES];
 export const SUPPORTED_SHEET_CONFIGS = [...SUPPORTED_PLACEABLES, 'Actor', 'PlaylistSound', 'Scene'];
@@ -40,4 +41,16 @@ export const LINKER_DOC_COLORS = {
   AmbientSound: 0x00e3ff,
   Note: 0xffffff,
   Region: 0xdc006b,
+};
+
+export const PIVOTS = {
+  TOP_LEFT: 0,
+  TOP: 1,
+  TOP_RIGHT: 2,
+  LEFT: 3,
+  CENTER: 4,
+  RIGHT: 5,
+  BOTTOM_LEFT: 6,
+  BOTTOM: 7,
+  BOTTOM_RIGHT: 8,
 };
