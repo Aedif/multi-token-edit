@@ -79,7 +79,10 @@ export class Picker {
 
       if (SceneScape.active) {
         preview.snap = false;
-        Picker._paraScale = 1;
+
+        const b = getPresetDataBounds(preview.previewData);
+        const bottom = { x: b.x + b.width / 2, y: b.y + b.height };
+        Picker._paraScale = SceneScape.getParallaxParameters(bottom).scale;
       }
 
       let { previews, layer, previewDocuments } = await this._genPreviews(preview);
@@ -227,6 +230,7 @@ export class Picker {
         });
         pickerOverlay.on('mouseup', (event) => {
           Picker.boundEnd = event.data.getLocalPosition(pickerOverlay);
+          if (preview?.confirmOnRelease) this.resolve(Picker.boundEnd);
         });
         pickerOverlay.on('click', (event) => {
           if (event.nativeEvent.which == 2) {
@@ -465,15 +469,22 @@ export class Picker {
   }
 }
 
-export async function editPreviewPlaceables() {
+export async function editPreviewPlaceables(placeables, confirmOnRelease = false) {
   const controlled = new Set();
 
-  SUPPORTED_PLACEABLES.forEach((documentName) => {
-    canvas.getLayerByEmbeddedName(documentName).controlled.forEach((p) => {
+  if (placeables?.length) {
+    placeables.forEach((p) => {
       controlled.add(p.document);
       LinkerAPI.getLinkedDocuments(p.document).forEach((d) => controlled.add(d));
     });
-  });
+  } else {
+    SUPPORTED_PLACEABLES.forEach((documentName) => {
+      canvas.getLayerByEmbeddedName(documentName).controlled.forEach((p) => {
+        controlled.add(p.document);
+        LinkerAPI.getLinkedDocuments(p.document).forEach((d) => controlled.add(d));
+      });
+    });
+  }
 
   if (!controlled.size) {
     const pickerSelected = await pickerSelectMultiLayerDocuments();
@@ -552,6 +563,7 @@ export async function editPreviewPlaceables() {
       previewData: docToData,
       snap: true,
       pivot: PIVOTS.CENTER,
+      confirmOnRelease,
     }
   );
 }

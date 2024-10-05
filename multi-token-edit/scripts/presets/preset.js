@@ -181,6 +181,17 @@ export class Preset {
   }
 
   /**
+   * Looks for a tag in the format of '#ft' and returns the numerical value
+   * @returns
+   */
+  scenescapeSizeOverride() {
+    const regex = new RegExp(/(\d+)ft/);
+    let size = this.tags.find((t) => t.match(regex))?.match(regex)[1];
+    if (size) return Number(size);
+    return null;
+  }
+
+  /**
    * Attach placeables
    * @param {Placeable|Array[Placeable]} placeables
    * @returns

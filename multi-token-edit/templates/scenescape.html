@@ -1,0 +1,24 @@
+<form>
+    <div class="form-group">
+        <label>Is this scene a Scenescape?</label>
+        <div class="form-fields">
+            <div class="form-fields">
+                <input type="checkbox" name="active" {{checked active}}>
+            </div>
+        </div>
+    </div>
+
+    <fieldset>
+        <legend>Configure</legend>
+
+        <p>Scale References</p>
+        <div class="" style="display: flex;">
+            {{#each markerTemplates as |template|}}
+            <div class="marker" style="flex:1;" data-height="{{template.height}}">
+                <img src="{{template.src}}" title="{{template.height}}">
+            </div>
+            {{/each}}
+        </div>
+        <p class="notes">Select and place reference tiles on the scene. ALT+Mouse Wheel can be used to scale the tile sup and down. </p>
+    </fieldset>
+</form>

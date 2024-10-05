@@ -1,4 +1,5 @@
 import { MODULE_ID } from '../constants.js';
+import { editPreviewPlaceables, Picker } from '../picker.js';
 import { libWrapper } from '../shim/shim.js';
 import { loadImageVideoDimensions } from '../utils.js';
 import { SceneScape } from './scenescape.js';
@@ -57,11 +58,27 @@ export class ScenescapeControls {
 
       let { width, height } = await loadImageVideoDimensions(token.texture.src);
       if (width && height) {
+        const bottom = {
+          x: token.x + (token.width * canvas.dimensions.size) / 2,
+          y: token.y + token.height * canvas.dimensions.size,
+        };
+
+        const { scale, elevation } = SceneScape.getParallaxParameters(bottom);
+
+        const actorDefinedSize = (this._getActorSize(token.actor) / 6) * 100;
+        const r = actorDefinedSize / height;
+
+        width *= scale * r;
+        height *= scale * r;
+
+        const x = bottom.x - width / 2;
+        const y = bottom.y - height;
+
         width /= canvas.dimensions.size;
         height /= canvas.dimensions.size;
-        token.update({ width, height, flags: { [MODULE_ID]: { width, height } } });
+
+        token.update({ x, y, width, height, elevation, flags: { [MODULE_ID]: { width, height } } });
       }
-      // TODO scale
     });
     this._hooks.push({ hook: 'createToken', id });
   }
@@ -122,6 +139,40 @@ export class ScenescapeControls {
       'WRAPPER'
     );
     this._wrapperIds.push(id);
+
+    /**
+     * Activate Picker preview instead of regular drag/drop flow
+     */
+    id = libWrapper.register(
+      MODULE_ID,
+      'PlaceableObject.prototype._onDragLeftStart',
+      function (event) {
+        let objects = this.layer.options.controllableObjects ? this.layer.controlled : [this];
+
+        objects = objects.filter((o) => o._canDrag(game.user, event) && !o.document.locked);
+
+        if (objects.length) {
+          editPreviewPlaceables(objects, true);
+        }
+
+        event.interactionData.clones = [];
+        return false;
+      },
+      'OVERRIDE'
+    );
+    this._wrapperIds.push(id);
+
+    id = libWrapper.register(
+      MODULE_ID,
+      'PlaceableObject.prototype._canDragLeftStart',
+      function (wrapped, user, event) {
+        if (Picker.isActive()) return false;
+
+        return wrapped(user, event);
+      },
+      'MIXED'
+    );
+    this._wrapperIds.push(id);
   }
 
   static async _moveMany({ dx = 0, dy = 0, rotate = false, ids, includeLocked = false } = {}) {
@@ -180,12 +231,38 @@ export class ScenescapeControls {
 
       update.elevation = nParams.elevation;
 
-      console.log(update);
-
       return update;
     });
 
     await canvas.scene.updateEmbeddedDocuments(documentName, updateData, { teleport: true });
     return objects;
+  }
+
+  /**
+   * Determines actor size in feet
+   * @param {Actor} actor
+   * @returns {Number} feet
+   */
+  static _getActorSize(actor) {
+    // Retrieves numbers from a string assuming the first number represents feet and the 2nd inches
+    // The total is returned in feet
+    // e.g. "6 feet 6 inches" => 6.5
+    // e.g. 4'3'' => 4.25
+    const parseHeightString = function (heightString) {
+      const matches = heightString.match(/[\d|,|.|\+]+/g);
+      if (matches?.length) {
+        let feet = matches[0];
+        if (matches.length > 1 && matches[1] > 0) feet += matches[1] / 12;
+        return feet;
+      }
+      return null;
+    };
+
+    if (game.system.id === 'dnd5e') {
+      const height = parseHeightString(actor.system.details?.height ?? '');
+      if (height) return height;
+    }
+
+    return actor.prototypeToken.height * 6;
   }
 }

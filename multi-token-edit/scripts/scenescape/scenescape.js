@@ -1,5 +1,5 @@
 import { MODULE_ID } from '../constants.js';
-import { updateEmbeddedDocumentsViaGM } from '../utils.js';
+import ScenescapeConfig from './configuration.js';
 import { ScenescapeControls } from './controls.js';
 
 export function registerSceneScapeHooks() {
@@ -20,11 +20,15 @@ export function registerSceneScapeHooks() {
         <button class="lockScale" type="button" data-tooltip="Lock scale.">
             <i class="fa-solid fa-arrows-from-dotted-line"></i>
         </button>
+        <button  class="configureScenescape" type="button" data-tooltip="Configure Scenescape">
+          <i class="fa-regular fa-mountain-sun"></i>
+        </button>
     </div>
 </div>
         `);
     element.on('click', '.selectHorizon', () => HorizonSelector.select(app));
     element.on('click', '.lockScale', () => ScenescapeScaler.lockScale());
+    element.on('click', '.configureScenescape', () => new ScenescapeConfig().render(true));
 
     html.find('.initial-position').after(element);
     app.setPosition({ height: 'auto' });
@@ -41,7 +45,7 @@ class ScenescapeScaler {
 
     // Retrieve marker tiles from the scene and sort them on the y-axis
     const markers = canvas.tiles.placeables
-      .filter((p) => p.document.getFlag(MODULE_ID, 'scenescape')?.control)
+      .filter((p) => p.document.getFlag(MODULE_ID, 'scenescape')?.marker)
       .map((p) => {
         const size = p.document.getFlag(MODULE_ID, 'scenescape').size;
         return {
