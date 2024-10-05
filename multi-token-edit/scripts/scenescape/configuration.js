@@ -1,6 +1,7 @@
 import { MODULE_ID, PIVOTS } from '../constants.js';
 import { Preset } from '../presets/preset.js';
 import { Spawner } from '../presets/spawner.js';
+import { ScenescapeScaler } from './scenescape.js';
 
 const TEMPLATES = [
   { height: 3, src: `modules/${MODULE_ID}/images/3ft.webp` },
@@ -41,6 +42,7 @@ export default class ScenescapeConfig extends FormApplication {
     super.activateListeners(html);
 
     html.on('click', '.marker > img', this._onClickMarker.bind(this));
+    html.on('click', '.lockInScale', () => ScenescapeScaler.lockScale());
   }
 
   async _onClickMarker(event) {
@@ -67,7 +69,7 @@ export default class ScenescapeConfig extends FormApplication {
       tags: [`${height}ft`],
     });
 
-    await Spawner.spawnPreset({ preset, preview: true, pivot: PIVOTS.BOTTOM, snapToGrid: false });
+    await Spawner.spawnPreset({ preset, preview: true, pivot: PIVOTS.BOTTOM, snapToGrid: false, scaleToGrid: true });
     this._onMaximize();
   }
 

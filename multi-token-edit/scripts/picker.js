@@ -83,6 +83,10 @@ export class Picker {
         const b = getPresetDataBounds(preview.previewData);
         const bottom = { x: b.x + b.width / 2, y: b.y + b.height };
         Picker._paraScale = SceneScape.getParallaxParameters(bottom).scale;
+
+        // If Picker preview was triggered via a spawnPreset(...) we want to apply the initial
+        // scenescape scale at the given position, as the data being previewed was not yet placed on the scene
+        if (preview.spawner) preview.scale = (preview.scale ?? 1) * Picker._paraScale;
       }
 
       let { previews, layer, previewDocuments } = await this._genPreviews(preview);

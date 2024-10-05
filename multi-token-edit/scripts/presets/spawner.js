@@ -162,7 +162,7 @@ export class Spawner {
       posTransform.y -= offset.y;
 
       DataTransformer.applyToMap(docToData, { x: 0, y: 0 }, posTransform);
-    } else if (preview) {
+    } else {
       // Display preview of the preset
       const coords = await new Promise(async (resolve) => {
         Picker.activate(resolve, {
@@ -173,6 +173,7 @@ export class Spawner {
           pivot,
           previewOnly,
           ...transform,
+          spawner: true,
         });
       });
       if (coords == null) return [];

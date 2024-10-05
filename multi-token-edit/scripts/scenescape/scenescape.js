@@ -17,9 +17,6 @@ export function registerSceneScapeHooks() {
         <button class="selectHorizon" type="button" data-tooltip="Define the horizon line.">
             <i class="fa-solid fa-reflect-horizontal fa-rotate-90"></i>
         </button>
-        <button class="lockScale" type="button" data-tooltip="Lock scale.">
-            <i class="fa-solid fa-arrows-from-dotted-line"></i>
-        </button>
         <button  class="configureScenescape" type="button" data-tooltip="Configure Scenescape">
           <i class="fa-regular fa-mountain-sun"></i>
         </button>
@@ -27,7 +24,6 @@ export function registerSceneScapeHooks() {
 </div>
         `);
     element.on('click', '.selectHorizon', () => HorizonSelector.select(app));
-    element.on('click', '.lockScale', () => ScenescapeScaler.lockScale());
     element.on('click', '.configureScenescape', () => new ScenescapeConfig().render(true));
 
     html.find('.initial-position').after(element);
@@ -37,7 +33,7 @@ export function registerSceneScapeHooks() {
   ScenescapeControls.registerMainHooks();
 }
 
-class ScenescapeScaler {
+export class ScenescapeScaler {
   static distanceRatio = 400 / 2;
 
   static lockScale() {
