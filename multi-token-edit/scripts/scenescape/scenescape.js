@@ -8,12 +8,6 @@ export function registerSceneScapeHooks() {
 <div class="form-group">
     <label>Scenescape</label>
     <div class="form-fields">
-        <label class="checkbox">
-            Is this scene a Scenescape?
-            <input type="checkbox" name="flags.${MODULE_ID}.scenescape.active" ${
-      app.object.getFlag(MODULE_ID, 'scenescape')?.active ? 'checked' : ''
-    }>
-        </label>
         <button class="selectHorizon" type="button" data-tooltip="Define the horizon line.">
             <i class="fa-solid fa-reflect-horizontal fa-rotate-90"></i>
         </button>
@@ -161,7 +155,7 @@ class HorizonSelector {
 
 export class SceneScape {
   static get active() {
-    return canvas.scene.getFlag(MODULE_ID, 'scenescape')?.active;
+    return canvas.scene.getFlag(MODULE_ID, 'scenescape')?.markers?.length;
   }
 
   static getStepSize() {

@@ -1,24 +1,49 @@
 <form>
-    <div class="form-group">
-        <label>Is this scene a Scenescape?</label>
-        <div class="form-fields">
-            <div class="form-fields">
-                <input type="checkbox" name="active" {{checked active}}>
-            </div>
-        </div>
-    </div>
-
     <fieldset>
-        <legend>Configure</legend>
+        <legend>Scene Scaling <button class="lockInScale" title="Lock-In Scale" type="button" style="width: 25px; height: 25px; vertical-align: middle;"><i class="fa-sharp-duotone fa-solid fa-arrows-up-down-left-right" style="margin-left: -2px; display: block;"></i></button></legend>
 
-        <p>Scale References</p>
         <div class="" style="display: flex;">
             {{#each markerTemplates as |template|}}
-            <div class="marker" style="flex:1;" data-height="{{template.height}}">
+            <a class="marker" style="flex:1;" data-height="{{template.height}}">
                 <img src="{{template.src}}" title="{{template.height}}">
-            </div>
+            </a>
             {{/each}}
         </div>
         <p class="notes">Select and place reference tiles on the scene. ALT+Mouse Wheel can be used to scale the tile sup and down. </p>
+
+        <img src="modules/multi-token-edit/images/scenescape_sample.webp">
+
+        <div class="form-group">
+            <label>Distance <span class="units">test</span></label>
+            <div class="form-fields">
+                {{ rangePicker name="distanceRatio" value=distanceRatio min="100" max="1000" step="1" }}
+            </div>
+        </div>
+    </fieldset>
+    
+    <br>
+    
+    <fieldset>
+        <legend>Token Movement</legend>
+        <div class="form-group">
+            <label>Limits</label>
+            <div class="form-fields">
+                <button class="select-bounds" type="button" data-tooltip="Select upper limit.">
+                    <i class="fa-solid fa-arrow-up-to-line"></i>
+                </button>
+                <button class="select-bounds" type="button" data-tooltip="Select lower limit.">
+                    <i class="fa-solid fa-arrow-down-to-line"></i>
+                </button>
+            </div>
+            <p class="notes">Select lower and upper limit lines for token movement.</p>
+        </div>
+        <img src="modules/multi-token-edit/images/scenescape_sample_limit.webp">
+    
+        <div class="form-group">
+            <label>Speed <span class="units">feet</span></label>
+            <div class="form-fields">
+                {{ rangePicker name="speed" value=speed min="0.1" max="1000" step="0.1" }}
+            </div>
+        </div>
     </fieldset>
 </form>

@@ -32,6 +32,8 @@ export default class ScenescapeConfig extends FormApplication {
   async getData(options) {
     const data = super.getData(options);
     data.markerTemplates = TEMPLATES;
+    data.distanceRatio = 400; // TODO
+    data.speed = 1;
     return data;
   }
 
