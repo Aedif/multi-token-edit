@@ -1,7 +1,7 @@
 import { MODULE_ID, PIVOTS } from '../constants.js';
 import { Preset } from '../presets/preset.js';
 import { Spawner } from '../presets/spawner.js';
-import { ScenescapeScaler } from './scenescape.js';
+import { SceneScape, ScenescapeScaler } from './scenescape.js';
 
 const TEMPLATES = [
   { height: 3, src: `modules/${MODULE_ID}/images/3ft.webp` },
@@ -13,7 +13,7 @@ const TEMPLATES = [
 export default class ScenescapeConfig extends FormApplication {
   constructor() {
     super({}, {});
-    this.sceneId = canvas.scene.id;
+    this.scene = canvas.scene;
   }
 
   static get defaultOptions() {
@@ -24,8 +24,8 @@ export default class ScenescapeConfig extends FormApplication {
       resizable: true,
       minimizable: false,
       title: 'Scenescape',
-      width: 490,
-      height: 730,
+      width: 300,
+      height: 700,
     });
   }
 
@@ -45,6 +45,27 @@ export default class ScenescapeConfig extends FormApplication {
 
     html.on('click', '.marker > img', this._onClickMarker.bind(this));
     html.on('click', '.lockInScale', () => ScenescapeScaler.lockScale());
+    html.on('click', '.select-limit-lower', () => this._onSelectLimit('y2'));
+    html.on('click', '.select-limit-upper', () => this._onSelectLimit('y1'));
+  }
+
+  _onSelectLimit(varName) {
+    this._onMinimize();
+    LineSelector.select((pos) => {
+      if (pos) {
+        const limits = SceneScape.movementLimits ?? {};
+        limits[varName] = pos.y;
+
+        if (limits.y1 != null && limits.y2 != null) {
+          let y1 = Math.min(limits.y1, limits.y2);
+          limits.y2 = Math.max(limits.y1, limits.y2);
+          limits.y1 = y1;
+        }
+
+        this.scene.update({ [`flags.${MODULE_ID}.scenescape.movementLimits`]: limits });
+      }
+      this._onMaximize();
+    }, Object.values(SceneScape.movementLimits ?? {}));
   }
 
   async _onClickMarker(event) {
@@ -78,14 +99,14 @@ export default class ScenescapeConfig extends FormApplication {
   _onMinimize() {
     this.minimize();
     Object.values(ui.windows)
-      .find((w) => w.object.id === this.sceneId)
+      .find((w) => w.object.id === this.scene.id)
       ?.minimize();
   }
 
   _onMaximize() {
     this.maximize();
     Object.values(ui.windows)
-      .find((w) => w.object.id === this.sceneId)
+      .find((w) => w.object.id === this.scene.id)
       ?.maximize();
   }
 
@@ -94,4 +115,68 @@ export default class ScenescapeConfig extends FormApplication {
    * @param {Object} formData
    */
   async _updateObject(event, formData) {}
+}
+
+class LineSelector {
+  static select(callback, lines = []) {
+    if (this.overlay) return;
+
+    this.callback = callback;
+    this.lines = lines;
+
+    let overlay = new PIXI.Container();
+    overlay.hitArea = canvas.dimensions.rect;
+    overlay.cursor = 'crosshair';
+    overlay.interactive = true;
+    overlay.zIndex = 5;
+
+    this.graphics = new PIXI.Graphics();
+    overlay.addChild(this.graphics);
+
+    overlay.on('mouseup', (event) => {
+      if (event.nativeEvent.which == 1) this._save(this.pos);
+      this._exit();
+    });
+    overlay.on('contextmenu', () => {
+      this._exit();
+    });
+
+    overlay.on('pointermove', (event) => {
+      const pos = event.data.getLocalPosition(overlay);
+      const dimensions = canvas.dimensions;
+      pos.y = Math.clamp(pos.y, 0, dimensions.height);
+      this._drawLine(pos);
+      this.pos = pos;
+    });
+
+    canvas.stage.addChild(overlay);
+
+    this.overlay = overlay;
+  }
+
+  static _drawLine(pos) {
+    const graphics = this.overlay.children[0];
+    graphics.clear();
+    graphics.lineStyle(3, 0xff0000, 1.0, 0.5).moveTo(0, pos.y).lineTo(canvas.dimensions.rect.width, pos.y);
+
+    this.lines.forEach((l) => {
+      graphics.lineStyle(3, 0x0000ff, 1.0, 0.5).moveTo(0, l).lineTo(canvas.dimensions.rect.width, l);
+    });
+  }
+
+  static _save(pos) {
+    this.callback?.(pos);
+    this.callback = null;
+  }
+
+  static _exit() {
+    const overlay = this.overlay;
+    if (overlay) {
+      overlay.parent?.removeChild(overlay);
+      overlay.destroy(true);
+      overlay.children?.forEach((c) => c.destroy(true));
+      this.overlay = null;
+      this.callback?.(null);
+    }
+  }
 }

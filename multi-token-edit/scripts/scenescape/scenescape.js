@@ -8,16 +8,13 @@ export function registerSceneScapeHooks() {
 <div class="form-group">
     <label>Scenescape</label>
     <div class="form-fields">
-        <button class="selectHorizon" type="button" data-tooltip="Define the horizon line.">
-            <i class="fa-solid fa-reflect-horizontal fa-rotate-90"></i>
-        </button>
         <button  class="configureScenescape" type="button" data-tooltip="Configure Scenescape">
           <i class="fa-regular fa-mountain-sun"></i>
         </button>
     </div>
+    <p class="notes">Configure this scene as a 'Scenescape' allowing dynamic scaling and positioning of assets on a landscape background.</p>
 </div>
         `);
-    element.on('click', '.selectHorizon', () => HorizonSelector.select(app));
     element.on('click', '.configureScenescape', () => new ScenescapeConfig().render(true));
 
     html.find('.initial-position').after(element);
@@ -28,8 +25,6 @@ export function registerSceneScapeHooks() {
 }
 
 export class ScenescapeScaler {
-  static distanceRatio = 400 / 2;
-
   static lockScale() {
     // TODO replace realHeight with scale?
 
@@ -71,9 +66,9 @@ export class ScenescapeScaler {
 
         let distance;
         if (scale1 < scale2) {
-          distance = this.distanceRatio * (scale2 / scale1) * (6 / 100);
+          distance = SceneScape.distanceRatio * (scale2 / scale1) * (6 / 100);
         } else if (scale1 > scale2) {
-          distance = this.distanceRatio * (scale1 / scale2) * (6 / 100);
+          distance = SceneScape.distanceRatio * (scale1 / scale2) * (6 / 100);
         } else {
           distance = (m1.size / m1.height) * (m2.y - m1.y); // TODO test
         }
@@ -96,70 +91,32 @@ export class ScenescapeScaler {
   }
 }
 
-class HorizonSelector {
-  static select(app) {
-    if (this.overlay) return;
-
-    let overlay = new PIXI.Container();
-    overlay.app = app;
-    overlay.hitArea = canvas.dimensions.rect;
-    overlay.cursor = 'crosshair';
-    overlay.interactive = true;
-    overlay.zIndex = 5;
-
-    overlay.addChild(new PIXI.Graphics());
-
-    overlay.on('mouseup', (event) => {
-      if (event.nativeEvent.which == 1) this._save(this.pos);
-      this._exit();
-    });
-    overlay.on('contextmenu', () => {
-      this._exit();
-    });
-
-    overlay.on('pointermove', (event) => {
-      const pos = event.data.getLocalPosition(overlay);
-      const dimensions = canvas.dimensions;
-      pos.y = Math.clamp(pos.y, dimensions.sceneY, dimensions.sceneY + dimensions.sceneHeight);
-      this._drawLine(pos);
-      this.pos = pos;
-    });
-
-    canvas.stage.addChild(overlay);
-    app.minimize();
-
-    this.overlay = overlay;
-  }
-
-  static _drawLine(pos) {
-    const graphics = this.overlay.children[0];
-    graphics.clear();
-    graphics.lineStyle(3, 0xff0000, 1.0, 0.5).moveTo(0, pos.y).lineTo(canvas.dimensions.rect.width, pos.y);
-  }
-
-  static _save(pos) {
-    this.overlay.app?.object.setFlag(MODULE_ID, 'horizon', pos.y);
-  }
-
-  static _exit() {
-    const overlay = this.overlay;
-    if (overlay) {
-      overlay.parent?.removeChild(overlay);
-      overlay.destroy(true);
-      overlay.children?.forEach((c) => c.destroy(true));
-      overlay.app?.maximize();
-      this.overlay = null;
-    }
-  }
-}
-
 export class SceneScape {
   static get active() {
-    return canvas.scene.getFlag(MODULE_ID, 'scenescape')?.markers?.length;
+    return this._active;
   }
 
-  static getStepSize() {
-    return 1;
+  static get distanceRatio() {
+    return this._distanceRatio;
+  }
+
+  static get stepDistance() {
+    return this._stepDistance;
+  }
+
+  static get movementLimits() {
+    return this._movementLimits;
+  }
+
+  static loadFlags() {
+    const flags = canvas.scene.getFlag(MODULE_ID, 'scenescape');
+    console.log('LOAD FLAGS', flags);
+    if (flags) {
+      this._active = Boolean(flags.markers?.length);
+      this._distanceRatio = (flags.distanceRatio ?? 400) / 2;
+      this._stepDistance = flags.stepDistance ?? 1;
+      this._movementLimits = flags.movementLimits;
+    }
   }
 
   static getParallaxParameters(pos) {
@@ -206,7 +163,7 @@ export class SceneScape {
     return { m1, m2 };
   }
 
-  static moveCoordinate(pos, dx, dy) {
+  static moveCoordinate(pos, dx, dy, ignoreLimits = false) {
     if (dx === 0 && dy === 0) return pos;
 
     let nX = pos.x;
@@ -215,13 +172,13 @@ export class SceneScape {
     let { scale, elevation } = this.getParallaxParameters(pos);
 
     if (dx !== 0) {
-      dx = this.getStepSize() * dx;
+      dx = this.stepDistance * dx;
       nX += (100 / 6) * scale * dx;
       nX = Math.clamp(nX, 0, canvas.dimensions.width);
     }
 
     if (dy !== 0) {
-      dy = this.getStepSize() * dy;
+      dy = this.stepDistance * dy;
       const markers = canvas.scene.getFlag(MODULE_ID, 'scenescape')?.markers;
 
       let nElevation = Math.clamp(elevation + dy, 0, markers[markers.length - 1].elevation);
@@ -233,6 +190,12 @@ export class SceneScape {
       const r = (nElevation - m1.elevation) / (m2.elevation - m1.elevation);
 
       nY = (m2.y - m1.y) * r + m1.y;
+    }
+
+    // Enforce movement limits
+    if (this.movementLimits && !ignoreLimits) {
+      if (this.movementLimits.y1 != null) nY = Math.max(nY, this.movementLimits.y1);
+      if (this.movementLimits.y2 != null) nY = Math.min(nY, this.movementLimits.y2);
     }
 
     return { x: nX, y: nY };

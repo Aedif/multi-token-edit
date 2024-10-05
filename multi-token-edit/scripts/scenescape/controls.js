@@ -14,10 +14,14 @@ export class ScenescapeControls {
 
   static registerMainHooks() {
     Hooks.on('updateScene', (scene) => {
-      if (scene.id === canvas.scene?.id) this._checkActivateControls();
+      if (scene.id === canvas.scene?.id) {
+        SceneScape.loadFlags();
+        this._checkActivateControls();
+      }
     });
 
     Hooks.on('canvasInit', (canvas) => {
+      SceneScape.loadFlags();
       this._checkActivateControls();
     });
   }
@@ -195,7 +199,12 @@ export class ScenescapeControls {
       const params = SceneScape.getParallaxParameters(bottom);
       const dimensions = canvas.dimensions;
 
-      const nBottom = SceneScape.moveCoordinate(bottom, dx * incrementScale, dy * incrementScale);
+      const nBottom = SceneScape.moveCoordinate(
+        bottom,
+        dx * incrementScale,
+        dy * incrementScale,
+        documentName === 'Tile'
+      );
       const nParams = SceneScape.getParallaxParameters(nBottom);
 
       const deltaScale = nParams.scale / params.scale;
