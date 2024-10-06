@@ -24,73 +24,6 @@ export function registerSceneScapeHooks() {
   ScenescapeControls.registerMainHooks();
 }
 
-export class ScenescapeScaler {
-  static lockScale() {
-    // TODO replace realHeight with scale?
-
-    // Retrieve marker tiles from the scene and sort them on the y-axis
-    const markers = canvas.tiles.placeables
-      .filter((p) => p.document.getFlag(MODULE_ID, 'scenescape')?.marker)
-      .map((p) => {
-        const size = p.document.getFlag(MODULE_ID, 'scenescape').size;
-        return {
-          x: p.document.x + p.document.width / 2,
-          y: p.document.y + p.document.height,
-          size,
-          height: p.document.height,
-          realHeight: 100 * (size / 6),
-        };
-      })
-      .sort((c1, c2) => c1.y - c2.y);
-
-    // To simplify processing later, lets insert markers at y=0 and y=scene height
-    if (markers.length) {
-      if (markers[0].y > 0) {
-        markers.unshift({ ...markers[0], y: 0, virtual: true });
-      }
-      if (markers[markers.length - 1].y < canvas.dimensions.height) {
-        markers.push({ ...markers[markers.length - 1], y: canvas.dimensions.height, virtual: true });
-      }
-    }
-
-    // Calculate and assign elevation to each marker
-    if (markers.length) {
-      let elevation = 0;
-      markers[0].elevation = 0;
-      for (let i = 1; i < markers.length; i++) {
-        let m1 = markers[i - 1];
-        let m2 = markers[i];
-
-        let scale1 = m1.height / m1.realHeight;
-        let scale2 = m2.height / m2.realHeight;
-
-        let distance;
-        if (scale1 < scale2) {
-          distance = SceneScape.distanceRatio * (scale2 / scale1) * (6 / 100);
-        } else if (scale1 > scale2) {
-          distance = SceneScape.distanceRatio * (scale1 / scale2) * (6 / 100);
-        } else {
-          distance = (m1.size / m1.height) * (m2.y - m1.y); // TODO test
-        }
-
-        elevation += distance;
-
-        markers[i].elevation = elevation;
-      }
-    }
-
-    let update = {};
-    if (!markers.length) update[`flags.${MODULE_ID}.scenescape.-=markers`] = null;
-    else {
-      update[`flags.${MODULE_ID}.scenescape.markers`] = markers;
-      const lastM = markers[markers.length - 1];
-      update.foregroundElevation =
-        Math.round(lastM.elevation + (lastM.size / lastM.height) * (canvas.dimensions.height - lastM.y)) + 1;
-    }
-    canvas.scene.update(update);
-  }
-}
-
 export class SceneScape {
   static get active() {
     return this._active;
@@ -113,7 +46,7 @@ export class SceneScape {
     console.log('LOAD FLAGS', flags);
     if (flags) {
       this._active = Boolean(flags.markers?.length);
-      this._distanceRatio = (flags.distanceRatio ?? 400) / 2;
+      this._distanceRatio = ((flags.scaleDistance ?? 12) / 6) * 100 * 2;
       this._stepDistance = flags.stepDistance ?? 1;
       this._movementLimits = flags.movementLimits;
     }
@@ -199,5 +132,69 @@ export class SceneScape {
     }
 
     return { x: nX, y: nY };
+  }
+
+  static processReferenceMarkers(scene) {
+    // Retrieve marker tiles from the scene and sort them on the y-axis
+    const markers = scene.tiles
+      .filter((d) => d.getFlag(MODULE_ID, 'scenescape')?.marker)
+      .map((d) => {
+        const size = d.getFlag(MODULE_ID, 'scenescape').size;
+        return {
+          x: d.x + d.width / 2,
+          y: d.y + d.height,
+          size,
+          height: d.height,
+          realHeight: 100 * (size / 6),
+        };
+      })
+      .sort((m1, m2) => m1.y - m2.y);
+
+    // To simplify processing later, lets insert markers at y=0 and y=scene height
+    if (markers.length) {
+      if (markers[0].y > 0) {
+        markers.unshift({ ...markers[0], y: 0, virtual: true });
+      }
+      if (markers[markers.length - 1].y < canvas.dimensions.height) {
+        markers.push({ ...markers[markers.length - 1], y: canvas.dimensions.height, virtual: true });
+      }
+    }
+
+    // Calculate and assign elevation to each marker
+    if (markers.length) {
+      let elevation = 0;
+      markers[0].elevation = 0;
+      for (let i = 1; i < markers.length; i++) {
+        let m1 = markers[i - 1];
+        let m2 = markers[i];
+
+        let scale1 = m1.height / m1.realHeight;
+        let scale2 = m2.height / m2.realHeight;
+
+        let distance;
+        if (scale1 < scale2) {
+          distance = SceneScape.distanceRatio * (scale2 / scale1) * (6 / 100);
+        } else if (scale1 > scale2) {
+          distance = SceneScape.distanceRatio * (scale1 / scale2) * (6 / 100);
+        } else {
+          distance = ((m2.y - m1.y) / scale1) * (6 / 100); // TODO test
+        }
+
+        elevation += distance;
+
+        markers[i].elevation = elevation;
+      }
+    }
+
+    if (markers.length) {
+      let lastM = markers[markers.length - 1];
+
+      return {
+        markers,
+        foregroundElevation:
+          Math.round(lastM.elevation + (lastM.size / lastM.height) * (canvas.dimensions.height - lastM.y)) + 1,
+      };
+    }
+    return {};
   }
 }

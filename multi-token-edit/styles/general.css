@@ -113,13 +113,14 @@
 
 .mass-edit-dark-window .window-content,
 .mass-edit-dark-window .tag {
-  background: rgba(50, 50, 50, 0.8);
+  background: rgba(50, 50, 50, 0.8) !important;
   color: white;
 }
 
 .mass-edit-dark-window button {
-  background: black;
+  background: rgba(0, 0, 0, 0.4);
   color: white;
+  border: 1px groove darkorange;
 }
 
 .mass-edit-dark-window button:disabled {

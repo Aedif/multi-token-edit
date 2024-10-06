@@ -1,7 +1,7 @@
 import { MODULE_ID, PIVOTS } from '../constants.js';
 import { Preset } from '../presets/preset.js';
 import { Spawner } from '../presets/spawner.js';
-import { SceneScape, ScenescapeScaler } from './scenescape.js';
+import { SceneScape } from './scenescape.js';
 
 const TEMPLATES = [
   { height: 3, src: `modules/${MODULE_ID}/images/3ft.webp` },
@@ -14,26 +14,32 @@ export default class ScenescapeConfig extends FormApplication {
   constructor() {
     super({}, {});
     this.scene = canvas.scene;
+    this.flags = this.scene.getFlag(MODULE_ID, 'scenescape') ?? {};
+    this.dataUpdate = {};
   }
 
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
       id: 'mass-edit-scenescape',
-      classes: ['mass-edit-dark-window'],
+      classes: ['sheet', 'mass-edit-dark-window'],
       template: `modules/${MODULE_ID}/templates/scenescape.html`,
-      resizable: true,
+      tabs: [{ navSelector: '.sheet-tabs', contentSelector: '.content', initial: 'scale' }],
+      resizable: false,
       minimizable: false,
-      title: 'Scenescape',
       width: 300,
-      height: 700,
+      height: 'auto',
     });
+  }
+
+  get title() {
+    return 'Scenescape: ' + this.scene.name;
   }
 
   async getData(options) {
     const data = super.getData(options);
     data.markerTemplates = TEMPLATES;
-    data.distanceRatio = 400; // TODO
-    data.speed = 1;
+    data.scaleDistance = this.flags.scaleDistance ?? 24;
+    data.speed = this.flags.speed ?? 1;
     return data;
   }
 
@@ -44,16 +50,28 @@ export default class ScenescapeConfig extends FormApplication {
     super.activateListeners(html);
 
     html.on('click', '.marker > img', this._onClickMarker.bind(this));
-    html.on('click', '.lockInScale', () => ScenescapeScaler.lockScale());
+    html.on('click', '.lockInScale', this._onLockInScale.bind(this));
     html.on('click', '.select-limit-lower', () => this._onSelectLimit('y2'));
     html.on('click', '.select-limit-upper', () => this._onSelectLimit('y1'));
+    html.on('click', '.clear-limits', this._onClearLimits.bind(this));
+  }
+
+  _onLockInScale() {
+    const { markers, foregroundElevation } = SceneScape.processReferenceMarkers(this.scene);
+    if (markers) {
+      this.flags.markers = markers;
+      this.dataUpdate.foregroundElevation = foregroundElevation;
+    } else {
+      delete this.flags.markers;
+      delete this.dataUpdate.foregroundElevation;
+    }
   }
 
   _onSelectLimit(varName) {
     this._onMinimize();
     LineSelector.select((pos) => {
       if (pos) {
-        const limits = SceneScape.movementLimits ?? {};
+        const limits = this.flags.movementLimits ?? {};
         limits[varName] = pos.y;
 
         if (limits.y1 != null && limits.y2 != null) {
@@ -62,10 +80,14 @@ export default class ScenescapeConfig extends FormApplication {
           limits.y1 = y1;
         }
 
-        this.scene.update({ [`flags.${MODULE_ID}.scenescape.movementLimits`]: limits });
+        foundry.utils.mergeObject(this.flags, { movementLimits: limits });
       }
       this._onMaximize();
-    }, Object.values(SceneScape.movementLimits ?? {}));
+    }, Object.values(this.flags.movementLimits ?? {}));
+  }
+
+  _onClearLimits() {
+    delete this.flags.movementLimits;
   }
 
   async _onClickMarker(event) {
@@ -114,7 +136,25 @@ export default class ScenescapeConfig extends FormApplication {
    * @param {Event} event
    * @param {Object} formData
    */
-  async _updateObject(event, formData) {}
+  async _updateObject(event, formData) {
+    let update = {};
+
+    foundry.utils.mergeObject(this.flags, formData);
+    this._onLockInScale();
+
+    ['movementLimits', 'markers', 'speed', 'scaleDistance'].forEach((varName) => {
+      if (foundry.utils.isEmpty(this.flags[varName])) update[`flags.${MODULE_ID}.scenescape.-=${varName}`] = null;
+      else update[`flags.${MODULE_ID}.scenescape.${varName}`] = this.flags[varName];
+    });
+
+    if (!foundry.utils.isEmpty(this.dataUpdate)) {
+      foundry.utils.mergeObject(update, this.dataUpdate);
+    }
+
+    console.log('UPDATE', update);
+
+    if (!foundry.utils.isEmpty(update)) this.scene.update(update);
+  }
 }
 
 class LineSelector {
