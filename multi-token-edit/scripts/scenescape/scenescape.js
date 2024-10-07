@@ -43,12 +43,13 @@ export class SceneScape {
 
   static loadFlags() {
     const flags = canvas.scene.getFlag(MODULE_ID, 'scenescape');
-    console.log('LOAD FLAGS', flags);
+    //console.log('LOAD FLAGS', flags);
     if (flags) {
       this._active = Boolean(flags.markers?.length);
-      this._distanceRatio = ((flags.scaleDistance ?? 12) / 6) * 100 * 2;
-      this._stepDistance = flags.stepDistance ?? 1;
+      this._distanceRatio = (flags.scaleDistance ?? 32) / 2;
+      this._stepDistance = flags.speed ?? 1;
       this._movementLimits = flags.movementLimits;
+      this._markers = flags.markers;
     }
   }
 
@@ -81,17 +82,17 @@ export class SceneScape {
    * @param {object} markers
    * @returns
    */
-  static _getBoundingMarkers(val, param, markers = canvas.scene.getFlag(MODULE_ID, 'scenescape')?.markers) {
-    if (!markers) return {};
+  static _getBoundingMarkers(val, param) {
+    if (!this._markers) return {};
 
     // Find the 2 markers pos is between
-    let i = markers.length - 1;
-    while (markers[i][param] > val) i--;
-    let m1 = markers[i];
+    let i = this._markers.length - 1;
+    while (this._markers[i][param] > val) i--;
+    let m1 = this._markers[i];
 
     i = 0;
-    while (markers[i][param] < val) i++;
-    let m2 = markers[i];
+    while (this._markers[i][param] < val) i++;
+    let m2 = this._markers[i];
 
     return { m1, m2 };
   }
@@ -112,17 +113,19 @@ export class SceneScape {
 
     if (dy !== 0) {
       dy = this.stepDistance * dy;
-      const markers = canvas.scene.getFlag(MODULE_ID, 'scenescape')?.markers;
+      const markers = this._markers;
 
       let nElevation = Math.clamp(elevation + dy, 0, markers[markers.length - 1].elevation);
       let { m1, m2 } = this._getBoundingMarkers(nElevation, 'elevation', markers);
 
-      if (m1 == m2) return { x: nX, y: m1.y };
+      if (m1 == m2) {
+        nY = m1.y;
+      } else {
+        // Percentage wise where is new elevation between the markers
+        const r = (nElevation - m1.elevation) / (m2.elevation - m1.elevation);
 
-      // Percentage wise where is new elevation between the markers
-      const r = (nElevation - m1.elevation) / (m2.elevation - m1.elevation);
-
-      nY = (m2.y - m1.y) * r + m1.y;
+        nY = (m2.y - m1.y) * r + m1.y;
+      }
     }
 
     // Enforce movement limits
@@ -135,6 +138,7 @@ export class SceneScape {
   }
 
   static processReferenceMarkers(scene) {
+    this.loadFlags();
     // Retrieve marker tiles from the scene and sort them on the y-axis
     const markers = scene.tiles
       .filter((d) => d.getFlag(MODULE_ID, 'scenescape')?.marker)
@@ -148,7 +152,10 @@ export class SceneScape {
           realHeight: 100 * (size / 6),
         };
       })
-      .sort((m1, m2) => m1.y - m2.y);
+      .sort((m1, m2) => m1.y - m2.y)
+      .filter((m, pos, arr) => {
+        return !pos || m.y !== arr[pos - 1].y;
+      });
 
     // To simplify processing later, lets insert markers at y=0 and y=scene height
     if (markers.length) {
@@ -173,9 +180,9 @@ export class SceneScape {
 
         let distance;
         if (scale1 < scale2) {
-          distance = SceneScape.distanceRatio * (scale2 / scale1) * (6 / 100);
+          distance = SceneScape.distanceRatio * (scale2 / scale1);
         } else if (scale1 > scale2) {
-          distance = SceneScape.distanceRatio * (scale1 / scale2) * (6 / 100);
+          distance = SceneScape.distanceRatio * (scale1 / scale2);
         } else {
           distance = ((m2.y - m1.y) / scale1) * (6 / 100); // TODO test
         }

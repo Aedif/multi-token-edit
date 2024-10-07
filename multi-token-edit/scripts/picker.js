@@ -253,7 +253,7 @@ export class Picker {
       }
     }
     this.pickerOverlay = pickerOverlay;
-    setTimeout(() => this.feedPos(canvas.mousePosition), 100);
+    this.feedPos(canvas.mousePosition);
   }
 
   static feedPos(pos) {
@@ -314,8 +314,10 @@ export class Picker {
 
     // Since we do elevation manipulation to force previews to be rendered on top
     // we don't want the user to see these temporary values
-    // if (object.tooltip) object.tooltip.renderable = false;
-    // if (object.controlIcon?.tooltip) object.controlIcon.tooltip.renderable = false;
+    if (object.tooltip) object.tooltip.renderable = false;
+    if (object.controlIcon?.tooltip) object.controlIcon.tooltip.renderable = false;
+
+    object.visible = false;
 
     // Foundry as well as various modules might have complex `isVisible` and 'visible' conditions
     // lets simplify by overriding this function to make sure the preview is always visible

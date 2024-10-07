@@ -2,6 +2,7 @@ import { MODULE_ID } from '../constants.js';
 import { editPreviewPlaceables, Picker } from '../picker.js';
 import { libWrapper } from '../shim/shim.js';
 import { loadImageVideoDimensions } from '../utils.js';
+import ScenescapeConfig from './configuration.js';
 import { SceneScape } from './scenescape.js';
 
 /**
@@ -23,6 +24,7 @@ export class ScenescapeControls {
     Hooks.on('canvasInit', (canvas) => {
       SceneScape.loadFlags();
       this._checkActivateControls();
+      ScenescapeConfig.close();
     });
   }
 

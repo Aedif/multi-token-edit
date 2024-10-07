@@ -11,11 +11,18 @@ const TEMPLATES = [
 ];
 
 export default class ScenescapeConfig extends FormApplication {
+  static close() {
+    Object.values(ui.windows)
+      .find((w) => w instanceof ScenescapeConfig)
+      ?.close();
+  }
+
   constructor() {
-    super({}, {});
+    super({}, { left: 60 });
     this.scene = canvas.scene;
     this.flags = this.scene.getFlag(MODULE_ID, 'scenescape') ?? {};
     this.dataUpdate = {};
+    this._createReferenceMarkers();
   }
 
   static get defaultOptions() {
@@ -38,8 +45,8 @@ export default class ScenescapeConfig extends FormApplication {
   async getData(options) {
     const data = super.getData(options);
     data.markerTemplates = TEMPLATES;
-    data.scaleDistance = this.flags.scaleDistance ?? 24;
-    data.speed = this.flags.speed ?? 1;
+    data.scaleDistance = this.flags.scaleDistance ?? 32;
+    data.speed = this.flags.speed ?? 4.3;
     return data;
   }
 
@@ -50,20 +57,37 @@ export default class ScenescapeConfig extends FormApplication {
     super.activateListeners(html);
 
     html.on('click', '.marker > img', this._onClickMarker.bind(this));
-    html.on('click', '.lockInScale', this._onLockInScale.bind(this));
     html.on('click', '.select-limit-lower', () => this._onSelectLimit('y2'));
     html.on('click', '.select-limit-upper', () => this._onSelectLimit('y1'));
+    html.on('click', '.auto-select-limits', this._onAutoSelectLimits.bind(this));
     html.on('click', '.clear-limits', this._onClearLimits.bind(this));
+  }
+
+  /**
+   * Set movement limits to lowest and highest reference markers
+   * @returns
+   */
+  _onAutoSelectLimits() {
+    const ys = this.scene.tiles
+      .filter((d) => d.getFlag(MODULE_ID, 'scenescape')?.marker)
+      .map((d) => d.y + d.height)
+      .sort((y1, y2) => y1 - y2);
+    if (!ys.length) return this._onClearLimits();
+
+    foundry.utils.mergeObject(this.flags, {
+      movementLimits: {
+        y1: ys[0],
+        y2: ys[ys.length - 1],
+      },
+    });
   }
 
   _onLockInScale() {
     const { markers, foregroundElevation } = SceneScape.processReferenceMarkers(this.scene);
     if (markers) {
-      this.flags.markers = markers;
-      this.dataUpdate.foregroundElevation = foregroundElevation;
+      this.scene.update({ [`flags.${MODULE_ID}.scenescape.markers`]: markers, foregroundElevation });
     } else {
-      delete this.flags.markers;
-      delete this.dataUpdate.foregroundElevation;
+      this.scene.update({ [`flags.${MODULE_ID}.scenescape.-=markers`]: null });
     }
   }
 
@@ -114,8 +138,51 @@ export default class ScenescapeConfig extends FormApplication {
       tags: [`${height}ft`],
     });
 
-    await Spawner.spawnPreset({ preset, preview: true, pivot: PIVOTS.BOTTOM, snapToGrid: false, scaleToGrid: true });
+    await Spawner.spawnPreset({
+      preset,
+      preview: true,
+      pivot: PIVOTS.BOTTOM,
+      snapToGrid: false,
+      scaleToGrid: true,
+      layerSwitch: true,
+    });
     this._onMaximize();
+  }
+
+  _deleteReferenceMarkers() {
+    const ids = this.scene.tiles.filter((d) => d.getFlag(MODULE_ID, 'scenescape')?.marker).map((d) => d.id);
+    if (ids.length) this.scene.deleteEmbeddedDocuments('Tile', ids);
+  }
+
+  _createReferenceMarkers() {
+    if (this.scene.tiles.find((d) => d.getFlag(MODULE_ID, 'scenescape')?.marker)) return;
+
+    const markers = this.flags.markers?.filter((m) => !m.virtual);
+    if (!markers?.length) return;
+
+    for (const m of markers) {
+      const preset = new Preset({
+        documentName: 'Tile',
+        data: [
+          {
+            texture: { src: TEMPLATES.find((t) => t.height === m.size).src },
+            width: m.height,
+            height: m.height,
+            elevation: this.scene.foregroundElevation,
+            flags: {
+              [MODULE_ID]: {
+                scenescape: {
+                  marker: true,
+                  size: m.size,
+                },
+              },
+            },
+          },
+        ],
+        tags: [`${m.size}ft`],
+      });
+      Spawner.spawnPreset({ preset, x: m.x, y: m.y, preview: false, pivot: PIVOTS.BOTTOM, scaleToGrid: false });
+    }
   }
 
   _onMinimize() {
@@ -140,9 +207,8 @@ export default class ScenescapeConfig extends FormApplication {
     let update = {};
 
     foundry.utils.mergeObject(this.flags, formData);
-    this._onLockInScale();
 
-    ['movementLimits', 'markers', 'speed', 'scaleDistance'].forEach((varName) => {
+    ['movementLimits', 'speed', 'scaleDistance'].forEach((varName) => {
       if (foundry.utils.isEmpty(this.flags[varName])) update[`flags.${MODULE_ID}.scenescape.-=${varName}`] = null;
       else update[`flags.${MODULE_ID}.scenescape.${varName}`] = this.flags[varName];
     });
@@ -151,9 +217,13 @@ export default class ScenescapeConfig extends FormApplication {
       foundry.utils.mergeObject(update, this.dataUpdate);
     }
 
-    console.log('UPDATE', update);
+    if (!foundry.utils.isEmpty(update)) await this.scene.update(update);
+    this._onLockInScale(this.scene);
+  }
 
-    if (!foundry.utils.isEmpty(update)) this.scene.update(update);
+  async close(options = {}) {
+    this._deleteReferenceMarkers();
+    return super.close(options);
   }
 }
 

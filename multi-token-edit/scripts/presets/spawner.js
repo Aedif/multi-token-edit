@@ -155,7 +155,7 @@ export class Spawner {
       if (game.Levels3DPreview?._active) {
         if (z == null) posTransform.z = 0;
         else posTransform.z += z;
-      }
+      } else delete posTransform.z;
 
       let offset = getPivotOffset(SceneScape.active ? PIVOTS.BOTTOM : pivot, docToData);
       posTransform.x -= offset.x;
