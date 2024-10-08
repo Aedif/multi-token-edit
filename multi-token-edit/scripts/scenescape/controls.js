@@ -77,7 +77,7 @@ export class ScenescapeControls {
 
         const { scale, elevation } = SceneScape.getParallaxParameters(bottom);
 
-        const actorDefinedSize = (SceneScape._getActorSize(token.actor) / 6) * 100;
+        const actorDefinedSize = (SceneScape._getActorSize(token.actor, token) / 6) * 100;
         const r = actorDefinedSize / height;
 
         width *= scale * r;

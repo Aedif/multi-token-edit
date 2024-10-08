@@ -197,51 +197,58 @@ export class PresetCollection {
 
   /**
    * TODO: create a method to batch set presets
-   * @param {Preset|Array[Preset]} preset
+   * @param {Preset|Array[Preset]} presets
    */
-  static async set(preset, pack) {
+  static async set(presets, pack) {
+    if (!presets) throw new Error('Attempting to set invalid Preset/s', presets);
     if (!pack) pack = this.workingPack;
-
-    if (preset instanceof Array) {
-      for (const p of preset) {
-        await PresetCollection.set(p, pack);
-      }
-      return;
-    }
+    if (!(presets instanceof Array)) presets = [presets];
 
     const compendium = await this._initCompendium(pack);
-    if (compendium.index.get(preset.id)) {
-      await this.update(preset);
-      return;
+
+    const toCreatePresets = [];
+
+    for (const preset of presets) {
+      if (compendium.index.get(preset.id)) {
+        await this.update(preset);
+      } else toCreatePresets.push(preset);
     }
 
-    const documents = await JournalEntry.createDocuments(
-      [
-        {
-          _id: preset.id,
-          name: preset.name,
-          pages: preset.pages ?? [],
-          folder: preset.folder,
-          flags: { [MODULE_ID]: { preset: preset.toJSON() } },
-        },
-      ],
-      {
-        pack: pack,
-        keepId: true,
-      }
-    );
+    if (!toCreatePresets.length) return;
 
-    preset.uuid = documents[0].uuid;
-    preset.document = documents[0];
+    const data = toCreatePresets.map((preset) => {
+      return {
+        _id: preset.id,
+        name: preset.name,
+        pages: preset.pages ?? [],
+        folder: preset.folder,
+        flags: { [MODULE_ID]: { preset: preset.toJSON() } },
+      };
+    });
+
+    const documents = await JournalEntry.createDocuments(data, {
+      pack: pack,
+      keepId: true,
+    });
+
+    for (const preset of toCreatePresets) {
+      const document = documents.find((d) => d.id === preset.id);
+      preset.uuid = document.uuid;
+      await preset.load(false, document);
+    }
 
     const metaDoc = await this._initMetaDocument(pack);
     const update = {};
 
-    META_INDEX_FIELDS.forEach((f) => {
-      update[f] = preset[f];
-    });
+    for (const preset of toCreatePresets) {
+      const metaFields = {};
+      META_INDEX_FIELDS.forEach((f) => {
+        metaFields[f] = preset[f];
+      });
+      update[preset.id] = metaFields;
+    }
 
-    await metaDoc.setFlag(MODULE_ID, 'index', { [preset.id]: update });
+    await metaDoc.setFlag(MODULE_ID, 'index', update);
     delete PresetTree._packTrees[pack];
   }
 
@@ -645,7 +652,6 @@ export class PresetAPI {
     presetData.gridSize = canvas.scene.grid.size;
 
     const preset = new Preset(presetData);
-    await PresetCollection.set(preset);
     return preset;
   }
 

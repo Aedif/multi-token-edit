@@ -558,7 +558,7 @@ export class MassEditPresets extends FormApplication {
    */
   _foundryDrop(event) {
     const data = TextEditor.getDragEventData(event.originalEvent);
-    if (!isEmpty(data)) {
+    if (!foundry.utils.isEmpty(data)) {
       if (data.type === 'Folder') {
         const folder = fromUuidSync(data.uuid);
         if (folder.type !== 'Actor') return false;
@@ -575,7 +575,10 @@ export class MassEditPresets extends FormApplication {
         return true;
       } else if (data.type === 'Actor') {
         PresetAPI.createPresetFromActorUuid(data.uuid, { keepId: true }).then((preset) => {
-          if (preset) this.render(true);
+          if (preset)
+            PresetCollection.set(preset).then(() => {
+              this.render(true);
+            });
         });
         return true;
       }
@@ -609,14 +612,20 @@ export class MassEditPresets extends FormApplication {
       await this._importActorFolder(child.folder, nFolder.id, options);
     }
 
+    const presets = [];
+
     for (const actor of folder.contents) {
       if (!this._importTracker?.active) break;
-      await PresetAPI.createPresetFromActorUuid(actor.uuid, {
-        folder: nFolder.id,
-        keepId: options.keepId,
-      });
+      presets.push(
+        await PresetAPI.createPresetFromActorUuid(actor.uuid, {
+          folder: nFolder.id,
+          keepId: options.keepId,
+        })
+      );
       this._importTracker.incrementCount();
     }
+
+    await PresetCollection.set(presets);
 
     this.render(true);
   }
@@ -843,14 +852,19 @@ export class MassEditPresets extends FormApplication {
       const nFolder = await Folder.create(data, { pack, keepId });
 
       const presets = await PresetCollection.batchLoadPresets(folder.presets);
+
+      const toCreate = [];
+
       for (const preset of presets) {
         if (!this._importTracker?.active) break;
         const p = preset.clone();
         p.folder = nFolder.id;
         if (!keepId) p.id = foundry.utils.randomID();
-        await PresetCollection.set(p, pack);
+        toCreate.push(p);
         this._importTracker?.incrementCount();
       }
+
+      await PresetCollection.set(toCreate, pack);
 
       for (const child of folder.children) {
         if (!this._importTracker?.active) break;
@@ -870,12 +884,16 @@ export class MassEditPresets extends FormApplication {
 
   async _onCopySelectedPresets(pack, { keepFolder = false, keepId = true } = {}) {
     const [selected, _] = await this._getSelectedPresets();
-    for (const preset of selected) {
-      const p = preset.clone();
+
+    const presets = selected.map((s) => {
+      const p = s.clone();
       if (!keepFolder) p.folder = null;
       if (!keepId) p.id = foundry.utils.randomID();
-      await PresetCollection.set(p, pack);
-    }
+      return p;
+    });
+
+    await PresetCollection.set(presets, pack);
+
     if (selected.length) this.render(true);
   }
 
@@ -1770,6 +1788,8 @@ export class MassEditPresets extends FormApplication {
     let importCount = 0;
 
     if (foundry.utils.getType(json) === 'Array') {
+      const presets = [];
+
       for (const p of json) {
         if (!('documentName' in p)) continue;
         if (!('data' in p) || foundry.utils.isEmpty(p.data)) continue;
@@ -1777,9 +1797,12 @@ export class MassEditPresets extends FormApplication {
         const preset = new Preset(p);
         preset._pages = p.pages;
 
-        await PresetCollection.set(preset);
+        presets.push(preset);
+
         importCount++;
       }
+
+      await PresetCollection.set(presets);
     }
 
     ui.notifications.info(`Mass Edit: ${localFormat('presets.imported', { count: importCount })}`);

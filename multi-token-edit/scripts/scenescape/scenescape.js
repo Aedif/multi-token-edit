@@ -210,7 +210,9 @@ export class SceneScape {
    * @param {Actor} actor
    * @returns {Number} feet
    */
-  static _getActorSize(actor) {
+  static _getActorSize(actor, token) {
+    if (!actor) return token.height * 6;
+
     // Retrieves numbers from a string assuming the first number represents feet and the 2nd inches
     // The total is returned in feet
     // e.g. "6 feet 6 inches" => 6.5
