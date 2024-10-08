@@ -2,7 +2,7 @@ import { pasteDataUpdate } from '../applications/formUtils.js';
 import { MODULE_ID, PIVOTS } from './constants.js';
 import { Mouse3D } from './mouse3d.js';
 import { Picker } from './picker.js';
-import { PresetAPI } from './presets/collection.js';
+import { PresetAPI, PresetCollection } from './presets/collection.js';
 import { Preset } from './presets/preset.js';
 import { Spawner } from './presets/spawner.js';
 import { applyRandomization } from './randomizer/randomizerUtils.js';
@@ -1024,6 +1024,6 @@ export async function openBrushMenu(options, settings = {}) {
   }
 
   if (!presets?.length) return;
-  for (const preset of presets) await preset.load();
+  await PresetCollection.batchLoadPresets(presets);
   BrushMenu.render(presets, settings);
 }

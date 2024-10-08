@@ -204,4 +204,33 @@ export class SceneScape {
     }
     return {};
   }
+
+  /**
+   * Determines actor size in feet
+   * @param {Actor} actor
+   * @returns {Number} feet
+   */
+  static _getActorSize(actor) {
+    // Retrieves numbers from a string assuming the first number represents feet and the 2nd inches
+    // The total is returned in feet
+    // e.g. "6 feet 6 inches" => 6.5
+    // e.g. 4'3'' => 4.25
+    const parseHeightString = function (heightString) {
+      const matches = heightString.match(/[\d|,|.|\+]+/g);
+      if (matches?.length) {
+        let feet = Number(matches[0]);
+        let inches = matches.length > 1 ? Number(matches[1]) : 0;
+        feet += inches / 12;
+        return feet;
+      }
+      return null;
+    };
+
+    if (game.system.id === 'dnd5e') {
+      const height = parseHeightString(actor.system.details?.height ?? '');
+      if (height) return height;
+    }
+
+    return actor.prototypeToken.height * 6;
+  }
 }

@@ -842,9 +842,10 @@ export class MassEditPresets extends FormApplication {
       };
       const nFolder = await Folder.create(data, { pack, keepId });
 
-      for (const preset of folder.presets) {
+      const presets = await PresetCollection.batchLoadPresets(folder.presets);
+      for (const preset of presets) {
         if (!this._importTracker?.active) break;
-        const p = (await preset.load()).clone();
+        const p = preset.clone();
         p.folder = nFolder.id;
         if (!keepId) p.id = foundry.utils.randomID();
         await PresetCollection.set(p, pack);
@@ -899,11 +900,7 @@ export class MassEditPresets extends FormApplication {
       uuids.push(uuid);
     });
 
-    const selected = [];
-    for (const uuid of uuids) {
-      const preset = await PresetCollection.get(uuid, { full });
-      if (preset) selected.push(preset);
-    }
+    const selected = await PresetCollection.getBatch(uuids, { full });
     return [selected, items];
   }
 
@@ -1804,9 +1801,7 @@ export class MassEditPresets extends FormApplication {
 async function exportPresets(presets, fileName) {
   if (!presets.length) return;
 
-  for (const preset of presets) {
-    await preset.load();
-  }
+  await PresetCollection.batchLoadPresets(presets);
 
   presets = presets.map((p) => {
     const preset = p.clone();

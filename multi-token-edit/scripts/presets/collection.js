@@ -1,4 +1,3 @@
-import { showGenericForm } from '../../applications/multiConfig.js';
 import { Brush } from '../brush.js';
 import { MODULE_ID, SUPPORTED_PLACEABLES, UI_DOCS } from '../constants.js';
 import { SeededRandom, applyPresetToScene, localize } from '../utils.js';
@@ -197,6 +196,7 @@ export class PresetCollection {
   }
 
   /**
+   * TODO: create a method to batch set presets
    * @param {Preset|Array[Preset]} preset
    */
   static async set(preset, pack) {
@@ -260,6 +260,63 @@ export class PresetCollection {
       return preset;
     }
     return null;
+  }
+
+  static async getBatch(uuids, { full = true }) {
+    const presets = [];
+
+    for (const uuid of uuids) {
+      if (uuid.startsWith('virtual@')) presets.push(await this._constructVirtualFilePreset(uuid, { full: false }));
+      else {
+        let { collection, documentId } = foundry.utils.parseUuid(uuid);
+        const index = collection.index.get(documentId);
+
+        if (index) {
+          const metaIndex = (await collection.getDocument(META_INDEX_ID))?.getFlag(MODULE_ID, 'index');
+          const mIndex = metaIndex[index._id];
+          const preset = new Preset({ ...index, ...mIndex });
+          preset.pack = collection.collection;
+
+          presets.push(preset);
+        }
+      }
+    }
+
+    if (full) {
+      return this.batchLoadPresets(presets);
+    }
+
+    return presets;
+  }
+
+  /**
+   * Batch load preset documents using pack.getDocuments({ _id__in: ids }) query.
+   * @param {Array[Preset]} presets
+   * @returns
+   */
+  static async batchLoadPresets(presets) {
+    const collectionToPreset = new Map();
+
+    for (const preset of presets) {
+      if (preset.virtual) await preset.load();
+      else {
+        let { collection } = foundry.utils.parseUuid(preset.uuid);
+        if (collectionToPreset.get(collection)) collectionToPreset.get(collection).push(preset);
+        else collectionToPreset.set(collection, [preset]);
+      }
+    }
+
+    for (const [collection, presets] of collectionToPreset) {
+      const ids = presets.map((p) => p.id);
+      const documents = await collection.getDocuments({ _id__in: ids });
+
+      for (const preset of presets) {
+        const d = documents.find((d) => d.id === preset.id);
+        if (d) await preset.load(false, d);
+      }
+    }
+
+    return presets;
   }
 
   static async _constructVirtualFilePreset(uuid, { full = true } = {}) {
@@ -542,10 +599,7 @@ export class PresetAPI {
     if (uuid) {
       presets = [];
       const uuids = Array.isArray(uuid) ? uuid : [uuid];
-      for (const uuid of uuids) {
-        const preset = await PresetCollection.get(uuid, { full });
-        if (preset) presets.push(preset);
-      }
+      presets = await PresetCollection.getBatch(uuids, { full });
     } else if (!name && !type && !folder && !tags) {
       throw Error('UUID, Name, Type, Folder and/or Tags required to retrieve a Preset.');
     } else {
@@ -955,52 +1009,4 @@ export class PresetTree {
       }
     }
   }
-}
-
-/**
- * Opens a GenericMassEdit form to modify specific fields within the provided data
- * @param {Object} data            data to be modified
- * @param {Array[String]} toModify fields within data to be modified
- * @returns modified data or null if form was canceled
- */
-async function modifySpawnData(data, toModify) {
-  const fields = {};
-  const flatData = foundry.utils.flattenObject(data);
-  for (const field of toModify) {
-    if (field in flatData) {
-      if (flatData[field] == null) fields[field] = '';
-      else fields[field] = flatData[field];
-    }
-  }
-
-  if (!foundry.utils.isEmpty(fields)) {
-    await new Promise((resolve) => {
-      showGenericForm(fields, 'PresetFieldModify', {
-        callback: (modified) => {
-          if (foundry.utils.isEmpty(modified)) {
-            if (modified == null) data = null;
-            resolve();
-            return;
-          }
-
-          for (const [k, v] of Object.entries(modified)) {
-            flatData[k] = v;
-          }
-
-          const tmpData = foundry.utils.expandObject(flatData);
-
-          const reorganizedData = [];
-          for (let i = 0; i < data.length; i++) {
-            reorganizedData.push(tmpData[i]);
-          }
-          data = reorganizedData;
-          resolve();
-        },
-        simplified: true,
-        noTabs: true,
-      });
-    });
-  }
-
-  return data;
 }

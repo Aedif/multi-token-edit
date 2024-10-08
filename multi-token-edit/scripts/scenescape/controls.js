@@ -3,6 +3,7 @@ import { editPreviewPlaceables, Picker } from '../picker.js';
 import { libWrapper } from '../shim/shim.js';
 import { loadImageVideoDimensions } from '../utils.js';
 import ScenescapeConfig from './configuration.js';
+import { Parallax } from './parallax.js';
 import { SceneScape } from './scenescape.js';
 
 /**
@@ -29,8 +30,13 @@ export class ScenescapeControls {
   }
 
   static _checkActivateControls() {
-    if (SceneScape.active) ScenescapeControls._register();
-    else ScenescapeControls._unregister();
+    if (SceneScape.active) {
+      ScenescapeControls._register();
+      Parallax.registerHooks();
+    } else {
+      ScenescapeControls._unregister();
+      Parallax.unregisterHooks();
+    }
   }
 
   static _register() {
@@ -60,7 +66,7 @@ export class ScenescapeControls {
     this._hooks.push({ hook: 'preCreateToken', id });
 
     id = Hooks.on('createToken', async (token, options, userId) => {
-      if (game.user.id !== userId || options.spawnPreset) return;
+      if (game.user.id !== userId) return;
 
       let { width, height } = await loadImageVideoDimensions(token.texture.src);
       if (width && height) {
@@ -71,7 +77,7 @@ export class ScenescapeControls {
 
         const { scale, elevation } = SceneScape.getParallaxParameters(bottom);
 
-        const actorDefinedSize = (this._getActorSize(token.actor) / 6) * 100;
+        const actorDefinedSize = (SceneScape._getActorSize(token.actor) / 6) * 100;
         const r = actorDefinedSize / height;
 
         width *= scale * r;
@@ -103,6 +109,18 @@ export class ScenescapeControls {
         return '';
       },
       'WRAPPER'
+    );
+    this._wrapperIds.push(id);
+
+    // Hide AmbientLight warning on drag
+    id = libWrapper.register(
+      MODULE_ID,
+      'AmbientLight.prototype._canDragLeftStart',
+      function (wrapped, ...args) {
+        if (this.layer?.preview?.children.length) return false;
+        return wrapped(...args);
+      },
+      'MIXED'
     );
     this._wrapperIds.push(id);
 
@@ -158,7 +176,7 @@ export class ScenescapeControls {
         objects = objects.filter((o) => o._canDrag(game.user, event) && !o.document.locked);
 
         if (objects.length) {
-          editPreviewPlaceables(objects, true);
+          editPreviewPlaceables([objects[0]], true);
         }
 
         event.interactionData.clones = [];
@@ -247,33 +265,5 @@ export class ScenescapeControls {
 
     await canvas.scene.updateEmbeddedDocuments(documentName, updateData, { teleport: true });
     return objects;
-  }
-
-  /**
-   * Determines actor size in feet
-   * @param {Actor} actor
-   * @returns {Number} feet
-   */
-  static _getActorSize(actor) {
-    // Retrieves numbers from a string assuming the first number represents feet and the 2nd inches
-    // The total is returned in feet
-    // e.g. "6 feet 6 inches" => 6.5
-    // e.g. 4'3'' => 4.25
-    const parseHeightString = function (heightString) {
-      const matches = heightString.match(/[\d|,|.|\+]+/g);
-      if (matches?.length) {
-        let feet = matches[0];
-        if (matches.length > 1 && matches[1] > 0) feet += matches[1] / 12;
-        return feet;
-      }
-      return null;
-    };
-
-    if (game.system.id === 'dnd5e') {
-      const height = parseHeightString(actor.system.details?.height ?? '');
-      if (height) return height;
-    }
-
-    return actor.prototypeToken.height * 6;
   }
 }

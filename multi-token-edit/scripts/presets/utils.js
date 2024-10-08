@@ -1,6 +1,6 @@
 import { MODULE_ID, PIVOTS } from '../constants.js';
 import { applyRandomization } from '../randomizer/randomizerUtils.js';
-import { PresetAPI } from './collection.js';
+import { PresetAPI, PresetCollection } from './collection.js';
 
 /**
  * Tracking of folder open/close state
@@ -435,9 +435,7 @@ export function registerSideBarPresetDropListener() {
         (p) => p.documentName === 'AmbientSound'
       );
 
-      for (const p of presets) {
-        await p.load();
-      }
+      await PresetCollection.batchLoadPresets(presets);
 
       const updates = [];
 

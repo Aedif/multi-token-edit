@@ -1,6 +1,7 @@
 import { MODULE_ID, PIVOTS } from '../constants.js';
 import { Preset } from '../presets/preset.js';
 import { Spawner } from '../presets/spawner.js';
+import { ScenescapeControls } from './controls.js';
 import { SceneScape } from './scenescape.js';
 
 const TEMPLATES = [
@@ -40,6 +41,23 @@ export default class ScenescapeConfig extends FormApplication {
 
   get title() {
     return 'Scenescape: ' + this.scene.name;
+  }
+
+  _getHeaderButtons() {
+    const buttons = super._getHeaderButtons();
+
+    buttons.unshift({
+      label: 'Revert',
+      class: 'mass-edit-scenescape-delete',
+      icon: 'fas fa-trash fa-fw',
+      onclick: () => {
+        this.scene.unsetFlag(MODULE_ID, 'scenescape');
+        this.close();
+        ScenescapeControls._checkActivateControls();
+      },
+    });
+
+    return buttons;
   }
 
   async getData(options) {

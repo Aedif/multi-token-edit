@@ -143,10 +143,10 @@ export class Preset {
    * Loads underlying JournalEntry document from the compendium
    * @returns this
    */
-  async load(force = false) {
+  async load(force = false, document) {
     if (this.document && !force) return this;
     if (!this.document && this.uuid) {
-      this.document = await fromUuid(this.uuid);
+      this.document = document ?? (await fromUuid(this.uuid));
     }
 
     if (this.document) {

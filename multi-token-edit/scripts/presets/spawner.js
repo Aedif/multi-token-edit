@@ -1,4 +1,5 @@
 import { checkApplySpecialFields } from '../../applications/formUtils.js';
+import { showGenericForm } from '../../applications/multiConfig.js';
 import { MODULE_ID, PIVOTS } from '../constants.js';
 import { DataTransformer } from '../data/transformer.js';
 import { Picker } from '../picker.js';
@@ -315,5 +316,53 @@ export class Spawner {
 
     // Regenerate Linker links to ensure uniqueness on the spawned in scene
     if (!preserveLinks) this._regenerateLinks(docToData);
+  }
+
+  /**
+   * Opens a GenericMassEdit form to modify specific fields within the provided data
+   * @param {Object} data            data to be modified
+   * @param {Array[String]} toModify fields within data to be modified
+   * @returns modified data or null if form was canceled
+   */
+  static async modifySpawnData(data, toModify) {
+    const fields = {};
+    const flatData = foundry.utils.flattenObject(data);
+    for (const field of toModify) {
+      if (field in flatData) {
+        if (flatData[field] == null) fields[field] = '';
+        else fields[field] = flatData[field];
+      }
+    }
+
+    if (!foundry.utils.isEmpty(fields)) {
+      await new Promise((resolve) => {
+        showGenericForm(fields, 'PresetFieldModify', {
+          callback: (modified) => {
+            if (foundry.utils.isEmpty(modified)) {
+              if (modified == null) data = null;
+              resolve();
+              return;
+            }
+
+            for (const [k, v] of Object.entries(modified)) {
+              flatData[k] = v;
+            }
+
+            const tmpData = foundry.utils.expandObject(flatData);
+
+            const reorganizedData = [];
+            for (let i = 0; i < data.length; i++) {
+              reorganizedData.push(tmpData[i]);
+            }
+            data = reorganizedData;
+            resolve();
+          },
+          simplified: true,
+          noTabs: true,
+        });
+      });
+    }
+
+    return data;
   }
 }
