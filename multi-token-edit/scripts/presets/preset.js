@@ -257,9 +257,7 @@ export class Preset {
       const pack = game.packs.get(this.document.pack);
       const metaDoc = await pack.getDocument(META_INDEX_ID);
       if (metaDoc) {
-        let tmp = {};
-        tmp[this.id] = update;
-        await metaDoc.setFlag(MODULE_ID, 'index', tmp);
+        await metaDoc.setFlag(MODULE_ID, 'index', { [this.id]: update });
         delete PresetTree._packTrees[pack.metadata.name];
       } else {
         console.warn(`META INDEX missing in ${this.document.pack}`);

@@ -383,30 +383,20 @@
   line-break: anywhere;
 }
 
-.mass-edit-preset-form .item .item-name .tags {
-  line-height: 18px;
+.mass-edit-tags.tags {
+  line-height: 24px;
   margin-bottom: 2px;
   margin-top: 7px;
   font-size: 0.9em;
-  white-space: nowrap;
-  width: 50px;
-  overflow: hidden;
-  text-overflow: clip;
-  transition: flex 1s ease;
-  flex: 0;
 }
 
-.mass-edit-preset-form .item .item-name .tags.show {
-  transition: all 1s ease;
-  transition-delay: 1.5s;
-  flex: 0 0 100%;
-}
-
-.mass-edit-preset-form .item .item-name .tags span {
+.mass-edit-tags.tags span {
   color: gold;
   border: 1px gold solid;
   border-radius: 3px;
   padding: 0px 2px 0px 4px;
+  white-space: nowrap;
+  margin-right: 4px;
 }
 
 .mass-edit-preset-form .item .item-controls {
@@ -594,7 +584,7 @@ nav > a[data-tab='me-pinned'] {
 }
 
 .me-tags .tag-container .tag {
-  border: 1px gray solid;
+  border: 1px darkorange solid;
   border-radius: 5px;
   padding: 3px;
   margin: 2px;

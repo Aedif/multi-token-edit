@@ -190,9 +190,9 @@ export class PresetCollection {
    * Update multiple presets at the same time
    * @param {*} updates
    */
-  static async updatePresets(updates) {
+  static async updatePresets(updates, pack = this.workingPack) {
     // TODO update meta and preset itself
-    await JournalEntry.updateDocuments(updates, { pack: this.workingPack });
+    await JournalEntry.updateDocuments(updates, { pack });
   }
 
   /**

@@ -214,12 +214,12 @@ export class MassEditPresets extends FormApplication {
 
     // Hide/Show preset tags and favorite control
     html.on('mouseenter', '.item', (event) => {
-      $(event.currentTarget).find('.tags, .display-hover').addClass('show');
+      $(event.currentTarget).find('.display-hover').addClass('show');
       this._playPreview(event);
     });
 
     html.on('mouseleave', '.item', (event) => {
-      $(event.currentTarget).find('.tags, .display-hover').removeClass('show');
+      $(event.currentTarget).find('.display-hover').removeClass('show');
       this._endPreview(event);
     });
 
@@ -2193,6 +2193,9 @@ export class PresetConfig extends FormApplication {
 
   /** @override */
   async _updateObject(event, formData) {
+    // Particularly large updates can take a while, prevent the submit button being clicked multiple times
+    this.element.find('button[type="submit"]').prop('disabled', true);
+
     await this._updatePresets(formData);
 
     if (this.callback) this.callback(this.presets);

@@ -1,16 +1,10 @@
-<li class="item item-s flexrow {{#if sortable}}sortable{{/if}} {{#if preset.virtual}}virtual{{/if}}" data-uuid="{{preset.uuid}}" name="{{preset.name}}" draggable="true" data-doc-name="{{preset.documentName}}" data-tooltip="{{preset.name}}">
+<li class="item item-s flexrow {{#if sortable}}sortable{{/if}} {{#if preset.virtual}}virtual{{/if}}" data-uuid="{{preset.uuid}}" name="{{preset.name}}" draggable="true" data-doc-name="{{preset.documentName}}" 
+  data-tooltip="{{preset.name}} {{#if preset.tags.length}}<div class='mass-edit-tags tags'>{{#each tags}}<span>{{this}}</span>{{/each}}</div>{{/if}}">
     
     <img loading="lazy" class="thumbnail" src="{{preset.thumbnail}}">
 
   <div class="item-name flexrow">
     <label title="{{preset.title}}" name="{{preset.name}}">{{preset.name}} </label>
-    {{#if preset.tags.length}}
-    <div class="tags">
-      {{#each tags}}
-      <span>{{this}}</span>
-      {{/each}}
-    </div>
-    {{/if}}
   </div>
 
   <div class="item-controls flexrow">
