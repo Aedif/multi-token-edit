@@ -76,8 +76,9 @@ export class Spawner {
     let presetData = foundry.utils.deepClone(preset.data);
 
     // Instead of using the entire data group use only one random one
-    if (preset.spawnRandom && presetData.length)
+    if (preset.spawnRandom && presetData.length) {
       presetData = [presetData[Math.floor(Math.random() * presetData.length)]];
+    }
 
     // Display prompt to modify data if needed
     if (modifyPrompt && preset.modifyOnSpawn?.length) {

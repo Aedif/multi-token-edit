@@ -6,7 +6,7 @@ import { decodeURIComponentSafely, isVideo, placeableToData } from './utils.js';
 
 const DOCUMENT_FIELDS = ['id', 'name', 'sort', 'folder'];
 
-const PRESET_FIELDS = [
+export const PRESET_FIELDS = [
   'id',
   'name',
   'data',
