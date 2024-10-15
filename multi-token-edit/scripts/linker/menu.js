@@ -263,8 +263,8 @@ class LinkerMenu extends FormApplication {
       classes: ['mass-edit-linker', 'mass-edit-dark-window', 'mass-edit-window-fill'],
       resizable: true,
       minimizable: false,
-      width: 325,
-      height: 325,
+      width: 340,
+      height: 360,
     });
   }
 

@@ -116,14 +116,14 @@ export class Spawner {
     }
 
     // Assign ownership to the user who triggered the spawn call, hide, apply flags, and re-generate links
-    this._autoModifyData(docToData, hidden, flags, preset.preserveLinks, sceneId);
+    Spawner._autoModifyData(docToData, hidden, flags, preset.preserveLinks, sceneId);
 
     // =======================
     // Spawn position handling
     // =======================
 
     if (!preview) {
-      const pos = this._determineSpawnPosition(x, y, z, preset.documentName, snapToGrid);
+      const pos = Spawner._determineSpawnPosition(x, y, z, preset.documentName, snapToGrid);
       ({ x, y, z } = pos);
     }
 
@@ -316,7 +316,7 @@ export class Spawner {
     }
 
     // Regenerate Linker links to ensure uniqueness on the spawned in scene
-    if (!preserveLinks) this._regenerateLinks(docToData);
+    if (!preserveLinks) Spawner._regenerateLinks(docToData);
   }
 
   /**

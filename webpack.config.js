@@ -4,9 +4,9 @@ const TerserPlugin = require('terser-webpack-plugin');
 module.exports = {
   entry: './multi-token-edit/multi-token-edit.mjs',
   output: {
-    filename: 'bundle.js',
-    path: path.resolve(__dirname, 'multi-token-edit'),
-    publicPath: 'modules/multi-token-edit/',
+    filename: 'mass-edit.js',
+    path: path.resolve(__dirname, 'multi-token-edit/bundle'),
+    publicPath: 'modules/multi-token-edit/bundle/',
   },
   optimization: {
     minimizer: [

@@ -98,6 +98,8 @@ export default class ScenescapeConfig extends FormApplication {
         y2: ys[ys.length - 1],
       },
     });
+
+    ui.notifications.info(`Limits set to: {${ys[0]}, ${ys[ys.length - 1]}}`);
   }
 
   _onLockInScale() {
@@ -206,14 +208,14 @@ export default class ScenescapeConfig extends FormApplication {
   _onMinimize() {
     this.minimize();
     Object.values(ui.windows)
-      .find((w) => w.object.id === this.scene.id)
+      .find((w) => w.object?.id === this.scene.id)
       ?.minimize();
   }
 
   _onMaximize() {
     this.maximize();
     Object.values(ui.windows)
-      .find((w) => w.object.id === this.scene.id)
+      .find((w) => w.object?.id === this.scene.id)
       ?.maximize();
   }
 

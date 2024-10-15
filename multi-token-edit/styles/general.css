@@ -727,19 +727,18 @@ nav > a[data-tab='me-pinned'] {
 
 #mass-edit-linker-menu {
   min-width: 270px;
-  min-height: 270px;
+  min-height: 370px;
 }
 
 .mass-edit-linker .controls {
-  flex: 0 0 46px;
   display: flex;
   padding-left: 2px;
-  padding-right: 4px;
 }
 
 .mass-edit-linker .controls .control {
   font-size: 24px;
   margin-bottom: 4px;
+  margin-right: 4px;
   box-shadow: 0 0 3px dimgray;
   color: white;
   text-align: center;
@@ -749,6 +748,7 @@ nav > a[data-tab='me-pinned'] {
   pointer-events: all;
   place-content: center;
   line-height: 40px;
+  width: 40px;
 }
 
 .mass-edit-linker .controls a[disabled].control {

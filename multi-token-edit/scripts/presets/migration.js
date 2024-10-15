@@ -107,7 +107,7 @@ export class V12Migrator {
         const original = preset;
         preset = foundry.utils.deepClone(original);
 
-        await transformFunc(preset);
+        await transformFunc(preset, document);
 
         const diff = foundry.utils.diffObject(original, preset);
         Object.keys(diff).forEach((field) => {
@@ -149,6 +149,8 @@ export class V12Migrator {
           ?.render(true);
       }, 500);
     }
+
+    return pack;
   }
 
   static _migrateData(dataArr, documentName, coreMigration = true, migrateFunc = null) {

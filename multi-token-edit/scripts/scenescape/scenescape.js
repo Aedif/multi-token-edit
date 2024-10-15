@@ -43,9 +43,9 @@ export class SceneScape {
 
   static loadFlags() {
     const flags = canvas.scene.getFlag(MODULE_ID, 'scenescape');
-    //console.log('LOAD FLAGS', flags);
+    this._active = Boolean(flags?.markers?.length);
+
     if (flags) {
-      this._active = Boolean(flags.markers?.length);
       this._distanceRatio = (flags.scaleDistance ?? 32) / 2;
       this._stepDistance = flags.speed ?? 1;
       this._movementLimits = flags.movementLimits;

@@ -104,7 +104,8 @@ function preUpdate(document, change, options, userId) {
     change.hasOwnProperty('shapes') ||
     change.hasOwnProperty('c') ||
     change.hasOwnProperty('elevation');
-  const rotationUpdate = change.hasOwnProperty('rotation') || options.hasOwnProperty('meRotation');
+  const rotationUpdate =
+    change.hasOwnProperty('rotation') || change.hasOwnProperty('direction') || options.hasOwnProperty('meRotation');
   if (!(positionUpdate || rotationUpdate)) return true;
 
   // Special handling for walls.
@@ -150,7 +151,8 @@ async function update(document, change, options, userId) {
     change.hasOwnProperty('shapes') ||
     change.hasOwnProperty('c') ||
     change.hasOwnProperty('elevation');
-  const rotationUpdate = change.hasOwnProperty('rotation') || options.hasOwnProperty('meRotation');
+  const rotationUpdate =
+    change.hasOwnProperty('rotation') || change.hasOwnProperty('direction') || options.hasOwnProperty('meRotation');
   if (!(positionUpdate || rotationUpdate)) return true;
 
   const previousSource = foundry.utils.deepClone(options.linkSources[document.id]);
@@ -211,6 +213,8 @@ function calculateTransform(documentName, currentSource, previousSource, change,
   if (options.hasOwnProperty('meRotation')) dRotation = options.meRotation;
   else if (currentSource.hasOwnProperty('rotation'))
     dRotation = (currentSource.rotation - previousSource.rotation) % 360;
+  else if (currentSource.hasOwnProperty('direction'))
+    dRotation = (currentSource.direction - previousSource.direction) % 360;
 
   if (dRotation != null) {
     transform.rotation = dRotation;
@@ -275,6 +279,29 @@ export class LinkerAPI {
     }
   }
 
+  /**
+   * Links provided documents/placeables using an already existing or otherwise an automatically
+   * generated link.
+   * @param {*} documents
+   * @returns
+   */
+  static async link(documents) {
+    if (!documents?.length || documents.length === 1) return;
+    documents = documents.map((d) => d.document ?? d);
+
+    let link;
+    for (const d of documents) {
+      link = (this.getLinks(d) ?? []).find((l) => l.type === LINK_TYPES.TWO_WAY);
+      if (link) break;
+    }
+    if (!link) link = { id: foundry.utils.randomID(), type: LINK_TYPES.TWO_WAY, label: 'A_LINK' };
+
+    const { id, type, label } = link;
+    for (const d of documents) {
+      await this.addLink(d, id, type, label);
+    }
+  }
+
   static getLinks(document) {
     document = document.document ?? document;
     return document.flags[MODULE_ID]?.links;
@@ -287,6 +314,7 @@ export class LinkerAPI {
    */
   static getLinkedDocuments(documents) {
     if (!Array.isArray(documents)) documents = [documents];
+    documents = documents.map((d) => d.document ?? d);
 
     const allLinked = new Set();
     documents.forEach((document) => this._findLinked(document, allLinked));
@@ -371,16 +399,21 @@ export class LinkerAPI {
 
   /**
    * Remove all links from the given placeable/document
-   * @param {*} placeable
+   * @param {*} documents
    */
-  static removeLinks(placeable) {
-    const document = placeable.document ?? placeable;
-    if (document.flags[MODULE_ID]?.links) {
-      document.unsetFlag(MODULE_ID, 'links');
-      Hooks.call(`${MODULE_ID}.removeNode`, document.id);
-      return true;
+  static async removeLinks(documents) {
+    if (!Array.isArray(documents)) documents = [documents];
+    documents = documents.map((d) => d.document ?? d);
+
+    let removed = false;
+    for (const document of documents) {
+      if (document.flags[MODULE_ID]?.links) {
+        await document.unsetFlag(MODULE_ID, 'links');
+        Hooks.call(`${MODULE_ID}.removeNode`, document.id);
+        removed = true;
+      }
     }
-    return false;
+    return removed;
   }
 
   /**
@@ -393,7 +426,7 @@ export class LinkerAPI {
 
     let numRemoved = 0;
     for (const s of selected) {
-      if (LinkerAPI.removeLinks(s)) numRemoved++;
+      if (await LinkerAPI.removeLinks(s)) numRemoved++;
     }
     if (notification && numRemoved) ui.notifications.info(`Mass Edit: Links removed from ${numRemoved} documents.`);
 
