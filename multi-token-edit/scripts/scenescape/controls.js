@@ -4,7 +4,7 @@ import { libWrapper } from '../shim/shim.js';
 import { loadImageVideoDimensions } from '../utils.js';
 import ScenescapeConfig from './configuration.js';
 import { Parallax } from './parallax.js';
-import { SceneScape } from './scenescape.js';
+import { Scenescape } from './scenescape.js';
 
 /**
  * Class to manage registering and un-registering of wrapper functions to change
@@ -17,20 +17,20 @@ export class ScenescapeControls {
   static registerMainHooks() {
     Hooks.on('updateScene', (scene) => {
       if (scene.id === canvas.scene?.id) {
-        SceneScape.loadFlags();
+        Scenescape.loadFlags();
         this._checkActivateControls();
       }
     });
 
     Hooks.on('canvasInit', (canvas) => {
-      SceneScape.loadFlags();
+      Scenescape.loadFlags();
       this._checkActivateControls();
       ScenescapeConfig.close();
     });
   }
 
   static _checkActivateControls() {
-    if (SceneScape.active) {
+    if (Scenescape.active) {
       ScenescapeControls._register();
       Parallax.registerHooks();
     } else {
@@ -66,7 +66,7 @@ export class ScenescapeControls {
     this._hooks.push({ hook: 'preCreateToken', id });
 
     id = Hooks.on('createToken', async (token, options, userId) => {
-      if (game.user.id !== userId) return;
+      if (game.user.id !== userId || options.spawnPreset) return;
 
       let { width, height } = await loadImageVideoDimensions(token.texture.src);
       if (width && height) {
@@ -75,9 +75,9 @@ export class ScenescapeControls {
           y: token.y + token.height * canvas.dimensions.size,
         };
 
-        const { scale, elevation } = SceneScape.getParallaxParameters(bottom);
+        const { scale, elevation } = Scenescape.getParallaxParameters(bottom);
 
-        const actorDefinedSize = (SceneScape._getActorSize(token.actor, token) / 6) * 100;
+        const actorDefinedSize = (Scenescape._getActorSize(token.actor, token) / 6) * 100;
         const r = actorDefinedSize / height;
 
         width *= scale * r;
@@ -216,16 +216,16 @@ export class ScenescapeControls {
 
       const size = documentName === 'Token' ? obj.getSize() : obj.document;
       const bottom = { x: obj.document.x + size.width / 2, y: obj.document.y + size.height };
-      const params = SceneScape.getParallaxParameters(bottom);
+      const params = Scenescape.getParallaxParameters(bottom);
       const dimensions = canvas.dimensions;
 
-      const nBottom = SceneScape.moveCoordinate(
+      const nBottom = Scenescape.moveCoordinate(
         bottom,
         dx * incrementScale,
         dy * incrementScale,
         documentName === 'Tile'
       );
-      const nParams = SceneScape.getParallaxParameters(nBottom);
+      const nParams = Scenescape.getParallaxParameters(nBottom);
 
       const deltaScale = nParams.scale / params.scale;
 

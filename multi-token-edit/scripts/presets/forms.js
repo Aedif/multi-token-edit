@@ -26,7 +26,7 @@ import {
   randomizeChildrenFolderColors,
 } from './utils.js';
 import { MODULE_ID, PIVOTS, SUPPORTED_PLACEABLES, UI_DOCS } from '../constants.js';
-import { SceneScape } from '../scenescape/scenescape.js';
+import { Scenescape } from '../scenescape/scenescape.js';
 import { Spawner } from './spawner.js';
 
 const SEARCH_MIN_CHAR = 2;
@@ -655,7 +655,7 @@ export class MassEditPresets extends FormApplication {
       preset,
       preview: true,
       layerSwitch: game.settings.get(MODULE_ID, 'presetLayerSwitch'),
-      scaleToGrid: game.settings.get(MODULE_ID, 'presetScaling') || SceneScape.active,
+      scaleToGrid: game.settings.get(MODULE_ID, 'presetScaling') || Scenescape.active,
       pivot: PIVOTS.CENTER,
     });
     this._setInteractivityState(true);

@@ -2,7 +2,7 @@ import { MODULE_ID, PIVOTS } from '../constants.js';
 import { Preset } from '../presets/preset.js';
 import { Spawner } from '../presets/spawner.js';
 import { ScenescapeControls } from './controls.js';
-import { SceneScape } from './scenescape.js';
+import { Scenescape } from './scenescape.js';
 
 const TEMPLATES = [
   { height: 3, src: `modules/${MODULE_ID}/images/3ft.webp` },
@@ -103,7 +103,7 @@ export default class ScenescapeConfig extends FormApplication {
   }
 
   _onLockInScale() {
-    const { markers, foregroundElevation } = SceneScape.processReferenceMarkers(this.scene);
+    const { markers, foregroundElevation } = Scenescape.processReferenceMarkers(this.scene);
     if (markers) {
       this.scene.update({ [`flags.${MODULE_ID}.scenescape.markers`]: markers, foregroundElevation });
     } else {

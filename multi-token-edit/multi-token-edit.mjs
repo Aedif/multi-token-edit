@@ -18,7 +18,7 @@ import { deleteFromClipboard, performMassSearch, performMassUpdate } from './app
 import { registerSideBarPresetDropListener } from './scripts/presets/utils.js';
 import { LinkerAPI, registerLinkerHooks } from './scripts/linker/linker.js';
 import { MODULE_ID, PIVOTS } from './scripts/constants.js';
-import { registerSceneScapeHooks } from './scripts/scenescape/scenescape.js';
+import { registerScenescapeHooks } from './scripts/scenescape/scenescape.js';
 import { Spawner } from './scripts/presets/spawner.js';
 import { registerBehaviors } from './scripts/behaviors/behaviors.js';
 
@@ -34,7 +34,7 @@ Hooks.once('init', () => {
   registerLinkerHooks();
 
   // Scenescapes
-  registerSceneScapeHooks();
+  registerScenescapeHooks();
 
   // TODO: Replace with core v12 implementation of tag HTML element
   TagInput.registerHandlebarsHelper();

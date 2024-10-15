@@ -4,7 +4,7 @@ import { MODULE_ID, PIVOTS } from '../constants.js';
 import { DataTransformer } from '../data/transformer.js';
 import { Picker } from '../picker.js';
 import { applyRandomization } from '../randomizer/randomizerUtils.js';
-import { SceneScape } from '../scenescape/scenescape.js';
+import { Scenescape } from '../scenescape/scenescape.js';
 import { createDocuments, executeScript } from '../utils.js';
 import { PresetAPI } from './collection.js';
 import { Preset } from './preset.js';
@@ -131,19 +131,19 @@ export class Spawner {
     if (scaleToGrid) {
       let scale = 1.0;
 
-      if (SceneScape.active) {
+      if (Scenescape.active) {
         const size = preset.scenescapeSizeOverride();
         if (size) scale = ((100 / 6) * size) / getPresetDataBounds(docToData).height;
 
         if (!preview) {
-          const params = SceneScape.getParallaxParameters({ x, y });
+          const params = Scenescape.getParallaxParameters({ x, y });
           scale *= params.scale;
         }
       } else {
         scale = canvas.grid.size / (preset.gridSize || 100);
       }
 
-      DataTransformer.applyToMap(docToData, { x: 0, y: 0 }, { scale, gridScale: true });
+      DataTransformer.applyToMap(docToData, { x: 0, y: 0 }, { scale });
     }
 
     // Handle positioning of data around the spawn location
@@ -159,7 +159,7 @@ export class Spawner {
         else posTransform.z += z;
       } else delete posTransform.z;
 
-      let offset = getPivotOffset(SceneScape.active ? PIVOTS.BOTTOM : pivot, docToData);
+      let offset = getPivotOffset(Scenescape.active ? PIVOTS.BOTTOM : pivot, docToData);
       posTransform.x -= offset.x;
       posTransform.y -= offset.y;
 
@@ -262,7 +262,7 @@ export class Spawner {
       }
     }
 
-    if (!SceneScape.active && snapToGrid && !game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.SHIFT)) {
+    if (!Scenescape.active && snapToGrid && !game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.SHIFT)) {
       let pos = canvas.getLayerByEmbeddedName(documentName).getSnappedPoint({ x, y });
       x = pos.x;
       y = pos.y;

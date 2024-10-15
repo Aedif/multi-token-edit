@@ -3,7 +3,7 @@ import { DataTransformer } from './data/transformer.js';
 import { LinkerAPI } from './linker/linker.js';
 import { Mouse3D } from './mouse3d.js';
 import { getPivotOffset, getPresetDataBounds } from './presets/utils.js';
-import { SceneScape } from './scenescape/scenescape.js';
+import { Scenescape } from './scenescape/scenescape.js';
 import { pickerSelectMultiLayerDocuments } from './utils.js';
 
 /**
@@ -77,17 +77,22 @@ export class Picker {
         pickerOverlay.addChild(label);
       }
 
-      if (SceneScape.active) {
+      if (Scenescape.active) {
         preview.snap = false;
 
         const b = getPresetDataBounds(preview.previewData);
         const bottom = { x: b.x + b.width / 2, y: b.y + b.height };
-        Picker._paraScale = SceneScape.getParallaxParameters(bottom).scale;
+        Picker._paraScale = Scenescape.getParallaxParameters(bottom).scale;
 
         // If Picker preview was triggered via a spawnPreset(...) we want to apply the initial
         // scenescape scale at the given position, as the data being previewed was not yet placed on the scene
         if (preview.spawner) preview.scale = (preview.scale ?? 1) * Picker._paraScale;
       }
+
+      // Move data to scene bounds to prevent creating preview outside the map
+
+      // const b = getPresetDataBounds(preview.previewData);
+      // DataTransformer.applyToMap(preview.previewData, { x: 0, y: 0 }, { x: -b.x, y: -b.y });
 
       let { previews, layer, previewDocuments } = await this._genPreviews(preview);
       this._rotation = preview.rotation ?? 0;
@@ -111,13 +116,13 @@ export class Picker {
         let transform = { x: pos.x - b.x, y: pos.y - b.y };
 
         // Change preview position relative to the mouse
-        const offset = getPivotOffset(SceneScape.active ? PIVOTS.BOTTOM : preview.pivot, null, b);
+        const offset = getPivotOffset(Scenescape.active ? PIVOTS.BOTTOM : preview.pivot, null, b);
         transform.x -= offset.x;
         transform.y -= offset.y;
 
         // Dynamic scenescape scaling
-        if (SceneScape.active) {
-          const params = SceneScape.getParallaxParameters(canvas.mousePosition);
+        if (Scenescape.active) {
+          const params = Scenescape.getParallaxParameters(canvas.mousePosition);
           if (params.scale !== Picker._paraScale) {
             Picker._scale *= params.scale / Picker._paraScale;
             Picker._paraScale = params.scale;
@@ -162,7 +167,7 @@ export class Picker {
             if (!preview._meSort) preview._meSort = doc.sort;
             doc.sort = preview._meSort + 10000;
           }
-          if (!SceneScape.active) {
+          if (!Scenescape.active) {
             if (!game.Levels3DPreview?._active && doc.elevation != null) {
               if (!preview._meElevation) preview._meElevation = doc.elevation;
               doc.elevation = preview._meElevation + 10000;
@@ -305,7 +310,7 @@ export class Picker {
     const object = new CONFIG[documentName].objectClass(document);
     document._object = object;
     object.eventMode = 'none';
-    if (!SceneScape.active) {
+    if (!Scenescape.active) {
       object.document.alpha = 0.4;
       if (object.document.occlusion) object.document.occlusion.alpha = 0.4;
     }
@@ -400,7 +405,7 @@ export class Picker {
           this._genTAPreviews(data, data, toCreate);
         }
 
-        if (documentName === 'Tile' && SceneScape.active) {
+        if (documentName === 'Tile' && Scenescape.active) {
           // TODO: move setting of these fields somewhere else
           foundry.utils.setProperty(data, 'restrictions.light', true);
         }

@@ -1,4 +1,5 @@
 import { MODULE_ID, SUPPORTED_PLACEABLES } from '../constants.js';
+import { Scenescape } from '../scenescape/scenescape.js';
 import { isAudio, loadImageVideoDimensions } from '../utils.js';
 import { META_INDEX_FIELDS, META_INDEX_ID, PresetTree } from './collection.js';
 import { FileIndexer } from './fileIndexer.js';
@@ -187,6 +188,11 @@ export class Preset {
   scenescapeSizeOverride() {
     const regex = new RegExp(/(\d+)ft/);
     let size = this.tags.find((t) => t.match(regex))?.match(regex)[1];
+    if (!size && this.documentName === 'Token') {
+      const actor = game.actors.get(this.data[0].actorId);
+      if (actor) return Scenescape._getActorSize(actor, this.data[0]);
+      return 6;
+    }
     if (size) return Number(size);
     return null;
   }

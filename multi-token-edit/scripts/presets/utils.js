@@ -41,6 +41,12 @@ export function placeableToData(placeable) {
         h: canvas.grid.sizeY ?? canvas.grid.h, // v12
       });
     }
+  } else if (document.documentName === 'Token') {
+    // Scenescape data
+    const width = foundry.utils.getProperty(data, `flags.${MODULE_ID}.width`);
+    const height = foundry.utils.getProperty(data, `flags.${MODULE_ID}.height`);
+    if (width) data.width = width;
+    if (height) data.height = height;
   }
 
   return data;

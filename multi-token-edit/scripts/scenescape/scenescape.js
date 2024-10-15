@@ -2,7 +2,7 @@ import { MODULE_ID } from '../constants.js';
 import ScenescapeConfig from './configuration.js';
 import { ScenescapeControls } from './controls.js';
 
-export function registerSceneScapeHooks() {
+export function registerScenescapeHooks() {
   Hooks.on('renderSceneConfig', (app, html, options) => {
     const element = $(`
 <div class="form-group">
@@ -24,7 +24,7 @@ export function registerSceneScapeHooks() {
   ScenescapeControls.registerMainHooks();
 }
 
-export class SceneScape {
+export class Scenescape {
   static get active() {
     return this._active;
   }
@@ -180,9 +180,9 @@ export class SceneScape {
 
         let distance;
         if (scale1 < scale2) {
-          distance = SceneScape.distanceRatio * (scale2 / scale1);
+          distance = Scenescape.distanceRatio * (scale2 / scale1);
         } else if (scale1 > scale2) {
-          distance = SceneScape.distanceRatio * (scale1 / scale2);
+          distance = Scenescape.distanceRatio * (scale1 / scale2);
         } else {
           distance = ((m2.y - m1.y) / scale1) * (6 / 100); // TODO test
         }

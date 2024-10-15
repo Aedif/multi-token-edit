@@ -1,5 +1,5 @@
 import { MODULE_ID } from '../constants';
-import { SceneScape } from '../scenescape/scenescape';
+import { Scenescape } from '../scenescape/scenescape';
 
 export class DataTransformer {
   /**
@@ -604,7 +604,7 @@ export class DataTransformer {
       data.rotation = 180 - (data.rotation - 180);
     }
 
-    if (SceneScape.active) {
+    if (Scenescape.active) {
       if (data.width != null) foundry.utils.setProperty(data, `flags.${MODULE_ID}.width`, data.width);
       if (data.height != null) foundry.utils.setProperty(data, `flags.${MODULE_ID}.height`, data.height);
     }
@@ -617,7 +617,7 @@ export class DataTransformer {
       doc.rotation = data.rotation;
       doc.width = data.width;
       doc.height = data.height;
-      if (SceneScape.active) {
+      if (Scenescape.active) {
         if (data.width != null) foundry.utils.setProperty(doc, `flags.${MODULE_ID}.width`, data.width);
         if (data.height != null) foundry.utils.setProperty(doc, `flags.${MODULE_ID}.height`, data.height);
       }
