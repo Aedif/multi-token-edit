@@ -90,9 +90,9 @@ export class Picker {
       }
 
       // Move data to scene bounds to prevent creating preview outside the map
-
-      // const b = getPresetDataBounds(preview.previewData);
-      // DataTransformer.applyToMap(preview.previewData, { x: 0, y: 0 }, { x: -b.x, y: -b.y });
+      // TODO: this does not work for TA prefabs
+      const b = getPresetDataBounds(preview.previewData);
+      DataTransformer.applyToMap(preview.previewData, { x: 0, y: 0 }, { x: -b.x, y: -b.y });
 
       let { previews, layer, previewDocuments } = await this._genPreviews(preview);
       this._rotation = preview.rotation ?? 0;
@@ -380,25 +380,9 @@ export class Picker {
   static async _genPreviews(preview) {
     if (!preview.previewData) return { previews: [] };
 
-    const transform = {};
     const toCreate = [];
     for (const [documentName, dataArr] of preview.previewData.entries()) {
       for (const data of dataArr) {
-        // Set initial transform which will set first preview to (0, 0) and all others relative to it
-        if (transform.x == null) {
-          if (documentName === 'Wall') {
-            transform.x = -data.c?.[0] ?? 0;
-            transform.y = -data.c?.[1] ?? 0;
-          } else if (documentName === 'Region') {
-            const shape = data.shapes[0];
-            transform.x = -(shape?.x ?? shape.points?.[0] ?? 0);
-            transform.y = -(shape?.y ?? shape.points?.[1] ?? 0);
-          } else {
-            transform.x = -data.x ?? 0;
-            transform.y = -data.y ?? 0;
-          }
-        }
-
         toCreate.push({ documentName, data });
 
         if (documentName === 'Token') {
@@ -415,7 +399,6 @@ export class Picker {
     const previewDocuments = new Set();
     const previews = [];
     for (const { documentName, data } of toCreate) {
-      DataTransformer.apply(documentName, data, { x: 0, y: 0 }, transform);
       const p = await this._createPreview.call(
         canvas.getLayerByEmbeddedName(documentName),
         foundry.utils.deepClone(data)
@@ -480,7 +463,7 @@ export class Picker {
   }
 }
 
-export async function editPreviewPlaceables(placeables, confirmOnRelease = false) {
+export async function editPreviewPlaceables(placeables, confirmOnRelease = false, callback = null) {
   const controlled = new Set();
 
   if (placeables?.length) {
@@ -548,7 +531,7 @@ export async function editPreviewPlaceables(placeables, confirmOnRelease = false
 
   Picker.activate(
     async (coords) => {
-      if (coords == null) return;
+      if (coords == null) return callback?.();
 
       docToData.forEach((data, documentName) => {
         let updates = [];
@@ -561,12 +544,15 @@ export async function editPreviewPlaceables(placeables, confirmOnRelease = false
             updates.push(diff);
           }
         }
-        if (updates.length)
+        if (updates.length) {
           canvas.scene.updateEmbeddedDocuments(documentName, updates, {
             ignoreLinks: true,
             animate: false,
             preventParallaxScaling: true,
           });
+        }
+
+        callback?.(coords);
       });
     },
     {

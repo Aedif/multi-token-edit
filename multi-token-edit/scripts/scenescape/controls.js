@@ -164,6 +164,29 @@ export class ScenescapeControls {
     );
     this._wrapperIds.push(id);
 
+    // Pixel perfect hover for tiles
+    id = libWrapper.register(
+      MODULE_ID,
+      'Tile.prototype._draw',
+      async function (wrapped, ...args) {
+        const result = await wrapped(...args);
+
+        // Change the frame to use pixel contain function instead of rectangle contain
+        const hitArea = this.frame.interaction.hitArea;
+        hitArea._originalContains = hitArea.contains;
+        hitArea._mesh = this.mesh;
+        hitArea.contains = function (...args) {
+          let contains = this._originalContains.call(this, ...args);
+          if (contains) return this._mesh.containsCanvasPoint(canvas.mousePosition);
+          return contains;
+        };
+
+        return result;
+      },
+      'WRAPPER'
+    );
+    this._wrapperIds.push(id);
+
     /**
      * Activate Picker preview instead of regular drag/drop flow
      */
@@ -176,7 +199,12 @@ export class ScenescapeControls {
         objects = objects.filter((o) => o._canDrag(game.user, event) && !o.document.locked);
 
         if (objects.length) {
-          editPreviewPlaceables([objects[0]], true);
+          const draggedObject = objects[0];
+          draggedObject._meDragging = true;
+          editPreviewPlaceables([draggedObject], true, () => {
+            draggedObject._meDragging = undefined;
+            draggedObject.renderFlags.set({ refreshState: true });
+          });
         }
 
         event.interactionData.clones = [];
@@ -190,9 +218,20 @@ export class ScenescapeControls {
       MODULE_ID,
       'PlaceableObject.prototype._canDragLeftStart',
       function (wrapped, user, event) {
-        if (Picker.isActive()) return false;
+        if (Picker.isActive() || !user.isGM) return false;
 
         return wrapped(user, event);
+      },
+      'MIXED'
+    );
+    this._wrapperIds.push(id);
+
+    id = libWrapper.register(
+      MODULE_ID,
+      'PlaceableObject.prototype._getTargetAlpha',
+      function (wrapped) {
+        if (this._meDragging) return 0.4;
+        return wrapped();
       },
       'MIXED'
     );
