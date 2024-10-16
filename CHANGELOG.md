@@ -1,3 +1,39 @@
+# 1.7x.x
+
+- Fixed virtual Preset export not preserving tile width & height
+- Fixed Addition/Subtraction features not changing field colours on new v12 forms
+- Fixed Wall brush errors
+- Fixed spawned placeable elevation being incorrectly flattened
+- Improved batch loading speed of presets
+- Improved preset creation speed
+- Preset tags will now show in the tooltip instead of beneath the preset name
+- Fixed MeasuredTemplate rotations not propagating to other linked placeables
+
+**Scenescapes**
+
+- New button added to scene configuration forms which allows to setup scenes as "Scenescapes"
+- Scenescapes perform dynamic scaling of placeables to achieve a pseudo 3D effect on landscape backgrounds
+- **Configuration window**
+  - **Scale**
+    - Select, re-size and spawn reference tiles on the scene
+    - These tiles will be used to automatically estimate scale for other placeables put on the scene
+  - **Distance**
+    - At what distance will an object appear half as small?
+    - This value in combination with the reference tiles will be used to workout the relative and total "depth" of the scene
+  - **Step Size**
+    - How many feet a selected Tile or Token will move on a single press of WASD/Arrow keys
+  - **Limits**
+    - Define upper and lower bounds for movement using WASD/Arrow keys
+- Presets given tags in the form of `#ft` will automatically adjust to that size when dropped on a scenescape
+  - Tokens will attempt to retrieve height information from their Actors, if not found will default to `6ft x token_height`
+
+**API**
+
+- `spawnPreset(...)` changes
+  - **coordPicker** has been replaced with **preview**
+  - **pickerLabel** has been renamed to **previewLabel**
+  - **taPreview** has been removed, Token Attacher previews will now always be displayed if **preview** is set to true
+
 # 1.74.1
 
 **Linker**
