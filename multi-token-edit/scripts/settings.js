@@ -23,7 +23,7 @@ export function registerSettings() {
     scope: 'world',
     config: false,
     type: String,
-    default: 'Solid Background',
+    default: 'Default',
   });
 
   game.settings.register(MODULE_ID, 'cssCustom', {

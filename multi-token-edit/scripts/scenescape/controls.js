@@ -65,6 +65,28 @@ export class ScenescapeControls {
     });
     this._hooks.push({ hook: 'preCreateToken', id });
 
+    // On token texture update we want to keep the token height and position to stay the same while
+    // adopting the new aspect ratio
+    id = Hooks.on('updateToken', async (token, change, options, userId) => {
+      console.log('updateToken', token, change, options, userId);
+      if (game.user.id === userId && foundry.utils.getProperty(change, 'texture.src') && token.object) {
+        let { width, height } = token.object.getSize();
+        let textureDimensions = await loadImageVideoDimensions(change.texture.src);
+
+        let updatedWidth = textureDimensions.width * (height / textureDimensions.height);
+
+        token.update(
+          {
+            width: updatedWidth / canvas.scene.grid.sizeX,
+            [`flags.${MODULE_ID}.width`]: updatedWidth / canvas.scene.grid.sizeX,
+            x: token.x + (width - updatedWidth) / 2,
+          },
+          { animate: false }
+        );
+      }
+    });
+    this._hooks.push({ hook: 'updateToken', id });
+
     id = Hooks.on('createToken', async (token, options, userId) => {
       if (game.user.id !== userId || options.spawnPreset) return;
 
@@ -134,10 +156,7 @@ export class ScenescapeControls {
       MODULE_ID,
       'Token.prototype.getSize',
       function (...args) {
-        let { width, height } = this.document;
-
-        if (this.document.flags?.[MODULE_ID]?.width != null) width = this.document.flags[MODULE_ID].width;
-        if (this.document.flags?.[MODULE_ID]?.height != null) height = this.document.flags[MODULE_ID].height;
+        let { width, height } = ScenescapeControls._getTokenDimensions(this.document);
 
         const grid = this.scene.grid;
         width *= grid.sizeX;
@@ -236,6 +255,15 @@ export class ScenescapeControls {
       'MIXED'
     );
     this._wrapperIds.push(id);
+  }
+
+  static _getTokenDimensions(token) {
+    let { width, height } = token;
+
+    if (token.flags?.[MODULE_ID]?.width != null) width = token.flags[MODULE_ID].width;
+    if (token.flags?.[MODULE_ID]?.height != null) height = token.flags[MODULE_ID].height;
+
+    return { width, height };
   }
 
   static async _moveMany({ dx = 0, dy = 0, rotate = false, ids, includeLocked = false } = {}) {

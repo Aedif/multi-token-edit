@@ -383,6 +383,10 @@
   line-break: anywhere;
 }
 
+.preset-tooltip {
+  text-align: left !important;
+}
+
 .mass-edit-tags.tags {
   line-height: 24px;
   margin-bottom: 2px;
