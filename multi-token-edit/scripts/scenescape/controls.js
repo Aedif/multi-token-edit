@@ -183,29 +183,6 @@ export class ScenescapeControls {
     );
     this._wrapperIds.push(id);
 
-    // Pixel perfect hover for tiles
-    id = libWrapper.register(
-      MODULE_ID,
-      'Tile.prototype._draw',
-      async function (wrapped, ...args) {
-        const result = await wrapped(...args);
-
-        // Change the frame to use pixel contain function instead of rectangle contain
-        const hitArea = this.frame.interaction.hitArea;
-        hitArea._originalContains = hitArea.contains;
-        hitArea._mesh = this.mesh;
-        hitArea.contains = function (...args) {
-          let contains = this._originalContains.call(this, ...args);
-          if (contains) return this._mesh.containsCanvasPoint(canvas.mousePosition);
-          return contains;
-        };
-
-        return result;
-      },
-      'WRAPPER'
-    );
-    this._wrapperIds.push(id);
-
     /**
      * Activate Picker preview instead of regular drag/drop flow
      */

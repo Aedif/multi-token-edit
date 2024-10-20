@@ -7,7 +7,7 @@ import {
   TagInput,
 } from './scripts/utils.js';
 import { libWrapper } from './scripts/shim/shim.js';
-import { enableUniversalSelectTool } from './scripts/selectTool.js';
+import { enableUniversalSelectTool } from './scripts/tools/selectTool.js';
 import { META_INDEX_ID, PresetAPI, PresetCollection } from './scripts/presets/collection.js';
 import { registerPresetBrowserHooks } from './scripts/presets/forms.js';
 import { registerKeybinds, registerSettings } from './scripts/settings.js';
