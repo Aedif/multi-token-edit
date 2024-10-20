@@ -12,7 +12,7 @@ export function enablePixelPerfectTileSelect() {
     if (pixelPerfectWrapper) {
       libWrapper.unregister(MODULE_ID, pixelPerfectWrapper);
       pixelPerfectWrapper = undefined;
-      canvas.tiles.placeables.forEach((t) => t.renderFlags.set({ redraw: true }));
+      canvas.tiles?.placeables.forEach((t) => t.renderFlags.set({ redraw: true }));
     }
     return;
   }
@@ -39,7 +39,7 @@ export function enablePixelPerfectTileSelect() {
     'WRAPPER'
   );
 
-  canvas.tiles.placeables.forEach((t) => t.renderFlags.set({ redraw: true }));
+  canvas.tiles?.placeables.forEach((t) => t.renderFlags.set({ redraw: true }));
 }
 
 /**

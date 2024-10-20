@@ -350,6 +350,20 @@ export class LinkerAPI {
   }
 
   /**
+   * Returns true if the two placeables share a link
+   * @param {*} placeable1
+   * @param {*} placeable2
+   * @returns
+   */
+  static areLinked(placeable1, placeable2) {
+    const links1 = (placeable1.document ?? placeable1).flags[MODULE_ID]?.links;
+    const links2 = (placeable2.document ?? placeable2).flags[MODULE_ID]?.links;
+
+    if (!(links1 && links2)) return false;
+    return links1.some((l1) => links2.find((l2) => l1.id === l2.id));
+  }
+
+  /**
    * Add a link to the provided placeable
    * @param {Placeable} placeable
    * @param {String} linkId
