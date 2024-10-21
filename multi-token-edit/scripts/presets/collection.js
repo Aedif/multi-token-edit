@@ -22,6 +22,7 @@ export class PresetCollection {
     let mainTree;
     try {
       pack = await this._initCompendium(this.workingPack);
+      if (!pack) throw Error('Unable to retrieve working compendium.');
       mainTree = await PresetTree.init(pack, type, { forceLoad: true, setFormVisibility });
     } catch (e) {
       // Fail-safe. Return back to DEFAULT_PACK

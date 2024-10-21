@@ -30,7 +30,7 @@ export function enablePixelPerfectTileSelect() {
       hitArea._mesh = this.mesh;
       hitArea.contains = function (...args) {
         let contains = this._originalContains.call(this, ...args);
-        if (contains) return this._mesh.containsCanvasPoint(canvas.mousePosition);
+        if (contains && this._mesh) return this._mesh.containsCanvasPoint(canvas.mousePosition);
         return contains;
       };
 
