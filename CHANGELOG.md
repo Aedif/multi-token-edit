@@ -1,13 +1,22 @@
 # 1.7x.x
 
+**Fixes**
+
 - Fixed virtual Preset export not preserving tile width & height
 - Fixed Addition/Subtraction features not changing field colours on new v12 forms
 - Fixed Wall brush errors
 - Fixed spawned placeable elevation being incorrectly flattened
+- Fixed MeasuredTemplate rotations not propagating to other linked placeables
+- Fixed Region behaviour `Link Token` poorly interacting with tokens already manually linked to the region
+- Fixed inability to open Preset browser when a non-default working compendium has been removed
+
+**Misc**
+
+- Added `Pixel Perfect Hover` toggle to Tile controls
+  - When enabled hover on tiles will only be recognised if over a non-alpha pixel
+- Preset tags will now show in the tooltip instead of beneath the preset name
 - Improved batch loading speed of presets
 - Improved preset creation speed
-- Preset tags will now show in the tooltip instead of beneath the preset name
-- Fixed MeasuredTemplate rotations not propagating to other linked placeables
 
 **Scenescapes**
 
