@@ -59,7 +59,7 @@ export class SpawnPresetBehaviorType extends foundry.data.regionBehaviors.Region
 
     if (this.once) this.parent.update({ disabled: true });
 
-    if (event.data.forced) return;
+    if (!event.data.teleport && event.data.forced) return;
 
     let destinations = [];
 

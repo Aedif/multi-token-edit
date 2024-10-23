@@ -44,6 +44,6 @@ export class LinkTokenRegionBehaviorType extends foundry.data.regionBehaviors.Re
 
   static async _onTokenMoveOut(event) {
     if (!isResponsibleGM()) return;
-    if (!event.data.forced) LinkerAPI.removeLink(event.data.token, this.linkId);
+    if (event.data.teleport || !event.data.forced) LinkerAPI.removeLink(event.data.token, this.linkId);
   }
 }

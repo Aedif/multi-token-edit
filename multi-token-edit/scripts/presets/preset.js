@@ -214,11 +214,44 @@ export class Preset {
     await this.update({ attached: this.attached });
   }
 
+  static _updateBatch = {};
+
+  /**
+   * Collate document updates to be processed at a later time using `processBatchUpdates`
+   * @param {Document} document
+   * @param {object} update
+   */
+  static batchUpdate(document, update) {
+    this._updateBatch[document.pack] = foundry.utils.mergeObject(this._updateBatch[document.pack] ?? {}, {
+      [document.id]: update,
+    });
+  }
+
+  /**
+   * Process updates collated using `batchUpdate`
+   */
+  static async processBatchUpdates() {
+    const batch = this._updateBatch;
+    this._updateBatch = {};
+
+    for (const pack of Object.keys(batch)) {
+      const updates = [];
+
+      for (const id of Object.keys(batch[pack])) {
+        const update = batch[pack][id];
+        update._id = id;
+        updates.push(update);
+      }
+
+      await JournalEntry.updateDocuments(updates, { pack });
+    }
+  }
+
   /**
    * Update preset with the provided data
    * @param {Object} update
    */
-  async update(update) {
+  async update(update, batch = false) {
     if (this.document) {
       const flagUpdate = {};
       Object.keys(update).forEach((k) => {
@@ -244,15 +277,16 @@ export class Preset {
           }
         });
 
-        await this.document.update(docUpdate);
+        if (batch) Preset.batchUpdate(this.document, docUpdate);
+        else await this.document.update(docUpdate);
       }
-      await this._updateIndex(flagUpdate);
+      await this._updateIndex(flagUpdate, batch);
     } else {
       console.warn('Updating preset without document', this.id, this.uuid, this.name);
     }
   }
 
-  async _updateIndex(data) {
+  async _updateIndex(data, batch = false) {
     const update = {};
 
     META_INDEX_FIELDS.forEach((field) => {
@@ -263,7 +297,8 @@ export class Preset {
       const pack = game.packs.get(this.document.pack);
       const metaDoc = await pack.getDocument(META_INDEX_ID);
       if (metaDoc) {
-        await metaDoc.setFlag(MODULE_ID, 'index', { [this.id]: update });
+        if (batch) Preset.batchUpdate(metaDoc, { flags: { [MODULE_ID]: { index: { [this.id]: update } } } });
+        else await metaDoc.setFlag(MODULE_ID, 'index', { [this.id]: update });
         delete PresetTree._packTrees[pack.metadata.name];
       } else {
         console.warn(`META INDEX missing in ${this.document.pack}`);

@@ -2185,8 +2185,10 @@ export class PresetConfig extends FormApplication {
         update.tags = tags;
       }
 
-      await preset.update(update);
+      await preset.update(update, true);
     }
+
+    await Preset.processBatchUpdates();
   }
 
   /* -------------------------------------------- */
