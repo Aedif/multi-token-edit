@@ -390,8 +390,9 @@ export class Picker {
         }
 
         if (documentName === 'Tile' && Scenescape.active) {
-          // TODO: move setting of these fields somewhere else
+          // TODO: move setting of these fields to a more appropriate spot
           foundry.utils.setProperty(data, 'restrictions.light', true);
+          foundry.utils.setProperty(data, 'occlusion.alpha', 1);
         }
       }
     }

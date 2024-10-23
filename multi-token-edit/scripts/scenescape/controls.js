@@ -33,9 +33,11 @@ export class ScenescapeControls {
     if (Scenescape.active) {
       ScenescapeControls._register();
       Parallax.registerHooks();
+      this.displayBlackBars(Scenescape.blackBars);
     } else {
       ScenescapeControls._unregister();
       Parallax.unregisterHooks();
+      this.displayBlackBars(false);
     }
   }
 
@@ -68,7 +70,6 @@ export class ScenescapeControls {
     // On token texture update we want to keep the token height and position to stay the same while
     // adopting the new aspect ratio
     id = Hooks.on('updateToken', async (token, change, options, userId) => {
-      console.log('updateToken', token, change, options, userId);
       if (game.user.id === userId && foundry.utils.getProperty(change, 'texture.src') && token.object) {
         let { width, height } = token.object.getSize();
         let textureDimensions = await loadImageVideoDimensions(change.texture.src);
@@ -309,5 +310,37 @@ export class ScenescapeControls {
 
     await canvas.scene.updateEmbeddedDocuments(documentName, updateData, { teleport: true });
     return objects;
+  }
+
+  static displayBlackBars(display) {
+    let bars = canvas.primary.getChildByName('scenescapeBlackBars');
+    if (!display && bars) {
+      canvas.primary.removeChild(bars)?.destroy(true);
+    } else if (display) {
+      if (bars) canvas.primary.removeChild(bars)?.destroy(true);
+
+      bars = new PIXI.Container();
+      bars.name = 'scenescapeBlackBars';
+      bars.sortLayer = PrimaryCanvasGroup.SORT_LAYERS.DRAWINGS;
+      bars.elevation = 99999999;
+      bars.restrictsLight = true;
+
+      const graphics = new PIXI.Graphics();
+      bars.addChild(graphics);
+
+      const dimensions = canvas.scene.dimensions;
+
+      graphics.beginFill(0x000000);
+      graphics.drawRect(0, 0, dimensions.width, dimensions.height);
+      graphics.endFill();
+
+      graphics.beginHole();
+      graphics.drawRect(dimensions.sceneX, dimensions.sceneY, dimensions.sceneWidth, dimensions.sceneHeight);
+      graphics.endHole();
+
+      canvas.primary.addChild(bars);
+    }
+
+    console.log(display, canvas.primary);
   }
 }

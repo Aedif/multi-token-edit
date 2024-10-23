@@ -50,6 +50,7 @@ export class Scenescape {
       this._stepDistance = flags.speed ?? 1;
       this._movementLimits = flags.movementLimits;
       this._markers = flags.markers;
+      this.blackBars = Boolean(flags.blackBars);
     }
   }
 

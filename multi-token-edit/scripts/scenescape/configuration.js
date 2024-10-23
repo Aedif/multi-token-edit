@@ -65,6 +65,7 @@ export default class ScenescapeConfig extends FormApplication {
     data.markerTemplates = TEMPLATES;
     data.scaleDistance = this.flags.scaleDistance ?? 32;
     data.speed = this.flags.speed ?? 4.3;
+    data.blackBars = this.flags.blackBars;
     return data;
   }
 
@@ -105,7 +106,16 @@ export default class ScenescapeConfig extends FormApplication {
   _onLockInScale() {
     const { markers, foregroundElevation } = Scenescape.processReferenceMarkers(this.scene);
     if (markers) {
-      this.scene.update({ [`flags.${MODULE_ID}.scenescape.markers`]: markers, foregroundElevation });
+      const update = { [`flags.${MODULE_ID}.scenescape.markers`]: markers, foregroundElevation };
+
+      // Disable settings which interfere with Scenescapes
+      update['grid.type'] = CONST.GRID_TYPES.GRIDLESS;
+      update['fog.exploration'] = false;
+      update.tokenVision = false;
+      update['flags.levels.lightMasking'] = true;
+      update['flags.wall-height.advancedVision'] = false;
+
+      this.scene.update(update);
     } else {
       this.scene.update({ [`flags.${MODULE_ID}.scenescape.-=markers`]: null });
     }
@@ -228,7 +238,7 @@ export default class ScenescapeConfig extends FormApplication {
 
     foundry.utils.mergeObject(this.flags, formData);
 
-    ['movementLimits', 'speed', 'scaleDistance'].forEach((varName) => {
+    ['movementLimits', 'speed', 'scaleDistance', 'blackBars'].forEach((varName) => {
       if (foundry.utils.isEmpty(this.flags[varName])) update[`flags.${MODULE_ID}.scenescape.-=${varName}`] = null;
       else update[`flags.${MODULE_ID}.scenescape.${varName}`] = this.flags[varName];
     });
