@@ -1,4 +1,4 @@
-import { TokenDataAdapter } from '../../applications/dataAdapters.js';
+import { TokenDataAdapter } from '../data/adapters.js';
 import { copyToClipboard, pasteDataUpdate } from '../../applications/formUtils.js';
 import { getMassEditForm, showMassEdit } from '../../applications/multiConfig.js';
 import { countFolderItems, trackProgress } from '../../applications/progressDialog.js';
@@ -25,7 +25,9 @@ import {
   placeableToData,
   randomizeChildrenFolderColors,
 } from './utils.js';
-import { MODULE_ID, SUPPORTED_PLACEABLES, UI_DOCS } from '../constants.js';
+import { MODULE_ID, PIVOTS, SUPPORTED_PLACEABLES, UI_DOCS } from '../constants.js';
+import { Scenescape } from '../scenescape/scenescape.js';
+import { Spawner } from './spawner.js';
 
 const SEARCH_MIN_CHAR = 2;
 const SEARCH_FOUND_MAX_COUNT = 1001;
@@ -212,12 +214,12 @@ export class MassEditPresets extends FormApplication {
 
     // Hide/Show preset tags and favorite control
     html.on('mouseenter', '.item', (event) => {
-      $(event.currentTarget).find('.tags, .display-hover').addClass('show');
+      $(event.currentTarget).find('.display-hover').addClass('show');
       this._playPreview(event);
     });
 
     html.on('mouseleave', '.item', (event) => {
-      $(event.currentTarget).find('.tags, .display-hover').removeClass('show');
+      $(event.currentTarget).find('.display-hover').removeClass('show');
       this._endPreview(event);
     });
 
@@ -556,7 +558,7 @@ export class MassEditPresets extends FormApplication {
    */
   _foundryDrop(event) {
     const data = TextEditor.getDragEventData(event.originalEvent);
-    if (!isEmpty(data)) {
+    if (!foundry.utils.isEmpty(data)) {
       if (data.type === 'Folder') {
         const folder = fromUuidSync(data.uuid);
         if (folder.type !== 'Actor') return false;
@@ -573,7 +575,10 @@ export class MassEditPresets extends FormApplication {
         return true;
       } else if (data.type === 'Actor') {
         PresetAPI.createPresetFromActorUuid(data.uuid, { keepId: true }).then((preset) => {
-          if (preset) this.render(true);
+          if (preset)
+            PresetCollection.set(preset).then(() => {
+              this.render(true);
+            });
         });
         return true;
       }
@@ -607,14 +612,20 @@ export class MassEditPresets extends FormApplication {
       await this._importActorFolder(child.folder, nFolder.id, options);
     }
 
+    const presets = [];
+
     for (const actor of folder.contents) {
       if (!this._importTracker?.active) break;
-      await PresetAPI.createPresetFromActorUuid(actor.uuid, {
-        folder: nFolder.id,
-        keepId: options.keepId,
-      });
+      presets.push(
+        await PresetAPI.createPresetFromActorUuid(actor.uuid, {
+          folder: nFolder.id,
+          keepId: options.keepId,
+        })
+      );
       this._importTracker.incrementCount();
     }
+
+    await PresetCollection.set(presets);
 
     this.render(true);
   }
@@ -640,13 +651,12 @@ export class MassEditPresets extends FormApplication {
     ui.notifications.info(`Mass Edit: ${localize('presets.spawning')} [${preset.name}]`);
 
     this._setInteractivityState(false);
-    await PresetAPI.spawnPreset({
+    await Spawner.spawnPreset({
       preset,
-      coordPicker: true,
-      taPreview: 'ALL',
+      preview: true,
       layerSwitch: game.settings.get(MODULE_ID, 'presetLayerSwitch'),
-      scaleToGrid: game.settings.get(MODULE_ID, 'presetScaling'),
-      center: true,
+      scaleToGrid: game.settings.get(MODULE_ID, 'presetScaling') || Scenescape.active,
+      pivot: PIVOTS.CENTER,
     });
     this._setInteractivityState(true);
   }
@@ -841,14 +851,20 @@ export class MassEditPresets extends FormApplication {
       };
       const nFolder = await Folder.create(data, { pack, keepId });
 
-      for (const preset of folder.presets) {
+      const presets = await PresetCollection.batchLoadPresets(folder.presets);
+
+      const toCreate = [];
+
+      for (const preset of presets) {
         if (!this._importTracker?.active) break;
-        const p = (await preset.load()).clone();
+        const p = preset.clone();
         p.folder = nFolder.id;
         if (!keepId) p.id = foundry.utils.randomID();
-        await PresetCollection.set(p, pack);
+        toCreate.push(p);
         this._importTracker?.incrementCount();
       }
+
+      await PresetCollection.set(toCreate, pack);
 
       for (const child of folder.children) {
         if (!this._importTracker?.active) break;
@@ -868,12 +884,16 @@ export class MassEditPresets extends FormApplication {
 
   async _onCopySelectedPresets(pack, { keepFolder = false, keepId = true } = {}) {
     const [selected, _] = await this._getSelectedPresets();
-    for (const preset of selected) {
-      const p = preset.clone();
+
+    const presets = selected.map((s) => {
+      const p = s.clone();
       if (!keepFolder) p.folder = null;
       if (!keepId) p.id = foundry.utils.randomID();
-      await PresetCollection.set(p, pack);
-    }
+      return p;
+    });
+
+    await PresetCollection.set(presets, pack);
+
     if (selected.length) this.render(true);
   }
 
@@ -898,11 +918,7 @@ export class MassEditPresets extends FormApplication {
       uuids.push(uuid);
     });
 
-    const selected = [];
-    for (const uuid of uuids) {
-      const preset = await PresetCollection.get(uuid, { full });
-      if (preset) selected.push(preset);
-    }
+    const selected = await PresetCollection.getBatch(uuids, { full });
     return [selected, items];
   }
 
@@ -1455,7 +1471,7 @@ export class MassEditPresets extends FormApplication {
       }
     }
 
-    PresetAPI.spawnPreset({
+    Spawner.spawnPreset({
       preset,
       x: mouseX,
       y: mouseY,
@@ -1772,6 +1788,8 @@ export class MassEditPresets extends FormApplication {
     let importCount = 0;
 
     if (foundry.utils.getType(json) === 'Array') {
+      const presets = [];
+
       for (const p of json) {
         if (!('documentName' in p)) continue;
         if (!('data' in p) || foundry.utils.isEmpty(p.data)) continue;
@@ -1779,9 +1797,12 @@ export class MassEditPresets extends FormApplication {
         const preset = new Preset(p);
         preset._pages = p.pages;
 
-        await PresetCollection.set(preset);
+        presets.push(preset);
+
         importCount++;
       }
+
+      await PresetCollection.set(presets);
     }
 
     ui.notifications.info(`Mass Edit: ${localFormat('presets.imported', { count: importCount })}`);
@@ -1803,9 +1824,7 @@ export class MassEditPresets extends FormApplication {
 async function exportPresets(presets, fileName) {
   if (!presets.length) return;
 
-  for (const preset of presets) {
-    await preset.load();
-  }
+  await PresetCollection.batchLoadPresets(presets);
 
   presets = presets.map((p) => {
     const preset = p.clone();
@@ -2166,14 +2185,19 @@ export class PresetConfig extends FormApplication {
         update.tags = tags;
       }
 
-      await preset.update(update);
+      await preset.update(update, true);
     }
+
+    await Preset.processBatchUpdates();
   }
 
   /* -------------------------------------------- */
 
   /** @override */
   async _updateObject(event, formData) {
+    // Particularly large updates can take a while, prevent the submit button being clicked multiple times
+    this.element.find('button[type="submit"]').prop('disabled', true);
+
     await this._updatePresets(formData);
 
     if (this.callback) this.callback(this.presets);
@@ -2749,7 +2773,6 @@ export function registerPresetBrowserHooks() {
           pack.render(true);
         },
       });
-      console.log(options);
       return options;
     },
     'WRAPPER'

@@ -1,12 +1,13 @@
 import { MODULE_ID, SUPPORTED_PLACEABLES } from '../constants.js';
-import { isImage, isAudio } from '../utils.js';
+import { Scenescape } from '../scenescape/scenescape.js';
+import { isAudio, loadImageVideoDimensions } from '../utils.js';
 import { META_INDEX_FIELDS, META_INDEX_ID, PresetTree } from './collection.js';
 import { FileIndexer } from './fileIndexer.js';
 import { decodeURIComponentSafely, isVideo, placeableToData } from './utils.js';
 
 const DOCUMENT_FIELDS = ['id', 'name', 'sort', 'folder'];
 
-const PRESET_FIELDS = [
+export const PRESET_FIELDS = [
   'id',
   'name',
   'data',
@@ -143,10 +144,10 @@ export class Preset {
    * Loads underlying JournalEntry document from the compendium
    * @returns this
    */
-  async load(force = false) {
+  async load(force = false, document) {
     if (this.document && !force) return this;
     if (!this.document && this.uuid) {
-      this.document = await fromUuid(this.uuid);
+      this.document = document ?? (await fromUuid(this.uuid));
     }
 
     if (this.document) {
@@ -181,6 +182,22 @@ export class Preset {
   }
 
   /**
+   * Looks for a tag in the format of '#ft' and returns the numerical value
+   * @returns
+   */
+  scenescapeSizeOverride() {
+    const regex = new RegExp(/(\d+)ft/);
+    let size = this.tags.find((t) => t.match(regex))?.match(regex)[1];
+    if (!size && this.documentName === 'Token') {
+      const actor = game.actors.get(this.data[0].actorId);
+      if (actor) return Scenescape._getActorSize(actor, this.data[0]);
+      return 6;
+    }
+    if (size) return Number(size);
+    return null;
+  }
+
+  /**
    * Attach placeables
    * @param {Placeable|Array[Placeable]} placeables
    * @returns
@@ -197,11 +214,44 @@ export class Preset {
     await this.update({ attached: this.attached });
   }
 
+  static _updateBatch = {};
+
+  /**
+   * Collate document updates to be processed at a later time using `processBatchUpdates`
+   * @param {Document} document
+   * @param {object} update
+   */
+  static batchUpdate(document, update) {
+    this._updateBatch[document.pack] = foundry.utils.mergeObject(this._updateBatch[document.pack] ?? {}, {
+      [document.id]: update,
+    });
+  }
+
+  /**
+   * Process updates collated using `batchUpdate`
+   */
+  static async processBatchUpdates() {
+    const batch = this._updateBatch;
+    this._updateBatch = {};
+
+    for (const pack of Object.keys(batch)) {
+      const updates = [];
+
+      for (const id of Object.keys(batch[pack])) {
+        const update = batch[pack][id];
+        update._id = id;
+        updates.push(update);
+      }
+
+      await JournalEntry.updateDocuments(updates, { pack });
+    }
+  }
+
   /**
    * Update preset with the provided data
    * @param {Object} update
    */
-  async update(update) {
+  async update(update, batch = false) {
     if (this.document) {
       const flagUpdate = {};
       Object.keys(update).forEach((k) => {
@@ -227,15 +277,16 @@ export class Preset {
           }
         });
 
-        await this.document.update(docUpdate);
+        if (batch) Preset.batchUpdate(this.document, docUpdate);
+        else await this.document.update(docUpdate);
       }
-      await this._updateIndex(flagUpdate);
+      await this._updateIndex(flagUpdate, batch);
     } else {
       console.warn('Updating preset without document', this.id, this.uuid, this.name);
     }
   }
 
-  async _updateIndex(data) {
+  async _updateIndex(data, batch = false) {
     const update = {};
 
     META_INDEX_FIELDS.forEach((field) => {
@@ -246,9 +297,8 @@ export class Preset {
       const pack = game.packs.get(this.document.pack);
       const metaDoc = await pack.getDocument(META_INDEX_ID);
       if (metaDoc) {
-        let tmp = {};
-        tmp[this.id] = update;
-        await metaDoc.setFlag(MODULE_ID, 'index', tmp);
+        if (batch) Preset.batchUpdate(metaDoc, { flags: { [MODULE_ID]: { index: { [this.id]: update } } } });
+        else await metaDoc.setFlag(MODULE_ID, 'index', { [this.id]: update });
         delete PresetTree._packTrees[pack.metadata.name];
       } else {
         console.warn(`META INDEX missing in ${this.document.pack}`);
@@ -286,11 +336,12 @@ export class VirtualFilePreset extends Preset {
     data.uuid = 'virtual@' + data.src;
     data.documentName = isAudio(data.src) ? 'AmbientSound' : 'Tile';
 
-    if (data.documentName === 'Tile') {
-      data.data = [{ texture: { src: data.src }, x: 0, y: 0, rotation: 0 }];
-      data.img = data.src;
-    } else {
-      data.data = [{ path: data.src, radius: 20, x: 0, y: 0 }];
+    if (!data.data) {
+      if (data.documentName === 'Tile') {
+        data.data = [{ texture: { src: data.src, scaleY: 1, scaleX: 1 }, x: 0, y: 0, rotation: 0 }];
+      } else {
+        data.data = [{ path: data.src, radius: 20, x: 0, y: 0 }];
+      }
       data.img = data.src;
     }
 
@@ -315,50 +366,10 @@ export class VirtualFilePreset extends Preset {
     // Load image/video metadata to retrieve the width/height
     const src = this.data[0].texture?.src;
 
-    let width, height;
-    let prom;
-    if (isImage(src)) {
-      const img = new Image();
-      prom = new Promise((resolve) => {
-        img.onload = resolve;
-        img.src = src;
-      });
+    let { width, height } = await loadImageVideoDimensions(src);
 
-      await Promise.race([
-        prom,
-        (async () => {
-          await new Promise((res) => setTimeout(res, 1000));
-        })(),
-      ]);
-
-      if (!img.complete || img.naturalWidth === 0) {
-        console.log('Image Load failed', src);
-        return null;
-      }
-
-      width = img.naturalWidth;
-      height = img.naturalHeight;
-    } else {
-      const video = document.createElement('video');
-      prom = new Promise((resolve) => {
-        video.onloadedmetadata = resolve;
-        video.src = src;
-        video.load();
-      });
-
-      await Promise.race([
-        prom,
-        (async () => {
-          await new Promise((res) => setTimeout(res, 1000));
-        })(),
-      ]);
-
-      width = video.videoWidth;
-      height = video.videoHeight;
-    }
-
-    this.data[0].width = width;
-    this.data[0].height = height;
+    this.data[0].width = width ?? 100;
+    this.data[0].height = height ?? 100;
 
     return this;
   }

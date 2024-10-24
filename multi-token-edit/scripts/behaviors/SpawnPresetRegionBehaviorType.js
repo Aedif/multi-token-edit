@@ -1,5 +1,6 @@
-import { MODULE_ID, SUPPORTED_PLACEABLES } from '../constants.js';
+import { MODULE_ID, PIVOTS, SUPPORTED_PLACEABLES } from '../constants.js';
 import { PresetAPI } from '../presets/collection.js';
+import { Spawner } from '../presets/spawner.js';
 import { getDataBounds } from '../presets/utils.js';
 import { PresetField } from './fields.js';
 
@@ -58,7 +59,7 @@ export class SpawnPresetBehaviorType extends foundry.data.regionBehaviors.Region
 
     if (this.once) this.parent.update({ disabled: true });
 
-    if (event.data.forced) return;
+    if (!event.data.teleport && event.data.forced) return;
 
     let destinations = [];
 
@@ -163,12 +164,12 @@ export class SpawnPresetBehaviorType extends foundry.data.regionBehaviors.Region
         },
       };
 
-      PresetAPI.spawnPreset({
+      Spawner.spawnPreset({
         preset,
         x: position.x,
         y: position.y,
         scaleToGrid: true,
-        center: true,
+        pivot: PIVOTS.CENTER,
         flags,
         sceneId: region.parent.id,
       });

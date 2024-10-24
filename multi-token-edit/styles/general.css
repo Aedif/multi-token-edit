@@ -113,13 +113,14 @@
 
 .mass-edit-dark-window .window-content,
 .mass-edit-dark-window .tag {
-  background: rgba(50, 50, 50, 0.8);
+  background: rgba(50, 50, 50, 0.8) !important;
   color: white;
 }
 
 .mass-edit-dark-window button {
-  background: black;
+  background: rgba(0, 0, 0, 0.4);
   color: white;
+  border: 1px groove darkorange;
 }
 
 .mass-edit-dark-window button:disabled {
@@ -382,30 +383,24 @@
   line-break: anywhere;
 }
 
-.mass-edit-preset-form .item .item-name .tags {
-  line-height: 18px;
+.preset-tooltip {
+  text-align: left !important;
+}
+
+.mass-edit-tags.tags {
+  line-height: 24px;
   margin-bottom: 2px;
   margin-top: 7px;
   font-size: 0.9em;
-  white-space: nowrap;
-  width: 50px;
-  overflow: hidden;
-  text-overflow: clip;
-  transition: flex 1s ease;
-  flex: 0;
 }
 
-.mass-edit-preset-form .item .item-name .tags.show {
-  transition: all 1s ease;
-  transition-delay: 1.5s;
-  flex: 0 0 100%;
-}
-
-.mass-edit-preset-form .item .item-name .tags span {
+.mass-edit-tags.tags span {
   color: gold;
   border: 1px gold solid;
   border-radius: 3px;
   padding: 0px 2px 0px 4px;
+  white-space: nowrap;
+  margin-right: 4px;
 }
 
 .mass-edit-preset-form .item .item-controls {
@@ -464,11 +459,13 @@
 }
 
 input.me-add {
-  background-color: greenyellow;
+  background-color: greenyellow !important;
+  color: black !important;
 }
 
 input.me-subtract {
-  background-color: orangered;
+  background-color: orangered !important;
+  color:black !important;
 }
 
 .preset-field-select .item {
@@ -591,7 +588,7 @@ nav > a[data-tab='me-pinned'] {
 }
 
 .me-tags .tag-container .tag {
-  border: 1px gray solid;
+  border: 1px darkorange solid;
   border-radius: 5px;
   padding: 3px;
   margin: 2px;
@@ -734,19 +731,18 @@ nav > a[data-tab='me-pinned'] {
 
 #mass-edit-linker-menu {
   min-width: 270px;
-  min-height: 270px;
+  min-height: 370px;
 }
 
 .mass-edit-linker .controls {
-  flex: 0 0 46px;
   display: flex;
   padding-left: 2px;
-  padding-right: 4px;
 }
 
 .mass-edit-linker .controls .control {
   font-size: 24px;
   margin-bottom: 4px;
+  margin-right: 4px;
   box-shadow: 0 0 3px dimgray;
   color: white;
   text-align: center;
@@ -756,6 +752,7 @@ nav > a[data-tab='me-pinned'] {
   pointer-events: all;
   place-content: center;
   line-height: 40px;
+  width: 40px;
 }
 
 .mass-edit-linker .controls a[disabled].control {

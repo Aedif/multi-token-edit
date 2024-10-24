@@ -1,9 +1,10 @@
 import { pasteDataUpdate } from '../applications/formUtils.js';
-import { MODULE_ID } from './constants.js';
+import { MODULE_ID, PIVOTS } from './constants.js';
 import { Mouse3D } from './mouse3d.js';
 import { Picker } from './picker.js';
-import { PresetAPI } from './presets/collection.js';
+import { PresetAPI, PresetCollection } from './presets/collection.js';
 import { Preset } from './presets/preset.js';
+import { Spawner } from './presets/spawner.js';
 import { applyRandomization } from './randomizer/randomizerUtils.js';
 import { TagInput } from './utils.js';
 
@@ -172,12 +173,11 @@ export class Brush {
   }
 
   static async genPreview() {
-    PresetAPI.spawnPreset({
+    return Spawner.spawnPreset({
       preset: this.preset,
-      coordPicker: true,
+      preview: true,
       previewOnly: true,
-      center: true,
-      taPreview: 'ALL',
+      pivot: PIVOTS.CENTER,
       transform: this.transform,
       snapToGrid: this.snap,
       scaleToGrid: this.scaleToGrid,
@@ -1024,6 +1024,6 @@ export async function openBrushMenu(options, settings = {}) {
   }
 
   if (!presets?.length) return;
-  for (const preset of presets) await preset.load();
+  await PresetCollection.batchLoadPresets(presets);
   BrushMenu.render(presets, settings);
 }

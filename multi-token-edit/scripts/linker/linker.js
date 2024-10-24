@@ -2,11 +2,11 @@
  * Manage placeable linking to one another using `links` flag.
  */
 
-import { DataTransform } from '../picker.js';
 import { libWrapper } from '../shim/shim.js';
 import { pickerSelectMultiLayerDocuments, updateEmbeddedDocumentsViaGM } from '../utils.js';
 import { getDataBounds } from '../presets/utils.js';
-import { MODULE_ID, SUPPORTED_PLACEABLES } from '../constants.js';
+import { LINKER_DOC_COLORS, MODULE_ID, SUPPORTED_PLACEABLES } from '../constants.js';
+import { DataTransformer } from '../data/transformer.js';
 
 const PROCESSED_UPDATES = new Map();
 export const LINK_TYPES = {
@@ -60,7 +60,7 @@ function processLinks(transform, origin, links, scene, docUpdates, processedLink
         const data = d._source;
         let update = foundry.utils.deepClone(data);
 
-        DataTransform.apply(documentName, update, origin, transform);
+        DataTransformer.apply(documentName, update, origin, transform);
         update = foundry.utils.diffObject(data, update);
 
         update._id = d.id;
@@ -104,7 +104,8 @@ function preUpdate(document, change, options, userId) {
     change.hasOwnProperty('shapes') ||
     change.hasOwnProperty('c') ||
     change.hasOwnProperty('elevation');
-  const rotationUpdate = change.hasOwnProperty('rotation') || options.hasOwnProperty('meRotation');
+  const rotationUpdate =
+    change.hasOwnProperty('rotation') || change.hasOwnProperty('direction') || options.hasOwnProperty('meRotation');
   if (!(positionUpdate || rotationUpdate)) return true;
 
   // Special handling for walls.
@@ -118,7 +119,7 @@ function preUpdate(document, change, options, userId) {
     }
   }
 
-  // If control is held during a non-rotation update, we want to ignore links
+  // If alt is held during during the update, we want to ignore links
   if (game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.ALT)) {
     return true;
   }
@@ -150,7 +151,8 @@ async function update(document, change, options, userId) {
     change.hasOwnProperty('shapes') ||
     change.hasOwnProperty('c') ||
     change.hasOwnProperty('elevation');
-  const rotationUpdate = change.hasOwnProperty('rotation') || options.hasOwnProperty('meRotation');
+  const rotationUpdate =
+    change.hasOwnProperty('rotation') || change.hasOwnProperty('direction') || options.hasOwnProperty('meRotation');
   if (!(positionUpdate || rotationUpdate)) return true;
 
   const previousSource = foundry.utils.deepClone(options.linkSources[document.id]);
@@ -211,6 +213,8 @@ function calculateTransform(documentName, currentSource, previousSource, change,
   if (options.hasOwnProperty('meRotation')) dRotation = options.meRotation;
   else if (currentSource.hasOwnProperty('rotation'))
     dRotation = (currentSource.rotation - previousSource.rotation) % 360;
+  else if (currentSource.hasOwnProperty('direction'))
+    dRotation = (currentSource.direction - previousSource.direction) % 360;
 
   if (dRotation != null) {
     transform.rotation = dRotation;
@@ -275,6 +279,29 @@ export class LinkerAPI {
     }
   }
 
+  /**
+   * Links provided documents/placeables using an already existing or otherwise an automatically
+   * generated link.
+   * @param {*} documents
+   * @returns
+   */
+  static async link(documents) {
+    if (!documents?.length || documents.length === 1) return;
+    documents = documents.map((d) => d.document ?? d);
+
+    let link;
+    for (const d of documents) {
+      link = (this.getLinks(d) ?? []).find((l) => l.type === LINK_TYPES.TWO_WAY);
+      if (link) break;
+    }
+    if (!link) link = { id: foundry.utils.randomID(), type: LINK_TYPES.TWO_WAY, label: 'A_LINK' };
+
+    const { id, type, label } = link;
+    for (const d of documents) {
+      await this.addLink(d, id, type, label);
+    }
+  }
+
   static getLinks(document) {
     document = document.document ?? document;
     return document.flags[MODULE_ID]?.links;
@@ -287,6 +314,7 @@ export class LinkerAPI {
    */
   static getLinkedDocuments(documents) {
     if (!Array.isArray(documents)) documents = [documents];
+    documents = documents.map((d) => d.document ?? d);
 
     const allLinked = new Set();
     documents.forEach((document) => this._findLinked(document, allLinked));
@@ -319,6 +347,20 @@ export class LinkerAPI {
   static hasLink(placeable, linkId) {
     const document = placeable.document ?? placeable;
     return Boolean(document.flags[MODULE_ID]?.links?.find((l) => l.id === linkId));
+  }
+
+  /**
+   * Returns true if the two placeables share a link
+   * @param {*} placeable1
+   * @param {*} placeable2
+   * @returns
+   */
+  static areLinked(placeable1, placeable2) {
+    const links1 = (placeable1.document ?? placeable1).flags[MODULE_ID]?.links;
+    const links2 = (placeable2.document ?? placeable2).flags[MODULE_ID]?.links;
+
+    if (!(links1 && links2)) return false;
+    return links1.some((l1) => links2.find((l2) => l1.id === l2.id));
   }
 
   /**
@@ -371,16 +413,21 @@ export class LinkerAPI {
 
   /**
    * Remove all links from the given placeable/document
-   * @param {*} placeable
+   * @param {*} documents
    */
-  static removeLinks(placeable) {
-    const document = placeable.document ?? placeable;
-    if (document.flags[MODULE_ID]?.links) {
-      document.unsetFlag(MODULE_ID, 'links');
-      Hooks.call(`${MODULE_ID}.removeNode`, document.id);
-      return true;
+  static async removeLinks(documents) {
+    if (!Array.isArray(documents)) documents = [documents];
+    documents = documents.map((d) => d.document ?? d);
+
+    let removed = false;
+    for (const document of documents) {
+      if (document.flags[MODULE_ID]?.links) {
+        await document.unsetFlag(MODULE_ID, 'links');
+        Hooks.call(`${MODULE_ID}.removeNode`, document.id);
+        removed = true;
+      }
     }
-    return false;
+    return removed;
   }
 
   /**
@@ -393,7 +440,7 @@ export class LinkerAPI {
 
     let numRemoved = 0;
     for (const s of selected) {
-      if (LinkerAPI.removeLinks(s)) numRemoved++;
+      if (await LinkerAPI.removeLinks(s)) numRemoved++;
     }
     if (notification && numRemoved) ui.notifications.info(`Mass Edit: Links removed from ${numRemoved} documents.`);
 
@@ -625,7 +672,7 @@ export class LinkerAPI {
       dg.lineStyle(width + 2, 0, alpha, 0.5);
       dg.drawRect(bounds.x, bounds.y, bounds.width, bounds.height);
 
-      dg.lineStyle(width, 0x00ff00, alpha, 0.5);
+      dg.lineStyle(width, LINKER_DOC_COLORS[d.documentName], alpha, 0.5);
       dg.drawRect(bounds.x, bounds.y, bounds.width, bounds.height);
     });
   }

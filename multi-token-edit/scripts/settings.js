@@ -15,6 +15,7 @@ import { editPreviewPlaceables, Picker } from './picker.js';
 import { PresetCollection } from './presets/collection.js';
 import { MassEditPresets } from './presets/forms.js';
 import { Preset } from './presets/preset.js';
+import { enablePixelPerfectTileSelect } from './tools/selectTool.js';
 import { activeEffectPresetSelect, getDocumentName, localize } from './utils.js';
 
 export function registerSettings() {
@@ -23,7 +24,7 @@ export function registerSettings() {
     scope: 'world',
     config: false,
     type: String,
-    default: 'Solid Background',
+    default: 'Default',
   });
 
   game.settings.register(MODULE_ID, 'cssCustom', {
@@ -77,6 +78,15 @@ export function registerSettings() {
       folderFilters: ['Thumb', 'thumb'],
     },
   });
+
+  game.settings.register(MODULE_ID, 'pixelPerfect', {
+    scope: 'world',
+    config: false,
+    type: Boolean,
+    default: false,
+    onChange: enablePixelPerfectTileSelect,
+  });
+  enablePixelPerfectTileSelect();
 
   // ===============
   // Preset Settings

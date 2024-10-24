@@ -352,18 +352,19 @@ export const DOCUMENT_CREATE_REQUESTS = {};
  * @param {String} documentName  document type to be created
  * @param {Array[Object]} data   data defining the documents
  * @param {String} sceneID       scene the documents should be created on
+ * @param {object} options       options to be passed to createEmbeddedDocuments
  * @returns placeable documents that have been created
  */
-export async function createDocuments(documentName, data, sceneID) {
+export async function createDocuments(documentName, data, sceneID, options = {}) {
   if (game.user.isGM) {
-    return game.scenes.get(sceneID).createEmbeddedDocuments(documentName, data);
+    return game.scenes.get(sceneID).createEmbeddedDocuments(documentName, data, options);
   }
 
   const requestID = foundry.utils.randomID();
 
   const message = {
     handlerName: 'document',
-    args: { sceneID, documentName, data, requestID },
+    args: { sceneID, documentName, data, requestID, options },
     type: 'CREATE',
   };
   game.socket.emit(`module.${MODULE_ID}`, message);
@@ -664,4 +665,21 @@ export async function pickerSelectMultiLayerDocuments() {
   });
 
   return selected;
+}
+
+/**
+ * Returns dimensions of the provided image or video path
+ * @param {String} src
+ * @returns {object} {width, height}
+ */
+export async function loadImageVideoDimensions(src) {
+  let width, height;
+
+  try {
+    const baseTexture = (await loadTexture(src)).baseTexture;
+    width = baseTexture.width;
+    height = baseTexture.height;
+  } catch (e) {}
+
+  return { width, height };
 }

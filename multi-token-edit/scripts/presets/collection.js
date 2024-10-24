@@ -1,21 +1,10 @@
-import { checkApplySpecialFields } from '../../applications/formUtils.js';
-import { showGenericForm } from '../../applications/multiConfig.js';
 import { Brush } from '../brush.js';
 import { MODULE_ID, SUPPORTED_PLACEABLES, UI_DOCS } from '../constants.js';
-import { DataTransform, Picker } from '../picker.js';
-import { applyRandomization } from '../randomizer/randomizerUtils.js';
-import { SeededRandom, applyPresetToScene, createDocuments, executeScript, localize } from '../utils.js';
+import { SeededRandom, applyPresetToScene, localize } from '../utils.js';
 import { FileIndexer } from './fileIndexer.js';
 import { Preset, VirtualFilePreset } from './preset.js';
-import {
-  FolderState,
-  applyTaggerTagRules,
-  decodeURIComponentSafely,
-  getPresetDataCenterOffset,
-  getTransformToOrigin,
-  mergePresetDataToDefaultDoc,
-  placeableToData,
-} from './utils.js';
+import { Spawner } from './spawner.js';
+import { FolderState, decodeURIComponentSafely, placeableToData } from './utils.js';
 
 const DEFAULT_PACK = 'world.mass-edit-presets-main';
 export const META_INDEX_ID = 'MassEditMetaData';
@@ -33,6 +22,7 @@ export class PresetCollection {
     let mainTree;
     try {
       pack = await this._initCompendium(this.workingPack);
+      if (!pack) throw Error('Unable to retrieve working compendium.');
       mainTree = await PresetTree.init(pack, type, { forceLoad: true, setFormVisibility });
     } catch (e) {
       // Fail-safe. Return back to DEFAULT_PACK
@@ -201,57 +191,65 @@ export class PresetCollection {
    * Update multiple presets at the same time
    * @param {*} updates
    */
-  static async updatePresets(updates) {
+  static async updatePresets(updates, pack = this.workingPack) {
     // TODO update meta and preset itself
-    await JournalEntry.updateDocuments(updates, { pack: this.workingPack });
+    await JournalEntry.updateDocuments(updates, { pack });
   }
 
   /**
-   * @param {Preset|Array[Preset]} preset
+   * TODO: create a method to batch set presets
+   * @param {Preset|Array[Preset]} presets
    */
-  static async set(preset, pack) {
+  static async set(presets, pack) {
+    if (!presets) throw new Error('Attempting to set invalid Preset/s', presets);
     if (!pack) pack = this.workingPack;
-
-    if (preset instanceof Array) {
-      for (const p of preset) {
-        await PresetCollection.set(p, pack);
-      }
-      return;
-    }
+    if (!(presets instanceof Array)) presets = [presets];
 
     const compendium = await this._initCompendium(pack);
-    if (compendium.index.get(preset.id)) {
-      await this.update(preset);
-      return;
+
+    const toCreatePresets = [];
+
+    for (const preset of presets) {
+      if (compendium.index.get(preset.id)) {
+        await this.update(preset);
+      } else toCreatePresets.push(preset);
     }
 
-    const documents = await JournalEntry.createDocuments(
-      [
-        {
-          _id: preset.id,
-          name: preset.name,
-          pages: preset.pages ?? [],
-          folder: preset.folder,
-          flags: { [MODULE_ID]: { preset: preset.toJSON() } },
-        },
-      ],
-      {
-        pack: pack,
-        keepId: true,
-      }
-    );
+    if (!toCreatePresets.length) return;
 
-    preset.uuid = documents[0].uuid;
-    preset.document = documents[0];
+    const data = toCreatePresets.map((preset) => {
+      return {
+        _id: preset.id,
+        name: preset.name,
+        pages: preset.pages ?? [],
+        folder: preset.folder,
+        flags: { [MODULE_ID]: { preset: preset.toJSON() } },
+      };
+    });
+
+    const documents = await JournalEntry.createDocuments(data, {
+      pack: pack,
+      keepId: true,
+    });
+
+    for (const preset of toCreatePresets) {
+      const document = documents.find((d) => d.id === preset.id);
+      preset.uuid = document.uuid;
+      await preset.load(false, document);
+    }
 
     const metaDoc = await this._initMetaDocument(pack);
     const update = {};
 
-    META_INDEX_FIELDS.forEach((f) => {
-      update[f] = preset[f];
-    });
+    for (const preset of toCreatePresets) {
+      const metaFields = {};
+      META_INDEX_FIELDS.forEach((f) => {
+        metaFields[f] = preset[f];
+      });
+      update[preset.id] = metaFields;
+    }
 
-    await metaDoc.setFlag(MODULE_ID, 'index', { [preset.id]: update });
+    await metaDoc.setFlag(MODULE_ID, 'index', update);
     delete PresetTree._packTrees[pack];
   }
 
@@ -270,6 +268,63 @@ export class PresetCollection {
       return preset;
     }
     return null;
+  }
+
+  static async getBatch(uuids, { full = true }) {
+    const presets = [];
+
+    for (const uuid of uuids) {
+      if (uuid.startsWith('virtual@')) presets.push(await this._constructVirtualFilePreset(uuid, { full: false }));
+      else {
+        let { collection, documentId } = foundry.utils.parseUuid(uuid);
+        const index = collection.index.get(documentId);
+
+        if (index) {
+          const metaIndex = (await collection.getDocument(META_INDEX_ID))?.getFlag(MODULE_ID, 'index');
+          const mIndex = metaIndex[index._id];
+          const preset = new Preset({ ...index, ...mIndex });
+          preset.pack = collection.collection;
+
+          presets.push(preset);
+        }
+      }
+    }
+
+    if (full) {
+      return this.batchLoadPresets(presets);
+    }
+
+    return presets;
+  }
+
+  /**
+   * Batch load preset documents using pack.getDocuments({ _id__in: ids }) query.
+   * @param {Array[Preset]} presets
+   * @returns
+   */
+  static async batchLoadPresets(presets) {
+    const collectionToPreset = new Map();
+
+    for (const preset of presets) {
+      if (preset.virtual) await preset.load();
+      else {
+        let { collection } = foundry.utils.parseUuid(preset.uuid);
+        if (collectionToPreset.get(collection)) collectionToPreset.get(collection).push(preset);
+        else collectionToPreset.set(collection, [preset]);
+      }
+    }
+
+    for (const [collection, presets] of collectionToPreset) {
+      const ids = presets.map((p) => p.id);
+      const documents = await collection.getDocuments({ _id__in: ids });
+
+      for (const preset of presets) {
+        const d = documents.find((d) => d.id === preset.id);
+        if (d) await preset.load(false, d);
+      }
+    }
+
+    return presets;
   }
 
   static async _constructVirtualFilePreset(uuid, { full = true } = {}) {
@@ -407,7 +462,6 @@ export class PresetCollection {
       if (match) presets.push(preset);
     }
   }
-
   /**
    * Build preset index for 'Spotlight Omnisearch' module
    * @param {Array[CONFIG.SpotlightOmnisearch.SearchTerm]} soIndex
@@ -420,10 +474,9 @@ export class PresetCollection {
     const onClick = async function () {
       if (SUPPORTED_PLACEABLES.includes(this.data.documentName)) {
         ui.spotlightOmnisearch?.setDraggingState(true);
-        await PresetAPI.spawnPreset({
+        await Spawner.spawnPreset({
           preset: this.data,
-          coordPicker: true,
-          taPreview: 'ALL',
+          preview: true,
           scaleToGrid: game.settings.get(MODULE_ID, 'presetScaling'),
         });
         ui.spotlightOmnisearch?.setDraggingState(false);
@@ -433,7 +486,7 @@ export class PresetCollection {
     const onDragEnd = function (event) {
       if (SUPPORTED_PLACEABLES.includes(this.data.documentName)) {
         const { x, y } = canvas.canvasCoordinatesFromClient({ x: event.clientX, y: event.clientY });
-        PresetAPI.spawnPreset({
+        Spawner.spawnPreset({
           preset: this.data,
           x,
           y,
@@ -554,10 +607,7 @@ export class PresetAPI {
     if (uuid) {
       presets = [];
       const uuids = Array.isArray(uuid) ? uuid : [uuid];
-      for (const uuid of uuids) {
-        const preset = await PresetCollection.get(uuid, { full });
-        if (preset) presets.push(preset);
-      }
+      presets = await PresetCollection.getBatch(uuids, { full });
     } else if (!name && !type && !folder && !tags) {
       throw Error('UUID, Name, Type, Folder and/or Tags required to retrieve a Preset.');
     } else {
@@ -603,7 +653,6 @@ export class PresetAPI {
     presetData.gridSize = canvas.scene.grid.size;
 
     const preset = new Preset(presetData);
-    await PresetCollection.set(preset);
     return preset;
   }
 
@@ -691,278 +740,6 @@ export class PresetAPI {
     }
 
     return presets;
-  }
-
-  /**
-   * Spawn a preset on the scene (uuid, name or preset itself are required).
-   * By default the current mouse position is used.
-   * @param {object} [options={}]
-   * @param {Preset} [options.preset]                    Preset
-   * @param {String} [options.uuid]                      Preset UUID
-   * @param {String} [options.name]                      Preset name
-   * @param {String} [options.type]                      Preset type ("Token", "Tile", etc)
-   * @param {String|Array[String]|Object} [options.tags] Preset tags, See PresetAPI.getPreset
-   * @param {Boolean} [options.random]                   If a unique preset could not be found, a random one will be chosen from the matched list
-   * @param {Number} [options.x]                         Spawn canvas x coordinate (mouse position used if x or y are null)
-   * @param {Number} [options.y]                         Spawn canvas y coordinate (mouse position used if x or y are null)
-   * @param {Number} [options.z]                         Spawn canvas z coordinate (3D Canvas)
-   * @param {Boolean} [options.snapToGrid]               If 'true' snaps spawn position to the grid.
-   * @param {Boolean} [options.hidden]                   If 'true' preset will be spawned hidden.
-   * @param {Boolean} [options.layerSwitch]              If 'true' the layer of the spawned preset will be activated.
-   * @param {Boolean} [options.scaleToGrid]              If 'true' Tiles, Drawings, and Walls will be scaled relative to grid size.
-   * @param {Boolean} [options.modifyPrompt]             If 'true' a field modification prompt will be shown if configured via `Preset Edit > Modify` form
-   * @param {Boolean} [options.coordPicker]              If 'true' a crosshair and preview will be enabled allowing spawn position to be picked
-   * @param {String} [options.pickerLabel]               Label displayed above crosshair when `coordPicker` is enabled
-   * @param {String} [options.taPreview]                 Designates the preview placeable when spawning a `Token Attacher` prefab.
-   *                                                      Accepted values are "ALL" (for all elements) and document name optionally followed by an index number
-   *                                                      e.g. "ALL", "Tile", "AmbientLight.1"
-   * @returns {Array[Document]}
-   */
-  static async spawnPreset({
-    uuid,
-    preset,
-    name,
-    type,
-    folder,
-    tags,
-    random = false,
-    x,
-    y,
-    z,
-    coordPicker = false,
-    pickerLabel,
-    taPreview,
-    sceneId = canvas.scene.id,
-    snapToGrid = true,
-    hidden = false,
-    layerSwitch = false,
-    scaleToGrid = false,
-    modifyPrompt = true,
-    center = false,
-    transform = {},
-    previewOnly = false,
-    flags,
-  } = {}) {
-    if (!canvas.ready) throw Error("Canvas need to be 'ready' for a preset to be spawned.");
-    if (!(uuid || preset || name || type || folder || tags))
-      throw Error('ID, Name, Folder, Tags, or Preset is needed to spawn it.');
-    if (!coordPicker && ((x == null && y != null) || (x != null && y == null)))
-      throw Error('Need both X and Y coordinates to spawn a preset.');
-
-    if (preset) await preset.load();
-    preset = preset ?? (await PresetAPI.getPreset({ uuid, name, type, folder, tags, random }));
-    if (!preset) throw Error(`No preset could be found matching: { uuid: "${uuid}", name: "${name}", type: "${type}"}`);
-
-    let presetData = foundry.utils.deepClone(preset.data);
-
-    // Instead of using the entire data group use only one random one
-    if (preset.spawnRandom && presetData.length)
-      presetData = [presetData[Math.floor(Math.random() * presetData.length)]];
-
-    // Display prompt to modify data if needed
-    if (modifyPrompt && preset.modifyOnSpawn?.length) {
-      presetData = await modifySpawnData(presetData, preset.modifyOnSpawn);
-      // presetData being returned as null means that the modify field form has been canceled
-      // in which case we should cancel spawning as well
-      if (presetData == null) return;
-    }
-
-    // Populate preset data with default placeable data
-    presetData = presetData.map((data) => {
-      return mergePresetDataToDefaultDoc(preset, data);
-    });
-    presetData = presetData.map((d) => foundry.utils.flattenObject(d));
-    if (!foundry.utils.isEmpty(preset.randomize)) await applyRandomization(presetData, null, preset.randomize); // Randomize data if needed
-    await checkApplySpecialFields(preset.documentName, presetData, presetData); // Apply Special fields (TMFX)
-    presetData = presetData.map((d) => foundry.utils.expandObject(d));
-
-    let presetAttached = foundry.utils.deepClone(preset.attached);
-
-    if (preset.preSpawnScript) {
-      await executeScript(preset.preSpawnScript, { data: presetData, attached: presetAttached });
-    }
-
-    // Lets sort the preset data as well as any attached placeable data into document groups
-    // documentName -> data array
-    const docToData = new Map();
-    docToData.set(preset.documentName, presetData);
-    if (presetAttached) {
-      for (const attached of presetAttached) {
-        if (!docToData.get(attached.documentName)) docToData.set(attached.documentName, []);
-        docToData.get(attached.documentName).push(attached.data);
-      }
-    }
-
-    // Regenerate links present within preset data. This will ensure uniqueness on the links
-    // when placed on a scene
-    if (!preset.preserveLinks) {
-      const links = new Map();
-
-      const newLinkId = function (oldId) {
-        let id = links.get(oldId);
-        if (!id) {
-          if (oldId.startsWith('LinkTokenBehavior - ')) {
-            id = 'LinkTokenBehavior - ' + foundry.utils.randomID(8);
-          } else {
-            id = foundry.utils.randomID();
-          }
-          links.set(oldId, id);
-        }
-        return id;
-      };
-
-      docToData.forEach((data) => {
-        data.forEach((d) => {
-          d.flags?.[MODULE_ID]?.links?.forEach((l) => {
-            l.id = newLinkId(l.id);
-          });
-          d.behaviors?.forEach((b) => {
-            if (b.system?.linkId) b.system.linkId = newLinkId(b.system.linkId);
-          });
-        });
-      });
-    }
-
-    // Scale data relative to grid size
-    if (scaleToGrid) {
-      const scale = canvas.grid.size / (preset.gridSize || 100);
-      docToData.forEach((dataArr, documentName) => {
-        dataArr.forEach((data) => DataTransform.apply(documentName, data, { x: 0, y: 0 }, { scale, gridScale: true }));
-      });
-    }
-
-    // ==================
-    // Determine spawn position
-    if (coordPicker) {
-      const coords = await new Promise(async (resolve) => {
-        Picker.activate(resolve, {
-          documentName: preset.documentName,
-          previewData: docToData,
-          snap: snapToGrid,
-          label: pickerLabel,
-          taPreview: taPreview,
-          center,
-          previewOnly,
-          ...transform,
-        });
-      });
-      if (coords == null) return [];
-      x = coords.end.x;
-      y = coords.end.y;
-      if (coords.end.z != null) z = coords.end.z;
-    } else if (x == null || y == null) {
-      if (game.Levels3DPreview?._active) {
-        const pos3d = game.Levels3DPreview.interactionManager.canvas2dMousePosition;
-        x = pos3d.x;
-        y = pos3d.y;
-        z = pos3d.z;
-      } else {
-        x = canvas.mousePosition.x;
-        y = canvas.mousePosition.y;
-
-        if (preset.documentName === 'Token' || preset.documentName === 'Tile') {
-          x -= canvas.dimensions.size / 2;
-          y -= canvas.dimensions.size / 2;
-        }
-      }
-    }
-
-    // If not using coorPicker (Picker) we need to handle position snapping here
-    if (!coordPicker) {
-      if (center) {
-        const offset = getPresetDataCenterOffset(docToData);
-        x -= offset.x;
-        y -= offset.y;
-      }
-
-      let pos = { x, y };
-
-      if (snapToGrid && !game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.SHIFT)) {
-        pos = canvas.getLayerByEmbeddedName(preset.documentName).getSnappedPoint(pos);
-      }
-      pos.z = z;
-
-      const posTransform = getTransformToOrigin(docToData);
-      posTransform.x += pos.x;
-      posTransform.y += pos.y;
-
-      // 3D Support
-      if (game.Levels3DPreview?._active) {
-        if (pos.z == null) posTransform.z = 0;
-        else posTransform.z += pos.z;
-      }
-
-      docToData.forEach((dataArr, documentName) => {
-        dataArr.forEach((data) => {
-          DataTransform.apply(documentName, data, { x: 0, y: 0 }, posTransform);
-        });
-      });
-    }
-
-    // Assign ownership to the user who triggered the spawn, hide and apply flags if if necessary
-    docToData.forEach((dataArr, documentName) => {
-      dataArr.forEach((data) => {
-        // Assign ownership for Drawings and MeasuredTemplates
-        if (['Drawing', 'MeasuredTemplate'].includes(documentName)) {
-          if (documentName === 'Drawing') data.author = game.user.id;
-          else if (documentName === 'MeasuredTemplate') data.user = game.user.id;
-        }
-
-        // Hide
-        if (hidden || game.keyboard.downKeys.has('AltLeft')) data.hidden = true;
-        if (flags) data.flags = foundry.utils.mergeObject(data.flags ?? {}, flags);
-
-        // Apply Tagger rules for Spawn Preset behaviors
-        if (documentName === 'Region' && data.behaviors) {
-          data.behaviors.forEach((b) => {
-            if (b.system?.destinationTags?.length)
-              b.system.destinationTags = applyTaggerTagRules(b.system.destinationTags);
-          });
-        }
-
-        // TODO: REMOVE once Foundry implements bug fix for null flag override
-        if (documentName === 'Token' && data.flags?.['token-attacher']?.attached === null) {
-          delete data.flags['token-attacher'].attached;
-        }
-      });
-    });
-
-    // We need to make sure that newly spawned tiles are displayed above currently places ones
-    if (docToData.get('Tile')) {
-      const maxSort = Math.max(0, ...game.scenes.get(sceneId).tiles.map((d) => d.sort)) + 1;
-      docToData
-        .get('Tile')
-        .sort((t1, t2) => (t1.sort ?? 0) - (t2.sort ?? 0))
-        .forEach((d, i) => (d.sort = maxSort + i));
-    }
-
-    // Switch active layer to the preset's base placeable type
-    if (layerSwitch) {
-      if (game.user.isGM || ['Token', 'MeasuredTemplate', 'Note'].includes(preset.documentName))
-        canvas.getLayerByEmbeddedName(preset.documentName)?.activate();
-    }
-
-    // Create Documents
-    const allDocuments = [];
-
-    for (const [documentName, dataArr] of docToData.entries()) {
-      const documents = await createDocuments(documentName, dataArr, sceneId);
-      documents.forEach((d) => allDocuments.push(d));
-    }
-
-    // Execute post spawn script/function
-    if (preset.postSpawnScript) {
-      await executeScript(preset.postSpawnScript, {
-        documents: allDocuments,
-        objects: allDocuments.map((d) => d.object).filter(Boolean),
-      });
-    }
-    await preset.callPostSpawnHooks({
-      documents: allDocuments,
-      objects: allDocuments.map((d) => d.object).filter(Boolean),
-    });
-
-    return allDocuments;
   }
 }
 
@@ -1239,52 +1016,4 @@ export class PresetTree {
       }
     }
   }
-}
-
-/**
- * Opens a GenericMassEdit form to modify specific fields within the provided data
- * @param {Object} data            data to be modified
- * @param {Array[String]} toModify fields within data to be modified
- * @returns modified data or null if form was canceled
- */
-async function modifySpawnData(data, toModify) {
-  const fields = {};
-  const flatData = foundry.utils.flattenObject(data);
-  for (const field of toModify) {
-    if (field in flatData) {
-      if (flatData[field] == null) fields[field] = '';
-      else fields[field] = flatData[field];
-    }
-  }
-
-  if (!foundry.utils.isEmpty(fields)) {
-    await new Promise((resolve) => {
-      showGenericForm(fields, 'PresetFieldModify', {
-        callback: (modified) => {
-          if (foundry.utils.isEmpty(modified)) {
-            if (modified == null) data = null;
-            resolve();
-            return;
-          }
-
-          for (const [k, v] of Object.entries(modified)) {
-            flatData[k] = v;
-          }
-
-          const tmpData = foundry.utils.expandObject(flatData);
-
-          const reorganizedData = [];
-          for (let i = 0; i < data.length; i++) {
-            reorganizedData.push(tmpData[i]);
-          }
-          data = reorganizedData;
-          resolve();
-        },
-        simplified: true,
-        noTabs: true,
-      });
-    });
-  }
-
-  return data;
 }

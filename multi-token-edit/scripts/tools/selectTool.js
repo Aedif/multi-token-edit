@@ -1,6 +1,46 @@
-import { MODULE_ID, SUPPORTED_PLACEABLES } from './constants.js';
-import { DataTransform } from './picker.js';
-import { getDataBounds } from './presets/utils.js';
+import { MODULE_ID, SUPPORTED_PLACEABLES } from '../constants.js';
+import { DataTransformer } from '../data/transformer.js';
+import { getDataBounds } from '../presets/utils.js';
+import { libWrapper } from '../shim/shim.js';
+
+/**
+ * Register/un-register pixel perfect tile hover wrapper
+ */
+let pixelPerfectWrapper;
+export function enablePixelPerfectTileSelect() {
+  if (!game.settings.get(MODULE_ID, 'pixelPerfect')) {
+    if (pixelPerfectWrapper) {
+      libWrapper.unregister(MODULE_ID, pixelPerfectWrapper);
+      pixelPerfectWrapper = undefined;
+      canvas.tiles?.placeables.forEach((t) => t.renderFlags.set({ redraw: true }));
+    }
+    return;
+  }
+
+  // Pixel perfect hover for tiles
+  pixelPerfectWrapper = libWrapper.register(
+    MODULE_ID,
+    'Tile.prototype._draw',
+    async function (wrapped, ...args) {
+      const result = await wrapped(...args);
+
+      // Change the frame to use pixel contain function instead of rectangle contain
+      const hitArea = this.frame.interaction.hitArea;
+      hitArea._originalContains = hitArea.contains;
+      hitArea._mesh = this.mesh;
+      hitArea.contains = function (...args) {
+        let contains = this._originalContains.call(this, ...args);
+        if (contains && this._mesh) return this._mesh.containsCanvasPoint(canvas.mousePosition);
+        return contains;
+      };
+
+      return result;
+    },
+    'WRAPPER'
+  );
+
+  canvas.tiles?.placeables.forEach((t) => t.renderFlags.set({ redraw: true }));
+}
 
 /**
  * Enable 'Select' tool for layers that do not have it. (AmbientLight, AmbientSound, MeasuredTemplate, and Note)
@@ -48,7 +88,7 @@ export function enableUniversalSelectTool() {
 }
 
 /**
- * Insert select tool if missing
+ * Insert select tools if missing
  */
 function _getControlButtons(controls) {
   for (const control of controls) {
@@ -61,6 +101,18 @@ function _getControlButtons(controls) {
         });
         control.activeTool = 'select';
       }
+    } else if (control.name === 'tiles') {
+      control.tools.push({
+        name: 'pixelPerfect',
+        title: 'Pixel Perfect Hover',
+        icon: 'fa-solid fa-bullseye-pointer',
+        visible: game.user.isGM,
+        active: game.settings.get(MODULE_ID, 'pixelPerfect'),
+        toggle: true,
+        onClick: () => {
+          game.settings.set(MODULE_ID, 'pixelPerfect', !game.settings.get(MODULE_ID, 'pixelPerfect'));
+        },
+      });
     }
   }
 }
@@ -99,7 +151,7 @@ function registerRegionWrappers() {
       const dx = position.x - x1;
       const dy = position.y - y1;
       for (const c of clones || []) {
-        DataTransform.apply('Region', c.document.toObject(), { x: 0, y: 0 }, { x: dx, y: dy }, c);
+        DataTransformer.apply('Region', c.document.toObject(), { x: 0, y: 0 }, { x: dx, y: dy }, c);
         c.visible = true;
         c._onUpdate({ shapes: null });
       }
@@ -137,7 +189,7 @@ function registerRegionWrappers() {
         y: y1 + (y2 - y1) / 2,
       };
 
-      DataTransform.apply('Region', data, origin, { rotation: delta });
+      DataTransformer.apply('Region', data, origin, { rotation: delta });
       await this.document.update({ shapes: data.shapes }, { meRotation: delta });
       return this;
     },

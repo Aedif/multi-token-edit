@@ -7,7 +7,7 @@ import {
   TagInput,
 } from './scripts/utils.js';
 import { libWrapper } from './scripts/shim/shim.js';
-import { enableUniversalSelectTool } from './scripts/selectTool.js';
+import { enableUniversalSelectTool } from './scripts/tools/selectTool.js';
 import { META_INDEX_ID, PresetAPI, PresetCollection } from './scripts/presets/collection.js';
 import { registerPresetBrowserHooks } from './scripts/presets/forms.js';
 import { registerKeybinds, registerSettings } from './scripts/settings.js';
@@ -17,27 +17,24 @@ import { V12Migrator } from './scripts/presets/migration.js';
 import { deleteFromClipboard, performMassSearch, performMassUpdate } from './applications/formUtils.js';
 import { registerSideBarPresetDropListener } from './scripts/presets/utils.js';
 import { LinkerAPI, registerLinkerHooks } from './scripts/linker/linker.js';
-import { MODULE_ID, SUPPORTED_SHEET_CONFIGS, SUPPORTED_PLACEABLES, UI_DOCS } from './scripts/constants.js';
+import { MODULE_ID, PIVOTS } from './scripts/constants.js';
+import { registerScenescapeHooks } from './scripts/scenescape/scenescape.js';
+import { Spawner } from './scripts/presets/spawner.js';
+import { registerBehaviors } from './scripts/behaviors/behaviors.js';
 
 // Initialize module
 Hooks.once('init', () => {
-  // We need to insert Region into relevant doc groups
-  // TODO: Once we move to a dedicated v12 version of the module we can
-  // make these groups static again
-  if (foundry.utils.isNewerVersion(game.version, 12)) {
-    SUPPORTED_PLACEABLES.unshift('Region');
-    UI_DOCS.push('Region');
-    SUPPORTED_SHEET_CONFIGS.push('Region');
+  //Register region behaviors
+  registerBehaviors();
 
-    //Register region behaviors
-    import('./scripts/behaviors/behaviors.js').then((module) => module.registerBehaviors());
-  }
-
-  // Allows users to drop AmbientSound presets onto playlists
+  // Allow users to drop AmbientSound presets onto playlists
   registerSideBarPresetDropListener();
 
   // Linker related hooks
   registerLinkerHooks();
+
+  // Scenescapes
+  //registerScenescapeHooks();
 
   // TODO: Replace with core v12 implementation of tag HTML element
   TagInput.registerHandlebarsHelper();
@@ -146,7 +143,7 @@ Hooks.once('init', () => {
     } else if (message.handlerName === 'document' && message.type === 'CREATE') {
       if (!isResponsibleGM()) return;
 
-      const documents = await createDocuments(args.documentName, args.data, args.sceneID);
+      const documents = await createDocuments(args.documentName, args.data, args.sceneID, args.options);
       const documentIDs = documents.map((d) => d.id);
 
       const message = {
@@ -191,13 +188,14 @@ Hooks.once('init', () => {
     getPreset: PresetAPI.getPreset,
     getPresets: PresetAPI.getPresets,
     createPreset: PresetAPI.createPreset,
-    spawnPreset: PresetAPI.spawnPreset,
+    spawnPreset: Spawner.spawnPreset,
     activateBrush: activateBrush,
     deactivateBrush: deactivateBush,
     openBrushMenu: openBrushMenu,
     migratePack: (pack, options = {}) => V12Migrator.migratePack(pack, options),
     migrateAllPacks: (options = {}) => V12Migrator.migrateAllPacks(options),
     linker: LinkerAPI,
+    PIVOTS: PIVOTS,
   };
 
   game.modules.get(MODULE_ID).api = {

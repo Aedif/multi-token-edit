@@ -1,3 +1,29 @@
+# 1.75.0
+
+**Fixes**
+
+- Fixed Virtual Preset export not preserving tile width & height
+- Fixed Addition/Subtraction features not changing field colours on new v12 forms
+- Fixed wall brush errors
+- Fixed spawned placeable elevation being incorrectly flattened
+- Fixed MeasuredTemplate rotations not propagating to other linked placeables
+- Fixed Region behaviour `Link Token` poorly interacting with tokens already manually linked to the region
+- Fixed inability to open Preset Browser when a non-default working compendium has been removed
+
+**Misc**
+
+- Added `Pixel Perfect Hover` toggle to Tile controls
+  - When enabled hover on tiles will only be recognised if over a non-alpha pixel
+- Preset tags will now show in the tooltip instead of beneath the preset name
+- Improved batch loading, creation, and updating speed of presets
+
+**API**
+
+- `spawnPreset(...)` changes
+  - **coordPicker** has been renamed to **preview**
+  - **pickerLabel** has been renamed to **previewLabel**
+  - **taPreview** has been removed, Token Attacher previews will now always be displayed if **preview** is set to true
+
 # 1.74.1
 
 **Linker**

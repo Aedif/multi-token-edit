@@ -28,12 +28,9 @@
             <div class="form-group">
                 <label>{{localize "COMBAT.CombatantImage"}}</label>
                 <div class="form-fields">
-                    {{filePicker target="img" type="image"}}
-                    <input class="image" type="text" name="img" placeholder="path/image.png" value="{{preset.img}}">
+                    <file-picker name="img" type="imagevideo" value="{{preset.img}}"></file-picker>
                     {{#if tva}} 
-                    <button  class="token-variants-image-select-button" type="button" data-type="imagevideo" data-target="img">
-                    <i class="fas fa-images"></i>
-                    </button>
+                    <button  class="token-variants-image-select-button" type="button" data-type="imagevideo" data-target="img"><i class="fas fa-images"></i></button>
                     {{/if}}
                 </div>
             </div>
@@ -140,6 +137,10 @@
         </div>
 
     </section>
-
-    <button type="submit" data-action="apply"><i class="fas fa-check"></i> {{localize "MassEdit.common.apply"}}</button>
+    
+    <br>
+    
+    <footer class="sheet-footer flexrow">
+        <button type="submit" data-action="apply"><i class="fas fa-check"></i> {{localize "MassEdit.common.apply"}}</button>
+    </footer>
 </form>

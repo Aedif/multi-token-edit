@@ -1,6 +1,6 @@
-import { MODULE_ID } from '../constants.js';
+import { MODULE_ID, PIVOTS } from '../constants.js';
 import { applyRandomization } from '../randomizer/randomizerUtils.js';
-import { PresetAPI } from './collection.js';
+import { PresetAPI, PresetCollection } from './collection.js';
 
 /**
  * Tracking of folder open/close state
@@ -41,6 +41,12 @@ export function placeableToData(placeable) {
         h: canvas.grid.sizeY ?? canvas.grid.h, // v12
       });
     }
+  } else if (document.documentName === 'Token') {
+    // Scenescape data
+    const width = foundry.utils.getProperty(data, `flags.${MODULE_ID}.width`);
+    const height = foundry.utils.getProperty(data, `flags.${MODULE_ID}.height`);
+    if (width) data.width = width;
+    if (height) data.height = height;
   }
 
   return data;
@@ -259,19 +265,6 @@ export async function randomizeChildrenFolderColors(uuid, tree, callback) {
 }
 
 /**
- * Calculates the necessary x and y offsets to place the mouse within the center of the preset data
- * assuming the mouse is on the top-left corner of the first element
- * @param {Map<String, Array[Object]>} docToData
- * @returns
- */
-export function getPresetDataCenterOffset(docToData) {
-  const b = getPresetDataBounds(docToData);
-  const center = { x: b.x + b.width / 2, y: b.y + b.height / 2 };
-  const transform = getTransformToOrigin(docToData);
-  return { x: center.x + transform.x, y: center.y + transform.y, z: 0 };
-}
-
-/**
  * Returns a transform that return first element to x:0, y:0 (z: 0)
  * @param {Map<String, Array[Object]>} docToData
  * @returns
@@ -307,6 +300,8 @@ export function getPresetDataBounds(docToData) {
   let y1 = Number.MAX_SAFE_INTEGER;
   let x2 = Number.MIN_SAFE_INTEGER;
   let y2 = Number.MIN_SAFE_INTEGER;
+  let z1 = Number.MAX_SAFE_INTEGER;
+  let z2 = Number.MIN_SAFE_INTEGER;
   docToData.forEach((dataArr, documentName) => {
     for (const data of dataArr) {
       const b = getDataBounds(documentName, data);
@@ -314,9 +309,11 @@ export function getPresetDataBounds(docToData) {
       if (b.y1 < y1) y1 = b.y1;
       if (b.x2 > x2) x2 = b.x2;
       if (b.y2 > y2) y2 = b.y2;
+      if (b.z1 < z1) z1 = b.z1;
+      if (b.z2 > z2) z2 = b.z2;
     }
   });
-  return { x: x1, y: y1, width: x2 - x1, height: y2 - y1 };
+  return { x: x1, y: y1, width: x2 - x1, height: y2 - y1, elevation: { bottom: z1, top: z2 } };
 }
 
 /**
@@ -444,9 +441,7 @@ export function registerSideBarPresetDropListener() {
         (p) => p.documentName === 'AmbientSound'
       );
 
-      for (const p of presets) {
-        await p.load();
-      }
+      await PresetCollection.batchLoadPresets(presets);
 
       const updates = [];
 
@@ -472,4 +467,30 @@ export function registerSideBarPresetDropListener() {
       PlaylistSound.create(updates, { parent: playlist });
     });
   });
+}
+
+export function getPivotOffset(pivot, docToData, bounds) {
+  const { width, height } = bounds ?? getPresetDataBounds(docToData);
+  switch (pivot) {
+    case PIVOTS.TOP_LEFT:
+      return { x: 0, y: 0 };
+    case PIVOTS.TOP:
+      return { x: width / 2, y: 0 };
+    case PIVOTS.TOP_RIGHT:
+      return { x: width, y: 0 };
+    case PIVOTS.LEFT:
+      return { x: 0, y: height / 2 };
+    case PIVOTS.CENTER:
+      return { x: width / 2, y: height / 2 };
+    case PIVOTS.RIGHT:
+      return { x: height, y: height / 2 };
+    case PIVOTS.BOTTOM_LEFT:
+      return { x: 0, y: height };
+    case PIVOTS.BOTTOM:
+      return { x: width / 2, y: height };
+    case PIVOTS.BOTTOM_RIGHT:
+      return { x: width, y: height };
+  }
+
+  return { x: 0, y: 0 };
 }
