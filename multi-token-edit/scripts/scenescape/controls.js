@@ -3,7 +3,6 @@ import { editPreviewPlaceables, Picker } from '../picker.js';
 import { libWrapper } from '../shim/shim.js';
 import { loadImageVideoDimensions } from '../utils.js';
 import ScenescapeConfig from './configuration.js';
-import { Parallax } from './parallax.js';
 import { Scenescape } from './scenescape.js';
 
 /**
@@ -32,11 +31,9 @@ export class ScenescapeControls {
   static _checkActivateControls() {
     if (Scenescape.active) {
       ScenescapeControls._register();
-      Parallax.registerHooks();
       this.displayBlackBars(Scenescape.blackBars);
     } else {
       ScenescapeControls._unregister();
-      Parallax.unregisterHooks();
       this.displayBlackBars(false);
     }
   }
