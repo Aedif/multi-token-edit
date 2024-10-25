@@ -1070,12 +1070,33 @@ export class MassEditPresets extends FormApplication {
       let confirm;
 
       if (deleteAll) {
+        // Construct warning count of what is about to be removed
+        const count = { Folder: 0 };
+        const traverseFolder = function (folder) {
+          count['Folder'] += 1;
+          folder.presets?.forEach((p) => {
+            count[p.documentName] = (count[p.documentName] ?? 0) + 1;
+          });
+          folder.children?.forEach((c) => traverseFolder(c));
+        };
+        traverseFolder(folder);
+
+        let countWarning = '';
+        if (Object.keys(count).length) {
+          countWarning += '<table>';
+          Object.keys(count).forEach((name) => {
+            countWarning += `<tr><td>${name}s</td><td>${count[name]}</td></tr>`;
+          });
+          countWarning += '</table>';
+        }
+        // end of constructing warning
+
         confirm = await Dialog.confirm({
           title: `${localize('FOLDER.Delete', false)}: ${folder.name}`,
           content: `<div style="color:red;"><h4>${localize('AreYouSure', false)}</h4><p>${localize(
             'FOLDER.DeleteWarning',
             false
-          )}</p></div>`,
+          )}</p>${countWarning}</div>`,
         });
       } else {
         confirm = await Dialog.confirm({

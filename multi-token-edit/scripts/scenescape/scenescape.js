@@ -3,23 +3,25 @@ import ScenescapeConfig from './configuration.js';
 import { ScenescapeControls } from './controls.js';
 
 export function registerScenescapeHooks() {
-  Hooks.on('renderSceneConfig', (app, html, options) => {
-    const element = $(`
-<div class="form-group">
-    <label>Scenescape</label>
-    <div class="form-fields">
-        <button  class="configureScenescape" type="button" data-tooltip="Configure Scenescape">
-          <i class="fa-regular fa-mountain-sun"></i>
-        </button>
+  // TODO remove debug check once ready for full release
+  if (game.settings.get(MODULE_ID, 'debug')) {
+    Hooks.on('renderSceneConfig', (app, html, options) => {
+      const element = $(`
+    <div class="form-group">
+        <label>Scenescape</label>
+        <div class="form-fields">
+            <button  class="configureScenescape" type="button" data-tooltip="Configure Scenescape">
+              <i class="fa-regular fa-mountain-sun"></i>
+            </button>
+        </div>
+        <p class="notes">Configure this scene as a 'Scenescape' allowing dynamic scaling and positioning of assets on a landscape background.</p>
     </div>
-    <p class="notes">Configure this scene as a 'Scenescape' allowing dynamic scaling and positioning of assets on a landscape background.</p>
-</div>
-        `);
-    element.on('click', '.configureScenescape', () => new ScenescapeConfig().render(true));
-
-    html.find('.initial-position').after(element);
-    app.setPosition({ height: 'auto' });
-  });
+            `);
+      element.on('click', '.configureScenescape', () => new ScenescapeConfig().render(true));
+      html.find('.initial-position').after(element);
+      app.setPosition({ height: 'auto' });
+    });
+  }
 
   ScenescapeControls.registerMainHooks();
 }

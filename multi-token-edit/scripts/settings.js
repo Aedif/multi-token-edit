@@ -20,6 +20,14 @@ import { activeEffectPresetSelect, getDocumentName, localize } from './utils.js'
 
 export function registerSettings() {
   // Register Settings
+
+  game.settings.register(MODULE_ID, 'debug', {
+    scope: 'client',
+    config: false,
+    type: Boolean,
+    default: false,
+  });
+
   game.settings.register(MODULE_ID, 'cssStyle', {
     scope: 'world',
     config: false,

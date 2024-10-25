@@ -1,3 +1,12 @@
+# 1.75.1
+
+- `Shift+Delete` keybind is no longer required to delete entire linked entities
+  - Deleting a linked entity through any means will delete all linked placeables
+  - Keybind's role has been changed to deleting only the selected placeables
+- Fixed undo (Ctrl+Z) not recovering more than one deleted linked entity
+- Pixel Perfect Hover now has separate toggles for Tiles and Tokens
+- Mass Edit AmbientLight configuration forms have lost `Hidden` field during v11->v12 migration which now has been reintroduced
+
 # 1.75.0
 
 **Fixes**

@@ -33,9 +33,6 @@ Hooks.once('init', () => {
   // Linker related hooks
   registerLinkerHooks();
 
-  // Scenescapes
-  registerScenescapeHooks();
-
   // TODO: Replace with core v12 implementation of tag HTML element
   TagInput.registerHandlebarsHelper();
 
@@ -45,6 +42,9 @@ Hooks.once('init', () => {
   // Settings/Keybindings
   registerSettings();
   registerKeybinds();
+
+  // Scenescapes
+  registerScenescapeHooks();
 
   // Register copy-paste wrappers
   libWrapper.register(
