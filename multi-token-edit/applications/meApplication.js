@@ -658,6 +658,19 @@ export const WithBaseMassEditForm = (cls) => {
         $(html).find('[name="texture.scaleX"]').closest('.form-group').before(scaleInput);
         this._processFormGroup(scaleInput, 'meInsert');
       }
+
+      if (this.documentName === 'AmbientLight') {
+        const hiddenInput = $(`
+          <div class="form-group">
+            <label>Hidden</label>
+            <div class="form-fields">
+              <input type="checkbox" name="hidden" >
+            </div>
+          </div>
+        `);
+        $(html).find('[name="config.shadows"]').closest('.form-group').after(hiddenInput);
+        this._processFormGroup(hiddenInput, 'meInsert');
+      }
     }
 
     /**

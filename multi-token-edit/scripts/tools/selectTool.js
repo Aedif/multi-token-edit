@@ -4,42 +4,71 @@ import { getDataBounds } from '../presets/utils.js';
 import { libWrapper } from '../shim/shim.js';
 
 /**
- * Register/un-register pixel perfect tile hover wrapper
+ * Register/un-register pixel perfect hover wrappers
  */
-let pixelPerfectWrapper;
-export function enablePixelPerfectTileSelect() {
-  if (!game.settings.get(MODULE_ID, 'pixelPerfect')) {
-    if (pixelPerfectWrapper) {
-      libWrapper.unregister(MODULE_ID, pixelPerfectWrapper);
-      pixelPerfectWrapper = undefined;
-      canvas.tiles?.placeables.forEach((t) => t.renderFlags.set({ redraw: true }));
+let pixelPerfectTileWrapper;
+let pixelPerfectTokenWrapper;
+
+export function enablePixelPerfectSelect() {
+  // Pixel perfect hover for tiles
+  if (!game.settings.get(MODULE_ID, 'pixelPerfectTile')) {
+    if (pixelPerfectTileWrapper) {
+      libWrapper.unregister(MODULE_ID, pixelPerfectTileWrapper);
+      pixelPerfectTileWrapper = undefined;
     }
-    return;
+  } else if (!pixelPerfectTileWrapper) {
+    pixelPerfectTileWrapper = libWrapper.register(
+      MODULE_ID,
+      'Tile.prototype._draw',
+      async function (wrapped, ...args) {
+        const result = await wrapped(...args);
+
+        // Change the frame to use pixel contain function instead of rectangle contain
+        const hitArea = this.frame.interaction.hitArea;
+        hitArea._originalContains = hitArea.contains;
+        hitArea._mesh = this.mesh;
+        hitArea.contains = function (...args) {
+          let contains = this._originalContains.call(this, ...args);
+          if (contains && this._mesh) return this._mesh.containsCanvasPoint(canvas.mousePosition);
+          return contains;
+        };
+
+        return result;
+      },
+      'WRAPPER'
+    );
   }
 
-  // Pixel perfect hover for tiles
-  pixelPerfectWrapper = libWrapper.register(
-    MODULE_ID,
-    'Tile.prototype._draw',
-    async function (wrapped, ...args) {
-      const result = await wrapped(...args);
+  // Pixel perfect hover for tokens
+  if (!game.settings.get(MODULE_ID, 'pixelPerfectToken')) {
+    if (pixelPerfectTokenWrapper) {
+      libWrapper.unregister(MODULE_ID, pixelPerfectTokenWrapper);
+      pixelPerfectTokenWrapper = undefined;
+    }
+  } else if (!pixelPerfectTokenWrapper) {
+    pixelPerfectTokenWrapper = libWrapper.register(
+      MODULE_ID,
+      'Token.prototype.getShape',
+      function (wrapped, ...args) {
+        const shape = wrapped(...args);
 
-      // Change the frame to use pixel contain function instead of rectangle contain
-      const hitArea = this.frame.interaction.hitArea;
-      hitArea._originalContains = hitArea.contains;
-      hitArea._mesh = this.mesh;
-      hitArea.contains = function (...args) {
-        let contains = this._originalContains.call(this, ...args);
-        if (contains && this._mesh) return this._mesh.containsCanvasPoint(canvas.mousePosition);
-        return contains;
-      };
+        // Change the frame to use pixel contain function instead of rectangle contain
+        shape._originalContains = shape.contains;
+        shape._mesh = this.mesh;
+        shape.contains = function (...args) {
+          let contains = this._originalContains.call(this, ...args);
+          if (contains && this._mesh) return this._mesh.containsCanvasPoint(canvas.mousePosition);
+          return contains;
+        };
 
-      return result;
-    },
-    'WRAPPER'
-  );
+        return shape;
+      },
+      'WRAPPER'
+    );
+  }
 
   canvas.tiles?.placeables.forEach((t) => t.renderFlags.set({ redraw: true }));
+  canvas.tokens?.placeables.forEach((t) => t.renderFlags.set({ refreshShape: true }));
 }
 
 /**
@@ -107,10 +136,22 @@ function _getControlButtons(controls) {
         title: 'Pixel Perfect Hover',
         icon: 'fa-solid fa-bullseye-pointer',
         visible: game.user.isGM,
-        active: game.settings.get(MODULE_ID, 'pixelPerfect'),
+        active: game.settings.get(MODULE_ID, 'pixelPerfectTile'),
         toggle: true,
         onClick: () => {
-          game.settings.set(MODULE_ID, 'pixelPerfect', !game.settings.get(MODULE_ID, 'pixelPerfect'));
+          game.settings.set(MODULE_ID, 'pixelPerfectTile', !game.settings.get(MODULE_ID, 'pixelPerfectTile'));
+        },
+      });
+    } else if (control.name === 'token') {
+      control.tools.push({
+        name: 'pixelPerfect',
+        title: 'Pixel Perfect Hover',
+        icon: 'fa-solid fa-bullseye-pointer',
+        visible: game.user.isGM,
+        active: game.settings.get(MODULE_ID, 'pixelPerfectToken'),
+        toggle: true,
+        onClick: () => {
+          game.settings.set(MODULE_ID, 'pixelPerfectToken', !game.settings.get(MODULE_ID, 'pixelPerfectToken'));
         },
       });
     }

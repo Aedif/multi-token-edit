@@ -19,6 +19,7 @@ export function registerLinkerHooks() {
   SUPPORTED_PLACEABLES.forEach((name) => {
     Hooks.on(`preUpdate${name}`, preUpdate);
     Hooks.on(`update${name}`, update);
+    Hooks.on(`delete${name}`, _delete);
   });
 
   // UNDO linked document delete operation
@@ -29,13 +30,15 @@ export function registerLinkerHooks() {
       const type = this.history[this.history.length - 1]?.type;
       const undone = await wrapped(...args);
       if (type === 'delete' && undone?.length) {
-        const event = LinkerAPI.history.find((h) => undone.find((d) => d.id === h.id));
+        for (const document of undone) {
+          const event = LinkerAPI.history.find((h) => h.id === document.id);
 
-        if (event) {
-          event.data.forEach((data, documentName) => {
-            canvas.scene.createEmbeddedDocuments(documentName, data, { isUndo: true, keepId: true });
-          });
-          LinkerAPI.history = LinkerAPI.history.filter((h) => !undone.find((d) => d.id === h.id));
+          if (event) {
+            event.data.forEach((data, documentName) => {
+              canvas.scene.createEmbeddedDocuments(documentName, data, { isUndo: true, keepId: true });
+            });
+            LinkerAPI.history = LinkerAPI.history.filter((h) => h.id !== document.id);
+          }
         }
       }
       return undone;
@@ -236,6 +239,37 @@ function calculateTransform(documentName, currentSource, previousSource, change,
   }
 
   return { transform, origin };
+}
+
+/**
+ * Cascade delete of a placeable to other linked placeables while recording their history
+ * for an undo operation
+ */
+function _delete(document, options, userId) {
+  if (game.user.id !== userId || options.linkerDelete) return;
+
+  const linked = LinkerAPI.getHardLinkedDocuments(document);
+  if (!linked.size) return;
+
+  // Delete linked
+  const toDelete = new Map();
+  linked.forEach((d) => {
+    if (!toDelete.get(d.documentName)) toDelete.set(d.documentName, [d.toObject()]);
+    else toDelete.get(d.documentName).push(d.toObject());
+  });
+
+  const scene = document.parent;
+  toDelete.forEach((data, documentName) => {
+    scene.deleteEmbeddedDocuments(
+      documentName,
+      data.map((d) => d._id),
+      { linkerDelete: true, isUndo: true } // Hack to prevent history tracking
+    );
+  });
+
+  // Track history
+  LinkerAPI.history.push({ id: document.id, data: toDelete });
+  if (LinkerAPI.history.length > 10) LinkerAPI.history.shift();
 }
 
 export class LinkerAPI {
@@ -453,41 +487,6 @@ export class LinkerAPI {
   static history = [];
 
   /**
-   * Delete selected placeable and all other placeables they are linked to
-   */
-  static deleteSelectedLinkedPlaceables() {
-    const selected = LinkerAPI._getSelected().map((s) => s.document);
-    if (!selected.length) return;
-    const linked = LinkerAPI.getHardLinkedDocuments(selected).filter((l) => !selected.find((s) => s.id === l.id));
-
-    // Delete linked
-    const toDelete = new Map();
-    linked.forEach((d) => {
-      if (!toDelete.get(d.documentName)) toDelete.set(d.documentName, [d.toObject()]);
-      else toDelete.get(d.documentName).push(d.toObject());
-    });
-
-    const scene = canvas.scene;
-    toDelete.forEach((data, documentName) => {
-      scene.deleteEmbeddedDocuments(
-        documentName,
-        data.map((d) => d._id),
-        { isUndo: true } // Hack to prevent history tracking
-      );
-    });
-
-    // Track history
-    LinkerAPI.history.push({ id: selected[0].id, data: toDelete });
-    if (LinkerAPI.history.length > 10) LinkerAPI.history.shift();
-
-    // Delete selected
-    scene.deleteEmbeddedDocuments(
-      selected[0].documentName,
-      selected.map((s) => s.id)
-    );
-  }
-
-  /**
    * Remove all links on the current scene.
    * @returns
    */
@@ -646,7 +645,7 @@ export class LinkerAPI {
     links.forEach((l) => processedLinks.add(l));
 
     SUPPORTED_PLACEABLES.forEach((documentName) => {
-      const linked = canvas.scene
+      const linked = document.parent
         .getEmbeddedCollection(documentName)
         .filter((t) =>
           t.flags[MODULE_ID]?.links?.some((l1) => links.find((l2) => l2 === l1.id && l1.type !== LINK_TYPES.SEND))

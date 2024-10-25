@@ -588,7 +588,6 @@ class LinkerMenu extends FormApplication {
     ];
 
     html.find('.removeLinksSelected').on('click', LinkerAPI.removeLinksFromSelected);
-    html.find('.removeSelectedAndLinked').on('click', LinkerAPI.deleteSelectedLinkedPlaceables);
 
     // Display node graph
     this.activateGraph(html);

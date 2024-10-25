@@ -18,8 +18,7 @@ _Note that all keybindings referenced bellow can be changed via 'Configure Contr
 #### Recommended modules:
 
 - Multiple Document Selection (https://foundryvtt.com/packages/multiple-document-selection)
-  - Will enable selection of multiple documents in the sidebar
-  - Mass Edit will recognise these selections for Actors, Scenes, and Journals
+  - Will enable selection of multiple documents in the sidebar which Mass Edit will recognise
 - Token Attacher (https://foundryvtt.com/packages/token-attacher/)
   - Allows to store groups of placeables as a single token preset
 

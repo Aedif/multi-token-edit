@@ -34,7 +34,7 @@ Hooks.once('init', () => {
   registerLinkerHooks();
 
   // Scenescapes
-  //registerScenescapeHooks();
+  registerScenescapeHooks();
 
   // TODO: Replace with core v12 implementation of tag HTML element
   TagInput.registerHandlebarsHelper();
