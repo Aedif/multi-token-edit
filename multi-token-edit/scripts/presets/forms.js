@@ -537,7 +537,8 @@ export class MassEditPresets extends FormApplication {
         folder,
         createEnabled: Boolean(this.configApp),
         callback: Boolean(this.callback),
-        sortable: fromUuidSync(folder.uuid)?.pack === PresetCollection.workingPack,
+        sortable:
+          !folder.uuid.startsWith('virtual@') && fromUuidSync(folder.uuid)?.pack === PresetCollection.workingPack,
       });
       folderElement.replaceWith(content);
     }
@@ -805,7 +806,7 @@ export class MassEditPresets extends FormApplication {
       {
         name: 'Randomize Child Folder Colors',
         icon: '<i class="fas fa-dice"></i>',
-        condition: () => CONFIG.debug.MassEdit,
+        condition: () => game.settings.get(MODULE_ID, 'debug'),
         callback: (header) =>
           randomizeChildrenFolderColors(header.closest('.folder').data('uuid'), this.tree, () => this.render(true)),
       },
@@ -1759,7 +1760,7 @@ export class MassEditPresets extends FormApplication {
       onclick: (ev) => this._onImport(ev),
     });
 
-    if (CONFIG.debug.MassEdit) {
+    if (game.settings.get(MODULE_ID, 'debug')) {
       buttons.unshift({
         label: 'Debug',
         class: 'mass-edit-debug',

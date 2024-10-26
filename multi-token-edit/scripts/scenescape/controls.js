@@ -337,7 +337,5 @@ export class ScenescapeControls {
 
       canvas.primary.addChild(bars);
     }
-
-    console.log(display, canvas.primary);
   }
 }

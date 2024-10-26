@@ -1,3 +1,7 @@
+# 1.75.2
+
+- Fixed ForgeVTT bug preventing opening of Virtual Directory folders
+
 # 1.75.1
 
 - `Shift+Delete` keybind is no longer required to delete entire linked entities
@@ -6,6 +10,7 @@
 - Fixed undo (Ctrl+Z) not recovering more than one deleted linked entity
 - Pixel Perfect Hover now has separate toggles for Tiles and Tokens
 - Mass Edit AmbientLight configuration forms have lost `Hidden` field during v11->v12 migration which now has been reintroduced
+- Improved preset folder delete warning
 
 # 1.75.0
 
