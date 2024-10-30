@@ -54,3 +54,7 @@ export const PIVOTS = {
   BOTTOM: 7,
   BOTTOM_RIGHT: 8,
 };
+
+export const THRESHOLDS = {
+  PIXEL_PERFECT_ALPHA: 0.75,
+};

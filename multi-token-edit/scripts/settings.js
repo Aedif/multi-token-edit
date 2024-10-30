@@ -9,7 +9,7 @@ import {
   showMassEdit,
   showMassSelect,
 } from '../applications/multiConfig.js';
-import { MODULE_ID, SUPPORTED_COLLECTIONS, SUPPORTED_PLACEABLES } from './constants.js';
+import { MODULE_ID, SUPPORTED_COLLECTIONS, SUPPORTED_PLACEABLES, THRESHOLDS } from './constants.js';
 import { LinkerAPI } from './linker/linker.js';
 import { editPreviewPlaceables, Picker } from './picker.js';
 import { PresetCollection } from './presets/collection.js';
@@ -88,19 +88,32 @@ export function registerSettings() {
     },
   });
 
-  game.settings.register(MODULE_ID, 'pixelPerfectTile', {
-    scope: 'client',
-    config: false,
-    type: Boolean,
-    default: false,
-    onChange: enablePixelPerfectSelect,
+  game.settings.register(MODULE_ID, 'pixelPerfectAlpha', {
+    name: 'Pixel Perfect Hover: Alpha Threshold',
+    hint: 'The lower the value the more transparent a pixel can be while still being recognised as hovered over.',
+    scope: 'world',
+    config: true,
+    type: new foundry.data.fields.NumberField({
+      required: true,
+      min: 0.0,
+      max: 1,
+      step: 0.01,
+      initial: THRESHOLDS.PIXEL_PERFECT_ALPHA,
+    }),
+    onChange: (val) => {
+      THRESHOLDS.PIXEL_PERFECT_ALPHA = val;
+    },
   });
-  game.settings.register(MODULE_ID, 'pixelPerfectToken', {
-    scope: 'client',
-    config: false,
-    type: Boolean,
-    default: false,
-    onChange: enablePixelPerfectSelect,
+  THRESHOLDS.PIXEL_PERFECT_ALPHA = game.settings.get(MODULE_ID, 'pixelPerfectAlpha');
+
+  ['pixelPerfectTile', 'pixelPerfectToken'].forEach((setting) => {
+    game.settings.register(MODULE_ID, setting, {
+      scope: 'client',
+      config: false,
+      type: Boolean,
+      default: false,
+      onChange: enablePixelPerfectSelect,
+    });
   });
   enablePixelPerfectSelect();
 

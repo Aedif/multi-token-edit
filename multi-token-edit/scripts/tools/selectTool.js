@@ -1,4 +1,4 @@
-import { MODULE_ID, SUPPORTED_PLACEABLES } from '../constants.js';
+import { MODULE_ID, SUPPORTED_PLACEABLES, THRESHOLDS } from '../constants.js';
 import { DataTransformer } from '../data/transformer.js';
 import { getDataBounds } from '../presets/utils.js';
 import { libWrapper } from '../shim/shim.js';
@@ -29,7 +29,8 @@ export function enablePixelPerfectSelect() {
         hitArea._mesh = this.mesh;
         hitArea.contains = function (...args) {
           let contains = this._originalContains.call(this, ...args);
-          if (contains && this._mesh) return this._mesh.containsCanvasPoint(canvas.mousePosition);
+          if (contains && this._mesh)
+            return this._mesh.containsCanvasPoint(canvas.mousePosition, THRESHOLDS.PIXEL_PERFECT_ALPHA);
           return contains;
         };
 
@@ -57,7 +58,8 @@ export function enablePixelPerfectSelect() {
         shape._mesh = this.mesh;
         shape.contains = function (...args) {
           let contains = this._originalContains.call(this, ...args);
-          if (contains && this._mesh) return this._mesh.containsCanvasPoint(canvas.mousePosition);
+          if (contains && this._mesh)
+            return this._mesh.containsCanvasPoint(canvas.mousePosition, THRESHOLDS.PIXEL_PERFECT_ALPHA);
           return contains;
         };
 
