@@ -18,7 +18,7 @@ import { deleteFromClipboard, performMassSearch, performMassUpdate } from './app
 import { registerSideBarPresetDropListener } from './scripts/presets/utils.js';
 import { LinkerAPI, registerLinkerHooks } from './scripts/linker/linker.js';
 import { MODULE_ID, PIVOTS } from './scripts/constants.js';
-import { registerScenescapeHooks } from './scripts/scenescape/scenescape.js';
+import { registerScenescapeHooks, Scenescape } from './scripts/scenescape/scenescape.js';
 import { Spawner } from './scripts/presets/spawner.js';
 import { registerBehaviors } from './scripts/behaviors/behaviors.js';
 
@@ -83,7 +83,7 @@ Hooks.once('init', () => {
 
       if (
         (Picker.isActive() || BrushMenu.isActive()) &&
-        (event.ctrlKey || event.shiftKey || event.metaKey || event.altKey)
+        (event.ctrlKey || event.shiftKey || event.metaKey || event.altKey || game.keyboard.downKeys.has('KeyZ'))
       ) {
         // Prevent zooming the entire browser window
         if (event.ctrlKey) event.preventDefault();
@@ -98,6 +98,11 @@ Hooks.once('init', () => {
         else if ((event.ctrlKey || event.metaKey) && event.shiftKey) BrushMenu.iterate(event.delta >= 0, true);
         else if (event.ctrlKey || event.metaKey) Picker.addRotation(event.delta < 0 ? 2.5 : -2.5);
         else if (event.shiftKey) Picker.addRotation(event.delta < 0 ? 15 : -15);
+        else if (game.keyboard.downKeys.has('KeyZ')) {
+          let delta = event.delta < 0 ? 1 : -1;
+          if (Scenescape.active) delta = delta * Scenescape.depth * 0.01;
+          Picker.addElevation(delta);
+        }
         return;
       }
 

@@ -43,6 +43,13 @@ export class Scenescape {
     return this._movementLimits;
   }
 
+  static get depth() {
+    if (this._markers?.length) {
+      return this._markers[this._markers.length - 1].elevation;
+    }
+    return 0;
+  }
+
   static loadFlags() {
     const flags = canvas.scene.getFlag(MODULE_ID, 'scenescape');
     this._active = Boolean(flags?.markers?.length);

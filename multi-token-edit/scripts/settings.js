@@ -15,6 +15,7 @@ import { editPreviewPlaceables, Picker } from './picker.js';
 import { PresetCollection } from './presets/collection.js';
 import { MassEditPresets } from './presets/forms.js';
 import { Preset } from './presets/preset.js';
+import { Scenescape } from './scenescape/scenescape.js';
 import { enablePixelPerfectSelect } from './tools/selectTool.js';
 import { activeEffectPresetSelect, getDocumentName, localize } from './utils.js';
 
@@ -561,6 +562,23 @@ export function registerKeybinds() {
       } else {
         new MassEditGenericForm(selected, { massEdit: true, documentName }).render(true);
       }
+    },
+    restricted: true,
+    precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
+  });
+
+  game.keybindings.register(MODULE_ID, 'autoScale', {
+    name: 'Scenescape: Toggle Auto-scaling',
+    hint: '',
+    editable: [
+      {
+        key: 'KeyZ',
+        modifiers: ['Shift'],
+      },
+    ],
+    onDown: () => {
+      Scenescape.autoScale = !Scenescape.autoScale;
+      ui.notifications.info('Scenescape: Auto-scale => ' + (Scenescape.autoScale ? 'ON' : 'OFF'));
     },
     restricted: true,
     precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,

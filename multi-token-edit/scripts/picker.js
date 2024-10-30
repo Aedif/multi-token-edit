@@ -33,6 +33,11 @@ export class Picker {
     this.pickerOverlay?.setPositions?.(canvas.mousePosition);
   }
 
+  static addElevation(elevation) {
+    this._elevation += elevation;
+    this.pickerOverlay?.setPositions?.(canvas.mousePosition);
+  }
+
   static resetTransformAccumulator() {
     this._transformAccumulator.rotation = 0;
     this._transformAccumulator.scale = 1;
@@ -70,14 +75,15 @@ export class Picker {
     this.callback = callback;
 
     if (preview) {
-      let label;
+      let label = new PreciseText('', { ...CONFIG.canvasTextStyle, _fontSize: 24 });
+      label.anchor.set(0.5, 1);
+      label = pickerOverlay.addChild(label);
+
       if (preview.label) {
-        label = new PreciseText(preview.label, { ...CONFIG.canvasTextStyle, _fontSize: 24 });
-        label.anchor.set(0.5, 1);
-        pickerOverlay.addChild(label);
+        label.text = preview.label;
       }
 
-      if (Scenescape.active) {
+      if (Scenescape.active && Scenescape.autoScale) {
         preview.snap = false;
 
         const b = getPresetDataBounds(preview.previewData);
@@ -97,6 +103,7 @@ export class Picker {
       let { previews, layer, previewDocuments } = await this._genPreviews(preview);
       this._rotation = preview.rotation ?? 0;
       this._scale = preview.scale ?? 1;
+      this._elevation = 0;
       this._mirrorX = false;
       this._mirrorY = false;
 
@@ -121,13 +128,23 @@ export class Picker {
         transform.y -= offset.y;
 
         // Dynamic scenescape scaling
-        if (Scenescape.active) {
+        if (Scenescape.active && Scenescape.autoScale) {
           const params = Scenescape.getParallaxParameters(canvas.mousePosition);
           if (params.scale !== Picker._paraScale) {
             Picker._scale *= params.scale / Picker._paraScale;
             Picker._paraScale = params.scale;
           }
           pos.z = params.elevation;
+          Picker._elevation = 0;
+          label.text = '';
+        } else {
+          if (Picker._elevation != 0) {
+            transform.z = Picker._elevation;
+            delete pos.z;
+            Picker._elevation = 0;
+            label.text = `[${(b.elevation.bottom + transform.z).toFixed(2)}]`;
+            label.anchor.set(1, -2);
+          }
         }
 
         if (pos.z != null) transform.z = pos.z - b.elevation.bottom;
@@ -253,11 +270,10 @@ export class Picker {
           }
           this.destroy();
         });
-
-        canvas.stage.addChild(pickerOverlay);
       }
     }
     this.pickerOverlay = pickerOverlay;
+    canvas.stage.addChild(pickerOverlay);
     this.feedPos(canvas.mousePosition);
   }
 
@@ -297,6 +313,7 @@ export class Picker {
       Mouse3D.deactivate();
     }
     this.callback = null;
+    Scenescape.autoScale = true;
   }
 
   // Modified Foundry _createPreview
