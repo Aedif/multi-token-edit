@@ -1,3 +1,7 @@
+# 1.76.1
+
+- Scenescape range pickers changed to allow manual input
+
 # 1.76.0
 
 - New setting: `Pixel PErfect Hover: Alpha Threshold`
