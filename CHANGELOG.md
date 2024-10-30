@@ -1,3 +1,8 @@
+# 1.76.0
+
+- New setting: `Pixel PErfect Hover: Alpha Threshold`
+  - Controls the alpha value cut-off point at which pixels are recognised as hovered over.
+
 # 1.75.2
 
 - Fixed ForgeVTT bug preventing opening of Virtual Directory folders
