@@ -115,7 +115,6 @@ export function registerSettings() {
       onChange: enablePixelPerfectSelect,
     });
   });
-  enablePixelPerfectSelect();
 
   // ===============
   // Preset Settings
@@ -287,6 +286,19 @@ export function registerSettings() {
       default: true,
     });
   }
+
+  game.settings.register(MODULE_ID, 'disablePixelPerfectHoverButton', {
+    name: `Pixel Perfect Hover: Remove Button`,
+    hint: 'When enabled `Pixel Perfect Hover` toggle will be removed from Token and Tile layer controls.',
+    scope: 'world',
+    config: true,
+    type: Boolean,
+    default: false,
+    onChange: () => {
+      ui.controls.controls = ui.controls._getControlButtons();
+      ui.controls.render(true);
+    },
+  });
 
   game.settings.register(MODULE_ID, 'brush', {
     scope: 'world',
@@ -590,8 +602,10 @@ export function registerKeybinds() {
       },
     ],
     onDown: () => {
-      Scenescape.autoScale = !Scenescape.autoScale;
-      ui.notifications.info('Scenescape: Auto-scale => ' + (Scenescape.autoScale ? 'ON' : 'OFF'));
+      if (Picker.isActive()) {
+        Scenescape.autoScale = !Scenescape.autoScale;
+        ui.notifications.info('Scenescape: Autoscale => ' + (Scenescape.autoScale ? 'ON' : 'OFF'));
+      }
     },
     restricted: true,
     precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,

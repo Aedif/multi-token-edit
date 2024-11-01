@@ -60,6 +60,7 @@ export class Scenescape {
       this._movementLimits = flags.movementLimits;
       this._markers = flags.markers;
       this.blackBars = Boolean(flags.blackBars);
+      this.pixelPerfect = Boolean(flags.pixelPerfect ?? true);
     }
   }
 

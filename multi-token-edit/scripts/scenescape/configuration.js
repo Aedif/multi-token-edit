@@ -66,6 +66,7 @@ export default class ScenescapeConfig extends FormApplication {
     data.scaleDistance = this.flags.scaleDistance ?? 32;
     data.speed = this.flags.speed ?? 4.3;
     data.blackBars = this.flags.blackBars;
+    data.pixelPerfect = this.flags.pixelPerfect ?? true;
     return data;
   }
 
@@ -103,7 +104,7 @@ export default class ScenescapeConfig extends FormApplication {
     ui.notifications.info(`Limits set to: {${ys[0]}, ${ys[ys.length - 1]}}`);
   }
 
-  _onLockInScale() {
+  async _onLockInScale() {
     const { markers, foregroundElevation } = Scenescape.processReferenceMarkers(this.scene);
     if (markers) {
       const update = { [`flags.${MODULE_ID}.scenescape.markers`]: markers, foregroundElevation };
@@ -115,9 +116,9 @@ export default class ScenescapeConfig extends FormApplication {
       update['flags.levels.lightMasking'] = true;
       update['flags.wall-height.advancedVision'] = false;
 
-      this.scene.update(update);
+      await this.scene.update(update);
     } else {
-      this.scene.update({ [`flags.${MODULE_ID}.scenescape.-=markers`]: null });
+      await this.scene.update({ [`flags.${MODULE_ID}.scenescape.-=markers`]: null });
     }
   }
 
@@ -238,7 +239,7 @@ export default class ScenescapeConfig extends FormApplication {
 
     foundry.utils.mergeObject(this.flags, formData);
 
-    ['movementLimits', 'speed', 'scaleDistance', 'blackBars'].forEach((varName) => {
+    ['movementLimits', 'speed', 'scaleDistance', 'blackBars', 'pixelPerfect'].forEach((varName) => {
       if (foundry.utils.isEmpty(this.flags[varName])) update[`flags.${MODULE_ID}.scenescape.-=${varName}`] = null;
       else update[`flags.${MODULE_ID}.scenescape.${varName}`] = this.flags[varName];
     });
@@ -248,7 +249,7 @@ export default class ScenescapeConfig extends FormApplication {
     }
 
     if (!foundry.utils.isEmpty(update)) await this.scene.update(update);
-    this._onLockInScale(this.scene);
+    await this._onLockInScale(this.scene);
   }
 
   async close(options = {}) {

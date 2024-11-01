@@ -1,6 +1,7 @@
 import { MODULE_ID } from '../constants.js';
 import { editPreviewPlaceables, Picker } from '../picker.js';
 import { libWrapper } from '../shim/shim.js';
+import { enablePixelPerfectSelect } from '../tools/selectTool.js';
 import { loadImageVideoDimensions } from '../utils.js';
 import ScenescapeConfig from './configuration.js';
 import { Scenescape } from './scenescape.js';
@@ -32,9 +33,11 @@ export class ScenescapeControls {
     if (Scenescape.active) {
       ScenescapeControls._register();
       this.displayBlackBars(Scenescape.blackBars);
+      enablePixelPerfectSelect(Scenescape.pixelPerfect);
     } else {
       ScenescapeControls._unregister();
       this.displayBlackBars(false);
+      enablePixelPerfectSelect();
     }
   }
 
@@ -127,6 +130,19 @@ export class ScenescapeControls {
       function (wrapped, ...args) {
         wrapped(...args);
         return '';
+      },
+      'WRAPPER'
+    );
+    this._wrapperIds.push(id);
+
+    // Only show token border when it is controlled
+    id = libWrapper.register(
+      MODULE_ID,
+      'Token.prototype._refreshState',
+      function (wrapped, ...args) {
+        const result = wrapped(...args);
+        this.border.visible = !this.document.isSecret && this.controlled;
+        return result;
       },
       'WRAPPER'
     );
