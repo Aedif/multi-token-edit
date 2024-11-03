@@ -1,0 +1,9 @@
+{{#if presets}}
+<form class="mass-edit-preset-form">
+    <div class="item-list folder-items" data-tooltip-direction="RIGHT" data-tooltip-class="preset-tooltip">
+        {{>me-presets-content createEnabled=False callback=../callback presets=presets}}
+    </div>
+</form>
+{{else}}
+<div>EMPTY</div>
+{{/if}}

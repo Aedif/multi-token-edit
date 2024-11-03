@@ -1454,9 +1454,16 @@ export class MassEditPresets extends FormApplication {
     if (!preset) return;
 
     // If released on top of a Mass Edit form, apply the preset to it instead of spawning it
-    const form = hoverMassEditForm(event.pageX, event.pageY, preset.documentName);
-    if (form) {
+    let form = getMassEditForm();
+    if (form && form.documentName === preset.documentName && hoverForm(form, event.pageX, event.pageY)) {
       form._applyPreset(preset);
+      return;
+    }
+
+    // If release on top of a Preset Pocket, pass dragged UUIDs to it
+    form = Object.values(ui.windows).find((w) => w.presetPocket);
+    if (form && hoverForm(form, event.pageX, event.pageY)) {
+      form._dropUuids(this.dragData);
       return;
     }
 
@@ -2699,13 +2706,14 @@ function itemSelect(e, itemList) {
 }
 
 /**
- * Return Mass Edit form that the mouse is over if any
+ * Return true if mouse is hovering over the provided form
  * @param {Number} mouseX
  * @param {Number} mouseY
- * @param {String} documentName
  * @returns {Application|null} MassEdit form
  */
-function hoverMassEditForm(mouseX, mouseY, documentName) {
+function hoverForm(form, mouseX, mouseY) {
+  if (!form) return false;
+
   const hitTest = function (app) {
     const position = app.position;
     const appX = position.left;
@@ -2717,9 +2725,7 @@ function hoverMassEditForm(mouseX, mouseY, documentName) {
     return false;
   };
 
-  const app = getMassEditForm();
-  if (app && app.documentName === documentName && hitTest(app)) return app;
-  return null;
+  return hitTest(form);
 }
 
 export function registerPresetBrowserHooks() {

@@ -316,6 +316,13 @@ export function registerSettings() {
       scaleToGrid: true,
     },
   });
+
+  game.settings.register(MODULE_ID, 'pockets', {
+    scope: 'world',
+    config: false,
+    type: Object,
+    default: {},
+  });
 }
 
 export function registerKeybinds() {

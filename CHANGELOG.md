@@ -1,3 +1,32 @@
+# 1.77.0
+
+**Scenescapes**
+
+- New button added to scene configuration form which allows to setup scenes as "Scenescapes"
+  - Scenescapes perform dynamic scaling of placeables to achieve a pseudo 3D effect on landscape backgrounds
+  - **Configuration window**
+    - **Scale**
+      - Select, re-size and spawn reference tiles on the scene
+      - These tiles will be used to automatically estimate scale for other placeables put on the scene
+    - **Distance**
+      - At what distance will an object appear half as small?
+      - This value in combination with the reference tiles will be used to workout the relative and total "depth" of the scene
+    - **Step Size**
+      - How many feet a selected Tile or Token will move on a single press of WASD/Arrow keys
+    - **Limits**
+      - Define upper and lower bounds for movement using WASD/Arrow keys
+    - **Black Bars**
+      - Display black bars in the padded area of the scene
+    - **Pixel Perfect Hover**
+      - When enabled `Pixel Perfect Hover` will be force enabled regardless of the button toggle state in the scene controls
+  - Presets given tags in the form of `#ft` will automatically adjust to that size when dropped on a scenescape
+    - Tokens will attempt to retrieve height information from their Actors, if not found will default to `6ft x token_height`
+
+**Misc**
+
+- New setting: `Pixel Perfect Hover: Remove Button`
+  - When enabled `Pixel Perfect Hover` toggle will be removed from Token and Tile layer tools
+
 # 1.76.1
 
 - Scenescape range pickers changed to allow manual input

@@ -147,6 +147,13 @@
   pointer-events: none;
 }
 
+.mass-edit-preset-form {
+  display: flex; 
+  flex-direction: column; 
+  overflow: hidden; 
+  container-type: inline-size;
+}
+
 .mass-edit-preset-form .item-list {
   flex: 1;
   list-style: none;
