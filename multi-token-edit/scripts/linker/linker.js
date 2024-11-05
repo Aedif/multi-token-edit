@@ -222,7 +222,7 @@ function calculateTransform(documentName, currentSource, previousSource, change,
   if (dRotation != null) {
     transform.rotation = dRotation;
 
-    const { x1, y1, x2, y2 } = getDataBounds(documentName, previousSource);
+    const { x1, y1, x2, y2 } = getDataBounds(documentName, currentSource);
 
     origin.x = x1 + (x2 - x1) / 2;
     origin.y = y1 + (y2 - y1) / 2;
