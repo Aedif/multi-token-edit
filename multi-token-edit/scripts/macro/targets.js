@@ -11,6 +11,8 @@ export function genTargets(options, documentName, selected) {
     return genTaggerTargets(target, documentName);
   } else if (target.method === 'all') {
     return genAllTargets(target, documentName);
+  } else if (target.method === 'currentScene') {
+    return `const targets = [canvas.scene]`;
   } else {
     throw new Error('Invalid target method: ' + target.method);
   }

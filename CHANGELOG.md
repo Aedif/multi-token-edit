@@ -1,3 +1,9 @@
+# 1.77.1
+
+- Fixed linker incorrectly processing simultaneous position and rotation updates
+- Added `Current Scene` target option to macro generator when opened via a Scene Mass Edit form
+- Removed unnecessary layer selection code from macros generated for non-placeables
+
 # 1.77.0
 
 **Scenescapes**

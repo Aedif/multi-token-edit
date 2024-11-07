@@ -54,16 +54,28 @@ export default class MacroForm extends FormApplication {
         label: localize('common.all'),
       },
       {
-        value: 'ids',
-        title: localize('macro.target-ids-title'),
-        label: localize('macro.target-ids'),
-      },
-      {
         value: 'search',
         title: localFormat('macro.target-search-title', { document: this.documentName }),
         label: localize('FILES.Search', false),
       },
     ];
+
+    if (data.selectScopeEnabled) {
+      targetingOptions.push({
+        value: 'ids',
+        title: localize('macro.target-ids-title'),
+        label: localize('macro.target-ids'),
+      });
+    }
+
+    if (this.documentName === 'Scene') {
+      targetingOptions.push({
+        value: 'currentScene',
+        title: localize('macro.target-current-scene-title'),
+        label: 'Current Scene',
+      });
+    }
+
     if (SUPPORTED_PLACEABLES.includes(this.documentName) && game.modules.get('tagger')?.active) {
       targetingOptions.push({
         value: 'tagger',
@@ -182,7 +194,8 @@ export default class MacroForm extends FormApplication {
       }
 
       // Hide/show scope
-      if (event.target.value === 'ids') html.find('[name="target.scope"]').closest('.form-group').hide();
+      if (event.target.value === 'ids' || event.target.value === 'currentScene')
+        html.find('[name="target.scope"]').closest('.form-group').hide();
       else html.find('[name="target.scope"]').closest('.form-group').show();
 
       if (event.target.value === 'search') html.find('[name="target.fields"]').closest('div').show();

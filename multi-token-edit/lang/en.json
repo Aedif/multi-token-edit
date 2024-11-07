@@ -47,7 +47,8 @@
       "target-ids": "IDs of Current Selected",
       "target-ids-title": "IDs of currently selected documents will be stored in the macro.",
       "target-search-title": "Macro will search for {document}s matching specific fields at run-time.",
-      "target-tagger-title": "Macro will target Tagger module's tags at run-time."
+      "target-tagger-title": "Macro will target Tagger module's tags at run-time.",
+      "target-current-scene-title": "Macro will be applied to the currently active scene."
     },
     "keybindings": {
       "presetApply": {

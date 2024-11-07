@@ -39,8 +39,12 @@ function genRunMacro(options, documentName) {
 // ===================
 
 const advancedMacro = game.modules.get('advanced-macros')?.active;
-const layer = canvas.getLayerByEmbeddedName('${documentName}');
 `;
+
+  if (options.macro?.select || options.toggle?.macro?.select) {
+    command += `const layer = canvas.getLayerByEmbeddedName('${documentName}');`;
+  }
+
   // Run macros if applicable
   if (options.macro) {
     command += `
