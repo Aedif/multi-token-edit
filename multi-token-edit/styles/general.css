@@ -117,6 +117,10 @@
   color: white;
 }
 
+.mass-edit-dark-window .window-header {
+  background-color: black;
+}
+
 .mass-edit-dark-window button {
   background: rgba(0, 0, 0, 0.4);
   color: white;
@@ -129,8 +133,13 @@
 }
 
 .mass-edit-dark-window input,
-.mass-edit-dark-window textarea {
+.mass-edit-dark-window textarea,
+.mass-edit-dark-window select {
   color: white;
+}
+
+.mass-edit-dark-window select option {
+  background-color: gray;
 }
 
 .mass-edit-dark-window p.notes {
@@ -293,6 +302,7 @@
   padding-left: 2px;
   margin-top: 1px;
   padding: 0;
+  padding-top: 1px;
   margin: 0;
 }
 

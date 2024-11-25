@@ -20,6 +20,7 @@ import { exportPresets, FolderState, placeableToData, randomizeChildrenFolderCol
 import { MODULE_ID, SUPPORTED_PLACEABLES, UI_DOCS } from '../constants.js';
 import { PresetContainer } from './containerApp.js';
 import { PresetConfig } from './editApp.js';
+import { openBagCreateDialog } from './bagApp.js';
 
 const SEARCH_MIN_CHAR = 2;
 const SEARCH_FOUND_MAX_COUNT = 1001;
@@ -1130,6 +1131,13 @@ export class MassEditPresets extends PresetContainer {
         },
       });
     }
+
+    buttons.unshift({
+      label: '',
+      class: 'mass-edit-bag-create',
+      icon: 'fa-solid fa-sack',
+      onclick: (ev) => openBagCreateDialog(),
+    });
 
     return buttons;
   }

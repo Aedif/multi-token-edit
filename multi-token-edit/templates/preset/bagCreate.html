@@ -1,0 +1,21 @@
+<form>
+    <p class="notes">Create a macro which will open a `Preset Bag`. The bag allows presets to be dragged in and interacted with outside the Preset Browser.</p>
+
+    <div class="form-group">
+        <label>Bag Name</label>
+        <input type="text" class="bag-name" name="bagName" placeholder="" value="">
+        <p class="notes">Choose a name for your new bag.</p>
+    </div>
+
+    <div class="form-group">
+        <label>Existing Bags</label>
+        <select class="existingBags" name="existingBagId">
+            {{selectOptions bagOptions blank=""}}
+        </select>
+        <p class="notes">Alternatively select an already existing bag to create a macro for.</p>
+    </div>
+
+    <footer class="sheet-footer flexrow">
+        <button type="submit">Create Macro</button>
+    </footer>
+</form>

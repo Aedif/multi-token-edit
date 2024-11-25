@@ -21,6 +21,7 @@ export class PresetContainer extends FormApplication {
 
     this.presetsSortable = opts2.sortable;
     this.presetsDuplicable = opts2.duplicable;
+    this.presetsForceAllowDelete = opts2.forceAllowDelete;
   }
 
   async getData(options) {
@@ -343,9 +344,9 @@ export class PresetContainer extends FormApplication {
       hookName: 'MassEditPresetContext',
       onOpen: this._onRightClickPreset.bind(this),
     });
-    // ContextMenu.create(this, html, '.folder header', this._getFolderContextOptions(), {
-    //   hookName: 'MassEditFolderContext',
-    // });
+    ContextMenu.create(this, html, '.folder header', this._getFolderContextOptions(), {
+      hookName: 'MassEditFolderContext',
+    });
   }
 
   _getItemContextOptions() {
@@ -421,7 +422,9 @@ export class PresetContainer extends FormApplication {
       {
         name: localize('CONTROLS.CommonDelete', false),
         icon: '<i class="fas fa-trash fa-fw"></i>',
-        condition: (item) => game.user.isGM && Preset.isEditable(item.data('uuid')) && !item.hasClass('virtual'),
+        condition: (item) =>
+          game.user.isGM &&
+          (this.presetsForceAllowDelete || (Preset.isEditable(item.data('uuid')) && !item.hasClass('virtual'))),
         callback: (item) => this._onDeleteSelectedPresets(item),
       },
     ];
@@ -589,10 +592,12 @@ export class PresetContainer extends FormApplication {
     }
 
     // If release on top of a Preset Bag, pass dragged UUIDs to it
-    form = Object.values(ui.windows).find((w) => w.presetBag);
-    if (form && hoverForm(form, event.pageX, event.pageY)) {
-      form._dropUuids(this.dragData);
-      return;
+    let forms = Object.values(ui.windows).filter((w) => w.presetBag);
+    for (const form of forms) {
+      if (form && hoverForm(form, event.pageX, event.pageY)) {
+        form._dropUuids(this.dragData);
+        return;
+      }
     }
 
     // If it's a scene preset apply it to the currently active scene

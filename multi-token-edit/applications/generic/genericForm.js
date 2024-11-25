@@ -42,9 +42,8 @@ export class MassEditGenericForm extends WMC {
     this.pinnedFields = game.settings.get(MODULE_ID, 'pinnedFields')[this.documentName] ?? {};
     this.customControls = customControls;
 
-    if (options.callback) {
-      this.callbackOnUpdate = options.callback;
-    }
+    if (options.callback) this.callbackOnUpdate = options.callback;
+    if (options.closeCallback) this.closeCallback = options.closeCallback;
   }
 
   static get defaultOptions() {
@@ -178,6 +177,7 @@ export class MassEditGenericForm extends WMC {
 
   async close(options = {}) {
     if (this.callbackOnUpdate) this.callbackOnUpdate(null);
+    this.closeCallback?.(null);
     return super.close(options);
   }
 }

@@ -106,7 +106,7 @@ async function configureParam() {
 
   if (param)
     MassEdit.showGenericForm(param, param.filterType ?? 'TMFX', {
-      callback: async (obj) => configureParam(),
+      closeCallback: async (obj) => configureParam(),
       inputChangeCallback: (selected) => {
         foundry.utils.mergeObject(param, selected, { inplace: true });
         TokenMagic.addUpdateFiltersOnSelected(foundry.utils.deepClone(params));

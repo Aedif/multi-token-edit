@@ -243,7 +243,7 @@ export function registerSettings() {
       return { uuid, sort };
     });
     const bags = game.settings.get(MODULE_ID, 'bags');
-    bags['FAVORITES'] = { presets };
+    bags['FAVORITES'] = { presets, name: 'FAVORITES' };
     game.settings.set(MODULE_ID, 'bags', bags);
     game.settings.set(MODULE_ID, 'presetFavorites', {});
   }
