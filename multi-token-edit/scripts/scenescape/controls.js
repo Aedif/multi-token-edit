@@ -67,7 +67,7 @@ export class ScenescapeControls {
     });
     this._hooks.push({ hook: 'preCreateToken', id });
 
-    // On token texture update we want to keep the token height and position to stay the same while
+    // On token texture update we want to keep the token height and position the same while
     // adopting the new aspect ratio
     id = Hooks.on('updateToken', async (token, change, options, userId) => {
       if (game.user.id === userId && foundry.utils.getProperty(change, 'texture.src') && token.object) {
@@ -100,7 +100,8 @@ export class ScenescapeControls {
 
         const { scale, elevation } = Scenescape.getParallaxParameters(bottom);
 
-        const actorDefinedSize = (Scenescape._getActorSize(token.actor, token) / 6) * 100;
+        const size = Scenescape._getActorSize(token.actor, token);
+        const actorDefinedSize = (size / 6) * 100;
         const r = actorDefinedSize / height;
 
         width *= scale * r;
@@ -112,7 +113,7 @@ export class ScenescapeControls {
         width /= canvas.dimensions.size;
         height /= canvas.dimensions.size;
 
-        token.update({ x, y, width, height, elevation, flags: { [MODULE_ID]: { width, height } } });
+        token.update({ x, y, width, height, elevation, flags: { [MODULE_ID]: { width, height, size } } });
       }
     });
     this._hooks.push({ hook: 'createToken', id });
@@ -285,11 +286,11 @@ export class ScenescapeControls {
       );
       const nParams = Scenescape.getParallaxParameters(nBottom);
 
-      const deltaScale = nParams.scale / params.scale;
-
       if (documentName === 'Token') {
-        update.width = (size.width * deltaScale) / dimensions.size;
-        update.height = (size.height * deltaScale) / dimensions.size;
+        const fixedSize = Scenescape.getTokenSize(obj);
+
+        update.height = (fixedSize * nParams.scale) / dimensions.size;
+        update.width = (update.height / size.height) * size.width;
 
         update.flags = {
           [MODULE_ID]: {
@@ -309,6 +310,8 @@ export class ScenescapeControls {
           update.height = 0.5;
         }
       } else {
+        const deltaScale = nParams.scale / params.scale;
+
         update.width = size.width * deltaScale;
         update.height = size.height * deltaScale;
 

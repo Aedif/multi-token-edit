@@ -65,6 +65,7 @@ export default class ScenescapeConfig extends FormApplication {
     data.markerTemplates = TEMPLATES;
     data.scaleDistance = this.flags.scaleDistance ?? 32;
     data.speed = this.flags.speed ?? 4.3;
+    data.speedY = this.flags.speedY ?? 8.6;
     data.blackBars = this.flags.blackBars;
     data.pixelPerfect = this.flags.pixelPerfect ?? true;
     return data;
@@ -239,7 +240,7 @@ export default class ScenescapeConfig extends FormApplication {
 
     foundry.utils.mergeObject(this.flags, formData);
 
-    ['movementLimits', 'speed', 'scaleDistance', 'blackBars', 'pixelPerfect'].forEach((varName) => {
+    ['movementLimits', 'speed', 'speedY', 'scaleDistance', 'blackBars', 'pixelPerfect'].forEach((varName) => {
       if (foundry.utils.isEmpty(this.flags[varName])) update[`flags.${MODULE_ID}.scenescape.-=${varName}`] = null;
       else update[`flags.${MODULE_ID}.scenescape.${varName}`] = this.flags[varName];
     });

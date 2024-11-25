@@ -142,7 +142,7 @@
   padding-right: 1px;
 }
 
-#mass-edit-presets.inactive {
+.mass-edit-inactive {
   opacity: 10%;
   pointer-events: none;
 }
@@ -506,14 +506,6 @@ input.me-subtract {
   accent-color: darkorange;
 }
 
-.mass-edit-preset-form .display-hover {
-  display: none;
-}
-
-.mass-edit-preset-form .display-hover.show {
-  display: block;
-}
-
 @container (min-width: 450px) {
   .mass-edit-preset-form .preset-items {
     grid-template-columns: 1fr 1fr 1fr 1fr;
@@ -545,6 +537,11 @@ input.me-subtract {
   .mass-edit-preset-form .item img {
     flex: none;
   }
+}
+
+.mass-edit-bag {
+  min-height: 240px;
+  min-width: 240px;
 }
 
 /* ===================== 

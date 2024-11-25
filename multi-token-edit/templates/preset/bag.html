@@ -1,9 +1,9 @@
-{{#if presets}}
+<div style="font-size: 150px; opacity: 11%; width: 100%; height: 77%; text-align: center; display: table; position: absolute;">
+    <i class="fa-solid fa-sack" style="display: table-cell; vertical-align: middle;"></i>
+</div>
+
 <form class="mass-edit-preset-form">
     <div class="item-list folder-items" data-tooltip-direction="RIGHT" data-tooltip-class="preset-tooltip">
         {{>me-presets-content createEnabled=False callback=../callback presets=presets}}
     </div>
 </form>
-{{else}}
-<div>EMPTY</div>
-{{/if}}

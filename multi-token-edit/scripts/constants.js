@@ -10,7 +10,7 @@ export const SUPPORTED_PLACEABLES = [
   'Note',
   'Region',
 ];
-export const UI_DOCS = ['FAVORITES', 'ALL', ...SUPPORTED_PLACEABLES];
+export const UI_DOCS = ['ALL', ...SUPPORTED_PLACEABLES];
 export const SUPPORTED_SHEET_CONFIGS = [...SUPPORTED_PLACEABLES, 'Actor', 'PlaylistSound', 'Scene'];
 export const SUPPORTED_COLLECTIONS = ['Item', 'Cards', 'RollTable', 'Actor', 'JournalEntry', 'Scene'];
 

@@ -34,8 +34,10 @@
             <div class="form-group">
                 <label>Step Size <span class="units" style="color: darkorange;">(feet)</span></label>
                 <div class="form-fields">
-                    <input type="range" value="{{speed}}" min="0.1" max="1000" step="0.1">
-                    <input type="number" value="{{speed}}" min="0.1" max="1000" step="0.1" class="range-value" name="speed"></input>
+                    <label>⇆</label>
+                    <input type="number" value="{{speed}}" min="0.1" max="1000" step="0.1" name="speed"></input>
+                    <label>⇅</label>
+                    <input type="number" value="{{speedY}}" min="0.1" max="1000" step="0.1" name="speedY"></input>
                 </div>
                 <p class="notes">Distance tokens and tiles will move when pressing WASD or arrow keys.</p>
             </div>

@@ -215,12 +215,38 @@ export function registerSettings() {
     },
   });
 
+  /**
+   * Preset bags
+   */
+  game.settings.register(MODULE_ID, 'bags', {
+    scope: 'world',
+    config: false,
+    type: Object,
+    default: {},
+  });
+
   game.settings.register(MODULE_ID, 'presetFavorites', {
     scope: 'world',
     config: false,
     type: Object,
     default: {},
   });
+
+  // Convert favorites to a Preset bag
+  // TODO: Remove after sufficient time has passed for users to have run this
+  // 25/11/2024
+  const favorites = game.settings.get(MODULE_ID, 'presetFavorites');
+  if (!foundry.utils.isEmpty(favorites)) {
+    let sort = -1;
+    const presets = Object.keys(favorites).map((uuid) => {
+      sort++;
+      return { uuid, sort };
+    });
+    const bags = game.settings.get(MODULE_ID, 'bags');
+    bags['FAVORITES'] = { presets };
+    game.settings.set(MODULE_ID, 'bags', bags);
+    game.settings.set(MODULE_ID, 'presetFavorites', {});
+  }
 
   // end of Preset Settings
   // ======================
@@ -315,13 +341,6 @@ export function registerSettings() {
       snap: false,
       scaleToGrid: true,
     },
-  });
-
-  game.settings.register(MODULE_ID, 'pockets', {
-    scope: 'world',
-    config: false,
-    type: Object,
-    default: {},
   });
 }
 

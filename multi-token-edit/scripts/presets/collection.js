@@ -990,18 +990,7 @@ export class PresetTree {
       if (type) {
         if (type === 'ALL') {
           if (!UI_DOCS.includes(preset.documentName)) preset._visible = false;
-        } else if (type === 'FAVORITES') {
-          if (!preset.isFavorite) preset._visible = false;
         } else if (preset.documentName !== type) preset._visible = false;
-      }
-
-      if (type === 'FAVORITES' && preset.folder && preset.isFavorite) {
-        for (const [uuid, folder] of this.allFolders) {
-          if (folder.id === preset.folder) {
-            this._setChildAndParentFoldersVisible(folder);
-            break;
-          }
-        }
       }
 
       this.hasVisible = this.hasVisible || preset._visible;

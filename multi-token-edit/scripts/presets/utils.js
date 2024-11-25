@@ -370,8 +370,20 @@ export function getDataBounds(documentName, data) {
       width = data.shape.width;
       height = data.shape.height;
     } else if (documentName === 'Token') {
-      width = data.width * canvas.dimensions.size;
-      height = data.height * canvas.dimensions.size;
+      if (data.flags?.[MODULE_ID]?.width != null) {
+        width = data.flags[MODULE_ID].width;
+      } else {
+        width = data.width;
+      }
+
+      if (data.flags?.[MODULE_ID]?.height != null) {
+        height = data.flags[MODULE_ID].height;
+      } else {
+        height = data.height;
+      }
+
+      width *= canvas.dimensions.size;
+      height *= canvas.dimensions.size;
     } else {
       width = 0;
       height = 0;
@@ -493,4 +505,19 @@ export function getPivotOffset(pivot, docToData, bounds) {
   }
 
   return { x: 0, y: 0 };
+}
+
+export async function exportPresets(presets, fileName) {
+  if (!presets.length) return;
+
+  await PresetCollection.batchLoadPresets(presets);
+
+  presets = presets.map((p) => {
+    const preset = p.clone();
+    preset.folder = null;
+    preset.uuid = null;
+    return preset;
+  });
+
+  saveDataToFile(JSON.stringify(presets, null, 2), 'text/json', (fileName ?? 'mass-edit-presets') + '.json');
 }

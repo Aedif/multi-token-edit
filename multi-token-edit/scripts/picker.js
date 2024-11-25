@@ -1,4 +1,4 @@
-import { PIVOTS, SUPPORTED_PLACEABLES } from './constants.js';
+import { MODULE_ID, PIVOTS, SUPPORTED_PLACEABLES } from './constants.js';
 import { DataTransformer } from './data/transformer.js';
 import { LinkerAPI } from './linker/linker.js';
 import { Mouse3D } from './mouse3d.js';
@@ -130,10 +130,39 @@ export class Picker {
         // Dynamic scenescape scaling
         if (Scenescape.active && Scenescape.autoScale) {
           const params = Scenescape.getParallaxParameters(canvas.mousePosition);
-          if (params.scale !== Picker._paraScale) {
-            Picker._scale *= params.scale / Picker._paraScale;
-            Picker._paraScale = params.scale;
+
+          // Special handling for Token drag
+          // Tokens have an actor defined size which we want to be maintained unless it was manually scaled during preview
+          if (previews.length === 1 && previews[0].document.documentName === 'Token') {
+            let size;
+            // Manual token scaling, this should apply a fixed size to the token
+            if (Picker._scale != 1) {
+              size = Scenescape.getTokenSize(previews[0]) * Picker._scale;
+
+              let tSize = (size * 6) / 100;
+              foundry.utils.setProperty(previews[0]._pData, `flags.${MODULE_ID}.size`, tSize);
+              foundry.utils.setProperty(previews[0].document, `flags.${MODULE_ID}.size`, tSize);
+            }
+
+            // Scenescape dynamic scaling
+            if (params.scale !== Picker._paraScale) {
+              size = size ?? Scenescape.getTokenSize(previews[0]);
+
+              const currHeight = previews[0].document.height * canvas.dimensions.size;
+              const targHeight = size * params.scale;
+
+              let scale = targHeight / currHeight;
+
+              Picker._paraScale = params.scale;
+              Picker._scale *= scale;
+            }
+          } else {
+            if (params.scale !== Picker._paraScale) {
+              Picker._scale *= params.scale / Picker._paraScale;
+              Picker._paraScale = params.scale;
+            }
           }
+
           pos.z = params.elevation;
           Picker._elevation = 0;
           label.text = '';

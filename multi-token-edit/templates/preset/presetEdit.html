@@ -7,7 +7,7 @@
     <nav class="sheet-tabs tabs" data-group="primary-tabs">
         {{#unless virtual}}
         <a class="item" data-tab="main"><i class="fa-regular fa-book-open"></i> Main</a>
-        {{#if displayFieldModify}}<a class="item" data-tab="spawning"><i class="fa-solid fa-circle-plus"></i> Spawning</a>{{/if}}
+        <a class="item" data-tab="spawning"><i class="fa-solid fa-circle-plus"></i> Spawning</a>
         {{/unless}}
         <a class="item" data-tab="tags"><i class="fa-solid fa-tag"></i> Tags</a>
     </nav>
@@ -67,8 +67,8 @@
             </fieldset>
         </div>
 
-        {{#if displayFieldModify}}
         <div class="tab" data-tab="spawning" data-group="primary-tabs">
+            {{#unless multiEdit}}
             <div class="form-group">
                 <label>{{localize "MassEdit.common.attached"}}</label>
 
@@ -110,7 +110,17 @@
                 </div>
                 <p class="notes">If not enabled any links present within the preset will be regenerated to ensure uniqueness on the scene after spawn.</p>
             </div>
+            {{/unless}}
 
+            <div class="form-group">
+                <label>Grid Size</label>
+                <div class="form-fields">
+                    <input type="number" name="gridSize" value="{{preset.gridSize}}" min="10" step="1" placeholder="Pixels">
+                </div>
+                <p class="notes">The size of the grid from which the preset has been created. Used to dynamically scale the preset.</p>
+            </div>
+
+            {{#unless multiEdit}}
             <div class="form-group stacked command">
                 <label>Pre-Spawn Script</label>
                 <p class="notes">data | token actor</p>
@@ -122,8 +132,8 @@
                 <p class="notes">documents objects | token actor</p>
                 <textarea style="height: 120px" name="postSpawnScript">{{preset.postSpawnScript}}</textarea>
             </div>
+            {{/unless}}
         </div>
-        {{/if}}
         {{/if}}
         {{/unless}}
 

@@ -21,7 +21,7 @@ import { MODULE_ID, PIVOTS } from './scripts/constants.js';
 import { registerScenescapeHooks, Scenescape } from './scripts/scenescape/scenescape.js';
 import { Spawner } from './scripts/presets/spawner.js';
 import { registerBehaviors } from './scripts/behaviors/behaviors.js';
-import { openPocket } from './scripts/presets/pocket.js';
+import { openBag } from './scripts/presets/bagApp.js';
 
 // Initialize module
 Hooks.once('init', () => {
@@ -196,7 +196,7 @@ Hooks.once('init', () => {
     createPreset: PresetAPI.createPreset,
     spawnPreset: Spawner.spawnPreset,
     activateBrush: activateBrush,
-    openPocket,
+    openBag,
     deactivateBrush: deactivateBush,
     openBrushMenu: openBrushMenu,
     migratePack: (pack, options = {}) => V12Migrator.migratePack(pack, options),

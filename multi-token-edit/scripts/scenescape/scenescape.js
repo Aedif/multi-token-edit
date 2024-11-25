@@ -32,8 +32,12 @@ export class Scenescape {
     return this._distanceRatio;
   }
 
-  static get stepDistance() {
-    return this._stepDistance;
+  static get stepDistanceX() {
+    return this._stepDistanceX;
+  }
+
+  static get stepDistanceY() {
+    return this._stepDistanceY;
   }
 
   static get movementLimits() {
@@ -53,7 +57,8 @@ export class Scenescape {
 
     if (flags) {
       this._distanceRatio = (flags.scaleDistance ?? 32) / 2;
-      this._stepDistance = flags.speed ?? 1;
+      this._stepDistanceX = flags.speed ?? 4.3;
+      this._stepDistanceY = flags.speedY ?? 8.6;
       this._movementLimits = flags.movementLimits;
       this._markers = flags.markers;
       this.blackBars = Boolean(flags.blackBars);
@@ -114,13 +119,13 @@ export class Scenescape {
     let { scale, elevation } = this.getParallaxParameters(pos);
 
     if (dx !== 0) {
-      dx = this.stepDistance * dx;
+      dx = this.stepDistanceX * dx;
       nX += (100 / 6) * scale * dx;
       nX = Math.clamp(nX, 0, canvas.dimensions.width);
     }
 
     if (dy !== 0) {
-      dy = this.stepDistance * dy;
+      dy = this.stepDistanceY * dy;
       const markers = this._markers;
 
       let nElevation = Math.clamp(elevation + dy, 0, markers[markers.length - 1].elevation);
@@ -242,5 +247,13 @@ export class Scenescape {
     }
 
     return actor.prototypeToken.height * 6;
+  }
+
+  static getTokenSize(token) {
+    token = token.document ?? token;
+
+    let size =
+      foundry.utils.getProperty(token, `flags.${MODULE_ID}.size`) ?? Scenescape._getActorSize(token.actor, token);
+    return (size / 6) * 100;
   }
 }

@@ -356,7 +356,7 @@ export class DataTransformer {
       const scale = transform.scale;
       data.x *= scale;
       data.y *= scale;
-      if (!transform.gridScale) {
+      if (!transform.gridScale && data.config) {
         data.config.dim *= scale;
         data.config.bright *= scale;
       }
@@ -393,8 +393,10 @@ export class DataTransformer {
       doc.x = data.x;
       doc.y = data.y;
       doc.rotation = data.rotation;
-      doc.config.dim = data.config.dim;
-      doc.config.bright = data.config.bright;
+      if (data.config) {
+        doc.config.dim = data.config.dim;
+        doc.config.bright = data.config.bright;
+      }
       if (data.elevation) doc.elevation = data.elevation;
 
       if (preview._l3dPreview) {
@@ -558,6 +560,11 @@ export class DataTransformer {
   }
 
   static transformToken(data, origin, transform, preview) {
+    if (Scenescape.active) {
+      if (data.flags?.[MODULE_ID]?.width != null) data.width = data.flags[MODULE_ID].width;
+      if (data.flags?.[MODULE_ID]?.height != null) data.height = data.flags[MODULE_ID].height;
+    }
+
     if (transform.scale != null) {
       const scale = transform.scale;
       data.x *= scale;

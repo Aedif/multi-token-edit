@@ -12,14 +12,6 @@
     <div class="item-control preset-update"><a title="{{localize 'MassEdit.presets.update-preset'}}"><i class="fas fa-sync"></i></a></div>
     &nbsp;
     {{/if}}
-    {{#if preset.isPlaceable}}
-    <!-- <div class="item-control preset-brush display-hover">
-      <a title="Brush"><i class="fa-solid fa-paintbrush"></i></a>
-    </div> -->
-    <div class="item-control preset-favorite display-hover">
-      <a title="Favorite"><i class="{{#if preset.isFavorite}}fa-solid{{else}}fa-regular{{/if}} fa-star"></i></a>
-    </div>
-    {{/if}}
     {{#if callback}}
     &nbsp;
     <div class="item-control preset-callback"><a title="{{localize 'MassEdit.common.apply'}}"><i class="fa-solid fa-arrow-right-to-arc"></i></a></div>

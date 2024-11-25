@@ -24,14 +24,14 @@ export async function applyDDTint(placeable, color) {
       filters.push({
         tmFilters: {
           tmFilterId: 'DDTint',
-          tmFilterInternalId: randomID(),
+          tmFilterInternalId: foundry.utils.randomID(),
           tmFilterType: 'ddTint',
           filterOwner: game.data.userId,
           tmParams: {
             tmFilterType: 'ddTint',
             filterId: 'DDTint',
             tint: PIXI.utils.hex2rgb(color),
-            updateId: randomID(),
+            updateId: foundry.utils.randomID(),
             rank: 10000,
             enabled: true,
             filterOwner: game.data.userId,

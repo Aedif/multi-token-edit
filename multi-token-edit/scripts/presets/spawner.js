@@ -82,7 +82,7 @@ export class Spawner {
 
     // Display prompt to modify data if needed
     if (modifyPrompt && preset.modifyOnSpawn?.length) {
-      presetData = await modifySpawnData(presetData, preset.modifyOnSpawn);
+      presetData = await Spawner.modifySpawnData(presetData, preset.modifyOnSpawn);
       // presetData being returned as null means that the modify field form has been canceled
       // in which case we should cancel spawning as well
       if (presetData == null) return;
