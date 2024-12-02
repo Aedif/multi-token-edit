@@ -1,3 +1,8 @@
+# 1.78.1
+
+- Fixed selection not working in preset `Delete Fields` and `Modify` forms
+- Fixed players being unable to drag their own tokens on Scenescapes
+
 # 1.78.0
 
 **Preset Bags**

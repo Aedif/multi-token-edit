@@ -229,7 +229,7 @@ export class ScenescapeControls {
       MODULE_ID,
       'PlaceableObject.prototype._canDragLeftStart',
       function (wrapped, user, event) {
-        if (Picker.isActive() || !user.isGM) return false;
+        if (Picker.isActive() || !this._canDrag(game.user, event)) return false;
 
         return wrapped(user, event);
       },

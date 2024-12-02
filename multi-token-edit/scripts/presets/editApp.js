@@ -2,6 +2,7 @@ import { showMassEdit } from '../../applications/multiConfig';
 import { MODULE_ID, SUPPORTED_PLACEABLES } from '../constants.js';
 import { LinkerAPI } from '../linker/linker.js';
 import { localFormat, localize, TagInput } from '../utils';
+import { itemSelect } from './containerApp.js';
 import { DOC_ICONS, Preset, VirtualFilePreset } from './preset.js';
 import { exportPresets, mergePresetDataToDefaultDoc, placeableToData } from './utils.js';
 
