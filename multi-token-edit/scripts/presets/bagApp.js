@@ -77,7 +77,7 @@ class BagApplication extends PresetContainer {
       uuids = uuids.concat(bag.completedSearch);
     }
 
-    const presets = uuids.length ? await PresetAPI.getPresets({ uuid: uuids }) : [];
+    const presets = uuids.length ? await PresetAPI.getPresets({ uuid: uuids, full: false }) : [];
 
     return { presets };
   }
@@ -180,6 +180,13 @@ class BagApplication extends PresetContainer {
   }
 
   async _onRefreshSearch(notify = true) {
+    if (this.refreshing) {
+      ui.notification.warn('Refresh is in progress. Please wait.');
+      return;
+    }
+
+    this.refreshing = true;
+
     const bag = this.preset.data[0];
     const searches = bag.searches;
     const virtualDirectory = bag.virtualDirectory;
@@ -217,6 +224,7 @@ class BagApplication extends PresetContainer {
     });
     if (notify) ui.notifications.info('Bag contents have been refreshed: ' + this.preset.name);
     this.render(true);
+    this.refreshing = false;
   }
 
   /** @override */

@@ -232,20 +232,60 @@ export function registerSettings() {
     default: {},
   });
 
-  // Convert favorites to a Preset bag
+  // Convert settings based bags to Preset Bags
   // TODO: Remove after sufficient time has passed for users to have run this
   // 25/11/2024
   const favorites = game.settings.get(MODULE_ID, 'presetFavorites');
+  const bags = game.settings.get(MODULE_ID, 'bags');
   if (!foundry.utils.isEmpty(favorites)) {
     let sort = -1;
     const presets = Object.keys(favorites).map((uuid) => {
       sort++;
       return { uuid, sort };
     });
-    const bags = game.settings.get(MODULE_ID, 'bags');
+
     bags['FAVORITES'] = { presets, name: 'FAVORITES' };
-    game.settings.set(MODULE_ID, 'bags', bags);
-    game.settings.set(MODULE_ID, 'presetFavorites', {});
+  }
+
+  if (!foundry.utils.isEmpty(bags)) {
+    const presets = [];
+    for (let [id, bag] of Object.entries(bags)) {
+      let searchesInclusive = [];
+      if (bag.tags?.length) {
+        searchesInclusive.push({
+          terms: '#' + bag.tags.join(' #'),
+          matchAll: false,
+        });
+      }
+
+      presets.push(
+        new Preset({
+          name: 'Bag: ' + id,
+          documentName: 'Bag',
+          img: `icons/containers/bags/pack-engraved-leather-tan.webp`,
+          data: [
+            {
+              uuids: bag.presets,
+              searches: {
+                inclusive: searchesInclusive,
+                exclusive: [],
+              },
+              virtualDirectory: true,
+            },
+          ],
+        })
+      );
+    }
+
+    if (presets.length) {
+      setTimeout(() => {
+        if (game.user?.isGM) {
+          PresetCollection.set(presets);
+          game.settings.set(MODULE_ID, 'bags', {});
+          game.settings.set(MODULE_ID, 'presetFavorites', {});
+        }
+      }, 10000);
+    }
   }
 
   // end of Preset Settings
