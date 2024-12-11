@@ -708,7 +708,7 @@ export class PresetContainer extends FormApplication {
 
     if (selected.length) {
       const module = await import('./bagApp.js');
-      selected.filter((p) => p.documentName === 'Bag').forEach((p) => module.openBagPreset(p));
+      selected.filter((p) => p.documentName === 'Bag').forEach((p) => module.openBag(p.uuid));
     }
   }
 }

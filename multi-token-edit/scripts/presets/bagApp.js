@@ -3,35 +3,42 @@ import { PresetAPI } from './collection.js';
 import { PresetContainer } from './containerApp.js';
 import { parseSearchString } from './utils.js';
 
-export async function openBag(id) {
-  const app = Object.values(ui.windows).find((w) => w._bagId === id);
+export async function openBag(uuid) {
+  let journal = fromUuidSync(uuid);
+
+  // Attempt a fallback to a an ID tag search
+  // This is to support the conversion of the old bag system to the new preset based bag system
+  // 11/12/24
+  if (!journal) {
+    journal = await PresetAPI.getPreset({ tags: [`id-${uuid}`] });
+
+    if (!journal) {
+      ui.notifications.warn(`Bag not found: ` + uuid);
+      return;
+    }
+    uuid = journal.uuid;
+  }
+
+  // If bag is already open toggle it off
+  const app = Object.values(ui.windows).find((w) => w.presetBag && w.preset.uuid === uuid);
   if (app) {
     app.close(true);
     return;
   }
 
-  const bags = game.settings.get(MODULE_ID, 'bags');
-  if (!bags[id]) {
-    bags[id] = { presets: [], name: 'New Bag' };
-    await game.settings.set(MODULE_ID, 'bags', bags);
-  }
-
-  new BagApplication(id).render(true);
-}
-
-export async function openBagPreset(preset) {
-  const app = Object.values(ui.windows).find((w) => w.preset?.uuid === preset.uuid);
-  if (app) {
-    app.close(true);
-    return;
-  }
+  const preset = await PresetAPI.getPreset({ uuid });
 
   new BagApplication(preset).render(true);
 }
 
 class BagApplication extends PresetContainer {
+  // Track positions of previously opened bags
+  static previousPositions = {};
+
   constructor(preset, options = {}) {
-    super({}, { ...options, forceAllowDelete: true });
+    let positionOpts = BagApplication.previousPositions[preset.uuid] ?? {};
+
+    super({}, { ...options, forceAllowDelete: true, ...positionOpts });
     this.preset = preset;
     this.presetBag = true;
   }
@@ -123,17 +130,24 @@ class BagApplication extends PresetContainer {
 
     if (game.user.isGM) {
       buttons.unshift({
-        label: 'Configure',
+        label: '',
         class: 'mass-edit-bag-configure',
         icon: 'fa-solid fa-gear',
         onclick: () => {
           new BagConfig(this.preset, this).render(true);
         },
       });
+
+      buttons.unshift({
+        label: '',
+        class: 'mass-edit-bag-macro',
+        icon: 'fas fa-terminal',
+        onclick: this._onCreateMacro.bind(this),
+      });
     }
 
     buttons.unshift({
-      label: 'Refresh',
+      label: '',
       class: 'mass-edit-bag-refresh',
       icon: 'fa-solid fa-arrows-rotate',
       onclick: this._onRefreshSearch.bind(this),
@@ -142,8 +156,33 @@ class BagApplication extends PresetContainer {
     return buttons;
   }
 
-  async _onRefreshSearch() {
-    const searches = this.preset.data[0].searches;
+  async _onCreateMacro() {
+    const response = await new Promise((resolve) => {
+      Dialog.confirm({
+        title: 'Create Bag Macro',
+        content: `<p>Do you wish to create a quick access macro for preset bag: [<b>${this.preset.name}</b>] ?</p>`,
+        yes: () => resolve(true),
+        no: () => resolve(false),
+        defaultYes: false,
+      });
+    });
+
+    if (!response) return;
+
+    const macro = await Macro.create({
+      name: 'Bag: ' + this.preset.name,
+      type: 'script',
+      scope: 'global',
+      command: `// Open Mass Edit preset bag\nMassEdit.openBag('${this.preset.uuid}');`,
+      img: this.preset.img,
+    });
+    macro.sheet.render(true);
+  }
+
+  async _onRefreshSearch(notify = true) {
+    const bag = this.preset.data[0];
+    const searches = bag.searches;
+    const virtualDirectory = bag.virtualDirectory;
 
     let uuids = new Set();
 
@@ -153,7 +192,7 @@ class BagApplication extends PresetContainer {
       if (!tags.length) tags = undefined;
       if (terms || tags) {
         if (tags) tags = { tags, matchAny: !search.matchAll };
-        (await PresetAPI.getPresets({ terms, tags })).forEach((p) => uuids.add(p.uuid));
+        (await PresetAPI.getPresets({ terms, tags, virtualDirectory, full: false })).forEach((p) => uuids.add(p.uuid));
       }
     }
 
@@ -164,7 +203,9 @@ class BagApplication extends PresetContainer {
         if (!tags.length) tags = undefined;
         if (terms || tags) {
           if (tags) tags = { tags, matchAny: !search.matchAll };
-          (await PresetAPI.getPresets({ terms, tags })).forEach((p) => uuids.delete(p.uuid));
+          (await PresetAPI.getPresets({ terms, tags, virtualDirectory, full: false })).forEach((p) =>
+            uuids.delete(p.uuid)
+          );
         }
       }
     }
@@ -174,80 +215,16 @@ class BagApplication extends PresetContainer {
         completedSearch: uuids.size ? Array.from(uuids) : null,
       },
     });
+    if (notify) ui.notifications.info('Bag contents have been refreshed: ' + this.preset.name);
     this.render(true);
   }
-}
 
-export function openBagCreateDialog() {
-  new BagCreate().render(true);
-}
+  /** @override */
+  setPosition(...args) {
+    super.setPosition(...args);
 
-class BagCreate extends FormApplication {
-  /** @inheritdoc */
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      classes: ['sheet', 'mass-edit-dark-window'],
-      template: `modules/${MODULE_ID}/templates/preset/bagCreate.html`,
-      width: 360,
-      height: 'auto',
-      resizable: false,
-      minimizable: true,
-    });
-  }
-
-  activateListeners(html) {
-    super.activateListeners(html);
-    html.find('.existingBags').on('change', (event) => {
-      html.find('.bag-name').prop('disabled', Boolean(event.target.value));
-    });
-  }
-
-  async getData(options) {
-    const bagOptions = {};
-    const bags = game.settings.get(MODULE_ID, 'bags');
-    Object.keys(bags).forEach((id) => {
-      bagOptions[id] = bags[id].name ?? id;
-    });
-
-    return { bagOptions };
-  }
-
-  /**
-   * @param {Event} event
-   * @param {Object} formData
-   */
-  async _updateObject(event, formData) {
-    let command, name;
-
-    if (formData.existingBagId) {
-      command = `MassEdit.openBag("${formData.existingBagId}")`;
-      name = game.settings.get(MODULE_ID, 'bags')[formData.existingBagId].name ?? formData.existingBagId;
-    } else if (formData.bagName) {
-      const id = foundry.utils.randomID();
-      const bags = game.settings.get(MODULE_ID, 'bags');
-      bags[id] = {
-        presets: [],
-        name: formData.bagName,
-      };
-      await game.settings.set(MODULE_ID, 'bags', bags);
-      command = `MassEdit.openBag("${id}")`;
-      name = formData.bagName;
-    }
-
-    if (command) {
-      const macro = await Macro.create({
-        name: 'Bag: ' + name,
-        type: 'script',
-        scope: 'global',
-        command,
-        img: `icons/containers/bags/pack-engraved-leather-tan.webp`,
-      });
-      macro.sheet.render(true);
-    }
-  }
-
-  get title() {
-    return 'Create a Preset Bag Macro';
+    const { left, top, width, height } = this.position;
+    BagApplication.previousPositions[this.preset.uuid] = { left, top, width, height };
   }
 }
 
@@ -264,7 +241,7 @@ class BagConfig extends FormApplication {
     return foundry.utils.mergeObject(super.defaultOptions, {
       classes: ['sheet', 'mass-edit-dark-window', 'mass-edit-bag-config'],
       template: `modules/${MODULE_ID}/templates/preset/bag/config.html`,
-      width: 360,
+      width: 370,
       height: 'auto',
       resizable: false,
       minimizable: true,
@@ -307,8 +284,6 @@ class BagConfig extends FormApplication {
    * @param {Object} formData
    */
   async _updateObject(event, formData) {
-    console.log(foundry.utils.expandObject(formData));
-
     formData = foundry.utils.expandObject(formData);
 
     ['inclusive', 'exclusive'].forEach((type) => {
@@ -324,8 +299,10 @@ class BagConfig extends FormApplication {
       }
     });
 
+    this.preset.data[0].virtualDirectory = formData.virtualDirectory;
+
     this._originalPreset.update({ data: this.preset.data });
-    this.parentForm?.render(true);
+    this.parentForm?._onRefreshSearch(false);
   }
 
   get title() {

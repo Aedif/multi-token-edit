@@ -1,5 +1,5 @@
 import { showMassEdit } from '../../applications/multiConfig';
-import { MODULE_ID, SUPPORTED_PLACEABLES } from '../constants.js';
+import { MODULE_ID, SUPPORTED_PLACEABLES, SUPPORTED_SHEET_CONFIGS } from '../constants.js';
 import { LinkerAPI } from '../linker/linker.js';
 import { localFormat, localize, TagInput } from '../utils';
 import { itemSelect } from './containerApp.js';
@@ -119,11 +119,16 @@ export class PresetConfig extends FormApplication {
 
     // Check if all presets are for the same document type and thus can be edited using a Mass Edit form
     const documentName = this.presets[0].documentName;
-    if (documentName !== 'Actor' && this.presets.every((p) => p.documentName === documentName)) {
+    if (
+      documentName !== 'Actor' &&
+      SUPPORTED_SHEET_CONFIGS.includes(documentName) &&
+      this.presets.every((p) => p.documentName === documentName)
+    ) {
       data.documentEdit = documentName;
       data.isPlaceable = SUPPORTED_PLACEABLES.includes(documentName);
     }
 
+    console.log(data);
     return data;
   }
 

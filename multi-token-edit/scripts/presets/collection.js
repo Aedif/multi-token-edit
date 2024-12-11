@@ -41,7 +41,7 @@ export class PresetCollection {
       for (const p of game.packs) {
         if (p.collection !== this.workingPack && p.index.get(META_INDEX_ID)) {
           const tree = await PresetTree.init(p, type, { setFormVisibility });
-          if (!tree.hasVisible) continue;
+          if (setFormVisibility && !tree.hasVisible) continue;
 
           const topFolder = new PresetPackFolder({ pack: p, tree });
           extFolders.push(topFolder);
@@ -58,7 +58,7 @@ export class PresetCollection {
     // Read File Index
     if (virtualDirectory) {
       const vTree = await FileIndexer.getVirtualDirectoryTree(type, { setFormVisibility });
-      if (vTree?.hasVisible) {
+      if (vTree?.hasVisible || !setFormVisibility) {
         const topFolder = new VirtualFileFolder({
           name: 'VIRTUAL DIRECTORY',
           children: vTree.folders,
@@ -457,7 +457,7 @@ export class PresetCollection {
       let match = true;
       if (name && name !== preset.name) match = false;
       if (type && type !== preset.documentName) match = false;
-      if (terms && !terms.some((t) => preset.name.toLowerCase().includes(t))) match = false;
+      if (terms && !terms.every((t) => preset.name.toLowerCase().includes(t))) match = false;
       if (match && tags) {
         if (tags.matchAny) match = tags.tags.some((t) => preset.tags.includes(t));
         else match = tags.tags.every((t) => preset.tags.includes(t));
@@ -568,7 +568,17 @@ export class PresetAPI {
    * @param {Boolean} [options.random]                   If multiple presets are found a random one will be chosen
    * @returns {Preset}
    */
-  static async getPreset({ uuid, name, type, terms, folder, tags, random = false, full = true } = {}) {
+  static async getPreset({
+    uuid,
+    name,
+    type,
+    terms,
+    folder,
+    tags,
+    random = false,
+    virtualDirectory = true,
+    full = true,
+  } = {}) {
     if (uuid) return await PresetCollection.get(uuid, { full });
     else if (!name && !type && !folder && !tags && !terms)
       throw Error('UUID, Name, Type, and/or Folder required to retrieve a Preset.');
@@ -579,7 +589,7 @@ export class PresetAPI {
     }
 
     const presets = PresetCollection._searchPresetTree(
-      await PresetCollection.getTree(type, { externalCompendiums: true, virtualDirectory: true }),
+      await PresetCollection.getTree(type, { externalCompendiums: true, virtualDirectory }),
       {
         name,
         type,
@@ -609,7 +619,17 @@ export class PresetAPI {
    * @param {String} [options.format]                    The form to return placeables in ('preset', 'name', 'nameAndFolder')
    * @returns {Array[Preset]|Array[String]|Array[Object]}
    */
-  static async getPresets({ uuid, name, type, terms, folder, format = 'preset', tags, full = true } = {}) {
+  static async getPresets({
+    uuid,
+    name,
+    type,
+    terms,
+    folder,
+    format = 'preset',
+    tags,
+    virtualDirectory = true,
+    full = true,
+  } = {}) {
     let presets;
     if (uuid) {
       presets = [];
@@ -624,7 +644,7 @@ export class PresetAPI {
       }
 
       presets = PresetCollection._searchPresetTree(
-        await PresetCollection.getTree(type, { externalCompendiums: true, virtualDirectory: true }),
+        await PresetCollection.getTree(type, { externalCompendiums: true, virtualDirectory }),
         {
           name,
           type,

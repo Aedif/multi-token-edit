@@ -294,6 +294,7 @@
 .mass-edit-preset-form .preset-items {
   padding: 0;
   margin: 0;
+  margin-left: 1px;
   /* min-height: 15px; */
 }
 
@@ -565,9 +566,9 @@ input.me-subtract {
 }
 
 .mass-edit-bag-config .match {
-  flex: 5.5;
+  flex: 3;
   display: flex;
-  padding-left: 2px;
+  padding-left: 5px;
   border: 1px solid var(--color-border-light-tertiary);
 }
 

@@ -7,7 +7,9 @@
     <nav class="sheet-tabs tabs" data-group="primary-tabs">
         {{#unless virtual}}
         <a class="item" data-tab="main"><i class="fa-regular fa-book-open"></i> Main</a>
+        {{#if isPlaceable}}
         <a class="item" data-tab="spawning"><i class="fa-solid fa-circle-plus"></i> Spawning</a>
+        {{/if}}
         {{/unless}}
         <a class="item" data-tab="tags"><i class="fa-solid fa-tag"></i> Tags</a>
     </nav>
@@ -65,8 +67,10 @@
                 {{/if}}
 
             </fieldset>
+            {{/if}}
         </div>
 
+        {{#if isPlaceable}}
         <div class="tab" data-tab="spawning" data-group="primary-tabs">
             {{#unless multiEdit}}
             <div class="form-group">
@@ -135,6 +139,7 @@
             {{/unless}}
         </div>
         {{/if}}
+        
         {{/unless}}
 
         <div class="tab" data-tab="tags" data-group="primary-tabs">
