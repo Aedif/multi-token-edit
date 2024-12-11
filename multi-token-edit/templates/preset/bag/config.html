@@ -1,0 +1,40 @@
+<form>
+
+    <fieldset>
+        <legend>Inclusive <a class="addSearchTerm" data-type="inclusive"><i class="fas fa-plus"></i></a></legend>
+        {{#each searches.inclusive as |search| }}
+        <div class="form-group">
+            <div class="search">
+                <input class="terms" type="text" value="{{search.terms}}" name="searches.inclusive.{{@index}}.terms">
+                <div class="match">
+                    <label>Match All</label>
+                    <input type="checkbox" name="searches.inclusive.{{@index}}.matchAll" {{checked search.matchAll}}>
+                </div>
+                <a class="removeSearchTerm" data-index="{{@index}}" data-type="inclusive"><i class="fas fa-trash"></i></a>
+            </div>
+        </div>
+        {{/each}}
+    </fieldset>
+
+    <br>
+
+    <fieldset>
+        <legend>Exclusive <a class="addSearchTerm" data-type="exclusive"><i class="fas fa-plus"></i></a></legend>
+        {{#each searches.exclusive as |search| }}
+        <div class="form-group">
+            <div class="search">
+                <input class="terms" type="text" value="{{search.terms}}" name="searches.exclusive.{{@index}}.terms">
+                <div class="match">
+                    <label>Match All</label>
+                    <input type="checkbox" name="searches.exclusive.{{@index}}.matchAll" {{checked search.matchAll}}>
+                </div>
+                <a class="removeSearchTerm" data-index="{{@index}}" data-type="exclusive"><i class="fas fa-trash"></i></a>
+            </div>
+        </div>
+        {{/each}}
+    </fieldset>
+
+    <footer class="sheet-footer flexrow">
+        <button type="submit" value="save">Save</button>
+    </footer>
+</form>

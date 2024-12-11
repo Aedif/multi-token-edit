@@ -30,6 +30,7 @@ export const PRESET_FIELDS = [
 
 export const DOC_ICONS = {
   ALL: 'fas fa-globe',
+  Bag: 'fa-solid fa-sack',
   Token: 'fas fa-user-circle',
   MeasuredTemplate: 'fas fa-ruler-combined',
   Tile: 'fa-solid fa-cubes',

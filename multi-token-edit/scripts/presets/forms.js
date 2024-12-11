@@ -16,7 +16,13 @@ import { FileIndexer, IndexerForm } from './fileIndexer.js';
 import { LinkerAPI } from '../linker/linker.js';
 import { DOC_ICONS, Preset } from './preset.js';
 import { TagSelector } from './tagSelector.js';
-import { exportPresets, FolderState, placeableToData, randomizeChildrenFolderColors } from './utils.js';
+import {
+  exportPresets,
+  FolderState,
+  parseSearchString,
+  placeableToData,
+  randomizeChildrenFolderColors,
+} from './utils.js';
 import { MODULE_ID, SUPPORTED_PLACEABLES, UI_DOCS } from '../constants.js';
 import { PresetContainer } from './containerApp.js';
 import { PresetConfig } from './editApp.js';
@@ -192,6 +198,9 @@ export class MassEditPresets extends PresetContainer {
         this.dropPlaceable(controlled);
       }
     });
+
+    // Create a Preset Bag
+    html.find('.create-bag').on('click', this._createNewBag.bind(this));
 
     html.on('click', '.toggle-sort', this._onToggleSort.bind(this));
     html.on('click', '.toggle-doc-lock', this._onToggleLock.bind(this));
@@ -470,9 +479,7 @@ export class MassEditPresets extends PresetContainer {
 
   async _onCreateFolder(event) {
     const types = [];
-    if (this.documentName === 'ALL') {
-      types.push('ALL');
-    } else if (UI_DOCS.includes(this.documentName)) {
+    if (SUPPORTED_PLACEABLES.includes(this.documentName)) {
       types.push('ALL', this.documentName);
     } else {
       types.push(this.documentName);
@@ -592,21 +599,15 @@ export class MassEditPresets extends PresetContainer {
 
     if (newSearch.length < SEARCH_MIN_CHAR) return;
 
-    let filter = event.target.value
-      .trim()
-      .toLowerCase()
-      .split(' ')
-      .filter((w) => w.length >= SEARCH_MIN_CHAR);
-    if (!filter.length) return;
+    const { terms, tags } = parseSearchString(event.target.value);
+    console.log(terms, tags);
+    if (!(terms.length || tags.length)) return;
     $(event.target).addClass('active');
 
-    const tags = filter.filter((f) => f.startsWith('#')).map((f) => f.substring(1));
-    filter = filter.filter((f) => !f.startsWith('#'));
-
     this._searchFoundPresets = [];
-    this.tree.folders.forEach((f) => this._searchFolder(filter, tags, f));
-    this.tree.extFolders.forEach((f) => this._searchFolder(filter, tags, f));
-    this.tree.presets.forEach((p) => this._searchPreset(filter, tags, p));
+    this.tree.folders.forEach((f) => this._searchFolder(terms, tags, f));
+    this.tree.extFolders.forEach((f) => this._searchFolder(terms, tags, f));
+    this.tree.presets.forEach((p) => this._searchPreset(terms, tags, p));
 
     this._renderContent();
   }
@@ -1041,6 +1042,25 @@ export class MassEditPresets extends PresetContainer {
     this._editPresets([preset], { isCreate: true }, event);
   }
 
+  async _createNewBag() {
+    const presetBag = new Preset({
+      name: 'New Bag',
+      documentName: 'Bag',
+      img: `icons/containers/bags/pack-engraved-leather-tan.webp`,
+      data: [
+        {
+          uuids: [],
+          searches: {
+            inclusive: [],
+            exclusive: [],
+          },
+        },
+      ],
+    });
+    await PresetCollection.set(presetBag);
+    this.render(true);
+  }
+
   /**
    * Create a preset from placeables dragged and dropped on the form
    * @param {Array[Placeable]} placeables
@@ -1266,7 +1286,7 @@ class PresetFolderConfig extends FolderConfig {
     // This is a non-placeable folder type, so we will not display controls to change types
     if (
       this.options?.folder instanceof PresetPackFolder ||
-      (folderDocs.length === 1 && !UI_DOCS.includes(folderDocs[0]))
+      (folderDocs.length === 1 && (folderDocs[0] === 'Bag' || !UI_DOCS.includes(folderDocs[0])))
     ) {
       this.displayTypes = false;
     } else {

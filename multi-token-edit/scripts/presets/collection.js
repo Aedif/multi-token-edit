@@ -1,5 +1,5 @@
 import { Brush } from '../brush.js';
-import { MODULE_ID, SUPPORTED_PLACEABLES, UI_DOCS } from '../constants.js';
+import { MODULE_ID, SUPPORTED_PLACEABLES } from '../constants.js';
 import { SeededRandom, applyPresetToScene, localize } from '../utils.js';
 import { FileIndexer } from './fileIndexer.js';
 import { Preset, VirtualFilePreset } from './preset.js';
@@ -438,6 +438,9 @@ export class PresetCollection {
   static _searchPresetTree(tree, options) {
     const presets = [];
 
+    // Make sure terms are provided in lowercase
+    if (options.terms) options.terms = options.terms.map((t) => t.toLowerCase());
+
     if (!options.folder) this._searchPresetList(tree.allPresets, presets, options);
     tree.allFolders.forEach((folder) => this._searchPresetFolder(folder, presets, options));
 
@@ -449,11 +452,12 @@ export class PresetCollection {
     this._searchPresetList(folder.presets, presets, options, folder.name);
   }
 
-  static _searchPresetList(toSearch, presets, { name, type, tags } = {}, folderName) {
+  static _searchPresetList(toSearch, presets, { name, type, tags, terms } = {}) {
     for (const preset of toSearch) {
       let match = true;
       if (name && name !== preset.name) match = false;
       if (type && type !== preset.documentName) match = false;
+      if (terms && !terms.some((t) => preset.name.toLowerCase().includes(t))) match = false;
       if (match && tags) {
         if (tags.matchAny) match = tags.tags.some((t) => preset.tags.includes(t));
         else match = tags.tags.every((t) => preset.tags.includes(t));
@@ -557,15 +561,16 @@ export class PresetAPI {
    * @param {String} [options.uuid]                      Preset UUID
    * @param {String} [options.name]                      Preset name
    * @param {String} [options.type]                      Preset type ("Token", "Tile", etc)
-   * @param {String|Array[String]|Object} [options.tags] Tags to match a preset against. Can be provided as an object containing 'tags' array and 'match' any flag.
+   * @param {Array[String]} [options.terms]              A list of terms to be matched against the preset name
+   * @param {String|Array[String]|Object} [options.tags] Tags to match a preset against. Can be provided as an object containing 'tags' array and 'matchAny' flag.
    *                                                     Comma separated string, or a list of strings. In the latter 2 cases 'matchAny' is assumed true
    * @param {String} [options.folder]                    Folder name
    * @param {Boolean} [options.random]                   If multiple presets are found a random one will be chosen
    * @returns {Preset}
    */
-  static async getPreset({ uuid, name, type, folder, tags, random = false, full = true } = {}) {
+  static async getPreset({ uuid, name, type, terms, folder, tags, random = false, full = true } = {}) {
     if (uuid) return await PresetCollection.get(uuid, { full });
-    else if (!name && !type && !folder && !tags)
+    else if (!name && !type && !folder && !tags && !terms)
       throw Error('UUID, Name, Type, and/or Folder required to retrieve a Preset.');
 
     if (tags) {
@@ -578,6 +583,7 @@ export class PresetAPI {
       {
         name,
         type,
+        terms,
         folder,
         tags,
       }
@@ -597,18 +603,19 @@ export class PresetAPI {
    * @param {String|Array[String]} [options.uuid]        Preset UUID/s
    * @param {String} [options.name]                      Preset name
    * @param {String} [options.type]                      Preset type ("Token", "Tile", etc)
+   * @param {Array[String]} [options.terms]              A list of terms to be matched against the preset name
    * @param {String} [options.folder]                    Folder name
    * @param {String|Array[String]|Object} [options.tags] See PresetAPI.getPreset
    * @param {String} [options.format]                    The form to return placeables in ('preset', 'name', 'nameAndFolder')
    * @returns {Array[Preset]|Array[String]|Array[Object]}
    */
-  static async getPresets({ uuid, name, type, folder, format = 'preset', tags, full = true } = {}) {
+  static async getPresets({ uuid, name, type, terms, folder, format = 'preset', tags, full = true } = {}) {
     let presets;
     if (uuid) {
       presets = [];
       const uuids = Array.isArray(uuid) ? uuid : [uuid];
       presets = await PresetCollection.getBatch(uuids, { full });
-    } else if (!name && !type && !folder && !tags) {
+    } else if (!name && !type && !folder && !tags && !terms) {
       throw Error('UUID, Name, Type, Folder and/or Tags required to retrieve a Preset.');
     } else {
       if (tags) {
@@ -621,6 +628,7 @@ export class PresetAPI {
         {
           name,
           type,
+          terms,
           folder,
           tags,
         }
@@ -989,7 +997,7 @@ export class PresetTree {
       preset._render = true;
       if (type) {
         if (type === 'ALL') {
-          if (!UI_DOCS.includes(preset.documentName)) preset._visible = false;
+          if (!SUPPORTED_PLACEABLES.includes(preset.documentName)) preset._visible = false;
         } else if (preset.documentName !== type) preset._visible = false;
       }
 

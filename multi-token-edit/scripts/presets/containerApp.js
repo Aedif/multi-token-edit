@@ -352,6 +352,12 @@ export class PresetContainer extends FormApplication {
   _getItemContextOptions() {
     return [
       {
+        name: 'Open Bag',
+        icon: '<i class="fas fa-edit"></i>',
+        condition: (item) => item.data('doc-name') === 'Bag',
+        callback: (item) => this._onOpenBag(item),
+      },
+      {
         name: localize('CONTROLS.CommonEdit', false),
         icon: '<i class="fas fa-edit"></i>',
         condition: (item) => game.user.isGM && Preset.isEditable(item.data('uuid')),
@@ -693,6 +699,17 @@ export class PresetContainer extends FormApplication {
 
   async _onDeleteSelectedPresets(item) {
     throw new Error('A subclass of the PresetContainer must implement the _onDeleteSelectedPresets method.');
+  }
+
+  async _onOpenBag(item) {
+    let [selected, _] = await this._getSelectedPresets({
+      editableOnly: false,
+    });
+
+    if (selected.length) {
+      const module = await import('./bagApp.js');
+      selected.filter((p) => p.documentName === 'Bag').forEach((p) => module.openBagPreset(p));
+    }
   }
 }
 

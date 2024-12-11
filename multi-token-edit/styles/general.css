@@ -554,6 +554,30 @@ input.me-subtract {
   min-width: 240px;
 }
 
+.mass-edit-bag-config .search {
+  display: flex;
+  gap: 4px;
+}
+
+.mass-edit-bag-config .terms  {
+  flex: 11;
+  height: 27px;
+}
+
+.mass-edit-bag-config .match {
+  flex: 5.5;
+  display: flex;
+  padding-left: 2px;
+  border: 1px solid var(--color-border-light-tertiary);
+}
+
+.mass-edit-bag-config .removeSearchTerm {
+  /* color: red; */
+  margin: auto;
+}
+
+
+
 /* ===================== 
    === Generic Form ====
    ===================== */

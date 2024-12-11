@@ -521,3 +521,17 @@ export async function exportPresets(presets, fileName) {
 
   saveDataToFile(JSON.stringify(presets, null, 2), 'text/json', (fileName ?? 'mass-edit-presets') + '.json');
 }
+
+export function parseSearchString(search) {
+  let terms = search
+    .trim()
+    .toLowerCase()
+    .split(' ')
+    .filter((w) => w.length >= 2);
+  if (!terms.length) return { terms, tags: [] };
+
+  const tags = terms.filter((f) => f.startsWith('#')).map((f) => f.substring(1));
+  terms = terms.filter((f) => !f.startsWith('#'));
+
+  return { terms, tags };
+}
