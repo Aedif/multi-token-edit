@@ -599,7 +599,6 @@ export class MassEditPresets extends PresetContainer {
     if (newSearch.length < SEARCH_MIN_CHAR) return;
 
     const { terms, tags } = parseSearchString(event.target.value);
-    console.log(terms, tags);
     if (!(terms.length || tags.length)) return;
     $(event.target).addClass('active');
 

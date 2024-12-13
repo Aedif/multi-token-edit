@@ -128,7 +128,6 @@ export class PresetConfig extends FormApplication {
       data.isPlaceable = SUPPORTED_PLACEABLES.includes(documentName);
     }
 
-    console.log(data);
     return data;
   }
 

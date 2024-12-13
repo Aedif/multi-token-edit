@@ -290,6 +290,29 @@ class BagConfig extends FormApplication {
 
     //html.on('input', 'color-picker', this._onAppearanceFieldChange.bind(this));
     html.on('change', 'color-picker, [type="range"]', this._onAppearanceFieldChange.bind(this));
+    html.on('input', 'input', () => this._saveState());
+  }
+
+  _saveState(formData, clearEmptySearch = false) {
+    if (!formData) formData = this._getSubmitData();
+
+    formData = foundry.utils.expandObject(formData);
+
+    ['inclusive', 'exclusive'].forEach((type) => {
+      if (formData.searches?.[type]) {
+        const searches = [];
+        let i = 0;
+        let search = formData.searches[type][i];
+        while (search != undefined) {
+          if (!clearEmptySearch || search.terms.trim() !== '') searches.push(search);
+          search = formData.searches[type][++i];
+        }
+        this.preset.data[0].searches[type] = searches;
+      }
+    });
+
+    this.preset.data[0].virtualDirectory = formData.virtualDirectory;
+    this.preset.data[0].appearance = formData.appearance;
   }
 
   async _onAppearanceFieldChange() {
@@ -338,24 +361,7 @@ class BagConfig extends FormApplication {
    * @param {Object} formData
    */
   async _updateObject(event, formData) {
-    formData = foundry.utils.expandObject(formData);
-
-    ['inclusive', 'exclusive'].forEach((type) => {
-      if (formData.searches?.[type]) {
-        const searches = [];
-        let i = 0;
-        let search = formData.searches[type][i];
-        while (search != undefined) {
-          if (search.terms.trim() !== '') searches.push(search);
-          search = formData.searches[type][++i];
-        }
-        this.preset.data[0].searches[type] = searches;
-      }
-    });
-
-    this.preset.data[0].virtualDirectory = formData.virtualDirectory;
-    this.preset.data[0].appearance = formData.appearance;
-
+    this._saveState(formData, true);
     this._originalPreset.update({ data: this.preset.data });
     this.parentForm?._onRefreshSearch(false);
   }
