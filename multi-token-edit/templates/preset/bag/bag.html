@@ -4,6 +4,13 @@
 
 <form class="mass-edit-preset-form">
     <div class="item-list folder-items" data-tooltip-direction="RIGHT" data-tooltip-class="preset-tooltip">
-        {{>me-presets-content createEnabled=False callback=../callback presets=presets}}
+        {{#if containedPresets}}
+            {{#if displayLabels}}<label class="static-label" style="margin-top: 0;">CONTAINED</label>{{/if}}
+            {{>me-presets-content createEnabled=False callback=../callback presets=containedPresets}}
+        {{/if}}
+        {{#if searchedPresets}}
+            {{#if displayLabels}}<label class="static-label" style="margin-top: 0;">SEARCH RESULTS</label>{{/if}}    
+            {{>me-presets-content createEnabled=False callback=../callback presets=searchedPresets}}
+        {{/if}}
     </div>
 </form>

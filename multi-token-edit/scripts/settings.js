@@ -17,7 +17,7 @@ import { MassEditPresets } from './presets/forms.js';
 import { Preset } from './presets/preset.js';
 import { Scenescape } from './scenescape/scenescape.js';
 import { enablePixelPerfectSelect } from './tools/selectTool.js';
-import { activeEffectPresetSelect, getDocumentName, localize } from './utils.js';
+import { activeEffectPresetSelect, getDocumentName, localize, TagInput } from './utils.js';
 
 export function registerSettings() {
   // Register Settings
@@ -260,7 +260,8 @@ export function registerSettings() {
 
       presets.push(
         new Preset({
-          name: 'Bag: ' + id,
+          name: 'Bag: ' + bag.name ?? id,
+          tags: ['id-' + TagInput.simplifyString(id)],
           documentName: 'Bag',
           img: `icons/containers/bags/pack-engraved-leather-tan.webp`,
           data: [

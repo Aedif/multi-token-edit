@@ -1,6 +1,8 @@
 import { MODULE_ID } from '../constants.js';
+import { TagInput } from '../utils.js';
 import { PresetAPI } from './collection.js';
 import { PresetContainer } from './containerApp.js';
+import { Preset } from './preset.js';
 import { parseSearchString } from './utils.js';
 
 export async function openBag(uuid) {
@@ -10,7 +12,7 @@ export async function openBag(uuid) {
   // This is to support the conversion of the old bag system to the new preset based bag system
   // 11/12/24
   if (!journal) {
-    journal = await PresetAPI.getPreset({ tags: [`id-${uuid}`] });
+    journal = await PresetAPI.getPreset({ tags: [`id-${TagInput.simplifyString(uuid)}`] });
 
     if (!journal) {
       ui.notifications.warn(`Bag not found: ` + uuid);
@@ -73,13 +75,32 @@ class BagApplication extends PresetContainer {
     const bag = this.preset.data[0];
 
     let uuids = bag.uuids.map((i) => i.uuid);
-    if (bag.completedSearch) {
-      uuids = uuids.concat(bag.completedSearch);
-    }
+    const containedPresets = uuids.length ? await PresetAPI.getPresets({ uuid: uuids, full: false }) : null;
+    const searchedPresets = bag.completedSearch?.length
+      ? await PresetAPI.getPresets({ uuid: bag.completedSearch, full: false })
+      : null;
 
-    const presets = uuids.length ? await PresetAPI.getPresets({ uuid: uuids, full: false }) : [];
+    return { containedPresets, searchedPresets, displayLabels: containedPresets && searchedPresets };
+  }
 
-    return { presets };
+  activateListeners(html) {
+    super.activateListeners(html);
+    this.setAppearance();
+  }
+
+  setAppearance(appearance) {
+    appearance = appearance ?? this.preset.data[0].appearance;
+    if (!appearance) return;
+
+    const html = $(this.element);
+
+    const hColor = Color.fromString(appearance.header.color);
+    html.find('header, .static-label').css('background-color', hColor.toRGBA(appearance.header.alpha));
+
+    const bColor = Color.fromString(appearance.background.color);
+    html
+      .find('.window-content')
+      .attr('style', `background-color: ${bColor.toRGBA(appearance.background.alpha)} !important;`);
   }
 
   /**
@@ -88,7 +109,7 @@ class BagApplication extends PresetContainer {
    * @returns
    */
   async _dropUuids(droppedUuids) {
-    if (!droppedUuids?.length) return;
+    if (!droppedUuids?.length || !game.user.isGM) return;
 
     const bag = this.preset.data[0];
 
@@ -129,14 +150,16 @@ class BagApplication extends PresetContainer {
     const buttons = super._getHeaderButtons();
 
     if (game.user.isGM) {
-      buttons.unshift({
-        label: '',
-        class: 'mass-edit-bag-configure',
-        icon: 'fa-solid fa-gear',
-        onclick: () => {
-          new BagConfig(this.preset, this).render(true);
-        },
-      });
+      if (Preset.isEditable(this.preset.uuid)) {
+        buttons.unshift({
+          label: '',
+          class: 'mass-edit-bag-configure',
+          icon: 'fa-solid fa-gear',
+          onclick: () => {
+            new BagConfig(this.preset, this).render(true);
+          },
+        });
+      }
 
       buttons.unshift({
         label: '',
@@ -146,12 +169,14 @@ class BagApplication extends PresetContainer {
       });
     }
 
-    buttons.unshift({
-      label: '',
-      class: 'mass-edit-bag-refresh',
-      icon: 'fa-solid fa-arrows-rotate',
-      onclick: this._onRefreshSearch.bind(this),
-    });
+    if (game.user.isGM && Preset.isEditable(this.preset.uuid)) {
+      buttons.unshift({
+        label: '',
+        class: 'mass-edit-bag-refresh',
+        icon: 'fa-solid fa-arrows-rotate',
+        onclick: this._onRefreshSearch.bind(this),
+      });
+    }
 
     return buttons;
   }
@@ -251,6 +276,7 @@ class BagConfig extends FormApplication {
       template: `modules/${MODULE_ID}/templates/preset/bag/config.html`,
       width: 370,
       height: 'auto',
+      tabs: [{ navSelector: '.sheet-tabs', contentSelector: '.content', initial: 'search' }],
       resizable: false,
       minimizable: true,
     });
@@ -261,6 +287,14 @@ class BagConfig extends FormApplication {
 
     html.on('click', '.addSearchTerm', this._onAddSearchTerm.bind(this));
     html.on('click', '.removeSearchTerm', this._onRemoveSearchTerm.bind(this));
+
+    //html.on('input', 'color-picker', this._onAppearanceFieldChange.bind(this));
+    html.on('change', 'color-picker, [type="range"]', this._onAppearanceFieldChange.bind(this));
+  }
+
+  async _onAppearanceFieldChange() {
+    const appearance = foundry.utils.expandObject(this._getSubmitData()).appearance;
+    this.parentForm?.setAppearance(appearance);
   }
 
   async _onAddSearchTerm(event) {
@@ -284,6 +318,18 @@ class BagConfig extends FormApplication {
 
   async getData(options) {
     const data = this.preset.data[0];
+    if (!data.appearance) {
+      data.appearance = {
+        header: {
+          color: '#000000',
+          alpha: 1.0,
+        },
+        background: {
+          color: '#323232',
+          alpha: 0.8,
+        },
+      };
+    }
     return data;
   }
 
@@ -308,6 +354,7 @@ class BagConfig extends FormApplication {
     });
 
     this.preset.data[0].virtualDirectory = formData.virtualDirectory;
+    this.preset.data[0].appearance = formData.appearance;
 
     this._originalPreset.update({ data: this.preset.data });
     this.parentForm?._onRefreshSearch(false);

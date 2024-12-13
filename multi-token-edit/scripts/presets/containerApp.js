@@ -304,6 +304,10 @@ export class PresetContainer extends FormApplication {
       applyPresetToScene(preset);
     }
 
+    if (preset.documentName === 'Bag') {
+      this._onOpenBag(preset.uuid);
+    }
+
     if (!SUPPORTED_PLACEABLES.includes(preset.documentName)) return;
 
     ui.notifications.info(`Mass Edit: ${localize('presets.spawning')} [${preset.name}]`);
@@ -355,7 +359,7 @@ export class PresetContainer extends FormApplication {
         name: 'Open Bag',
         icon: '<i class="fas fa-edit"></i>',
         condition: (item) => item.data('doc-name') === 'Bag',
-        callback: (item) => this._onOpenBag(item),
+        callback: (item) => this._onOpenBag(),
       },
       {
         name: localize('CONTROLS.CommonEdit', false),
@@ -701,15 +705,113 @@ export class PresetContainer extends FormApplication {
     throw new Error('A subclass of the PresetContainer must implement the _onDeleteSelectedPresets method.');
   }
 
-  async _onOpenBag(item) {
-    let [selected, _] = await this._getSelectedPresets({
-      editableOnly: false,
-    });
+  async _onOpenBag(uuid) {
+    if (!uuid) {
+      let [selected, _] = await this._getSelectedPresets({
+        editableOnly: false,
+      });
 
-    if (selected.length) {
+      if (selected.length) {
+        const module = await import('./bagApp.js');
+        selected.filter((p) => p.documentName === 'Bag').forEach((p) => module.openBag(p.uuid));
+      }
+    } else {
       const module = await import('./bagApp.js');
-      selected.filter((p) => p.documentName === 'Bag').forEach((p) => module.openBag(p.uuid));
+      module.openBag(uuid);
     }
+  }
+
+  /**
+   * @override
+   * Application.setPosition(...) has been modified to use css transform for window translation across the screen
+   * instead of top/left css properties which force full-window style recomputation
+   */
+  setPosition({ left, top, width, height, scale } = {}) {
+    if (!this.popOut && !this.options.resizable) return; // Only configure position for popout or resizable apps.
+    const el = this.element[0];
+    const currentPosition = this.position;
+    const pop = this.popOut;
+    const styles = window.getComputedStyle(el);
+    if (scale === null) scale = 1;
+    scale = scale ?? currentPosition.scale ?? 1;
+
+    // If Height is "auto" unset current preference
+    if (height === 'auto' || this.options.height === 'auto') {
+      el.style.height = '';
+      height = null;
+    }
+
+    // Update width if an explicit value is passed, or if no width value is set on the element
+    if (!el.style.width || width) {
+      const tarW = width || el.offsetWidth;
+      const minW = parseInt(styles.minWidth) || (pop ? MIN_WINDOW_WIDTH : 0);
+      const maxW = el.style.maxWidth || window.innerWidth / scale;
+      currentPosition.width = width = Math.clamp
+        ? Math.clamp(tarW, minW, maxW) // v12
+        : Math.clamped(tarW, minW, maxW);
+      el.style.width = `${width}px`;
+      if (width * scale + currentPosition.left > window.innerWidth) left = currentPosition.left;
+    }
+    width = el.offsetWidth;
+
+    // Update height if an explicit value is passed, or if no height value is set on the element
+    if (!el.style.height || height) {
+      const tarH = height || el.offsetHeight + 1;
+      const minH = parseInt(styles.minHeight) || (pop ? MIN_WINDOW_HEIGHT : 0);
+      const maxH = el.style.maxHeight || window.innerHeight / scale;
+      currentPosition.height = height = Math.clamp
+        ? Math.clamp(tarH, minH, maxH) // v12
+        : Math.clamped(tarH, minH, maxH);
+      el.style.height = `${height}px`;
+      if (height * scale + currentPosition.top > window.innerHeight + 1) top = currentPosition.top - 1;
+    }
+    height = el.offsetHeight;
+
+    let leftT, topT;
+    // Update Left
+    if ((pop && !this.posSet) || Number.isFinite(left)) {
+      const scaledWidth = width * scale;
+      const tarL = Number.isFinite(left) ? left : (window.innerWidth - scaledWidth) / 2;
+      const maxL = Math.max(window.innerWidth - scaledWidth, 0);
+      currentPosition.left = left = Math.clamp
+        ? Math.clamp(tarL, 0, maxL) // v12
+        : Math.clamped(tarL, 0, maxL);
+      leftT = left;
+    }
+
+    // Update Top
+    if ((pop && !this.posSet) || Number.isFinite(top)) {
+      const scaledHeight = height * scale;
+      const tarT = Number.isFinite(top) ? top : (window.innerHeight - scaledHeight) / 2;
+      const maxT = Math.max(window.innerHeight - scaledHeight, 0);
+      currentPosition.top = Math.clamp
+        ? Math.clamp(tarT, 0, maxT) // v12
+        : Math.clamped(tarT, 0, maxT);
+
+      topT = currentPosition.top;
+    }
+
+    let transform = '';
+
+    // Update Scale
+    if (scale) {
+      currentPosition.scale = Math.max(scale, 0);
+
+      if (scale === 1) transform += ``;
+      else transform += `scale(${scale})`;
+    }
+
+    if (leftT || topT) {
+      this.posSet = true;
+      transform += 'translate(' + leftT + 'px,' + topT + 'px)';
+    }
+
+    if (transform) {
+      el.style.transform = transform;
+    }
+
+    // Return the updated position object
+    return currentPosition;
   }
 }
 

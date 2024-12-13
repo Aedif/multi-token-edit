@@ -1,49 +1,97 @@
 <form>
 
-    <p class="notes">Preset searches to be performed and included within the bag.</p>
-    <fieldset>
-        <legend>Inclusive Search <a class="addSearchTerm" data-type="inclusive"><i class="fas fa-plus"></i></a></legend>
-        <p class="notes">These searches will <b>include</b> matched presets within the bag.</p>
-        {{#each searches.inclusive as |search| }}
-        <div class="form-group">
-            <div class="search">
-                <input class="terms" type="text" value="{{search.terms}}" name="searches.inclusive.{{@index}}.terms">
-                <div class="match" title="All tags within the search must be matched.">
-                    <label><i class="fa-solid fa-tag"></i> All</label>
-                    <input type="checkbox" name="searches.inclusive.{{@index}}.matchAll" {{checked search.matchAll}}>
+    <!-- Navigation Tabs -->
+    <nav class="sheet-tabs tabs" data-group="primary-tabs">
+        <a class="item" data-tab="search"><i class="fa-solid fa-magnifying-glass"></i> Search</a>
+        <a class="item" data-tab="appearance"><i class="fa-solid fa-palette"></i> Appearance</a>
+    </nav>
+
+    <section class="content">
+
+        <div class="tab" data-tab="search" data-group="primary-tabs">
+
+            <p class="notes">Preset searches to be performed and included within the bag.</p>
+            <fieldset>
+                <legend>Inclusive Search <a class="addSearchTerm" data-type="inclusive"><i class="fas fa-plus"></i></a></legend>
+                <p class="notes">These searches will <b>include</b> matched presets within the bag.</p>
+                {{#each searches.inclusive as |search| }}
+                <div class="form-group">
+                    <div class="search">
+                        <input class="terms" type="text" value="{{search.terms}}" name="searches.inclusive.{{@index}}.terms">
+                        <div class="match" title="All tags within the search must be matched.">
+                            <label><i class="fa-solid fa-tag"></i> All</label>
+                            <input type="checkbox" name="searches.inclusive.{{@index}}.matchAll" {{checked search.matchAll}}>
+                        </div>
+                        <a class="removeSearchTerm" data-index="{{@index}}" data-type="inclusive"><i class="fas fa-trash"></i></a>
+                    </div>
                 </div>
-                <a class="removeSearchTerm" data-index="{{@index}}" data-type="inclusive"><i class="fas fa-trash"></i></a>
-            </div>
-        </div>
-        {{/each}}
-    </fieldset>
+                {{/each}}
+            </fieldset>
 
-    <br>
+            <br>
 
-    <fieldset>
-        <legend>Exclusive Search <a class="addSearchTerm" data-type="exclusive"><i class="fas fa-plus"></i></a></legend>
-        <p class="notes">These searches will <b>exclude</b> matched presets from the bag.</p>
-        {{#each searches.exclusive as |search| }}
-        <div class="form-group">
-            <div class="search">
-                <input class="terms" type="text" value="{{search.terms}}" name="searches.exclusive.{{@index}}.terms">
-                <div class="match" title="All tags within the search must be matched.">
-                    <label><i class="fa-solid fa-tag"></i> All</label>
-                    <input type="checkbox" name="searches.exclusive.{{@index}}.matchAll" {{checked search.matchAll}}>
+            <fieldset>
+                <legend>Exclusive Search <a class="addSearchTerm" data-type="exclusive"><i class="fas fa-plus"></i></a></legend>
+                <p class="notes">These searches will <b>exclude</b> matched presets from the bag.</p>
+                {{#each searches.exclusive as |search| }}
+                <div class="form-group">
+                    <div class="search">
+                        <input class="terms" type="text" value="{{search.terms}}" name="searches.exclusive.{{@index}}.terms">
+                        <div class="match" title="All tags within the search must be matched.">
+                            <label><i class="fa-solid fa-tag"></i> All</label>
+                            <input type="checkbox" name="searches.exclusive.{{@index}}.matchAll" {{checked search.matchAll}}>
+                        </div>
+                        <a class="removeSearchTerm" data-index="{{@index}}" data-type="exclusive"><i class="fas fa-trash"></i></a>
+                    </div>
                 </div>
-                <a class="removeSearchTerm" data-index="{{@index}}" data-type="exclusive"><i class="fas fa-trash"></i></a>
+                {{/each}}
+            </fieldset>
+
+            <br>
+
+            <div class="form-group">
+                <label>Virtual Directory</label>
+                <input type="checkbox" name="virtualDirectory" {{checked virtualDirectory}}>
+                <p class="notes">Should virtual directories be included in searches?</p>
             </div>
+
         </div>
-        {{/each}}
-    </fieldset>
 
-    <br>
+        <div class="tab" data-tab="appearance" data-group="primary-tabs">
+            <fieldset>
+                <legend>Header</legend>
+                <div class="form-group">
+                    <label>Color</label>
+                    <div class="form-fields">
+                        <color-picker name="appearance.header.color" value="{{appearance.header.color}}"></color-picker>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Opacity</label>
+                    <div class="form-fields">
+                        {{ rangePicker name="appearance.header.alpha" value=appearance.header.alpha min="0" max="1" step="0.05" }}
+                    </div>
+                </div>
+            </fieldset>
 
-    <div class="form-group">
-        <label>Virtual Directory</label>
-        <input type="checkbox" name="virtualDirectory" {{checked virtualDirectory}}>
-        <p class="notes">Should the virtual directory be included in searches?</p>
-    </div>
+            <fieldset>
+                <legend>Background</legend>
+                <div class="form-group">
+                    <label>Color</label>
+                    <div class="form-fields">
+                        <color-picker name="appearance.background.color" value="{{appearance.background.color}}"></color-picker>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Opacity</label>
+                    <div class="form-fields">
+                        {{ rangePicker name="appearance.background.alpha" value=appearance.background.alpha min="0" max="1" step="0.05" }}
+                    </div>
+                </div>
+            </fieldset>
+        </div>
+
+    </section>
 
     <footer class="sheet-footer flexrow">
         <button type="submit" value="save">Save</button>
