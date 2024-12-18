@@ -1,31 +1,18 @@
-import { TokenDataAdapter } from '../data/adapters.js';
-import { copyToClipboard } from '../../applications/formUtils.js';
-import { countFolderItems, trackProgress } from '../../applications/progressDialog.js';
-import { importPresetFromJSONDialog } from '../dialogs.js';
-import { SortingHelpersFixed } from '../fixedSort.js';
-import { localFormat, localize } from '../utils.js';
-import {
-  VirtualFileFolder,
-  META_INDEX_ID,
-  PresetAPI,
-  PresetCollection,
-  PresetPackFolder,
-  PresetFolder,
-} from './collection.js';
-import { FileIndexer, IndexerForm } from './fileIndexer.js';
-import { LinkerAPI } from '../linker/linker.js';
-import { DOC_ICONS, Preset } from './preset.js';
-import { TagSelector } from './tagSelector.js';
-import {
-  exportPresets,
-  FolderState,
-  parseSearchString,
-  placeableToData,
-  randomizeChildrenFolderColors,
-} from './utils.js';
-import { MODULE_ID, SUPPORTED_PLACEABLES, UI_DOCS } from '../constants.js';
-import { PresetContainer } from './containerApp.js';
-import { PresetConfig } from './editApp.js';
+import { TokenDataAdapter } from '../../data/adapters.js';
+import { copyToClipboard } from '../../../applications/formUtils.js';
+import { countFolderItems, trackProgress } from '../../../applications/progressDialog.js';
+import { importPresetFromJSONDialog } from '../../dialogs.js';
+import { SortingHelpersFixed } from '../../fixedSort.js';
+import { localFormat, localize } from '../../utils.js';
+import { META_INDEX_ID, PresetAPI, PresetCollection, PresetPackFolder } from '../collection.js';
+import { FileIndexer, IndexerForm } from '../fileIndexer.js';
+import { LinkerAPI } from '../../linker/linker.js';
+import { DOC_ICONS, Preset } from '../preset.js';
+import { exportPresets, FolderState, parseSearchString, placeableToData } from '../utils.js';
+import { MODULE_ID, SUPPORTED_PLACEABLES, UI_DOCS } from '../../constants.js';
+import { PresetContainer } from '../containerApp.js';
+import { PresetConfig } from '../editApp.js';
+import { TagSelector } from '../tagSelector.js';
 
 const SEARCH_MIN_CHAR = 2;
 const SEARCH_FOUND_MAX_COUNT = 1001;

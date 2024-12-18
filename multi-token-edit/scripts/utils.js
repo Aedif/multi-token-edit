@@ -1,6 +1,6 @@
 import { AUDIO_EXTENSIONS, IMAGE_EXTENSIONS, MODULE_ID, SUPPORTED_PLACEABLES, VIDEO_EXTENSIONS } from './constants.js';
 import { Picker } from './picker.js';
-import { PresetBrowser } from './presets/forms.js';
+import { PresetBrowser } from './presets/browser/browserApp.js';
 import { applyRandomization } from './randomizer/randomizerUtils.js';
 
 export function interpolateColor(u, c1, c2) {

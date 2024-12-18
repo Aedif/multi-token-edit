@@ -6,7 +6,7 @@ import { Scenescape } from '../scenescape/scenescape.js';
 import { applyPresetToScene, isAudio, localize } from '../utils.js';
 import { PresetAPI, PresetCollection, PresetFolder, VirtualFileFolder } from './collection.js';
 import { PresetConfig } from './editApp.js';
-import { PresetBrowser } from './forms.js';
+import { PresetBrowser } from './browser/browserApp.js';
 import { Preset } from './preset.js';
 import { Spawner } from './spawner.js';
 import { FolderState, isVideo } from './utils.js';

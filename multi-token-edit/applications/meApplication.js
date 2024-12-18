@@ -1,7 +1,7 @@
 import { Brush } from '../scripts/brush.js';
 import { MODULE_ID, SUPPORTED_COLLECTIONS, SUPPORTED_PLACEABLES } from '../scripts/constants.js';
 import { injectVisibility } from '../scripts/fieldInjector.js';
-import { PresetBrowser } from '../scripts/presets/forms.js';
+import { PresetBrowser } from '../scripts/presets/browser/browserApp.js';
 import { Preset } from '../scripts/presets/preset.js';
 import { selectRandomizerFields } from '../scripts/randomizer/randomizerUtils.js';
 import { getDDTint } from '../scripts/tmfx.js';

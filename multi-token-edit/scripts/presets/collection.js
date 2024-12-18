@@ -2,7 +2,7 @@ import { Brush } from '../brush.js';
 import { MODULE_ID, SUPPORTED_PLACEABLES } from '../constants.js';
 import { SeededRandom, applyPresetToScene, localize } from '../utils.js';
 import { FileIndexer } from './fileIndexer.js';
-import { PresetBrowser } from './forms.js';
+import { PresetBrowser } from './browser/browserApp.js';
 import { Preset, VirtualFilePreset } from './preset.js';
 import { Spawner } from './spawner.js';
 import { FolderState, decodeURIComponentSafely, placeableToData } from './utils.js';
