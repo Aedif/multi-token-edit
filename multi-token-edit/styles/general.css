@@ -156,14 +156,14 @@
   pointer-events: none;
 }
 
-.mass-edit-preset-form {
+.preset-browser {
   display: flex; 
   flex-direction: column; 
   overflow: hidden; 
   container-type: inline-size;
 }
 
-.mass-edit-preset-form .item-list {
+.preset-browser .item-list {
   flex: 1;
   list-style: none;
   margin: 0;
@@ -174,21 +174,21 @@
   /* max-height: 700px; */
 }
 
-.mass-edit-preset-form .preset-header {
+.preset-browser .preset-header {
   flex: none;
   line-height: var(--sidebar-header-height);
   text-align: center;
   margin: 0 0 3px;
 }
 
-.mass-edit-preset-form .preset-header .header-search,
-.mass-edit-preset-form .preset-header .header-select {
+.preset-browser .preset-header .header-search,
+.preset-browser .preset-header .header-select {
   flex: 1;
   justify-content: center;
   align-items: center;
 }
 
-.mass-edit-preset-form .preset-header .window-controls {
+.preset-browser .preset-header .window-controls {
   margin-left: 4px;
   border-left: 2px solid gray;
   display: grid;
@@ -197,12 +197,12 @@
   padding-left: 5px;
 }
 
-.mass-edit-preset-form .preset-header .window-controls .header-control {
+.preset-browser .preset-header .window-controls .header-control {
   width: 20px;
   height: 20px;
 }
 
-.mass-edit-preset-form .preset-header .header-control .fa-plus {
+.preset-browser .preset-header .header-control .fa-plus {
   position: absolute;
   top: 4px;
   right: 1px;
@@ -213,28 +213,28 @@
   border-radius: 4px;
 }
 
-.mass-edit-preset-form .preset-header .header-search > *,
-.mass-edit-preset-form .preset-header .header-select > * {
+.preset-browser .preset-header .header-search > *,
+.preset-browser .preset-header .header-select > * {
   flex: 0 0 24px;
 }
 
-.mass-edit-preset-form .preset-header .header-search input {
+.preset-browser .preset-header .header-search input {
   flex: 1;
   margin: 0 3px px;
   background: rgba(255, 255, 245, 0.8);
 }
 
-.mass-edit-preset-form .preset-header .header-search input.active {
+.preset-browser .preset-header .header-search input.active {
   background-color: orange;
   color: black;
   font-weight: 500;
 }
 
-.mass-edit-preset-form .preset-header .active {
+.preset-browser .preset-header .active {
   color: darkorange;
 }
 
-.mass-edit-preset-form .action-buttons button {
+.preset-browser .action-buttons button {
   height: 28px;
   line-height: 26px;
   margin: 4px;
@@ -243,12 +243,12 @@
   background: rgba(255, 255, 240, 0.8);
 }
 
-.mass-edit-preset-form .document-select.active,
+.preset-browser .document-select.active,
 .folder-edit .document-select.active {
   color: orange;
 }
 
-.mass-edit-preset-form .static-label {
+.preset-browser .static-label {
   display: block;
   width: 100%;
   text-align: center;
@@ -260,14 +260,14 @@
   padding: 2px;
 }
 
-.mass-edit-preset-form .item-list .item {
+.preset-browser .item-list .item {
   line-height: 48px;
   border-top: 1px solid dimgray;
   box-shadow: none;
   position: relative;
 }
 
-.mass-edit-preset-form .folder {
+.preset-browser .folder {
   line-height: 48px;
   border: none;
   box-shadow: none;
@@ -276,7 +276,7 @@
   margin-top: 1px;
 }
 
-.mass-edit-preset-form .folder .branding {
+.preset-browser .folder .branding {
   height: 35px;
   width: 35px;
   position: absolute;
@@ -285,20 +285,20 @@
   border: none;
 }
 
-.mass-edit-preset-form .folder .subtext {
+.preset-browser .folder .subtext {
   color: #f1d438eb;
   font-size: smaller;
   padding-left: 15px;
 }
 
-.mass-edit-preset-form .preset-items {
+.preset-browser .preset-items {
   padding: 0;
   margin: 0;
   margin-left: 1px;
   /* min-height: 15px; */
 }
 
-.mass-edit-preset-form .folder-items {
+.preset-browser .folder-items {
   list-style-type: none;
   padding-left: 2px;
   margin-top: 1px;
@@ -307,7 +307,7 @@
   margin: 0;
 }
 
-.mass-edit-preset-form .folder {
+.preset-browser .folder {
   border-width: 2px 0px 4px 7px;
   border-color: rgba(0, 0, 0, 0.6);
   border-style: solid;
@@ -315,38 +315,38 @@
   margin-bottom: 1px;
 }
 
-.mass-edit-preset-form .folder.drag-top {
+.preset-browser .folder.drag-top {
   border-top: 2px solid orange !important;
 }
 
-.mass-edit-preset-form .folder.drag-mid > header h3 {
+.preset-browser .folder.drag-mid > header h3 {
   font-size: var(--font-size-18);
   color: orange;
 }
 
-.mass-edit-preset-form .item.drag-top {
+.preset-browser .item.drag-top {
   border-top: 1px solid orange !important;
 }
 
-.mass-edit-preset-form .item .thumbnail {
+.preset-browser .item .thumbnail {
   pointer-events: none;
 }
 
-.mass-edit-preset-form .item.drag-bot {
+.preset-browser .item.drag-bot {
   border-bottom: 1px solid orange !important;
 }
 
-.mass-edit-preset-form .top-level-preset-items {
+.preset-browser .top-level-preset-items {
   min-height: 50px;
 }
 
-.mass-edit-preset-form .folder header {
+.preset-browser .folder header {
   padding: 6px;
   line-height: 24px;
   background: rgba(0, 0, 0, 0.6);
 }
 
-.mass-edit-preset-form .folder header h3 {
+.preset-browser .folder header h3 {
   margin: 0;
   color: var(--color-text-light-highlight);
   font-size: var(--font-size-16);
@@ -354,24 +354,24 @@
   border: none;
 }
 
-.mass-edit-preset-form .folder header h3 i {
+.preset-browser .folder header h3 i {
   margin-right: 10px;
 }
 
-.mass-edit-preset-form .folder.selected {
+.preset-browser .folder.selected {
   border-left-color: orange !important;
 }
 
-.mass-edit-preset-form .folder .item {
+.preset-browser .folder .item {
   margin-left: 2px;
   margin-right: 0px;
 }
 
-.mass-edit-preset-form .folder.collapsed > ol {
+.preset-browser .folder.collapsed > ol {
   display: none;
 }
 
-.mass-edit-preset-form .item img {
+.preset-browser .item img {
   flex: 0 0 var(--sidebar-item-height);
   height: var(--sidebar-item-height);
   width: var(--sidebar-item-height);
@@ -382,20 +382,20 @@
   margin-bottom: 1px;
 }
 
-.mass-edit-preset-form .item .icon {
+.preset-browser .item .icon {
   position: absolute;
   left: 2px;
   color: white;
   bottom: 2px;
 }
 
-.mass-edit-preset-form .item .item-name {
+.preset-browser .item .item-name {
   margin: 0 0 0 8px;
   display: flex;
   align-items: center;
 }
 
-.mass-edit-preset-form .item .item-name label {
+.preset-browser .item .item-name label {
   flex: 0 0 100%;
   line-height: 1.5;
   line-break: anywhere;
@@ -421,21 +421,21 @@
   margin-right: 4px;
 }
 
-.mass-edit-preset-form .item .item-controls {
+.preset-browser .item .item-controls {
   text-align: right;
   position: absolute;
   right: 9px;
 }
 
-.mass-edit-preset-form .item.item-s.selected {
+.preset-browser .item.item-s.selected {
   background: linear-gradient(#ffa50055, #ffa50055), linear-gradient(#bb5f0155, #ffb10055);
 }
 
-.mass-edit-preset-form .folder.item-s.selected {
+.preset-browser .folder.item-s.selected {
   border-color: orange;
 }
 
-.mass-edit-preset-form .fa-folder-open {
+.preset-browser .fa-folder-open {
   color: orange;
 }
 
@@ -464,12 +464,28 @@
   text-align: center;
 }
 
-.mass-edit-preset-form .preset-brush.active {
-  color: yellow;
+.preset-browser .dropdown {
+  position: relative;
+  display: inline-block;
 }
 
-.mass-edit-preset-form .preset-brush.active.spawner {
-  color: greenyellow;
+.preset-browser .dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: black;
+  width: 50px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  border-radius: 8px;
+  z-index: 1;
+}
+
+.preset-browser .dropdown-content .document-select {
+  flex: 25px;
+}
+
+.preset-browser .dropdown:hover .dropdown-content {
+  display: flex;
+  flex-wrap: wrap;
 }
 
 .mass-edit-scene-control {
@@ -518,34 +534,34 @@ input.me-subtract {
 }
 
 @container (min-width: 450px) {
-  .mass-edit-preset-form .preset-items {
+  .preset-browser .preset-items {
     grid-template-columns: 1fr 1fr 1fr 1fr;
     display: grid;
   }
 
-  .mass-edit-preset-form .item-list .item {
+  .preset-browser .item-list .item {
     aspect-ratio: 1;
     margin-left: -1px;
     margin-top: -1px;
     border: 1px solid gray;
   }
 
-  .mass-edit-preset-form .item .item-name {
+  .preset-browser .item .item-name {
     display: none;
   }
 
-  .mass-edit-preset-form .item .item-controls {
+  .preset-browser .item .item-controls {
     position: absolute;
   }
 
-  .mass-edit-preset-form .item .thumbnail {
+  .preset-browser .item .thumbnail {
     width: 100%;
     height: 100%;
     object-fit: contain;
     margin: auto;
   }
 
-  .mass-edit-preset-form .item img {
+  .preset-browser .item img {
     flex: none;
   }
 }

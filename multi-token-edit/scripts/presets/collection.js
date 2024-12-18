@@ -2,6 +2,7 @@ import { Brush } from '../brush.js';
 import { MODULE_ID, SUPPORTED_PLACEABLES } from '../constants.js';
 import { SeededRandom, applyPresetToScene, localize } from '../utils.js';
 import { FileIndexer } from './fileIndexer.js';
+import { PresetBrowser } from './forms.js';
 import { Preset, VirtualFilePreset } from './preset.js';
 import { Spawner } from './spawner.js';
 import { FolderState, decodeURIComponentSafely, placeableToData } from './utils.js';
@@ -481,7 +482,7 @@ export class PresetCollection {
         await Spawner.spawnPreset({
           preset: this.data,
           preview: true,
-          scaleToGrid: game.settings.get(MODULE_ID, 'presetScaling'),
+          scaleToGrid: PresetBrowser.CONFIG.autoScale,
         });
         ui.spotlightOmnisearch?.setDraggingState(false);
       }
@@ -494,7 +495,7 @@ export class PresetCollection {
           preset: this.data,
           x,
           y,
-          scaleToGrid: game.settings.get(MODULE_ID, 'presetScaling'),
+          scaleToGrid: PresetBrowser.CONFIG.autoScale,
         });
       } else if (this.data.documentName === 'Scene') {
         applyPresetToScene(this.data);
@@ -972,7 +973,7 @@ export class PresetTree {
     }
 
     // Sort folders
-    const sorting = game.settings.get(MODULE_ID, 'presetSortMode') === 'manual' ? 'm' : 'a';
+    const sorting = PresetBrowser.CONFIG.sortMode === 'manual' ? 'm' : 'a';
     const sortedFolders = PresetCollection._sortFolders(Array.from(topLevelFolders.values()), sorting);
     const sortedPresets = PresetCollection._sortPresets(topLevelPresets, sorting);
 

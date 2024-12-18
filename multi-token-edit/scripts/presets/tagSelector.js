@@ -1,5 +1,5 @@
 import { MODULE_ID } from '../constants.js';
-import { MassEditPresets } from './forms.js';
+import { PresetBrowser } from './forms.js';
 
 export class TagSelector extends FormApplication {
   constructor(presetsApp) {
@@ -66,7 +66,7 @@ export class TagSelector extends FormApplication {
   }
 
   getSearchedTags() {
-    const search = MassEditPresets.lastSearch ?? '';
+    const search = PresetBrowser.lastSearch ?? '';
     const tags = search
       .split(' ')
       .filter((k) => k.startsWith('#'))

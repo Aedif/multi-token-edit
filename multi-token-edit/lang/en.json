@@ -128,6 +128,7 @@
       "snapToGrid": "Snap To Grid"
     },
     "presets": {
+      "preset-browser": "Preset Browser",
       "drag-placeable-message": "Drag in placeables to create a preset.",
       "drag-placeable": "Drag-in Placeable",
       "drag-placeable-hint": "Additional placeables to be spawned together with the preset.",
@@ -140,7 +141,7 @@
       "assign": "Assigned {count} {document}s to preset.",
       "select-compendium": "Select Compendium",
       "export-directory-message": "This operation will make the destination into a Mass Edit preset compendium if it isn't one. Make sure it does not contain Journals that are not presets to avoid unexpected problems.",
-      "working-directory-message": "Change the compendium the module will store and edit presets within. Make sure it does not contains Journals that are not presets to avoid unexpected problems.",
+      "working-directory-message": "Change the compendium the module will store and edit presets within. Make sure it does not contain Journals that are not presets to avoid unexpected problems.",
       "update-preset": "Update Preset",
       "delete-fields": "Delete Fields",
       "select-delete": "Select fields you wish to remove from this preset.",
@@ -152,7 +153,8 @@
         "document-lock": "Lock current category as default on form open.",
         "layer-switch": "Automatic layer switching.",
         "external-compendiums": "Display external compendiums.",
-        "scale-to-grid": "Scale Tiles, Drawings, and Walls relative to grid size."
+        "scale-to-grid": "Scale Tiles, Drawings, and Walls relative to grid size.",
+        "virtual-directory": "Display virtual directories."
       },
       "export-as-json": "Export as JSON",
       "open-journal": "Open Journal",

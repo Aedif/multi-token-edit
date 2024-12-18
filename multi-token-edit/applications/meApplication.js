@@ -1,7 +1,7 @@
 import { Brush } from '../scripts/brush.js';
 import { MODULE_ID, SUPPORTED_COLLECTIONS, SUPPORTED_PLACEABLES } from '../scripts/constants.js';
 import { injectVisibility } from '../scripts/fieldInjector.js';
-import { MassEditPresets } from '../scripts/presets/forms.js';
+import { PresetBrowser } from '../scripts/presets/forms.js';
 import { Preset } from '../scripts/presets/preset.js';
 import { selectRandomizerFields } from '../scripts/randomizer/randomizerUtils.js';
 import { getDDTint } from '../scripts/tmfx.js';
@@ -802,7 +802,7 @@ export const WithBaseMassEditForm = (cls) => {
      * Open Preset browser with a relationship to this app
      */
     static _openPresetBrowser() {
-      this.linkedPresetForm = new MassEditPresets(this, null, this.documentName, {
+      this.linkedPresetForm = new PresetBrowser(this, null, this.documentName, {
         left: this.position.left - 370,
         top: this.position.top,
         preventPositionOverride: true,

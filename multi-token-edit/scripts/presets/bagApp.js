@@ -339,6 +339,11 @@ class BagConfig extends FormApplication {
     this.render(true);
   }
 
+  /* override */
+  _getFolderContextOptions() {
+    return [];
+  }
+
   async getData(options) {
     const data = this.preset.data[0];
     if (!data.appearance) {

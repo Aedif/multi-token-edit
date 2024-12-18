@@ -1,6 +1,6 @@
 import { AUDIO_EXTENSIONS, IMAGE_EXTENSIONS, MODULE_ID, SUPPORTED_PLACEABLES, VIDEO_EXTENSIONS } from './constants.js';
 import { Picker } from './picker.js';
-import { MassEditPresets } from './presets/forms.js';
+import { PresetBrowser } from './presets/forms.js';
 import { applyRandomization } from './randomizer/randomizerUtils.js';
 
 export function interpolateColor(u, c1, c2) {
@@ -262,7 +262,7 @@ export function flattenToDepth(obj, d = 0) {
 
 export function activeEffectPresetSelect(aeConfig) {
   const showPresetGeneric = function (documentName) {
-    new MassEditPresets(
+    new PresetBrowser(
       aeConfig,
       async (preset) => {
         if (!foundry.utils.isEmpty(preset.randomize)) {
@@ -296,7 +296,7 @@ export function activeEffectPresetSelect(aeConfig) {
   };
 
   const showPresetActiveEffect = function () {
-    new MassEditPresets(
+    new PresetBrowser(
       aeConfig,
       (preset) => {
         const changes = aeConfig.object.changes ?? [];

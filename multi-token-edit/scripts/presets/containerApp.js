@@ -4,8 +4,9 @@ import { BrushMenu } from '../brush.js';
 import { MODULE_ID, PIVOTS, SUPPORTED_PLACEABLES } from '../constants.js';
 import { Scenescape } from '../scenescape/scenescape.js';
 import { applyPresetToScene, isAudio, localize } from '../utils.js';
-import { PresetAPI, PresetCollection } from './collection.js';
+import { PresetAPI, PresetCollection, PresetFolder, VirtualFileFolder } from './collection.js';
 import { PresetConfig } from './editApp.js';
+import { PresetBrowser } from './forms.js';
 import { Preset } from './preset.js';
 import { Spawner } from './spawner.js';
 import { FolderState, isVideo } from './utils.js';
@@ -316,8 +317,8 @@ export class PresetContainer extends FormApplication {
     await Spawner.spawnPreset({
       preset,
       preview: true,
-      layerSwitch: game.settings.get(MODULE_ID, 'presetLayerSwitch'),
-      scaleToGrid: game.settings.get(MODULE_ID, 'presetScaling') || Scenescape.active,
+      layerSwitch: PresetBrowser.CONFIG.switchLayer,
+      scaleToGrid: PresetBrowser.CONFIG.autoScale || Scenescape.active,
       pivot: PIVOTS.CENTER,
     });
 
@@ -344,11 +345,14 @@ export class PresetContainer extends FormApplication {
   }
 
   _contextMenu(html) {
-    ContextMenu.create(this, html, '.item', this._getItemContextOptions(), {
+    const itemOptions = this._getItemContextOptions().sort((o1, o2) => (o1.sort ?? -1) - (o2.sort ?? -1));
+    ContextMenu.create(this, html, '.item', itemOptions, {
       hookName: 'MassEditPresetContext',
       onOpen: this._onRightClickPreset.bind(this),
     });
-    ContextMenu.create(this, html, '.folder header', this._getFolderContextOptions(), {
+
+    const folderOptions = this._getFolderContextOptions().sort((o1, o2) => (o1.sort ?? -1) - (o2.sort ?? -1));
+    ContextMenu.create(this, html, '.folder header', folderOptions, {
       hookName: 'MassEditFolderContext',
     });
   }
@@ -360,24 +364,28 @@ export class PresetContainer extends FormApplication {
         icon: '<i class="fas fa-edit"></i>',
         condition: (item) => item.data('doc-name') === 'Bag',
         callback: (item) => this._onOpenBag(),
+        sort: 0,
       },
       {
         name: localize('CONTROLS.CommonEdit', false),
         icon: '<i class="fas fa-edit"></i>',
         condition: (item) => game.user.isGM && Preset.isEditable(item.data('uuid')),
         callback: (item) => this._onEditSelectedPresets(item),
+        sort: 100,
       },
       {
         name: 'Brush',
         icon: '<i class="fa-solid fa-paintbrush"></i>',
         condition: (item) => game.user.isGM && SUPPORTED_PLACEABLES.includes(item.data('doc-name')),
         callback: (item) => this._onActivateBrush(item),
+        sort: 200,
       },
       {
         name: localize('presets.open-journal'),
         icon: '<i class="fas fa-book-open"></i>',
         condition: (item) => !item.hasClass('virtual'),
         callback: (item) => this._onOpenJournal(item),
+        sort: 300,
       },
       {
         name: localize('presets.apply-to-selected'),
@@ -387,6 +395,7 @@ export class PresetContainer extends FormApplication {
           SUPPORTED_PLACEABLES.includes(item.data('doc-name')) &&
           canvas.getLayerByEmbeddedName(item.data('doc-name')).controlled.length,
         callback: (item) => this._onApplyToSelected(item),
+        sort: 400,
       },
       {
         name: localize('Duplicate', false),
@@ -398,36 +407,42 @@ export class PresetContainer extends FormApplication {
             keepFolder: true,
             keepId: false,
           }),
+        sort: 500,
       },
       {
         name: localize('presets.copy-source-to-clipboard'),
         icon: '<i class="fa-solid fa-copy"></i>',
         condition: (item) => item.data('uuid').startsWith('virtual@'),
         callback: (item) => game.clipboard.copyPlainText(item.data('uuid').substring(8)),
+        sort: 600,
       },
       {
         name: localize('presets.copy-to-clipboard'),
         icon: '<i class="fa-solid fa-copy"></i>',
         condition: (item) => game.user.isGM && $(this.form).find('.item-list').find('.item.selected').length === 1,
         callback: (item) => this._onCopyPresetToClipboard(),
+        sort: 700,
       },
       {
         name: 'Copy UUID',
         icon: '<i class="fa-solid fa-passport"></i>',
         condition: () => game.user.isGM,
         callback: (item) => this._onCopyUUID(item),
+        sort: 800,
       },
       {
         name: localize('presets.export-as-json'),
         icon: '<i class="fas fa-file-export fa-fw"></i>',
         condition: () => game.user.isGM,
         callback: (item) => this._onExportSelectedPresets(),
+        sort: 900,
       },
       {
         name: localize('presets.export-to-compendium'),
         icon: '<i class="fas fa-file-export fa-fw"></i>',
         condition: () => game.user.isGM && this.presetsDuplicable,
         callback: (item) => this._onExportSelectedPresetsToComp(),
+        sort: 1000,
       },
       {
         name: localize('CONTROLS.CommonDelete', false),
@@ -436,12 +451,67 @@ export class PresetContainer extends FormApplication {
           game.user.isGM &&
           (this.presetsForceAllowDelete || (Preset.isEditable(item.data('uuid')) && !item.hasClass('virtual'))),
         callback: (item) => this._onDeleteSelectedPresets(item),
+        sort: 1100,
       },
     ];
   }
 
   _getFolderContextOptions() {
-    return [];
+    return [
+      {
+        name: 'Edit',
+        icon: '<i class="fas fa-edit"></i>',
+        condition: (header) => {
+          const folder = this.tree.allFolders.get(header.closest('.folder').data('uuid'));
+          return !folder.virtual || folder instanceof PresetPackFolder;
+        },
+        callback: (header) => this._onFolderEdit(header),
+      },
+      {
+        name: 'Save Index',
+        icon: '<i class="fas fa-file-search"></i>',
+        condition: (header) => {
+          const folder = this.tree.allFolders.get(header.closest('.folder').data('uuid'));
+          return folder.indexable;
+        },
+        callback: (header) => {
+          FileIndexer.saveFolderToCache(this.tree.allFolders.get(header.closest('.folder').data('uuid')));
+        },
+      },
+      {
+        name: 'Export to Compendium',
+        icon: '<i class="fas fa-file-export fa-fw"></i>',
+        condition: (header) => {
+          const folder = this.tree.allFolders.get(header.closest('.folder').data('uuid'));
+          return !(folder instanceof VirtualFileFolder);
+        },
+        callback: (header) => {
+          this._onExportFolder(header.closest('.folder').data('uuid'));
+        },
+      },
+      {
+        name: localize('FOLDER.Remove', false),
+        icon: '<i class="fas fa-trash fa-fw"></i>',
+        condition: (header) => PresetFolder.isEditable(header.closest('.folder').data('uuid')),
+        callback: (header) => this._onFolderDelete(header.closest('.folder').data('uuid')),
+      },
+      {
+        name: localize('FOLDER.Delete', false),
+        icon: '<i class="fas fa-dumpster"></i>',
+        condition: (header) => PresetFolder.isEditable(header.closest('.folder').data('uuid')),
+        callback: (header) =>
+          this._onFolderDelete(header.closest('.folder').data('uuid'), {
+            deleteAll: true,
+          }),
+      },
+      {
+        name: 'Randomize Child Folder Colors',
+        icon: '<i class="fas fa-dice"></i>',
+        condition: () => game.settings.get(MODULE_ID, 'debug'),
+        callback: (header) =>
+          randomizeChildrenFolderColors(header.closest('.folder').data('uuid'), this.tree, () => this.render(true)),
+      },
+    ];
   }
 
   async _onApplyToSelected(item) {
@@ -649,8 +719,8 @@ export class PresetContainer extends FormApplication {
       y: mouseY,
       z: mouseZ,
       mousePosition: false,
-      layerSwitch: game.settings.get(MODULE_ID, 'presetLayerSwitch'),
-      scaleToGrid: game.settings.get(MODULE_ID, 'presetScaling'),
+      layerSwitch: PresetBrowser.CONFIG.switchLayer,
+      scaleToGrid: PresetBrowser.CONFIG.autoScale,
     });
   }
 

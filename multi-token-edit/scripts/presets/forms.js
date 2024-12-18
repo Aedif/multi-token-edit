@@ -67,9 +67,14 @@ const SEARCH_MODES = {
   },
 };
 
-export class MassEditPresets extends PresetContainer {
+export class PresetBrowser extends PresetContainer {
   static objectHover = false;
   static lastSearch;
+  static CONFIG;
+
+  static async setSetting(setting, value) {
+    return await game.settings.set(MODULE_ID, 'presetBrowser', { ...PresetBrowser.CONFIG, [setting]: value });
+  }
 
   get lastSearch() {
     return this._lastSearch;
@@ -77,34 +82,33 @@ export class MassEditPresets extends PresetContainer {
 
   set lastSearch(val) {
     this._lastSearch = val;
-    MassEditPresets.lastSearch = val;
+    PresetBrowser.lastSearch = val;
   }
 
   constructor(configApp, callback, documentName, options = {}) {
     // Restore position and dimensions the previously closed window
-    if (!options.preventPositionOverride && MassEditPresets.previousPosition) {
-      options = { ...options, ...MassEditPresets.previousPosition };
+    if (!options.preventPositionOverride && PresetBrowser.previousPosition) {
+      options = { ...options, ...PresetBrowser.previousPosition };
     }
 
     super({}, { ...options, sortable: true, duplicable: true });
     this.callback = callback;
 
     if (!configApp && UI_DOCS.includes(documentName)) {
-      const docLock = game.settings.get(MODULE_ID, 'presetDocLock');
-      this.documentName = docLock || documentName;
+      this.documentName = PresetBrowser.CONFIG.documentLock || documentName;
     } else {
       this.configApp = configApp;
       this.documentName = documentName || this.configApp.documentName;
     }
 
-    this.lastSearch = MassEditPresets.lastSearch;
+    this.lastSearch = PresetBrowser.lastSearch;
   }
 
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
       id: 'mass-edit-presets',
       classes: ['sheet', 'mass-edit-dark-window', 'mass-edit-window-fill'],
-      template: `modules/${MODULE_ID}/templates/preset/presets.html`,
+      template: `modules/${MODULE_ID}/templates/preset/presetBrowser.html`,
       resizable: true,
       minimizable: true,
       width: 377,
@@ -114,24 +118,23 @@ export class MassEditPresets extends PresetContainer {
   }
 
   get title() {
-    let title = localize('common.presets');
+    let title = localize('presets.preset-browser');
     if (!UI_DOCS.includes(this.documentName)) title += ` [${this.documentName}]`;
-    else title += ` [${localize('common.placeable')}]`;
     return title;
   }
 
   async getData(options) {
     const data = await super.getData(options);
 
-    const displayExtCompendiums = game.settings.get(MODULE_ID, 'presetExtComp');
-    const displayVirtualDirectory = game.settings.get(MODULE_ID, 'presetVirtualDir');
-
     this.tree = await PresetCollection.getTree(this.documentName, {
-      externalCompendiums: displayExtCompendiums,
-      virtualDirectory: displayVirtualDirectory,
+      externalCompendiums: PresetBrowser.CONFIG.displayExternalCompendiums,
+      virtualDirectory: PresetBrowser.CONFIG.displayVirtualDirectory,
       setFormVisibility: true,
     });
     this._tagSelector?.render(true);
+
+    if (this.lastSearch) this._onSearch(this.lastSearch, { render: false });
+    data.lastSearch = this.lastSearch;
 
     data.presets = this.tree.presets;
     data.folders = this.tree.folders;
@@ -140,17 +143,15 @@ export class MassEditPresets extends PresetContainer {
     data.createEnabled = Boolean(this.configApp);
     data.isPlaceable = SUPPORTED_PLACEABLES.includes(this.documentName) || this.documentName === 'ALL';
     data.allowDocumentSwap = UI_DOCS.includes(this.documentName) && !this.configApp;
-    data.docLockActive = game.settings.get(MODULE_ID, 'presetDocLock') === this.documentName;
-    data.layerSwitchActive = game.settings.get(MODULE_ID, 'presetLayerSwitch');
-    data.scaling = game.settings.get(MODULE_ID, 'presetScaling');
-    data.extCompActive = displayExtCompendiums;
-    data.virtDirActive = displayVirtualDirectory;
-    data.sortMode = SORT_MODES[game.settings.get(MODULE_ID, 'presetSortMode')];
-    data.searchMode = SEARCH_MODES[game.settings.get(MODULE_ID, 'presetSearchMode')];
+    data.docLockActive = PresetBrowser.CONFIG.documentLock === this.documentName;
+    data.layerSwitchActive = PresetBrowser.CONFIG.switchLayer;
+    data.autoScale = PresetBrowser.CONFIG.autoScale;
+    data.displayExternalCompendiums = PresetBrowser.CONFIG.displayExternalCompendiums;
+    data.displayVirtualDirectory = PresetBrowser.CONFIG.displayVirtualDirectory;
+    data.sortMode = SORT_MODES[PresetBrowser.CONFIG.sortMode];
+    data.searchMode = SEARCH_MODES[PresetBrowser.CONFIG.searchMode];
     data.displayDragDropMessage =
       data.allowDocumentSwap && !(this.tree.presets.length || this.tree.folders.length || data.extFolders);
-
-    data.lastSearch = this.lastSearch;
 
     data.docs = UI_DOCS.reduce((obj, key) => {
       return {
@@ -158,6 +159,7 @@ export class MassEditPresets extends PresetContainer {
         [key]: DOC_ICONS[key],
       };
     }, {});
+    data.docsDropdown = data.docs; // TEST
 
     data.documents = UI_DOCS;
     data.currentDocument = this.documentName;
@@ -179,15 +181,15 @@ export class MassEditPresets extends PresetContainer {
       .on('mouseover', (event) => {
         if (canvas.activeLayer?.preview?.children.some((c) => c._original?.mouseInteractionManager?.isDragging)) {
           hoverOverlay.show();
-          MassEditPresets.objectHover = true;
+          PresetBrowser.objectHover = true;
         } else {
           hoverOverlay.hide();
-          MassEditPresets.objectHover = false;
+          PresetBrowser.objectHover = false;
         }
       })
       .on('mouseout', () => {
         hoverOverlay.hide();
-        MassEditPresets.objectHover = false;
+        PresetBrowser.objectHover = false;
       });
 
     // Create Preset from Selected
@@ -203,10 +205,7 @@ export class MassEditPresets extends PresetContainer {
 
     html.on('click', '.toggle-sort', this._onToggleSort.bind(this));
     html.on('click', '.toggle-doc-lock', this._onToggleLock.bind(this));
-    html.on('click', '.toggle-ext-comp', this._onToggleExtComp.bind(this));
-    html.on('click', '.toggle-virtual-dir', this._onToggleVirtDir.bind(this));
-    html.on('click', '.toggle-scaling', this._onToggleScaling.bind(this));
-    html.on('click', '.toggle-layer-switch', this._onToggleLayerSwitch.bind(this));
+    html.on('click', '.toggle-setting', this._onToggleSetting.bind(this));
     html.on('click', '.document-select', this._onDocumentChange.bind(this));
     html.on('click', '.create-folder', this._onCreateFolder.bind(this));
     html.on('click', '.preset-create', this._onPresetCreate.bind(this));
@@ -216,7 +215,6 @@ export class MassEditPresets extends PresetContainer {
 
     const headerSearch = html.find('.header-search input');
     headerSearch.on('input', (event) => this._onSearchInput(event));
-    if ((this.lastSearch?.length ?? 0) >= SEARCH_MIN_CHAR) headerSearch.trigger('input');
 
     html.on('click', '.toggle-search-mode', (event) => {
       this._onToggleSearch(event, headerSearch);
@@ -300,64 +298,6 @@ export class MassEditPresets extends PresetContainer {
     await PresetCollection.set(presets);
 
     this.render(true);
-  }
-
-  _getFolderContextOptions() {
-    return [
-      {
-        name: 'Edit',
-        icon: '<i class="fas fa-edit"></i>',
-        condition: (header) => {
-          const folder = this.tree.allFolders.get(header.closest('.folder').data('uuid'));
-          return !folder.virtual || folder instanceof PresetPackFolder;
-        },
-        callback: (header) => this._onFolderEdit(header),
-      },
-      {
-        name: 'Save Index',
-        icon: '<i class="fas fa-file-search"></i>',
-        condition: (header) => {
-          const folder = this.tree.allFolders.get(header.closest('.folder').data('uuid'));
-          return folder.indexable;
-        },
-        callback: (header) => {
-          FileIndexer.saveFolderToCache(this.tree.allFolders.get(header.closest('.folder').data('uuid')));
-        },
-      },
-      {
-        name: 'Export to Compendium',
-        icon: '<i class="fas fa-file-export fa-fw"></i>',
-        condition: (header) => {
-          const folder = this.tree.allFolders.get(header.closest('.folder').data('uuid'));
-          return !(folder instanceof VirtualFileFolder);
-        },
-        callback: (header) => {
-          this._onExportFolder(header.closest('.folder').data('uuid'));
-        },
-      },
-      {
-        name: localize('FOLDER.Remove', false),
-        icon: '<i class="fas fa-trash fa-fw"></i>',
-        condition: (header) => PresetFolder.isEditable(header.closest('.folder').data('uuid')),
-        callback: (header) => this._onFolderDelete(header.closest('.folder').data('uuid')),
-      },
-      {
-        name: localize('FOLDER.Delete', false),
-        icon: '<i class="fas fa-dumpster"></i>',
-        condition: (header) => PresetFolder.isEditable(header.closest('.folder').data('uuid')),
-        callback: (header) =>
-          this._onFolderDelete(header.closest('.folder').data('uuid'), {
-            deleteAll: true,
-          }),
-      },
-      {
-        name: 'Randomize Child Folder Colors',
-        icon: '<i class="fas fa-dice"></i>',
-        condition: () => game.settings.get(MODULE_ID, 'debug'),
-        callback: (header) =>
-          randomizeChildrenFolderColors(header.closest('.folder').data('uuid'), this.tree, () => this.render(true)),
-      },
-    ];
   }
 
   async _onExportFolder(uuid) {
@@ -581,33 +521,32 @@ export class MassEditPresets extends PresetContainer {
   // Throttle input and perform preset search
   _onSearchInput(event) {
     clearTimeout(this._searchTimer);
-    this._searchTimer = setTimeout(() => this._onSearch(event), 250);
+    this._searchTimer = setTimeout(() => this._onSearch(event.target.value, { event }), 250);
   }
 
-  async _onSearch(event) {
-    let newSearch = event.target.value;
+  async _onSearch(search, { event, render = true } = {}) {
     let previousSearch = this.lastSearch || '';
-    this.lastSearch = newSearch;
+    this.lastSearch = search;
 
-    if (previousSearch.length >= SEARCH_MIN_CHAR && newSearch.length < SEARCH_MIN_CHAR) {
-      $(event.target).removeClass('active');
+    if (previousSearch.length >= SEARCH_MIN_CHAR && search.length < SEARCH_MIN_CHAR) {
+      if (event) $(event.target).removeClass('active');
       this._resetSearchState();
-      this._renderContent();
+      if (render) this._renderContent();
       return;
     }
 
-    if (newSearch.length < SEARCH_MIN_CHAR) return;
+    if (search.length < SEARCH_MIN_CHAR) return;
 
-    const { terms, tags } = parseSearchString(event.target.value);
+    const { terms, tags } = parseSearchString(search);
     if (!(terms.length || tags.length)) return;
-    $(event.target).addClass('active');
+    if (event) $(event.target).addClass('active');
 
     this._searchFoundPresets = [];
     this.tree.folders.forEach((f) => this._searchFolder(terms, tags, f));
     this.tree.extFolders.forEach((f) => this._searchFolder(terms, tags, f));
     this.tree.presets.forEach((p) => this._searchPreset(terms, tags, p));
 
-    this._renderContent();
+    if (render) this._renderContent();
   }
 
   _searchFolder(filter, tags, folder, forceRender = false) {
@@ -669,7 +608,7 @@ export class MassEditPresets extends PresetContainer {
 
   async _renderContent() {
     let data;
-    if (game.settings.get(MODULE_ID, 'presetSearchMode') === 'p') {
+    if (PresetBrowser.CONFIG.searchMode === 'p') {
       data = {
         callback: Boolean(this.callback),
         presets: this._searchFoundPresets,
@@ -776,19 +715,16 @@ export class MassEditPresets extends PresetContainer {
   }
 
   async _onToggleSort(event) {
-    const currentSort = game.settings.get(MODULE_ID, 'presetSortMode');
-    const newSort = currentSort === 'manual' ? 'alphabetical' : 'manual';
-    await game.settings.set(MODULE_ID, 'presetSortMode', newSort);
-
+    await PresetBrowser.setSetting('sortMode', PresetBrowser.CONFIG.sortMode === 'manual' ? 'alphabetical' : 'manual');
     this.render(true);
   }
 
   async _onToggleSearch(event, headerSearch) {
     const searchControl = $(event.target).closest('.toggle-search-mode');
 
-    const currentMode = game.settings.get(MODULE_ID, 'presetSearchMode');
+    const currentMode = PresetBrowser.CONFIG.searchMode;
     const newMode = currentMode === 'p' ? 'pf' : 'p';
-    await game.settings.set(MODULE_ID, 'presetSearchMode', newMode);
+    await PresetBrowser.setSetting('searchMode', newMode);
 
     const mode = SEARCH_MODES[newMode];
     searchControl.attr('data-tooltip', mode.tooltip).html(mode.icon);
@@ -799,58 +735,20 @@ export class MassEditPresets extends PresetContainer {
   _onToggleLock(event) {
     const lockControl = $(event.target).closest('.toggle-doc-lock');
 
-    let currentLock = game.settings.get(MODULE_ID, 'presetDocLock');
     let newLock = this.documentName;
-
-    if (newLock !== currentLock) lockControl.addClass('active');
+    if (newLock !== PresetBrowser.CONFIG.documentLock) lockControl.addClass('active');
     else {
       lockControl.removeClass('active');
       newLock = '';
     }
 
-    game.settings.set(MODULE_ID, 'presetDocLock', newLock);
+    PresetBrowser.setSetting('documentLock', newLock);
   }
 
-  _onToggleLayerSwitch(event) {
-    const switchControl = $(event.currentTarget);
-
-    const value = !game.settings.get(MODULE_ID, 'presetLayerSwitch');
-    if (value) switchControl.addClass('active');
-    else switchControl.removeClass('active');
-
-    game.settings.set(MODULE_ID, 'presetLayerSwitch', value);
-  }
-
-  async _onToggleVirtDir(event) {
-    const switchControl = $(event.currentTarget);
-
-    const value = !game.settings.get(MODULE_ID, 'presetVirtualDir');
-    if (value) switchControl.addClass('active');
-    else switchControl.removeClass('active');
-
-    await game.settings.set(MODULE_ID, 'presetVirtualDir', value);
+  async _onToggleSetting(event) {
+    const setting = $(event.currentTarget).data('setting');
+    await PresetBrowser.setSetting(setting, !PresetBrowser.CONFIG[setting]);
     this.render(true);
-  }
-
-  async _onToggleExtComp(event) {
-    const switchControl = $(event.currentTarget);
-
-    const value = !game.settings.get(MODULE_ID, 'presetExtComp');
-    if (value) switchControl.addClass('active');
-    else switchControl.removeClass('active');
-
-    await game.settings.set(MODULE_ID, 'presetExtComp', value);
-    this.render(true);
-  }
-
-  async _onToggleScaling(event) {
-    const switchControl = $(event.target).closest('.toggle-scaling');
-
-    const value = !game.settings.get(MODULE_ID, 'presetScaling');
-    if (value) switchControl.addClass('active');
-    else switchControl.removeClass('active');
-
-    game.settings.set(MODULE_ID, 'presetScaling', value);
   }
 
   _onDocumentChange(event) {
@@ -858,13 +756,11 @@ export class MassEditPresets extends PresetContainer {
     if (newDocumentName != this.documentName) {
       this.documentName = newDocumentName;
 
-      if (game.settings.get(MODULE_ID, 'presetLayerSwitch'))
+      if (PresetBrowser.CONFIG.switchLayer)
         canvas.getLayerByEmbeddedName(this.documentName === 'Actor' ? 'Token' : this.documentName)?.activate();
 
-      if (this.lastSearch) {
-        this.lastSearch = '';
-        this._resetSearchState();
-      }
+      // TODO add a flag to control whether this.lastSearch is reset on document change
+      this._resetSearchState();
 
       this.render(true);
     }
@@ -898,7 +794,7 @@ export class MassEditPresets extends PresetContainer {
     // Track position post window close
     if (!this.options.preventPositionOverride) {
       const { left, top, width, height } = position;
-      MassEditPresets.previousPosition = { left, top, width, height };
+      PresetBrowser.previousPosition = { left, top, width, height };
     }
 
     // Return the updated position object
@@ -906,7 +802,7 @@ export class MassEditPresets extends PresetContainer {
   }
 
   async close(options = {}) {
-    MassEditPresets.objectHover = false;
+    PresetBrowser.objectHover = false;
     this._tagSelector?.close();
     this._endPreview();
     return super.close(options);
@@ -1033,7 +929,7 @@ export class MassEditPresets extends PresetContainer {
     buttons.unshift({
       label: '',
       class: 'mass-edit-change-compendium',
-      icon: 'fa-solid fa-gear',
+      icon: 'fas fa-atlas',
       onclick: (ev) => this._onWorkingPackChange(),
     });
     buttons.unshift({
@@ -1337,14 +1233,14 @@ function getCompendiumDialog(resolve, { excludePack, exportTo = false, keepIdSel
 }
 
 export function registerPresetBrowserHooks() {
-  // Intercept and prevent certain placeable drag and drop if they are hovering over the MassEditPresets form
+  // Intercept and prevent certain placeable drag and drop if they are hovering over the PresetBrowser form
   // passing on the placeable to it to perform preset creation.
   const dragDropHandler = function (wrapped, ...args) {
-    if (MassEditPresets.objectHover || PresetConfig.objectHover) {
+    if (PresetBrowser.objectHover || PresetConfig.objectHover) {
       this.mouseInteractionManager.cancel(...args);
       const app = Object.values(ui.windows).find(
         (x) =>
-          (MassEditPresets.objectHover && x instanceof MassEditPresets) ||
+          (PresetBrowser.objectHover && x instanceof PresetBrowser) ||
           (PresetConfig.objectHover && x instanceof PresetConfig)
       );
       if (app) {
@@ -1377,13 +1273,13 @@ export function registerPresetBrowserHooks() {
       let documentName = canvas.activeLayer.constructor.documentName;
       if (!SUPPORTED_PLACEABLES.includes(documentName)) documentName = 'ALL';
 
-      const presetForm = Object.values(ui.windows).find((app) => app instanceof MassEditPresets);
+      const presetForm = Object.values(ui.windows).find((app) => app instanceof PresetBrowser);
       if (presetForm) {
         presetForm.close();
         return;
       }
 
-      new MassEditPresets(null, null, documentName, {
+      new PresetBrowser(null, null, documentName, {
         left: presetControl.position().left + presetControl.width() + 40,
       }).render(true);
     });
@@ -1421,7 +1317,7 @@ export function registerPresetBrowserHooks() {
       const packId = element.closest('[data-pack]').dataset.pack;
       const pack = game.packs.get(packId);
       if (pack.metadata.type === 'JournalEntry' && pack.index.get(META_INDEX_ID)) {
-        new MassEditPresets(null, null, 'ALL').render(true);
+        new PresetBrowser(null, null, 'ALL').render(true);
         return;
       }
       return wrapped(event);

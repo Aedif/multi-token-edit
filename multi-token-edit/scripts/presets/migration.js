@@ -1,6 +1,6 @@
 import { MODULE_ID } from '../constants.js';
 import { META_INDEX_FIELDS, META_INDEX_ID, PresetCollection, PresetTree } from './collection.js';
-import { MassEditPresets } from './forms.js';
+import { PresetBrowser } from './forms.js';
 import { PRESET_FIELDS } from './preset.js';
 
 export class V12Migrator {
@@ -145,7 +145,7 @@ export class V12Migrator {
       setTimeout(() => {
         delete PresetTree._packTrees[pack.metadata.name];
         Object.values(ui.windows)
-          .find((app) => app instanceof MassEditPresets)
+          .find((app) => app instanceof PresetBrowser)
           ?.render(true);
       }, 500);
     }
