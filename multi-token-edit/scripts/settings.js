@@ -179,6 +179,7 @@ export function registerSettings() {
       displayExternalCompendiums: true,
       switchLayer: true,
       documentLock: '',
+      dropdownDocuments: ['MeasuredTemplate', 'Note', 'Region'],
     },
     onChange: (val) => {
       PresetBrowser.CONFIG = val;

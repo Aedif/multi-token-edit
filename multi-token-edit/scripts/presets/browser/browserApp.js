@@ -13,6 +13,7 @@ import { MODULE_ID, SUPPORTED_PLACEABLES, UI_DOCS } from '../../constants.js';
 import { PresetContainer } from '../containerApp.js';
 import { PresetConfig } from '../editApp.js';
 import { TagSelector } from '../tagSelector.js';
+import PresetBrowserSettings from './settingsApp.js';
 
 const SEARCH_MIN_CHAR = 2;
 const SEARCH_FOUND_MAX_COUNT = 1001;
@@ -88,14 +89,14 @@ export class PresetBrowser extends PresetContainer {
       this.documentName = documentName || this.configApp.documentName;
     }
 
-    this.lastSearch = PresetBrowser.lastSearch;
+    this.lastSearch = PresetBrowser.CONFIG.persistentSearch ? PresetBrowser.lastSearch : '';
   }
 
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
       id: 'mass-edit-presets',
       classes: ['sheet', 'mass-edit-dark-window', 'mass-edit-window-fill'],
-      template: `modules/${MODULE_ID}/templates/preset/presetBrowser.html`,
+      template: `modules/${MODULE_ID}/templates/preset/browser.html`,
       resizable: true,
       minimizable: true,
       width: 377,
@@ -120,8 +121,10 @@ export class PresetBrowser extends PresetContainer {
     });
     this._tagSelector?.render(true);
 
-    if (this.lastSearch) this._onSearch(this.lastSearch, { render: false });
-    data.lastSearch = this.lastSearch;
+    if (PresetBrowser.CONFIG.persistentSearch && this.lastSearch) {
+      this._onSearch(this.lastSearch, { render: false });
+      data.lastSearch = this.lastSearch;
+    } else data.lastSearch = '';
 
     data.presets = this.tree.presets;
     data.folders = this.tree.folders;
@@ -140,13 +143,13 @@ export class PresetBrowser extends PresetContainer {
     data.displayDragDropMessage =
       data.allowDocumentSwap && !(this.tree.presets.length || this.tree.folders.length || data.extFolders);
 
-    data.docs = UI_DOCS.reduce((obj, key) => {
-      return {
-        ...obj,
-        [key]: DOC_ICONS[key],
-      };
-    }, {});
-    data.docsDropdown = data.docs; // TEST
+    data.docs = [];
+    data.docsDropdown = PresetBrowser.CONFIG.dropdownDocuments.length ? [] : null;
+    UI_DOCS.forEach((name) => {
+      const doc = { name, icon: DOC_ICONS[name], tooltip: name === 'ALL' ? 'Placeables' : name };
+      if (PresetBrowser.CONFIG.dropdownDocuments.includes(name)) data.docsDropdown.push(doc);
+      else data.docs.push(doc);
+    });
 
     data.documents = UI_DOCS;
     data.currentDocument = this.documentName;
@@ -746,9 +749,6 @@ export class PresetBrowser extends PresetContainer {
       if (PresetBrowser.CONFIG.switchLayer)
         canvas.getLayerByEmbeddedName(this.documentName === 'Actor' ? 'Token' : this.documentName)?.activate();
 
-      // TODO add a flag to control whether this.lastSearch is reset on document change
-      this._resetSearchState();
-
       this.render(true);
     }
   }
@@ -915,28 +915,34 @@ export class PresetBrowser extends PresetContainer {
 
     buttons.unshift({
       label: '',
+      class: 'mass-edit-settings-config',
+      icon: 'fas fa-gear',
+      onclick: this._onSettingConfig.bind(this),
+    });
+    buttons.unshift({
+      label: '',
       class: 'mass-edit-change-compendium',
       icon: 'fas fa-atlas',
-      onclick: (ev) => this._onWorkingPackChange(),
+      onclick: this._onWorkingPackChange.bind(this),
     });
     buttons.unshift({
       label: '',
       class: 'mass-edit-indexer',
       icon: 'fas fa-archive',
-      onclick: (ev) => this._onOpenIndexer(),
+      onclick: this._onOpenIndexer.bind(this),
     });
 
     buttons.unshift({
       label: '',
       class: 'mass-edit-export',
       icon: 'fas fa-file-export',
-      onclick: (ev) => this._onExport(ev),
+      onclick: this._onExport.bind(this),
     });
     buttons.unshift({
       label: '',
       class: 'mass-edit-import',
       icon: 'fas fa-file-import',
-      onclick: (ev) => this._onImport(ev),
+      onclick: this._onImport.bind(this),
     });
 
     if (game.settings.get(MODULE_ID, 'debug')) {
@@ -962,6 +968,10 @@ export class PresetBrowser extends PresetContainer {
       await game.settings.set(MODULE_ID, 'workingPack', pack);
       this.render(true);
     }
+  }
+
+  _onSettingConfig() {
+    new PresetBrowserSettings(this).render(true);
   }
 
   async _onOpenIndexer() {

@@ -271,7 +271,7 @@ export class Spawner {
   }
 
   /**
-   * Assign ownership to the user who triggered the spawn, hide and apply flags if if necessary
+   * Assign ownership to the user who triggered the spawn, hide and apply flags if necessary
    * @param {*} docToData
    */
   static _autoModifyData(docToData, hidden, flags, preserveLinks, sceneId) {

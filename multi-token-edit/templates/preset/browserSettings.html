@@ -1,0 +1,28 @@
+<form>
+
+    <div class="form-group">
+        <label>Persistent Search</label>
+        <div class="form-fields">
+            <input type="checkbox" name="persistentSearch" {{checked persistentSearch}}/>
+        </div>
+        <p class="notes">Search field will be retained after window closure and category changes.</p>
+
+    </div>
+
+    <div class="form-group">
+        <label>Dropdown Categories</label>
+        <div class="form-fields">
+            <div style="display: inline-flex; gap: 12px;">
+                {{#each dropdownDocuments as |doc|}}
+                <a class="document-select {{#if doc.active}}active{{/if}}" title="{{doc.name}}" data-name="{{doc.name}}"><i class="{{doc.icon}} fa-lg"></i></a>
+                {{/each}}
+            </div>
+        </div>
+        <p class="notes">Select categories you wish to be hidden behind a dropdown menu.</p>
+    </div>
+
+    <footer class="sheet-footer flexrow">
+        <button type="submit"><i class="far fa-save"></i>{{localize 'Save'}}</button>
+    </footer>
+    
+</form>

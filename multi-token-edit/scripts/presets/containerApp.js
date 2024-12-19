@@ -620,9 +620,9 @@ export class PresetContainer extends FormApplication {
     game.audio.playing.forEach((s) => {
       if (s._mePreview) s.stop();
     });
-    if (this._videoPreviewElement) {
-      this._videoPreviewElement.remove();
-      this._videoPreviewElement = null;
+    if (this._previewElement) {
+      this._previewElement.remove();
+      this._previewElement = null;
     }
   }
 
@@ -631,25 +631,31 @@ export class PresetContainer extends FormApplication {
     const uuid = $(event.currentTarget).data('uuid');
     if (!uuid) return;
 
+    const addClearPreviewElement = () => {
+      if (!this._previewElement) {
+        this._previewElement = $('<div class="mePreviewElement"></div>');
+        $(document.body).append(this._previewElement);
+      } else {
+        this._previewElement.empty();
+      }
+    };
+
     const preset = await PresetCollection.get(uuid, { full: false });
     if (preset.documentName === 'AmbientSound') {
       const src = isAudio(preset.img) ? preset.img : (await preset.load()).data[0]?.path;
       if (!src) return;
       const sound = await game.audio.play(src);
       sound._mePreview = true;
+
+      addClearPreviewElement();
+      this._previewElement.append(`<img width="320" height="320" src='icons/svg/sound.svg'></img>`);
     } else if (preset.documentName === 'Tile' && preset.thumbnail === 'icons/svg/video.svg') {
       await preset.load();
       const src = preset.data[0].texture?.src;
       if (src && isVideo(src)) {
-        if (!this._videoPreviewElement) {
-          this._videoPreviewElement = $('<div class="meVideoPreview"></div>');
-          $(document.body).append(this._videoPreviewElement);
-        } else {
-          this._videoPreviewElement.empty();
-        }
-
+        addClearPreviewElement();
         const ratio = visualViewport.width / 1024;
-        this._videoPreviewElement.append(
+        this._previewElement.append(
           `<video width="${320 * ratio}" height="${240 * ratio}" autoplay loop><source src="${src}" type="video/${src
             .split('.')
             .pop()

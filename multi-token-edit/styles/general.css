@@ -244,7 +244,8 @@
 }
 
 .preset-browser .document-select.active,
-.folder-edit .document-select.active {
+.folder-edit .document-select.active,
+#mass-edit-browser-settings .document-select.active {
   color: orange;
 }
 
@@ -472,8 +473,8 @@
 .preset-browser .dropdown-content {
   display: none;
   position: absolute;
-  background-color: black;
-  width: 50px;
+  background-color: rgb(0 0 0 / 78%);
+  width: 60px;
   box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
   border-radius: 8px;
   z-index: 1;
@@ -760,7 +761,7 @@ nav > a[data-tab='me-pinned'] {
    ===== Video Preview ====
    ======================== */
 
-.meVideoPreview {
+.mePreviewElement {
   position: absolute;
   top: 25px;
   left: 25px;

@@ -4,15 +4,15 @@
     <header class="preset-header flexcol">
         {{#if allowDocumentSwap}}
         <div class="header-select flexrow">
-            {{#each docs}}
-            <a class="document-select {{#if (eq @key ../currentDocument)}}active{{/if}}" data-tooltip="{{@key}}" data-name="{{@key}}"><i class="{{this}} fa-lg"></i></a>
+            {{#each docs as |doc|}}
+            <a class="document-select {{#if (eq doc.name ../currentDocument)}}active{{/if}}" data-tooltip="{{doc.tooltip}}" data-name="{{doc.name}}"><i class="{{doc.icon}} fa-lg"></i></a>
             {{/each}}
             {{#if docsDropdown}}
             <div class="dropdown">
-                <a class="dropicon" style="color:burlywood;"><i class="fa-solid fa-square-chevron-down"></i></a>
+                <a class="dropicon" style="color:tan;"><i class="fa-solid fa-square-chevron-down"></i></a>
                 <div class="dropdown-content">
-                    {{#each docsDropdown}}
-                    <a class="document-select {{#if (eq @key ../currentDocument)}}active{{/if}}" data-tooltip="{{@key}}" data-name="{{@key}}"><i class="{{this}} fa-lg"></i></a>
+                    {{#each docsDropdown as |doc|}}
+                    <a class="document-select {{#if (eq doc.name ../currentDocument)}}active{{/if}}" data-tooltip="{{doc.tooltip}}" data-name="{{doc.name}}"><i class="{{doc.icon}} fa-lg"></i></a>
                     {{/each}}
                 </div>
             </div>
