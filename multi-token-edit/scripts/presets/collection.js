@@ -198,8 +198,9 @@ export class PresetCollection {
   }
 
   /**
-   * TODO: create a method to batch set presets
+   * Create presets within a pack
    * @param {Preset|Array[Preset]} presets
+   * @param {String} pack
    */
   static async set(presets, pack) {
     if (!presets) throw new Error('Attempting to set invalid Preset/s', presets);

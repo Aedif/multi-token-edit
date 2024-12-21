@@ -842,3 +842,59 @@ nav > a[data-tab='me-pinned'] {
 .application preset-tags input {
   flex: 1;
 }
+
+
+/* ====================================
+   ====== Preset Category Browser =====
+   ==================================== */
+
+.mass-edit-category-browser .content {
+  display: flex;
+  flex-flow: row;
+  flex: 1;
+  height: 100%;
+}
+
+.mass-edit-category-browser .menu {
+  display: flex;
+  margin-left: -3px;
+  margin-right: 4px;
+  border: 1px solid black;
+  border-radius: 6px;
+  padding: 8px 3px 3px 3px;
+}
+
+.mass-edit-category-browser .category-list {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #414141;
+  padding-right: 4px;
+  padding-left: 4px;
+}
+
+.mass-edit-category-browser .category-list:last-child {
+  border-width: 0px;
+}
+
+.mass-edit-category-browser .category {
+  height: 40px;
+  line-height: 40px;
+  width: 40px;
+  font-size: 24px;
+  text-align: center;
+  box-shadow: 0 0 3px dimgray;
+  border: 1px solid var(--color-border-dark);
+  border-radius: 5px;
+  margin-bottom: 5px;
+}
+
+.mass-edit-category-browser .category img {
+  border-width: 0;
+  width: 32px;
+  height: 32px;
+  margin-top: 2px;
+}
+
+.mass-edit-category-browser .category.active {
+  color:darkorange;
+}

@@ -130,29 +130,6 @@ export function registerSettings() {
   });
   PresetCollection.workingPack = game.settings.get(MODULE_ID, 'workingPack');
 
-  game.settings.register(MODULE_ID, 'docPresets', {
-    scope: 'world',
-    config: false,
-    type: Array,
-    default: [],
-  });
-
-  // Temp setting needed for migration
-  game.settings.register(MODULE_ID, 'presetsMigrated', {
-    scope: 'world',
-    config: false,
-    type: Boolean,
-    default: false,
-  });
-
-  // Temp setting needed for migration
-  game.settings.register(MODULE_ID, 'presetsCompMigrated', {
-    scope: 'world',
-    config: false,
-    type: Boolean,
-    default: false,
-  });
-
   game.settings.register(MODULE_ID, 'presetSceneControl', {
     name: 'Scene Controls: Preset Button',
     scope: 'world',
