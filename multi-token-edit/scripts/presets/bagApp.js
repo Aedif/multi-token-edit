@@ -80,12 +80,33 @@ class BagApplication extends PresetContainer {
       ? await PresetAPI.getPresets({ uuid: bag.completedSearch, full: false })
       : null;
 
-    return { containedPresets, searchedPresets, displayLabels: containedPresets && searchedPresets };
+    return {
+      containedPresets,
+      searchedPresets,
+      displayLabels: containedPresets && searchedPresets,
+      searchBar: bag.searchBar,
+    };
   }
 
   activateListeners(html) {
     super.activateListeners(html);
     this.setAppearance();
+    html.find('.header-search input').on('input', this._onSearchInput.bind(this));
+  }
+
+  _onSearchInput(event) {
+    let search = event.target.value.trim().toLowerCase();
+
+    if (search) {
+      $(event.target).addClass('active');
+      this.element.find('.item').each(function () {
+        const item = $(this);
+        if (!item.attr('name').toLowerCase().includes(search)) item.hide();
+      });
+    } else {
+      $(event.target).removeClass('active');
+      this.element.find('.item').show();
+    }
   }
 
   setAppearance(appearance) {
@@ -313,6 +334,7 @@ class BagConfig extends FormApplication {
 
     this.preset.data[0].virtualDirectory = formData.virtualDirectory;
     this.preset.data[0].appearance = formData.appearance;
+    this.preset.data[0].searchBar = formData.searchBar;
   }
 
   async _onAppearanceFieldChange() {

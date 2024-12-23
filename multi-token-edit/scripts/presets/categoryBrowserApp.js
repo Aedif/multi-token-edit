@@ -3,6 +3,12 @@ import { PresetAPI } from './collection.js';
 import { PresetContainer } from './containerApp.js';
 import { parseSearchString } from './utils.js';
 
+/**
+ * Constructs and opens a menu for browsing through Mass Edit presets
+ * @param {object} menu    Application's menu structure
+ * @param {object} options
+ * @returns
+ */
 export async function openCategoryBrowser(menu, { retainState = false, name = 'Category Browser' } = {}) {
   // // If category browser is already open close it
   const app = Object.values(ui.windows).find((w) => w._browserId === name);
@@ -14,20 +20,26 @@ export async function openCategoryBrowser(menu, { retainState = false, name = 'C
   new CategoryBrowserApplication(menu, { name, retainState }).render(true);
 }
 
+/**
+ * Representation of a menu button
+ */
 class Category {
   menu = null; // CategoryList this category is part of
-  submenu = null; // CategoryList that belongs to this category
+  submenu = null; // CategoryList to be displayed when this category is active
 
   constructor({ title, fa, img, query, menu }) {
-    this.title = title;
-    this.fa = fa;
-    this.img = img;
-    this.query = query;
-    this.menu = menu;
-    this.id = foundry.utils.randomID();
+    this.title = title; // Hover text
+    this.fa = fa; // Font Awesome icon
+    this.img = img; // Image icon
+    this.query = query; // Search query to be ran when active
+    this.menu = menu; // CategoryList this category is part of
+    this.id = foundry.utils.randomID(); // Unique identifier
   }
 }
 
+/**
+ * Representation of a single menu (column) within the app
+ */
 class CategoryList {
   parentCategory = null; // Category
   categories = [];
@@ -64,6 +76,8 @@ class CategoryBrowserApplication extends PresetContainer {
     this._retainState = options.retainState;
     this.virtualDirectory = Boolean(options.virtualDirectory);
 
+    // If the state of the window was set to be retained we retrieve it now
+    // and run the necessary queries to get the results
     if (this._retainState && CategoryBrowserApplication.oldMenuStates[this._browserId]) {
       const { menus, categories, virtualDirectory } = CategoryBrowserApplication.oldMenuStates[this._browserId];
       this._menus = menus;
@@ -71,6 +85,7 @@ class CategoryBrowserApplication extends PresetContainer {
       this.virtualDirectory = virtualDirectory;
       this._runQueryTree();
     } else {
+      // Otherwise we process the fed in JSON menu structure
       this._processMenu(menu)._topMenu = true;
     }
   }
@@ -111,6 +126,9 @@ class CategoryBrowserApplication extends PresetContainer {
     this._setVirtualDirectoryColor();
   }
 
+  /**
+   * Hack to set the Virtual Directory header button colour
+   */
   _setVirtualDirectoryColor() {
     // hack to color the virtual directory header button
     const headerButton = this.element.closest('.window-app').find('.mass-edit-category-browser-virtual');
@@ -118,6 +136,12 @@ class CategoryBrowserApplication extends PresetContainer {
     else headerButton.css('color', 'var(--color-text-light-highlight)');
   }
 
+  /**
+   * Process JSON menu structure into Category and CategoryList instances usable by the application
+   * @param {object} submenu                An array of JSON objects representing a `Category`
+   * @param {Category|null} parentCategory  A `Category` instance that is the parent of the provided submenu
+   * @returns
+   */
   _processMenu(submenu, parentCategory = null) {
     const categoryList = new CategoryList(parentCategory);
     this._menus.push(categoryList);
@@ -133,6 +157,10 @@ class CategoryBrowserApplication extends PresetContainer {
     return categoryList;
   }
 
+  /**
+   * Handle category click event
+   * @param {*} event
+   */
   async _onClickCategory(event) {
     const category = this._categories.get($(event.currentTarget).data('id'));
 
@@ -145,6 +173,10 @@ class CategoryBrowserApplication extends PresetContainer {
     this._runQueryTree();
   }
 
+  /**
+   * Set provided category as active, turning on/off relevant menus and categories
+   * @param {Category} category
+   */
   _setCategoryActive(category) {
     category.menu.active = true;
     category.menu.categories.forEach((cat) => (cat.active = false));
@@ -163,6 +195,10 @@ class CategoryBrowserApplication extends PresetContainer {
     }
   }
 
+  /**
+   * Set provided category as inactive, turning off relevant menus and categories
+   * @param {Category} category
+   */
   _setCategoryInactive(category) {
     category.active = false;
     category.menu.active = true;
@@ -174,6 +210,10 @@ class CategoryBrowserApplication extends PresetContainer {
     }
   }
 
+  /**
+   * Run queries for active categories and renders the results
+   * @returns
+   */
   async _runQueryTree() {
     const runTime = new Date().getTime();
     this._queryRunTime = runTime;
@@ -202,6 +242,11 @@ class CategoryBrowserApplication extends PresetContainer {
     return this._renderContent();
   }
 
+  /**
+   * Render query results
+   * @param {Boolean} loading if true a rotating spinner will be rendered instead of query results
+   * @returns
+   */
   async _renderContent(loading = false) {
     if (loading) {
       this.element.find('.item-list').html(
@@ -214,6 +259,13 @@ class CategoryBrowserApplication extends PresetContainer {
     }
   }
 
+  /**
+   * Run a search query and returns the results
+   * @param {String} query                Query to be ran
+   * @param {Boolean} matchAny            Should any tag match be returned?
+   * @param {Array[Presets]|null} presets If provided search will be carried out on this preset array instead of all presets
+   * @returns {Array[Presets]|null}       Query results
+   */
   async _runQuery(query, matchAny = false, presets) {
     let { terms, tags } = parseSearchString(query);
     if (!terms.length) terms = undefined;

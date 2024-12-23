@@ -3,6 +3,15 @@
 </div>
 
 <form class="preset-browser">
+
+    {{#if searchBar}}
+    <header class="preset-header flexcol">
+        <div class="header-search flexrow">
+            <input class="{{#if lastSearch}}active{{/if}}" type="search" name="search" value="{{lastSearch}}" placeholder="{{localize 'FILES.Search'}}" autocomplete="off" style="color: black">
+        </div>
+    </header>
+    {{/if}}
+
     <div class="item-list folder-items" data-tooltip-direction="RIGHT" data-tooltip-class="preset-tooltip">
         {{#if containedPresets}}
             {{#if displayLabels}}<label class="static-label" style="margin-top: 0;">CONTAINED</label>{{/if}}
