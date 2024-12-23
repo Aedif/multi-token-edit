@@ -23,6 +23,7 @@ export class PresetContainer extends FormApplication {
     this.presetsSortable = opts2.sortable;
     this.presetsDuplicable = opts2.duplicable;
     this.presetsForceAllowDelete = opts2.forceAllowDelete;
+    this.presetsDisableDelete = opts2.disableDelete;
   }
 
   async getData(options) {
@@ -449,6 +450,7 @@ export class PresetContainer extends FormApplication {
         icon: '<i class="fas fa-trash fa-fw"></i>',
         condition: (item) =>
           game.user.isGM &&
+          !this.presetsDisableDelete &&
           (this.presetsForceAllowDelete || (Preset.isEditable(item.data('uuid')) && !item.hasClass('virtual'))),
         callback: (item) => this._onDeleteSelectedPresets(item),
         sort: 1100,
@@ -763,6 +765,17 @@ export class PresetContainer extends FormApplication {
 
     FolderState.setExpanded(folder.uuid, false);
     folder.expanded = false;
+  }
+
+  async _renderContent({ callback = false, presets, folders, createEnabled = false, extFolders } = {}) {
+    const content = await renderTemplate(`modules/${MODULE_ID}/templates/preset/presetsContent.html`, {
+      callback,
+      presets,
+      folders,
+      createEnabled,
+      extFolders,
+    });
+    this.element.find('.item-list').html(content);
   }
 
   async _onItemSort(sourceUuids, targetUuid, { before = true, folderUuid = null } = {}) {

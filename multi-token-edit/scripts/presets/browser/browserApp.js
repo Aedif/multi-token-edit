@@ -616,9 +616,7 @@ export class PresetBrowser extends PresetContainer {
       };
     }
 
-    const content = await renderTemplate(`modules/${MODULE_ID}/templates/preset/presetsContent.html`, data);
-    this.element.find('.item-list').html(content);
-
+    await super._renderContent(data);
     this._tagSelector?.render(true);
   }
 

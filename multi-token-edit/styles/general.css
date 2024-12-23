@@ -896,5 +896,5 @@ nav > a[data-tab='me-pinned'] {
 }
 
 .mass-edit-category-browser .category.active {
-  color:darkorange;
+  border-color: darkorange;
 }

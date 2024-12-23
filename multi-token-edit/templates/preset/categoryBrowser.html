@@ -4,7 +4,7 @@
         {{#each menus as |menu|}}
         <div class="category-list">
             {{#each menu.categories as |category|}}
-            <div class="category {{#if category.active}}active{{/if}}" data-id="{{category.id}}" title="{{category.title}}">
+            <div class="category {{#if category.active}}active{{/if}}" data-id="{{category.id}}" title="{{category.title}}{{#if category.query}}&#013;{{category.query}}{{/if}}">
                 {{#if category.img}}
                 <img src="{{category.img}}">
                 {{else if category.fa}}

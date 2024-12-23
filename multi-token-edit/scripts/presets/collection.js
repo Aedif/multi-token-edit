@@ -449,6 +449,17 @@ export class PresetCollection {
     return presets;
   }
 
+  static _searchPresets(presets, options) {
+    const results = [];
+
+    // Make sure terms are provided in lowercase
+    if (options.terms) options.terms = options.terms.map((t) => t.toLowerCase());
+
+    this._searchPresetList(presets, results, options);
+
+    return results;
+  }
+
   static _searchPresetFolder(folder, presets, options) {
     if (options.folder && folder.name !== options.folder) return;
     this._searchPresetList(folder.presets, presets, options, folder.name);
@@ -631,12 +642,13 @@ export class PresetAPI {
     tags,
     virtualDirectory = true,
     full = true,
+    presets,
   } = {}) {
-    let presets;
+    let results;
     if (uuid) {
-      presets = [];
+      results = [];
       const uuids = Array.isArray(uuid) ? uuid : [uuid];
-      presets = await PresetCollection.getBatch(uuids, { full });
+      results = await PresetCollection.getBatch(uuids, { full });
     } else if (!name && !type && !folder && !tags && !terms) {
       throw Error('UUID, Name, Type, Folder and/or Tags required to retrieve a Preset.');
     } else {
@@ -645,24 +657,28 @@ export class PresetAPI {
         else if (typeof tags === 'string') tags = { tags: tags.split(','), matchAny: true };
       }
 
-      presets = PresetCollection._searchPresetTree(
-        await PresetCollection.getTree(type, { externalCompendiums: true, virtualDirectory }),
-        {
-          name,
-          type,
-          terms,
-          folder,
-          tags,
-        }
-      );
+      if (presets) {
+        results = PresetCollection._searchPresets(presets, { name, type, terms, folder, tags });
+      } else {
+        results = PresetCollection._searchPresetTree(
+          await PresetCollection.getTree(type, { externalCompendiums: true, virtualDirectory }),
+          {
+            name,
+            type,
+            terms,
+            folder,
+            tags,
+          }
+        );
+      }
     }
 
-    if (format === 'name') return presets.map((p) => p.name);
+    if (format === 'name') return results.map((p) => p.name);
     else if (format === 'nameAndFolder')
-      return presets.map((p) => {
+      return results.map((p) => {
         return { name: p.name, folder: p._folderName };
       });
-    return presets;
+    return results;
   }
 
   /**
