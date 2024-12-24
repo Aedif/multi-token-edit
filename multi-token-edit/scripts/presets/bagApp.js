@@ -3,7 +3,6 @@ import { TagInput } from '../utils.js';
 import { PresetAPI } from './collection.js';
 import { PresetContainer } from './containerApp.js';
 import { Preset } from './preset.js';
-import { parseSearchString } from './utils.js';
 
 export async function openBag(uuid) {
   let journal = fromUuidSync(uuid);
@@ -240,26 +239,27 @@ class BagApplication extends PresetContainer {
     let uuids = new Set();
 
     for (const search of searches.inclusive) {
-      let { terms, tags } = parseSearchString(search.terms);
-      if (!terms.length) terms = undefined;
-      if (!tags.length) tags = undefined;
-      if (terms || tags) {
-        if (tags) tags = { tags, matchAny: !search.matchAll };
-        (await PresetAPI.getPresets({ terms, tags, virtualDirectory, full: false })).forEach((p) => uuids.add(p.uuid));
-      }
+      (
+        await PresetAPI.getPresets({
+          query: search.terms,
+          matchAny: !search.matchAll,
+          virtualDirectory,
+          full: false,
+        })
+      ).forEach((p) => uuids.add(p.uuid));
     }
 
     if (uuids.size) {
       for (const search of searches.exclusive) {
-        let { terms, tags } = parseSearchString(search.terms);
-        if (!terms.length) terms = undefined;
-        if (!tags.length) tags = undefined;
-        if (terms || tags) {
-          if (tags) tags = { tags, matchAny: !search.matchAll };
-          (await PresetAPI.getPresets({ terms, tags, virtualDirectory, full: false })).forEach((p) =>
-            uuids.delete(p.uuid)
-          );
-        }
+        if (tags) tags = { tags, matchAny: !search.matchAll };
+        (
+          await PresetAPI.getPresets({
+            query: search.terms,
+            matchAny: !search.matchAll,
+            virtualDirectory,
+            full: false,
+          })
+        ).forEach((p) => uuids.delete(p.uuid));
       }
     }
 

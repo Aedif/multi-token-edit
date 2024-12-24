@@ -8,7 +8,7 @@ import { META_INDEX_ID, PresetAPI, PresetCollection, PresetPackFolder } from '..
 import { FileIndexer, IndexerForm } from '../fileIndexer.js';
 import { LinkerAPI } from '../../linker/linker.js';
 import { DOC_ICONS, Preset } from '../preset.js';
-import { exportPresets, FolderState, parseSearchString, placeableToData } from '../utils.js';
+import { exportPresets, FolderState, parseSearchQuery, placeableToData } from '../utils.js';
 import { MODULE_ID, SUPPORTED_PLACEABLES, UI_DOCS } from '../../constants.js';
 import { PresetContainer } from '../containerApp.js';
 import { PresetConfig } from '../editApp.js';
@@ -527,30 +527,30 @@ export class PresetBrowser extends PresetContainer {
 
     if (search.length < SEARCH_MIN_CHAR) return;
 
-    const { terms, tags } = parseSearchString(search);
-    if (!(terms.length || tags.length)) return;
+    const { terms, tags, type } = parseSearchQuery(search, { matchAny: false });
+    if (!(terms || tags || type)) return;
     if (event) $(event.target).addClass('active');
 
     this._searchFoundPresets = [];
-    this.tree.folders.forEach((f) => this._searchFolder(terms, tags, f));
-    this.tree.extFolders.forEach((f) => this._searchFolder(terms, tags, f));
-    this.tree.presets.forEach((p) => this._searchPreset(terms, tags, p));
+    this.tree.folders.forEach((f) => this._searchFolder(terms, tags, type, f));
+    this.tree.extFolders.forEach((f) => this._searchFolder(terms, tags, type, f));
+    this.tree.presets.forEach((p) => this._searchPreset(terms, tags, type, p));
 
     if (render) this._renderContent();
   }
 
-  _searchFolder(filter, tags, folder, forceRender = false) {
+  _searchFolder(filter, tags, type, folder, forceRender = false) {
     const folderName = folder.name.toLowerCase();
-    let match = !tags.length && filter.every((k) => folderName.includes(k));
+    let match = !tags && filter?.every((k) => folderName.includes(k));
 
     let childFolderMatch = false;
     for (const f of folder.children) {
-      if (this._searchFolder(filter, tags, f, match || forceRender)) childFolderMatch = true;
+      if (this._searchFolder(filter, tags, type, f, match || forceRender)) childFolderMatch = true;
     }
 
     let presetMatch = false;
     for (const p of folder.presets) {
-      if (this._searchPreset(filter, tags, p, match || forceRender)) presetMatch = true;
+      if (this._searchPreset(filter, tags, type, p, match || forceRender)) presetMatch = true;
     }
 
     const containsMatch = match || childFolderMatch || presetMatch;
@@ -560,15 +560,21 @@ export class PresetBrowser extends PresetContainer {
     return containsMatch;
   }
 
-  _searchPreset(filter, tags, preset, forceRender = false) {
+  _searchPreset(filter, tags, type, preset, forceRender = false) {
     if (!preset._visible) return false;
 
     const presetName = preset.name.toLowerCase();
-    if (
-      this._searchFoundPresets.length < SEARCH_FOUND_MAX_COUNT &&
-      filter.every((k) => presetName.includes(k) || preset.tags.includes(k)) &&
-      tags.every((k) => preset.tags.includes(k))
-    ) {
+
+    let matched = true;
+    if (this._searchFoundPresets.length > SEARCH_FOUND_MAX_COUNT) matched = false;
+    else if (filter && !filter.every((k) => presetName.includes(k) || preset.tags.includes(k))) matched = false;
+    else if (type && preset.documentName !== type) matched = false;
+    else if (tags) {
+      if (tags.matchAny) matched = tags.tags.some((k) => preset.tags.includes(k));
+      else matched = tags.tags.every((k) => preset.tags.includes(k));
+    }
+
+    if (matched) {
       preset._render = true;
       this._searchFoundPresets.push(preset);
       return preset._render;

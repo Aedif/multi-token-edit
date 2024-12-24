@@ -5,7 +5,7 @@ import { FileIndexer } from './fileIndexer.js';
 import { PresetBrowser } from './browser/browserApp.js';
 import { Preset, VirtualFilePreset } from './preset.js';
 import { Spawner } from './spawner.js';
-import { FolderState, decodeURIComponentSafely, placeableToData } from './utils.js';
+import { FolderState, decodeURIComponentSafely, parseSearchQuery, placeableToData } from './utils.js';
 
 const DEFAULT_PACK = 'world.mass-edit-presets-main';
 export const META_INDEX_ID = 'MassEditMetaData';
@@ -440,9 +440,6 @@ export class PresetCollection {
   static _searchPresetTree(tree, options) {
     const presets = [];
 
-    // Make sure terms are provided in lowercase
-    if (options.terms) options.terms = options.terms.map((t) => t.toLowerCase());
-
     if (!options.folder) this._searchPresetList(tree.allPresets, presets, options);
     tree.allFolders.forEach((folder) => this._searchPresetFolder(folder, presets, options));
 
@@ -574,7 +571,9 @@ export class PresetAPI {
    * @param {String} [options.uuid]                      Preset UUID
    * @param {String} [options.name]                      Preset name
    * @param {String} [options.type]                      Preset type ("Token", "Tile", etc)
-   * @param {Array[String]} [options.terms]              A list of terms to be matched against the preset name
+   * @param {String} [options.query]                     Search query to be ran. Format: "blue #castle @AmbientLight"
+   *                                                     Terms: blue, Tags: castle, Type: AmbientLight
+   *                                                     None, or all component of the query can be provided or excluded
    * @param {String|Array[String]|Object} [options.tags] Tags to match a preset against. Can be provided as an object containing 'tags' array and 'matchAny' flag.
    *                                                     Comma separated string, or a list of strings. In the latter 2 cases 'matchAny' is assumed true
    * @param {String} [options.folder]                    Folder name
@@ -585,20 +584,25 @@ export class PresetAPI {
     uuid,
     name,
     type,
-    terms,
     folder,
     tags,
+    query,
+    matchAny = true,
     random = false,
     virtualDirectory = true,
     full = true,
   } = {}) {
     if (uuid) return await PresetCollection.get(uuid, { full });
-    else if (!name && !type && !folder && !tags && !terms)
-      throw Error('UUID, Name, Type, and/or Folder required to retrieve a Preset.');
+    else if (!name && !type && !folder && !tags && !query)
+      throw Error('UUID, Name, Type, Folder, and/or Query required to retrieve a Preset.');
+
+    if (query) {
+      ({ terms, tags, type } = parseSearchQuery(query, { matchAny }));
+    }
 
     if (tags) {
-      if (Array.isArray(tags)) tags = { tags, matchAny: true };
-      else if (typeof tags === 'string') tags = { tags: tags.split(','), matchAny: true };
+      if (Array.isArray(tags)) tags = { tags, matchAny };
+      else if (typeof tags === 'string') tags = { tags: tags.split(','), matchAny };
     }
 
     const presets = PresetCollection._searchPresetTree(
@@ -626,7 +630,7 @@ export class PresetAPI {
    * @param {String|Array[String]} [options.uuid]        Preset UUID/s
    * @param {String} [options.name]                      Preset name
    * @param {String} [options.type]                      Preset type ("Token", "Tile", etc)
-   * @param {Array[String]} [options.terms]              A list of terms to be matched against the preset name
+   * @param {String} [options.query]                     See PresetAPI.getPreset
    * @param {String} [options.folder]                    Folder name
    * @param {String|Array[String]|Object} [options.tags] See PresetAPI.getPreset
    * @param {String} [options.format]                    The form to return placeables in ('preset', 'name', 'nameAndFolder')
@@ -636,7 +640,8 @@ export class PresetAPI {
     uuid,
     name,
     type,
-    terms,
+    query,
+    matchAny = true,
     folder,
     format = 'preset',
     tags,
@@ -649,12 +654,17 @@ export class PresetAPI {
       results = [];
       const uuids = Array.isArray(uuid) ? uuid : [uuid];
       results = await PresetCollection.getBatch(uuids, { full });
-    } else if (!name && !type && !folder && !tags && !terms) {
-      throw Error('UUID, Name, Type, Folder and/or Tags required to retrieve a Preset.');
+    } else if (!name && !type && !folder && !tags && !query) {
+      throw Error('UUID, Name, Type, Folder, Tags, and/or Query required to retrieve Presets.');
     } else {
+      let terms;
+      if (query) {
+        ({ terms, type, tags } = parseSearchQuery(query, { matchAny }));
+      }
+
       if (tags) {
-        if (Array.isArray(tags)) tags = { tags, matchAny: true };
-        else if (typeof tags === 'string') tags = { tags: tags.split(','), matchAny: true };
+        if (Array.isArray(tags)) tags = { tags, matchAny };
+        else if (typeof tags === 'string') tags = { tags: tags.split(','), matchAny };
       }
 
       if (presets) {

@@ -522,16 +522,28 @@ export async function exportPresets(presets, fileName) {
   saveDataToFile(JSON.stringify(presets, null, 2), 'text/json', (fileName ?? 'mass-edit-presets') + '.json');
 }
 
-export function parseSearchString(search) {
-  let terms = search
+/**
+ * Parses a search query returning terms, tags, and type found within it
+ * @param {String} query
+ * @returns {object} query components
+ */
+export function parseSearchQuery(query, { matchAny = true } = {}) {
+  let parsedQuery = {};
+
+  let terms = query
     .trim()
-    .toLowerCase()
     .split(' ')
     .filter((w) => w.length >= 2);
-  if (!terms.length) return { terms, tags: [] };
+  if (!terms.length) return parsedQuery;
 
   const tags = terms.filter((f) => f.startsWith('#')).map((f) => f.substring(1));
-  terms = terms.filter((f) => !f.startsWith('#'));
+  if (tags.length) parsedQuery.tags = { tags, matchAny };
 
-  return { terms, tags };
+  const type = terms.find((f) => f.startsWith('@'))?.substring(1);
+  if (type) parsedQuery.type = type;
+
+  terms = terms.filter((f) => !(f.startsWith('#') || f.startsWith('@'))).map((t) => t.toLocaleLowerCase());
+  if (terms.length) parsedQuery.terms = terms;
+
+  return parsedQuery;
 }

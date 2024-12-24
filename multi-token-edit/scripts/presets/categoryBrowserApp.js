@@ -1,7 +1,6 @@
 import { MODULE_ID } from '../constants.js';
 import { PresetAPI } from './collection.js';
 import { PresetContainer } from './containerApp.js';
-import { parseSearchString } from './utils.js';
 
 /**
  * Constructs and opens a menu for browsing through Mass Edit presets
@@ -267,15 +266,7 @@ class CategoryBrowserApplication extends PresetContainer {
    * @returns {Array[Presets]|null}       Query results
    */
   async _runQuery(query, matchAny = false, presets) {
-    let { terms, tags } = parseSearchString(query);
-    if (!terms.length) terms = undefined;
-    if (!tags.length) tags = undefined;
-    if (terms || tags) {
-      if (tags) tags = { tags, matchAny };
-      return PresetAPI.getPresets({ terms, tags, virtualDirectory: this.virtualDirectory, full: false, presets });
-    } else {
-      return null;
-    }
+    return PresetAPI.getPresets({ query, matchAny, virtualDirectory: this.virtualDirectory, full: false, presets });
   }
 
   /** @override */
