@@ -12,10 +12,10 @@ import { Spawner } from './spawner.js';
 import { FolderState, isVideo } from './utils.js';
 
 export async function registerPresetHandlebarPartials() {
-  await getTemplate(`modules/${MODULE_ID}/templates/preset/preset.html`, 'me-preset');
-  await getTemplate(`modules/${MODULE_ID}/templates/preset/presetFolder.html`, 'me-preset-folder');
-  await getTemplate(`modules/${MODULE_ID}/templates/preset/presetsContent.html`, 'me-presets-content');
-  await getTemplate(`modules/${MODULE_ID}/templates/preset/presetListAPI.html`, 'me-preset-list');
+  await getTemplate(`modules/${MODULE_ID}/templates/preset/partials/preset.html`, 'me-preset');
+  await getTemplate(`modules/${MODULE_ID}/templates/preset/partials/folder.html`, 'me-preset-folder');
+  await getTemplate(`modules/${MODULE_ID}/templates/preset/partials/presetsContent.html`, 'me-presets-content');
+  await getTemplate(`modules/${MODULE_ID}/templates/preset/partials/presetsTopList.html`, 'me-preset-list');
 }
 
 export class PresetContainer extends FormApplication {
@@ -746,7 +746,7 @@ export class PresetContainer extends FormApplication {
       folderElement.removeClass('collapsed');
       folderElement.find('header .folder-icon').first().removeClass('fa-folder-closed').addClass('fa-folder-open');
     } else {
-      let content = await renderTemplate(`modules/${MODULE_ID}/templates/preset/presetFolder.html`, {
+      let content = await renderTemplate(`modules/${MODULE_ID}/templates/preset/partials/folder.html`, {
         folder,
         createEnabled: Boolean(this.configApp),
         callback: Boolean(this.callback),
@@ -766,7 +766,7 @@ export class PresetContainer extends FormApplication {
   }
 
   async _renderContent({ callback = false, presets, folders, createEnabled = false, extFolders } = {}) {
-    const content = await renderTemplate(`modules/${MODULE_ID}/templates/preset/presetsContent.html`, {
+    const content = await renderTemplate(`modules/${MODULE_ID}/templates/preset/partials/presetsContent.html`, {
       callback,
       presets,
       folders,
