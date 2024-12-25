@@ -11,6 +11,13 @@ import { Preset } from './preset.js';
 import { Spawner } from './spawner.js';
 import { FolderState, isVideo } from './utils.js';
 
+export async function registerPresetHandlebarPartials() {
+  await getTemplate(`modules/${MODULE_ID}/templates/preset/preset.html`, 'me-preset');
+  await getTemplate(`modules/${MODULE_ID}/templates/preset/presetFolder.html`, 'me-preset-folder');
+  await getTemplate(`modules/${MODULE_ID}/templates/preset/presetsContent.html`, 'me-presets-content');
+  await getTemplate(`modules/${MODULE_ID}/templates/preset/presetListAPI.html`, 'me-preset-list');
+}
+
 export class PresetContainer extends FormApplication {
   constructor(opts1, opts2) {
     super(opts1, opts2);
@@ -21,21 +28,9 @@ export class PresetContainer extends FormApplication {
     this.draggedElements = null;
 
     this.presetsSortable = opts2.sortable;
-    this.presetsDuplicable = opts2.duplicable;
+    this.presetsDuplicatable = opts2.duplicatable;
     this.presetsForceAllowDelete = opts2.forceAllowDelete;
     this.presetsDisableDelete = opts2.disableDelete;
-  }
-
-  async getData(options) {
-    const data = super.getData(options);
-
-    // Cache partials
-    // TODO: Cache at a more appropriate place, so we only need to do it once
-    await getTemplate(`modules/${MODULE_ID}/templates/preset/preset.html`, 'me-preset');
-    await getTemplate(`modules/${MODULE_ID}/templates/preset/presetFolder.html`, 'me-preset-folder');
-    await getTemplate(`modules/${MODULE_ID}/templates/preset/presetsContent.html`, 'me-presets-content');
-
-    return data;
   }
 
   /**
@@ -402,7 +397,10 @@ export class PresetContainer extends FormApplication {
         name: localize('Duplicate', false),
         icon: '<i class="fa-solid fa-copy"></i>',
         condition: (item) =>
-          game.user.isGM && this.presetsDuplicable && Preset.isEditable(item.data('uuid')) && !item.hasClass('virtual'),
+          game.user.isGM &&
+          this.presetsDuplicatable &&
+          Preset.isEditable(item.data('uuid')) &&
+          !item.hasClass('virtual'),
         callback: (item) =>
           this._onCopySelectedPresets(null, {
             keepFolder: true,
@@ -441,7 +439,7 @@ export class PresetContainer extends FormApplication {
       {
         name: localize('presets.export-to-compendium'),
         icon: '<i class="fas fa-file-export fa-fw"></i>',
-        condition: () => game.user.isGM && this.presetsDuplicable,
+        condition: () => game.user.isGM && this.presetsDuplicatable,
         callback: (item) => this._onExportSelectedPresetsToComp(),
         sort: 1000,
       },

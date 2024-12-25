@@ -853,15 +853,28 @@ nav > a[data-tab='me-pinned'] {
   flex-flow: row;
   flex: 1;
   height: 100%;
+  overflow-y: hidden;
+}
+
+.mass-edit-category-browser .content.top {
+  flex-direction: column;
 }
 
 .mass-edit-category-browser .menu {
   display: flex;
-  margin-left: -3px;
   margin-right: 4px;
   border: 1px solid black;
   border-radius: 6px;
   padding: 8px 3px 3px 3px;
+}
+
+.mass-edit-category-browser .menu.top {
+  flex-direction: column;
+  margin-bottom: 4px;
+  margin-right: 0;
+  margin-left: 0;
+  padding: 2px;
+  padding-top: 6px;
 }
 
 .mass-edit-category-browser .category-list {
@@ -870,6 +883,11 @@ nav > a[data-tab='me-pinned'] {
   border-right: 1px solid #414141;
   padding-right: 4px;
   padding-left: 4px;
+}
+
+.mass-edit-category-browser .category-list.top {
+  flex-direction: row;
+  justify-content: center;
 }
 
 .mass-edit-category-browser .category-list:last-child {

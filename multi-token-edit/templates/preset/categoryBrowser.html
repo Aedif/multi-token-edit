@@ -1,8 +1,8 @@
 
-<div class="content">
-    <div class="menu">
+<div class="content {{#if top}}top{{/if}}">
+    <div class="menu {{#if top}}top{{/if}}">
         {{#each menus as |menu|}}
-        <div class="category-list">
+        <div class="category-list {{#if ../top}}top{{/if}}">
             {{#each menu.categories as |category|}}
             <div class="category {{#if category.active}}active{{/if}}" data-id="{{category.id}}" title="{{category.title}}{{#if category.query}}&#013;{{category.query}}{{/if}}">
                 {{#if category.img}}
@@ -18,9 +18,9 @@
         {{/each}}
     </div>
     
-    <form class="preset-browser" style="flex: 1;">
-        <div class="item-list folder-items" data-tooltip-direction="RIGHT" data-tooltip-class="preset-tooltip">
-            {{>me-presets-content createEnabled=False callback=../callback presets=presets}}
+    <form style="flex: 1; overflow-y: auto;">
+        <div class="preset-browser">
+            {{>me-preset-list presets=presets}}
         </div>
     </form>
 </div>

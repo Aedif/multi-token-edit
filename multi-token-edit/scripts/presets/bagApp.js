@@ -69,8 +69,6 @@ class BagApplication extends PresetContainer {
   }
 
   async getData(options) {
-    await super.getData(options); // TODO: remove once better caching has been implemented in PresetContainer
-
     const bag = this.preset.data[0];
 
     let uuids = bag.uuids.map((i) => i.uuid);

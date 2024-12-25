@@ -79,7 +79,7 @@ export class PresetBrowser extends PresetContainer {
       options = { ...options, ...PresetBrowser.previousPosition };
     }
 
-    super({}, { ...options, sortable: true, duplicable: true });
+    super({}, { ...options, sortable: true, duplicatable: true });
     this.callback = callback;
 
     if (!configApp && UI_DOCS.includes(documentName)) {

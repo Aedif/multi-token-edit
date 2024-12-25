@@ -23,6 +23,7 @@ import { Spawner } from './scripts/presets/spawner.js';
 import { registerBehaviors } from './scripts/behaviors/behaviors.js';
 import { openBag } from './scripts/presets/bagApp.js';
 import { openCategoryBrowser } from './scripts/presets/categoryBrowserApp.js';
+import { PresetContainer, registerPresetHandlebarPartials } from './scripts/presets/containerApp.js';
 
 // Initialize module
 Hooks.once('init', () => {
@@ -37,6 +38,9 @@ Hooks.once('init', () => {
 
   // TODO: Replace with core v12 implementation of tag HTML element
   TagInput.registerHandlebarsHelper();
+
+  // Partials used for Preset rendering
+  registerPresetHandlebarPartials();
 
   // Enable select tool for all layers
   enableUniversalSelectTool();
@@ -205,6 +209,7 @@ Hooks.once('init', () => {
     migrateAllPacks: (options = {}) => V12Migrator.migrateAllPacks(options),
     linker: LinkerAPI,
     PIVOTS: PIVOTS,
+    PresetContainer,
   };
 
   game.modules.get(MODULE_ID).api = {

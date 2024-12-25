@@ -8,7 +8,10 @@ import { PresetContainer } from './containerApp.js';
  * @param {object} options
  * @returns
  */
-export async function openCategoryBrowser(menu, { retainState = false, name = 'Category Browser' } = {}) {
+export async function openCategoryBrowser(
+  menu,
+  { retainState = false, name = 'Category Browser', menuTop = false } = {}
+) {
   // // If category browser is already open close it
   const app = Object.values(ui.windows).find((w) => w._browserId === name);
   if (app) {
@@ -16,7 +19,7 @@ export async function openCategoryBrowser(menu, { retainState = false, name = 'C
     return;
   }
 
-  new CategoryBrowserApplication(menu, { name, retainState }).render(true);
+  new CategoryBrowserApplication(menu, { name, retainState, menuTop }).render(true);
 }
 
 /**
@@ -114,8 +117,11 @@ class CategoryBrowserApplication extends PresetContainer {
   }
 
   async getData(options) {
-    await super.getData(options); // TODO: remove once better caching has been implemented in PresetContainer
-    return { menus: this._menus.filter((menu) => menu.active), presets: this._presetResults };
+    return {
+      menus: this._menus.filter((menu) => menu.active),
+      presets: this._presetResults,
+      top: options.menuTop,
+    };
   }
 
   activateListeners(html) {
