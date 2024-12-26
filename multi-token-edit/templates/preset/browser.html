@@ -21,8 +21,8 @@
                 <a class="header-control toggle-doc-lock {{#if docLockActive}}active{{/if}}" data-tooltip="{{localize 'MassEdit.presets.controls.document-lock'}}"><i class="fa-solid fa-lock"></i></a>
                 <a class="header-control toggle-setting {{#if layerSwitchActive}}active{{/if}}" data-setting="switchLayer" data-tooltip="{{localize 'MassEdit.presets.controls.layer-switch'}}"><i class="fa-solid fa-arrows-cross"></i></a>
                 <a class="header-control toggle-setting {{#if autoScale}}active{{/if}}" data-setting="autoScale" data-tooltip="{{localize 'MassEdit.presets.controls.scale-to-grid'}}"><i class="fa-solid fa-arrow-down-big-small"></i></a>
-                <a class="header-control toggle-setting {{#if displayExternalCompendiums}}active{{/if}}" data-setting="displayExternalCompendiums" data-tooltip="{{localize 'MassEdit.presets.controls.external-compendiums'}}"><i class="fa-solid fa-books"></i></a>
-                <a class="header-control toggle-setting {{#if displayVirtualDirectory}}active{{/if}}" data-setting="displayVirtualDirectory" data-tooltip="{{localize 'MassEdit.presets.controls.virtual-directory'}}"><i class="fas fa-file-search"></i></a>
+                <a class="header-control toggle-setting {{#if externalCompendiums}}active{{/if}}" data-setting="externalCompendiums" data-tooltip="{{localize 'MassEdit.presets.controls.external-compendiums'}}"><i class="fa-solid fa-books"></i></a>
+                <a class="header-control toggle-setting {{#if virtualDirectory}}active{{/if}}" data-setting="virtualDirectory" data-tooltip="{{localize 'MassEdit.presets.controls.virtual-directory'}}"><i class="fas fa-file-search"></i></a>
             </div>
         </div>
         {{/if}}
@@ -38,7 +38,7 @@
             <a class="header-control toggle-sort" data-tooltip="{{sortMode.tooltip}}">{{{sortMode.icon}}}</a>
             <a class="header-control create-folder" data-tooltip="{{localize 'FOLDER.Create'}}" style="position: relative;"><i class="fas fa-folder"></i><i class="fas fa-plus"></i></a>
             {{#unless allowDocumentSwap}}
-            <a class="header-control toggle-ext-comp {{#if displayExternalCompendiums}}active{{/if}}" data-tooltip="{{localize 'MassEdit.presets.controls.external-compendiums'}}" style="flex: 0 0 30px;"><i class="fa-solid fa-books"></i></a>
+            <a class="header-control toggle-ext-comp {{#if externalCompendiums}}active{{/if}}" data-tooltip="{{localize 'MassEdit.presets.controls.external-compendiums'}}" style="flex: 0 0 30px;"><i class="fa-solid fa-books"></i></a>
             {{/unless}}
             {{#if (eq currentDocument "Bag")}}
             <a class="header-control create-bag" data-tooltip="Create a new Bag" style="position: relative;"><i class="fas fa-plus-square"></i></a>

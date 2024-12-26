@@ -1,4 +1,5 @@
 import { MODULE_ID } from '../constants.js';
+import { PresetBrowser } from './browser/browserApp.js';
 import { PresetAPI } from './collection.js';
 import { PresetContainer } from './containerApp.js';
 
@@ -10,7 +11,7 @@ import { PresetContainer } from './containerApp.js';
  */
 export async function openCategoryBrowser(
   menu,
-  { retainState = false, name = 'Category Browser', menuTop = false } = {}
+  { retainState = false, name = 'Category Browser', alignment = 'left' } = {}
 ) {
   // // If category browser is already open close it
   const app = Object.values(ui.windows).find((w) => w._browserId === name);
@@ -19,7 +20,7 @@ export async function openCategoryBrowser(
     return;
   }
 
-  new CategoryBrowserApplication(menu, { name, retainState, menuTop }).render(true);
+  new CategoryBrowserApplication(menu, { name, retainState, alignment }).render(true);
 }
 
 /**
@@ -75,16 +76,13 @@ class CategoryBrowserApplication extends PresetContainer {
     let positionOpts = CategoryBrowserApplication.previousPositions[id] ?? {};
     super({}, { ...options, disableDelete: true, ...positionOpts });
     this._browserId = id;
-    this._retainState = options.retainState;
-    this.virtualDirectory = Boolean(options.virtualDirectory);
 
     // If the state of the window was set to be retained we retrieve it now
     // and run the necessary queries to get the results
-    if (this._retainState && CategoryBrowserApplication.oldMenuStates[this._browserId]) {
-      const { menus, categories, virtualDirectory } = CategoryBrowserApplication.oldMenuStates[this._browserId];
+    if (options.retainState && CategoryBrowserApplication.oldMenuStates[this._browserId]) {
+      const { menus, categories } = CategoryBrowserApplication.oldMenuStates[this._browserId];
       this._menus = menus;
       this._categories = categories;
-      this.virtualDirectory = virtualDirectory;
       this._runQueryTree();
     } else {
       // Otherwise we process the fed in JSON menu structure
@@ -120,7 +118,7 @@ class CategoryBrowserApplication extends PresetContainer {
     return {
       menus: this._menus.filter((menu) => menu.active),
       presets: this._presetResults,
-      top: options.menuTop,
+      alignment: options.alignment,
     };
   }
 
@@ -128,17 +126,33 @@ class CategoryBrowserApplication extends PresetContainer {
     super.activateListeners(html);
 
     html.find('.category').on('click', this._onClickCategory.bind(this));
-    this._setVirtualDirectoryColor();
+    this._setHeaderButtonColors();
   }
 
   /**
-   * Hack to set the Virtual Directory header button colour
+   * Hack to set the Preset header button colours
    */
-  _setVirtualDirectoryColor() {
-    // hack to color the virtual directory header button
-    const headerButton = this.element.closest('.window-app').find('.mass-edit-category-browser-virtual');
-    if (this.virtualDirectory) headerButton.css('color', 'darkorange');
-    else headerButton.css('color', 'var(--color-text-light-highlight)');
+  _setHeaderButtonColors() {
+    const windowHeader = this.element.find('.window-header');
+
+    const activeColor = 'darkorange';
+    const inactiveColor = 'var(--color-text-light-highlight)';
+
+    windowHeader
+      .find('.mass-edit-category-browser-external')
+      .css('color', PresetBrowser.CONFIG.externalCompendiums ? activeColor : inactiveColor);
+
+    windowHeader
+      .find('.mass-edit-category-browser-virtual')
+      .css('color', PresetBrowser.CONFIG.virtualDirectory ? activeColor : inactiveColor);
+
+    windowHeader
+      .find('.mass-edit-category-browser-scale')
+      .css('color', PresetBrowser.CONFIG.autoScale ? activeColor : inactiveColor);
+
+    windowHeader
+      .find('.mass-edit-category-browser-switch')
+      .css('color', PresetBrowser.CONFIG.switchLayer ? activeColor : inactiveColor);
   }
 
   /**
@@ -272,7 +286,14 @@ class CategoryBrowserApplication extends PresetContainer {
    * @returns {Array[Presets]|null}       Query results
    */
   async _runQuery(query, matchAny = false, presets) {
-    return PresetAPI.getPresets({ query, matchAny, virtualDirectory: this.virtualDirectory, full: false, presets });
+    return PresetAPI.getPresets({
+      query,
+      matchAny,
+      virtualDirectory: PresetBrowser.CONFIG.virtualDirectory,
+      externalCompendiums: PresetBrowser.CONFIG.externalCompendiums,
+      full: false,
+      presets,
+    });
   }
 
   /** @override */
@@ -284,30 +305,54 @@ class CategoryBrowserApplication extends PresetContainer {
   }
 
   async close(options = {}) {
-    if (this._retainState) {
+    if (this.options.retainState) {
       CategoryBrowserApplication.oldMenuStates[this._browserId] = {
         menus: this._menus,
         categories: this._categories,
-        virtualDirectory: this.virtualDirectory,
       };
     }
 
     return super.close(options);
   }
 
+  async _toggleSetting(setting, runQueryTree = false) {
+    await PresetBrowser.setSetting(setting, !PresetBrowser.CONFIG[setting]);
+    this._setHeaderButtonColors();
+    if (runQueryTree) return this._runQueryTree();
+  }
+
   _getHeaderButtons() {
     const buttons = super._getHeaderButtons();
 
-    buttons.unshift({
-      label: '',
-      class: 'mass-edit-category-browser-virtual',
-      icon: 'fas fa-file-search',
-      onclick: async () => {
-        this.virtualDirectory = !this.virtualDirectory;
-        this._setVirtualDirectoryColor();
-        this._runQueryTree();
-      },
-    });
+    if (game.user.isGM) {
+      buttons.unshift({
+        label: '',
+        class: 'mass-edit-category-browser-virtual',
+        icon: 'fas fa-file-search',
+        onclick: () => this._toggleSetting('virtualDirectory', true),
+      });
+
+      buttons.unshift({
+        label: '',
+        class: 'mass-edit-category-browser-external',
+        icon: 'fa-solid fa-books',
+        onclick: () => this._toggleSetting('externalCompendiums', true),
+      });
+
+      buttons.unshift({
+        label: '',
+        class: 'mass-edit-category-browser-scale',
+        icon: 'fa-solid fa-arrow-down-big-small',
+        onclick: () => this._toggleSetting('autoScale'),
+      });
+
+      buttons.unshift({
+        label: '',
+        class: 'mass-edit-category-browser-switch',
+        icon: 'fa-solid fa-arrows-cross',
+        onclick: () => this._toggleSetting('switchLayer'),
+      });
+    }
 
     return buttons;
   }

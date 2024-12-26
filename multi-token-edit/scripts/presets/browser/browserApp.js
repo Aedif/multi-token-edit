@@ -115,8 +115,8 @@ export class PresetBrowser extends PresetContainer {
     const data = await super.getData(options);
 
     this.tree = await PresetCollection.getTree(this.documentName, {
-      externalCompendiums: PresetBrowser.CONFIG.displayExternalCompendiums,
-      virtualDirectory: PresetBrowser.CONFIG.displayVirtualDirectory,
+      externalCompendiums: PresetBrowser.CONFIG.externalCompendiums,
+      virtualDirectory: PresetBrowser.CONFIG.virtualDirectory,
       setFormVisibility: true,
     });
     this._tagSelector?.render(true);
@@ -136,8 +136,8 @@ export class PresetBrowser extends PresetContainer {
     data.docLockActive = PresetBrowser.CONFIG.documentLock === this.documentName;
     data.layerSwitchActive = PresetBrowser.CONFIG.switchLayer;
     data.autoScale = PresetBrowser.CONFIG.autoScale;
-    data.displayExternalCompendiums = PresetBrowser.CONFIG.displayExternalCompendiums;
-    data.displayVirtualDirectory = PresetBrowser.CONFIG.displayVirtualDirectory;
+    data.externalCompendiums = PresetBrowser.CONFIG.externalCompendiums;
+    data.virtualDirectory = PresetBrowser.CONFIG.virtualDirectory;
     data.sortMode = SORT_MODES[PresetBrowser.CONFIG.sortMode];
     data.searchMode = SEARCH_MODES[PresetBrowser.CONFIG.searchMode];
     data.displayDragDropMessage =

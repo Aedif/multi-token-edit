@@ -590,6 +590,7 @@ export class PresetAPI {
     matchAny = true,
     random = false,
     virtualDirectory = true,
+    externalCompendiums = true,
     full = true,
   } = {}) {
     if (uuid) return await PresetCollection.get(uuid, { full });
@@ -606,7 +607,7 @@ export class PresetAPI {
     }
 
     const presets = PresetCollection._searchPresetTree(
-      await PresetCollection.getTree(type, { externalCompendiums: true, virtualDirectory }),
+      await PresetCollection.getTree(type, { externalCompendiums, virtualDirectory }),
       {
         name,
         type,
@@ -633,7 +634,6 @@ export class PresetAPI {
    * @param {String} [options.query]                     See PresetAPI.getPreset
    * @param {String} [options.folder]                    Folder name
    * @param {String|Array[String]|Object} [options.tags] See PresetAPI.getPreset
-   * @param {String} [options.format]                    The form to return placeables in ('preset', 'name', 'nameAndFolder')
    * @returns {Array[Preset]|Array[String]|Array[Object]}
    */
   static async getPresets({
@@ -643,9 +643,9 @@ export class PresetAPI {
     query,
     matchAny = true,
     folder,
-    format = 'preset',
     tags,
     virtualDirectory = true,
+    externalCompendiums = true,
     full = true,
     presets,
   } = {}) {
@@ -671,7 +671,7 @@ export class PresetAPI {
         results = PresetCollection._searchPresets(presets, { name, type, terms, folder, tags });
       } else {
         results = PresetCollection._searchPresetTree(
-          await PresetCollection.getTree(type, { externalCompendiums: true, virtualDirectory }),
+          await PresetCollection.getTree(type, { externalCompendiums, virtualDirectory }),
           {
             name,
             type,
@@ -683,11 +683,6 @@ export class PresetAPI {
       }
     }
 
-    if (format === 'name') return results.map((p) => p.name);
-    else if (format === 'nameAndFolder')
-      return results.map((p) => {
-        return { name: p.name, folder: p._folderName };
-      });
     return results;
   }
 

@@ -1,8 +1,8 @@
 
-<div class="content {{#if top}}top{{/if}}">
-    <div class="menu {{#if top}}top{{/if}}">
+<div class="content {{alignment}}">
+    <div class="menu {{alignment}}">
         {{#each menus as |menu|}}
-        <div class="category-list {{#if ../top}}top{{/if}}">
+        <div class="category-list {{../alignment}}">
             {{#each menu.categories as |category|}}
             <div class="category {{#if category.active}}active{{/if}}" data-id="{{category.id}}" title="{{category.title}}{{#if category.query}}&#013;{{category.query}}{{/if}}">
                 {{#if category.img}}
@@ -18,9 +18,7 @@
         {{/each}}
     </div>
     
-    <form style="flex: 1; overflow-y: auto;">
-        <div class="preset-browser">
-            {{>me-preset-list presets=presets}}
-        </div>
-    </form>
+    <div class="preset-browser" style="flex: 1;">
+        {{>me-preset-list presets=presets}}
+    </div>
 </div>

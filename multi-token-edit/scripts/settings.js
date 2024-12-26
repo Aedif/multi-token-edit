@@ -152,8 +152,8 @@ export function registerSettings() {
       searchMode: 'pf', // p = preset only | pf = preset & folder
       sortMode: 'manual', // manual | alphabetical
       autoScale: true,
-      displayVirtualDirectory: true,
-      displayExternalCompendiums: true,
+      virtualDirectory: true,
+      externalCompendiums: true,
       switchLayer: true,
       documentLock: '',
       dropdownDocuments: ['MeasuredTemplate', 'Note', 'Region'],
