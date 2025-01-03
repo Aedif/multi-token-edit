@@ -286,23 +286,23 @@ export class PresetContainer extends FormApplication {
   }
 
   async _onDoubleClickPreset(event) {
-    BrushMenu.close();
-
     const item = $(event.target).closest('.item');
     const uuid = item.data('uuid');
     if (!uuid) return;
 
     let preset = await PresetAPI.getPreset({ uuid });
-
     if (!preset) return;
+
+    BrushMenu.close();
 
     if (preset.documentName === 'Scene') {
       ui.notifications.info(`Mass Edit: ${localize('common.apply')} [${preset.name}]`);
       applyPresetToScene(preset);
-    }
-
-    if (preset.documentName === 'Bag') {
+    } else if (preset.documentName === 'Bag') {
       this._onOpenBag(preset.uuid);
+    } else if (preset.documentName === 'FauxScene') {
+      const scene = await fromUuid(preset.data[0].uuid);
+      scene.sheet.render(true);
     }
 
     if (!SUPPORTED_PLACEABLES.includes(preset.documentName)) return;
@@ -361,6 +361,13 @@ export class PresetContainer extends FormApplication {
         condition: (item) => item.data('doc-name') === 'Bag',
         callback: (item) => this._onOpenBag(),
         sort: 0,
+      },
+      {
+        name: 'Import Scene',
+        icon: '<i class="fas fa-download fa-fw"></i>',
+        condition: (item) => item.data('doc-name') === 'FauxScene',
+        callback: this._onImportFauxScene,
+        sort: 50,
       },
       {
         name: localize('CONTROLS.CommonEdit', false),
@@ -454,6 +461,12 @@ export class PresetContainer extends FormApplication {
         sort: 1100,
       },
     ];
+  }
+
+  async _onImportFauxScene(item) {
+    const preset = await PresetAPI.getPreset({ uuid: item.data('uuid') });
+    const scene = await fromUuid(preset.data[0].uuid);
+    return game.scenes.importFromCompendium(scene.compendium, scene.id, {}, { renderSheet: true });
   }
 
   _getFolderContextOptions() {
@@ -774,6 +787,17 @@ export class PresetContainer extends FormApplication {
       extFolders,
     });
     this.element.find('.item-list').html(content);
+  }
+
+  _onCopyUUID(item) {
+    game.clipboard.copyPlainText(item.data('uuid'));
+    ui.notifications.info(
+      game.i18n.format('DOCUMENT.IdCopiedClipboard', {
+        label: item.attr('name'),
+        type: 'uuid',
+        id: item.data('uuid'),
+      })
+    );
   }
 
   async _onItemSort(sourceUuids, targetUuid, { before = true, folderUuid = null } = {}) {

@@ -13,7 +13,7 @@ import { MODULE_ID, SUPPORTED_COLLECTIONS, SUPPORTED_PLACEABLES, THRESHOLDS } fr
 import { LinkerAPI } from './linker/linker.js';
 import { editPreviewPlaceables, Picker } from './picker.js';
 import { PresetCollection } from './presets/collection.js';
-import { PresetBrowser } from './presets/browser/browserApp.js';
+import { openPresetBrowser, PresetBrowser } from './presets/browser/browserApp.js';
 import { Preset } from './presets/preset.js';
 import { Scenescape } from './scenescape/scenescape.js';
 import { enablePixelPerfectSelect } from './tools/selectTool.js';
@@ -561,7 +561,7 @@ export function registerKeybinds() {
 
       const documentName = canvas.activeLayer.constructor.documentName;
       if (!SUPPORTED_PLACEABLES.includes(documentName)) return;
-      new PresetBrowser(null, null, documentName).render(true);
+      openPresetBrowser(documentName);
     },
     restricted: true,
     precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
@@ -577,7 +577,7 @@ export function registerKeybinds() {
         app.close(true);
         return;
       }
-      new PresetBrowser(null, null, 'Scene').render(true);
+      openPresetBrowser('Scene');
     },
     restricted: true,
     precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,

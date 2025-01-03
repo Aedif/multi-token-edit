@@ -42,6 +42,7 @@ export const DOC_ICONS = {
   Region: 'fa-regular fa-game-board',
   Actor: 'fas fa-user-alt',
   Scene: 'fas fa-map',
+  FauxScene: 'fas fa-map',
   DEFAULT: 'fa-solid fa-question',
 };
 

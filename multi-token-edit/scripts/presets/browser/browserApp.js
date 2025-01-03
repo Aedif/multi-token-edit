@@ -14,6 +14,7 @@ import { PresetContainer } from '../containerApp.js';
 import { PresetConfig } from '../editApp.js';
 import { TagSelector } from '../tagSelector.js';
 import PresetBrowserSettings from './settingsApp.js';
+import { Spawner } from '../spawner.js';
 
 const SEARCH_MIN_CHAR = 2;
 const SEARCH_FOUND_MAX_COUNT = 1001;
@@ -54,6 +55,10 @@ const SEARCH_MODES = {
     icon: '<i class="fa-solid fa-folder-magnifying-glass"></i>',
   },
 };
+
+export function openPresetBrowser(documentName) {
+  new PresetBrowser(null, null, documentName).render(true);
+}
 
 export class PresetBrowser extends PresetContainer {
   static objectHover = false;
@@ -391,19 +396,6 @@ export class PresetBrowser extends PresetContainer {
         items.remove();
       }
     }
-  }
-
-  _onCopyUUID(item) {
-    item.data('uuid');
-
-    game.clipboard.copyPlainText(item.data('uuid'));
-    ui.notifications.info(
-      game.i18n.format('DOCUMENT.IdCopiedClipboard', {
-        label: item.attr('name'),
-        type: 'uuid',
-        id: item.data('uuid'),
-      })
-    );
   }
 
   async _onCreateFolder(event) {
@@ -1310,6 +1302,45 @@ export function registerPresetBrowserHooks() {
     },
     'WRAPPER'
   );
+
+  libWrapper.register(
+    MODULE_ID,
+    'Compendium.prototype._getEntryContextOptions',
+    function (wrapped, ...args) {
+      const options = wrapped(...args);
+
+      if (this.collection.documentName !== 'Scene') return options;
+
+      options.push({
+        name: 'Spawn as Preset',
+        icon: '<i class="fa-solid fa-books"></i>',
+        callback: async (li) => {
+          _spawnSceneAsPreset(await this.collection.getDocument(li.data('document-id')));
+        },
+      });
+      return options;
+    },
+    'WRAPPER'
+  );
+
+  libWrapper.register(
+    MODULE_ID,
+    'SceneDirectory.prototype._getEntryContextOptions',
+    function (wrapped, ...args) {
+      const options = wrapped(...args);
+      options.push({
+        name: 'Spawn as Preset',
+        icon: '<i class="fa-solid fa-books"></i>',
+        condition: (li) => game.user.isGM && li.data('documentId') !== canvas.scene.id,
+        callback: (li) => {
+          _spawnSceneAsPreset(game.scenes.get(li.data('documentId')));
+        },
+      });
+      return options;
+    },
+    'WRAPPER'
+  );
+
   libWrapper.register(
     MODULE_ID,
     'CompendiumDirectory.prototype._onClickEntryName',
@@ -1318,11 +1349,46 @@ export function registerPresetBrowserHooks() {
       const packId = element.closest('[data-pack]').dataset.pack;
       const pack = game.packs.get(packId);
       if (pack.metadata.type === 'JournalEntry' && pack.index.get(META_INDEX_ID)) {
-        new PresetBrowser(null, null, 'ALL').render(true);
+        openPresetBrowser('ALL');
         return;
       }
       return wrapped(event);
     },
     'MIXED'
   );
+}
+
+function _spawnSceneAsPreset(scene) {
+  const attached = [];
+
+  SUPPORTED_PLACEABLES.forEach((name) => {
+    scene.getEmbeddedCollection(name).forEach((embed) => {
+      attached.push({ documentName: name, data: embed.toObject() });
+    });
+  });
+
+  let presetData;
+  if (scene.background.src) {
+    let { width, height, sceneX, sceneY } = scene.dimensions;
+    presetData = {
+      documentName: 'Tile',
+      data: {
+        texture: {
+          src: scene.background.src,
+        },
+        width,
+        height,
+        x: sceneX,
+        y: sceneY,
+      },
+    };
+  } else {
+    presetData = attached.findSplice((att) => att.documentName === 'Token');
+    if (!presetData) presetData = attached.findSplice((att) => att.documentName === 'Tile');
+    if (!presetData) presetData = attached.shift();
+  }
+
+  const preset = new Preset({ documentName: presetData.documentName, data: [presetData.data], attached });
+
+  Spawner.spawnPreset({ preset, preview: true, pivot: MassEdit.PIVOTS.CENTER });
 }
