@@ -9,13 +9,13 @@ import {
 import { libWrapper } from './scripts/shim/shim.js';
 import { enableUniversalSelectTool } from './scripts/tools/selectTool.js';
 import { META_INDEX_ID, PresetAPI, PresetCollection } from './scripts/presets/collection.js';
-import { registerPresetBrowserHooks } from './scripts/presets/browser/browserApp.js';
+import { openPresetBrowser, registerPresetBrowserHooks } from './scripts/presets/browser/browserApp.js';
 import { registerKeybinds, registerSettings } from './scripts/settings.js';
 import { Picker } from './scripts/picker.js';
 import { BrushMenu, activateBrush, deactivateBush, openBrushMenu } from './scripts/brush.js';
 import { V12Migrator } from './scripts/presets/migration.js';
 import { deleteFromClipboard, performMassSearch, performMassUpdate } from './applications/formUtils.js';
-import { registerSideBarPresetDropListener } from './scripts/presets/utils.js';
+import { importSceneCompendium, registerSideBarPresetDropListener } from './scripts/presets/utils.js';
 import { LinkerAPI, registerLinkerHooks } from './scripts/linker/linker.js';
 import { MODULE_ID, PIVOTS } from './scripts/constants.js';
 import { registerScenescapeHooks, Scenescape } from './scripts/scenescape/scenescape.js';
@@ -210,6 +210,8 @@ Hooks.once('init', () => {
     linker: LinkerAPI,
     PIVOTS: PIVOTS,
     PresetContainer,
+    importSceneCompendium,
+    openPresetBrowser,
   };
 
   game.modules.get(MODULE_ID).api = {

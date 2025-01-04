@@ -107,6 +107,16 @@ export class Picker {
       this._mirrorX = false;
       this._mirrorY = false;
 
+      // If we're previewing a singular token we want to default the pivot to its top left corner
+      // Also use token layer snapping
+      // If not lets use the wall layer snapping
+      if (previews.length === 1 && previews[0].document.documentName === 'Token') {
+        preview.pivot = PIVOTS.TOP_LEFT;
+        layer = canvas.tokens;
+      } else {
+        layer = canvas.walls;
+      }
+
       // Position offset to center preview over the mouse
       const setPositions = function (pos) {
         if (!pos) return;
@@ -140,7 +150,7 @@ export class Picker {
               size = Scenescape.getTokenSize(previews[0]) * Picker._scale;
 
               let tSize = (size * 6) / 100;
-              foundry.utils.setProperty(previews[0]._pData, `flags.${MODULE_ID}.size`, tSize);
+              foundry.utils.setProperty(previews[0].data, `flags.${MODULE_ID}.size`, tSize);
               foundry.utils.setProperty(previews[0].document, `flags.${MODULE_ID}.size`, tSize);
             }
 
@@ -197,44 +207,47 @@ export class Picker {
         // - end of transform calculations
 
         // Apply transformations
-        for (const preview of previews) {
-          const doc = preview.document;
-          const documentName = doc.documentName;
-          DataTransformer.apply(documentName, preview._pData ?? doc, pos, transform, preview);
+        for (const previewContainer of previews) {
+          const preview = previewContainer.preview;
+
+          const documentName = previewContainer.documentName;
+          DataTransformer.apply(documentName, previewContainer.data, pos, transform, preview);
 
           // =====
           // Hacks
           // =====
-          preview.renderFlags.set({ refresh: true });
+          if (preview) {
+            preview.renderFlags.set({ refresh: true });
+            const doc = preview.document;
 
-          // Elevation, sort, and z order hacks to make sure previews are always rendered on-top
-          // TODO: improve _meSort, _meElevation
-          if (doc.sort != null) {
-            if (!preview._meSort) preview._meSort = doc.sort;
-            doc.sort = preview._meSort + 10000;
-          }
-          if (!Scenescape.active) {
-            if (!game.Levels3DPreview?._active && doc.elevation != null) {
-              if (!preview._meElevation) preview._meElevation = doc.elevation;
-              doc.elevation = preview._meElevation + 10000;
+            // Elevation, sort, and z order hacks to make sure previews are always rendered on-top
+            // TODO: improve _meSort, _meElevation
+            if (doc.sort != null) {
+              if (!preview._meSort) preview._meSort = doc.sort;
+              doc.sort = preview._meSort + 10000;
+            }
+            if (!Scenescape.active) {
+              if (!game.Levels3DPreview?._active && doc.elevation != null) {
+                if (!preview._meElevation) preview._meElevation = doc.elevation;
+                doc.elevation = preview._meElevation + 10000;
+              }
+            }
+            // end of sort hacks
+
+            // For some reason collision bool is refreshed after creation of the preview
+            if (preview._l3dPreview) preview._l3dPreview.collision = false;
+
+            // Special position update conditions
+            // - Region: We need to simulate doc update via `_onUpdate` call
+            // - AmbientLight and AmbientSound sources need to be re-initialized to have their fields properly rendered
+            if (documentName === 'Region') {
+              preview._onUpdate({ shapes: null });
+            } else if (documentName === 'AmbientLight') {
+              preview.initializeLightSource();
+            } else if (documentName === 'AmbientSound') {
+              preview.initializeSoundSource();
             }
           }
-          // end of sort hacks
-
-          // For some reason collision bool is refreshed after creation of the preview
-          if (preview._l3dPreview) preview._l3dPreview.collision = false;
-
-          // Special position update conditions
-          // - Region: We need to simulate doc update via `_onUpdate` call
-          // - AmbientLight and AmbientSound sources need to be re-initialized to have their fields properly rendered
-          if (documentName === 'Region') {
-            preview._onUpdate({ shapes: null });
-          } else if (documentName === 'AmbientLight') {
-            preview.initializeLightSource();
-          } else if (documentName === 'AmbientSound') {
-            preview.initializeSoundSource();
-          }
-
           // End of Hacks
         }
 
@@ -446,13 +459,17 @@ export class Picker {
     const previewDocuments = new Set();
     const previews = [];
     for (const { documentName, data } of toCreate) {
-      const p = await this._createPreview.call(
-        canvas.getLayerByEmbeddedName(documentName),
-        foundry.utils.deepClone(data)
-      );
-      p._pData = data;
-      previews.push(p);
-      previewDocuments.add(documentName);
+      const previewContainer = { documentName, data };
+
+      if (!preview.restrict?.includes(documentName)) {
+        previewContainer.preview = await this._createPreview.call(
+          canvas.getLayerByEmbeddedName(documentName),
+          foundry.utils.deepClone(data)
+        );
+        previewDocuments.add(documentName);
+      }
+
+      previews.push(previewContainer);
     }
     return { previews, layer: canvas.getLayerByEmbeddedName(preview.documentName), previewDocuments };
   }

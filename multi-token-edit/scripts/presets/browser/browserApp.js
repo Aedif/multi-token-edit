@@ -1358,7 +1358,7 @@ export function registerPresetBrowserHooks() {
   );
 }
 
-function _spawnSceneAsPreset(scene) {
+async function _spawnSceneAsPreset(scene) {
   const attached = [];
 
   SUPPORTED_PLACEABLES.forEach((name) => {
@@ -1369,7 +1369,22 @@ function _spawnSceneAsPreset(scene) {
 
   let presetData;
   if (scene.background.src) {
-    let { width, height, sceneX, sceneY } = scene.dimensions;
+    let { x, y, width, height } = scene.dimensions.sceneRect;
+
+    const tiles = attached.filter((att) => att.documentName === 'Tile');
+    let minSort = tiles.length
+      ? Math.min.apply(
+          Math,
+          tiles.map((t) => t.data.sort ?? 0)
+        )
+      : 0;
+    let minElevation = tiles.length
+      ? Math.min.apply(
+          Math,
+          tiles.map((t) => t.data.elevation ?? 0)
+        )
+      : 0;
+
     presetData = {
       documentName: 'Tile',
       data: {
@@ -1378,8 +1393,10 @@ function _spawnSceneAsPreset(scene) {
         },
         width,
         height,
-        x: sceneX,
-        y: sceneY,
+        x,
+        y,
+        sort: minSort - 1,
+        elevation: minElevation,
       },
     };
   } else {
@@ -1390,5 +1407,15 @@ function _spawnSceneAsPreset(scene) {
 
   const preset = new Preset({ documentName: presetData.documentName, data: [presetData.data], attached });
 
-  Spawner.spawnPreset({ preset, preview: true, pivot: MassEdit.PIVOTS.CENTER });
+  const documents = await Spawner.spawnPreset({
+    preset,
+    preview: true,
+    previewRestrictedDocuments: preset.documentName === 'AmbientLight' ? null : ['AmbientLight'],
+    pivot: MassEdit.PIVOTS.CENTER,
+  });
+
+  // const linkId = foundry.utils.randomID();
+  // documents.forEach((d) => {
+  //   LinkerAPI.addLink(d, linkId);
+  // });
 }

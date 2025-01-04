@@ -1,6 +1,7 @@
 import { MODULE_ID, PIVOTS } from '../constants.js';
 import { applyRandomization } from '../randomizer/randomizerUtils.js';
 import { PresetAPI, PresetCollection } from './collection.js';
+import { Preset } from './preset.js';
 
 /**
  * Tracking of folder open/close state
@@ -546,4 +547,46 @@ export function parseSearchQuery(query, { matchAny = true } = {}) {
   if (terms.length) parsedQuery.terms = terms;
 
   return parsedQuery;
+}
+
+export async function importSceneCompendium(pack) {
+  // TODO: Display a dialog with scene compendium options
+
+  const compendium = game.packs.get(pack) ?? game.packs.getName(pack);
+  if (!compendium) throw Error('Invalid pack: ' + pack);
+  if (compendium.documentName !== 'Scene') throw Error('Pack provided is not a Scene compendium: ' + pack);
+
+  const presets = [];
+
+  const workingPackTree = await PresetCollection.getTree('SceneP', {
+    externalCompendiums: false,
+    virtualDirectory: false,
+    setFormVisibility: false,
+  });
+  const index = workingPackTree.metaDoc?.flags[MODULE_ID].index;
+
+  let alreadyImportedCount = 0;
+
+  compendium.index.forEach((i) => {
+    if (!index?.[i._id]) {
+      const preset = new Preset({
+        documentName: 'FauxScene',
+        id: i._id,
+        name: i.name,
+        img: i.thumb,
+        data: [
+          {
+            uuid: i.uuid,
+          },
+        ],
+      });
+      presets.push(preset);
+    } else {
+      alreadyImportedCount++;
+    }
+  });
+
+  await PresetCollection.set(presets);
+
+  ui.notifications.info(`Imported scenes: ${presets.length}/${alreadyImportedCount + presets.length}`);
 }
