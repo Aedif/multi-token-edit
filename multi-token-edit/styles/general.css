@@ -866,6 +866,8 @@ nav > a[data-tab='me-pinned'] {
   border: 1px solid black;
   border-radius: 6px;
   padding: 8px 3px 3px 3px;
+  box-shadow: 0 0 3px dimgray;
+  border: 1px solid var(--color-border-dark);
 }
 
 .mass-edit-category-browser .menu.top {

@@ -1,3 +1,87 @@
+# 1.79.0
+
+**Bags**
+
+- Bags have been converted to a preset based system
+  - All your bags can now be found in the `Preset Browser` under the `Bag` category
+  - Previously created bag macros should continue to work
+- Header button added to allow search results to be refreshed manually
+- Header button added to generate a quick access macro for the opened bag
+- Additional configuration options
+  - **Search**
+    - Supply `Inclusive` and `Exclusive` searches
+    - `Inclusive` search results will be included within bags
+    - `Exclusive` search results will be removed from bags
+      - Each search mimics results seen within the `Preset Browser` allowing for expressions such as `dead #elf` to find any preset with term `dead` and tag `elf`
+      - `All` option controls whether all or any of the tags within the search must match
+    - `Virtual Directory` toggle lets you to filter virtual directory results
+  - **Appearance**
+    - Customize color and opacity of the bag window's header and background
+    - `Display Search Bar` includes a search bar at the top of the window
+
+**Preset Browser**
+
+- Added `Scene` category
+- Added new header button for browser window configuration
+  - `Persistent Search`
+    - When enables the search field content will be retained after window closure and category changes
+  - `Dropdown Categories`
+    - Select categories you wish to be hidden behind a dropdown menu
+- A preview image will now be shown when sound preview is being played
+- Search Bar now supports preset type searches via the `@` prefix
+  - e.g. `@AmbientLight`
+  - e.g. `red #castle @AmbientLight`
+
+**API**
+
+- `MassEdit.getPreset(...)` and `MassEdit.getPresets(...)`
+  - New option: `query`
+    - A search query sharing the same format as searches carried out via the **Preset Browser** search bar
+    - e.g. `MassEdit.getPresets({ query: 'yard #wilderness' });`
+  - New option: `presets`
+    - An array of presets can now be passed in
+    - When provided search will be carried out on the array instead of all presets present in your world
+    - e.g. `MassEdit.getPresets({ query: "tree", presets: [...] })`
+- `MassEdit.PresetContainer`
+  - A `FormApplication` class that can be extended to allow preset rendering within your custom application
+  - Include the following snippet within your application template and provide a presets array as a return within the `getData(...)` method
+    - Presets can be retrieved using `MassEdit.getPresets` or `MassEdit.getPreset`
+
+```html
+<div class="preset-browser">{{>me-preset-list presets=presets}}</div>
+```
+
+- New method added: `MassEdit.openCategoryBrowser(...)`
+  - Constructs and opens an application for browsing presets
+  - Accepts an array of categories
+  - Each category either runs a query that display found results or opens a submenu consisting of other categories
+  - Check Mass Edit macro compendium for an example macro
+  - Category format:
+
+```js
+// Category
+{
+  title: 'Trees',               // Text displayed on hover,
+  fa: 'fa-duotone fa-tree',     // FontAwesome icon ('fa' or 'img' are required)
+  img: 'icons/svg/anchor.svg',  // Image            ('fa' or 'img' are required)
+  query: '#tree',               // Search query to be ran when the category is selected,                 ('query' or 'submenu' are required)
+  submenu: [],                  // An array of categories to be displayed when this category is selected ('query' or 'submenu' are required)
+}
+```
+
+**Macros**
+
+- New macro: `Open Category Browser`
+  - Sample use of `MassEdit.openCategoryBrowser(...)`
+- New macro: `Import Scenes as Presets to Working Pack`
+  - Imports scenes from the selected compendium into the current working pack as `FauxScene`s
+  - Details on how these scenes can be accessed can be found within the macro
+
+**Misc**
+
+- Improved preview snapping
+- Context menu option added to scenes to enable spawning entire scenes as presets
+
 # 1.78.1
 
 - Fixed selection not working in preset `Delete Fields` and `Modify` forms

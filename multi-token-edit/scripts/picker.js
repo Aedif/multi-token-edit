@@ -107,26 +107,14 @@ export class Picker {
       this._mirrorX = false;
       this._mirrorY = false;
 
-      // If we're previewing a singular token we want to default the pivot to its top left corner
-      // Also use token layer snapping
-      // If not lets use the wall layer snapping
-      if (previews.length === 1 && previews[0].document.documentName === 'Token') {
-        preview.pivot = PIVOTS.TOP_LEFT;
-        layer = canvas.tokens;
-      } else {
+      // If we're previewing multiple types of document lets use wall layer snapping
+      if (previewDocuments.size !== 1) {
         layer = canvas.walls;
       }
 
       // Position offset to center preview over the mouse
       const setPositions = function (pos) {
         if (!pos) return;
-
-        // Snap mouse if needed
-        if (preview.snap && layer && !game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.SHIFT)) {
-          const snapped = layer.getSnappedPoint(pos);
-          snapped.z = pos.z;
-          pos = snapped;
-        }
 
         // Place top-left preview corner on the mouse
         const b = getPresetDataBounds(preview.previewData);
@@ -137,13 +125,22 @@ export class Picker {
         transform.x -= offset.x;
         transform.y -= offset.y;
 
+        // Snap bounds after transform
+        if (preview.snap && layer && !game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.SHIFT)) {
+          const postTransformPos = { x: b.x + transform.x, y: b.y + transform.y };
+          const snapped = layer.getSnappedPoint(postTransformPos);
+
+          transform.x += snapped.x - postTransformPos.x;
+          transform.y += snapped.y - postTransformPos.y;
+        }
+
         // Dynamic scenescape scaling
         if (Scenescape.active && Scenescape.autoScale) {
           const params = Scenescape.getParallaxParameters(canvas.mousePosition);
 
           // Special handling for Token drag
           // Tokens have an actor defined size which we want to be maintained unless it was manually scaled during preview
-          if (previews.length === 1 && previews[0].document.documentName === 'Token') {
+          if (previews.length === 1 && previews[0].documentName === 'Token') {
             let size;
             // Manual token scaling, this should apply a fixed size to the token
             if (Picker._scale != 1) {
@@ -156,9 +153,9 @@ export class Picker {
 
             // Scenescape dynamic scaling
             if (params.scale !== Picker._paraScale) {
-              size = size ?? Scenescape.getTokenSize(previews[0]);
+              size = size ?? Scenescape.getTokenSize(previews[0].preview);
 
-              const currHeight = previews[0].document.height * canvas.dimensions.size;
+              const currHeight = previews[0].preview.document.height * canvas.dimensions.size;
               const targHeight = size * params.scale;
 
               let scale = targHeight / currHeight;
