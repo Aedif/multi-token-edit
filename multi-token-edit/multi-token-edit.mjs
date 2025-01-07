@@ -89,7 +89,12 @@ Hooks.once('init', () => {
 
       if (
         (Picker.isActive() || BrushMenu.isActive()) &&
-        (event.ctrlKey || event.shiftKey || event.metaKey || event.altKey || game.keyboard.downKeys.has('KeyZ'))
+        (event.ctrlKey ||
+          event.shiftKey ||
+          event.metaKey ||
+          event.altKey ||
+          game.keyboard.downKeys.has('KeyZ') ||
+          game.keyboard.downKeys.has('Space'))
       ) {
         // Prevent zooming the entire browser window
         if (event.ctrlKey) event.preventDefault();
@@ -100,7 +105,7 @@ Hooks.once('init', () => {
         }
         if (dy === 0) return;
 
-        if (event.altKey) Picker.addScaling(event.delta < 0 ? 0.05 : -0.05);
+        if (event.altKey || game.keyboard.downKeys.has('Space')) Picker.addScaling(event.delta < 0 ? 0.05 : -0.05);
         else if ((event.ctrlKey || event.metaKey) && event.shiftKey) BrushMenu.iterate(event.delta >= 0, true);
         else if (event.ctrlKey || event.metaKey) Picker.addRotation(event.delta < 0 ? 2.5 : -2.5);
         else if (event.shiftKey) Picker.addRotation(event.delta < 0 ? 15 : -15);

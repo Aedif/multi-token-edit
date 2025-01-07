@@ -1,3 +1,9 @@
+# 1.79.1
+
+- `Move That For You` module support
+  - If players have both Tile move and rotate permissions enabled they can use the `Placeable Preview Editing` keybind to edit the selected tile/s and all linked placeables
+- When in preview mode placeables can now be scaled up and down using `Mousewheel` + `Alt` or `Spacebar` keys
+
 # 1.79.0
 
 **Bags**

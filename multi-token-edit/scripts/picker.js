@@ -4,7 +4,7 @@ import { LinkerAPI } from './linker/linker.js';
 import { Mouse3D } from './mouse3d.js';
 import { getPivotOffset, getPresetDataBounds } from './presets/utils.js';
 import { Scenescape } from './scenescape/scenescape.js';
-import { pickerSelectMultiLayerDocuments } from './utils.js';
+import { pickerSelectMultiLayerDocuments, updateEmbeddedDocumentsViaGM } from './utils.js';
 
 /**
  * Cross-hair and optional preview image/label that can be activated to allow the user to select
@@ -606,11 +606,16 @@ export async function editPreviewPlaceables(placeables, confirmOnRelease = false
           }
         }
         if (updates.length) {
-          canvas.scene.updateEmbeddedDocuments(documentName, updates, {
-            ignoreLinks: true,
-            animate: false,
-            preventParallaxScaling: true,
-          });
+          updateEmbeddedDocumentsViaGM(
+            documentName,
+            updates,
+            {
+              ignoreLinks: true,
+              animate: false,
+              preventParallaxScaling: true,
+            },
+            canvas.scene
+          );
         }
 
         callback?.(coords);

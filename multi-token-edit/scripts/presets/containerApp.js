@@ -3,7 +3,7 @@ import { getMassEditForm } from '../../applications/multiConfig.js';
 import { BrushMenu } from '../brush.js';
 import { MODULE_ID, PIVOTS, SUPPORTED_PLACEABLES } from '../constants.js';
 import { Scenescape } from '../scenescape/scenescape.js';
-import { applyPresetToScene, isAudio, localize } from '../utils.js';
+import { applyPresetToScene, isAudio, localize, spawnSceneAsPreset } from '../utils.js';
 import { PresetAPI, PresetCollection, PresetFolder, VirtualFileFolder } from './collection.js';
 import { PresetConfig } from './editApp.js';
 import { PresetBrowser } from './browser/browserApp.js';
@@ -370,6 +370,13 @@ export class PresetContainer extends FormApplication {
         sort: 50,
       },
       {
+        name: 'Spawn Scene',
+        icon: '<i class="fa-solid fa-books"></i>',
+        condition: (item) => item.data('doc-name') === 'FauxScene',
+        callback: this._onSpawnScene,
+        sort: 51,
+      },
+      {
         name: localize('CONTROLS.CommonEdit', false),
         icon: '<i class="fas fa-edit"></i>',
         condition: (item) => game.user.isGM && Preset.isEditable(item.data('uuid')),
@@ -467,6 +474,12 @@ export class PresetContainer extends FormApplication {
     const preset = await PresetAPI.getPreset({ uuid: item.data('uuid') });
     const scene = await fromUuid(preset.data[0].uuid);
     return game.scenes.importFromCompendium(scene.compendium, scene.id, {}, { renderSheet: true });
+  }
+
+  async _onSpawnScene(item) {
+    const preset = await PresetAPI.getPreset({ uuid: item.data('uuid') });
+    const scene = await fromUuid(preset.data[0].uuid);
+    return spawnSceneAsPreset(scene);
   }
 
   _getFolderContextOptions() {

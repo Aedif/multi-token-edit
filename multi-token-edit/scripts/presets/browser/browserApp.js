@@ -3,7 +3,7 @@ import { copyToClipboard } from '../../../applications/formUtils.js';
 import { countFolderItems, trackProgress } from '../../../applications/progressDialog.js';
 import { importPresetFromJSONDialog } from '../../dialogs.js';
 import { SortingHelpersFixed } from '../../fixedSort.js';
-import { localFormat, localize } from '../../utils.js';
+import { localFormat, localize, spawnSceneAsPreset } from '../../utils.js';
 import { META_INDEX_ID, PresetAPI, PresetCollection, PresetPackFolder } from '../collection.js';
 import { FileIndexer, IndexerForm } from '../fileIndexer.js';
 import { LinkerAPI } from '../../linker/linker.js';
@@ -14,7 +14,6 @@ import { PresetContainer } from '../containerApp.js';
 import { PresetConfig } from '../editApp.js';
 import { TagSelector } from '../tagSelector.js';
 import PresetBrowserSettings from './settingsApp.js';
-import { Spawner } from '../spawner.js';
 
 const SEARCH_MIN_CHAR = 2;
 const SEARCH_FOUND_MAX_COUNT = 1001;
@@ -1315,7 +1314,7 @@ export function registerPresetBrowserHooks() {
         name: 'Spawn as Preset',
         icon: '<i class="fa-solid fa-books"></i>',
         callback: async (li) => {
-          _spawnSceneAsPreset(await this.collection.getDocument(li.data('document-id')));
+          spawnSceneAsPreset(await this.collection.getDocument(li.data('document-id')));
         },
       });
       return options;
@@ -1333,7 +1332,7 @@ export function registerPresetBrowserHooks() {
         icon: '<i class="fa-solid fa-books"></i>',
         condition: (li) => game.user.isGM && li.data('documentId') !== canvas.scene.id,
         callback: (li) => {
-          _spawnSceneAsPreset(game.scenes.get(li.data('documentId')));
+          spawnSceneAsPreset(game.scenes.get(li.data('documentId')));
         },
       });
       return options;
@@ -1356,66 +1355,4 @@ export function registerPresetBrowserHooks() {
     },
     'MIXED'
   );
-}
-
-async function _spawnSceneAsPreset(scene) {
-  const attached = [];
-
-  SUPPORTED_PLACEABLES.forEach((name) => {
-    scene.getEmbeddedCollection(name).forEach((embed) => {
-      attached.push({ documentName: name, data: embed.toObject() });
-    });
-  });
-
-  let presetData;
-  if (scene.background.src) {
-    let { x, y, width, height } = scene.dimensions.sceneRect;
-
-    const tiles = attached.filter((att) => att.documentName === 'Tile');
-    let minSort = tiles.length
-      ? Math.min.apply(
-          Math,
-          tiles.map((t) => t.data.sort ?? 0)
-        )
-      : 0;
-    let minElevation = tiles.length
-      ? Math.min.apply(
-          Math,
-          tiles.map((t) => t.data.elevation ?? 0)
-        )
-      : 0;
-
-    presetData = {
-      documentName: 'Tile',
-      data: {
-        texture: {
-          src: scene.background.src,
-        },
-        width,
-        height,
-        x,
-        y,
-        sort: minSort - 1,
-        elevation: minElevation,
-      },
-    };
-  } else {
-    presetData = attached.findSplice((att) => att.documentName === 'Token');
-    if (!presetData) presetData = attached.findSplice((att) => att.documentName === 'Tile');
-    if (!presetData) presetData = attached.shift();
-  }
-
-  const preset = new Preset({ documentName: presetData.documentName, data: [presetData.data], attached });
-
-  const documents = await Spawner.spawnPreset({
-    preset,
-    preview: true,
-    previewRestrictedDocuments: preset.documentName === 'AmbientLight' ? null : ['AmbientLight'],
-    pivot: MassEdit.PIVOTS.CENTER,
-  });
-
-  // const linkId = foundry.utils.randomID();
-  // documents.forEach((d) => {
-  //   LinkerAPI.addLink(d, linkId);
-  // });
 }

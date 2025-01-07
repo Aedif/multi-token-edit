@@ -413,8 +413,19 @@ export function registerKeybinds() {
         modifiers: ['Shift'],
       },
     ],
-    onDown: editPreviewPlaceables,
-    restricted: true,
+    onDown: () => {
+      if (game.user.isGM) editPreviewPlaceables();
+      else {
+        // Move That For You module support
+        if (
+          canvas.tiles.controlled.length &&
+          canvas.tiles.controlled.every((t) => t.document.allowPlayerMove?.() && t.document.allowPlayerRotate?.())
+        ) {
+          editPreviewPlaceables(canvas.tiles.controlled);
+        }
+      }
+    },
+    restricted: false,
     precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
   });
 
