@@ -99,7 +99,7 @@ class CategoryBrowserApplication extends PresetContainer {
       height: 450,
       resizable: true,
       minimizable: true,
-      scrollY: ['.item-list'],
+      scrollY: ['.item-list', '.category-list'],
     });
   }
 

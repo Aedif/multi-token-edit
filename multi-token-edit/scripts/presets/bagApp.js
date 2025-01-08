@@ -64,10 +64,12 @@ class BagApplication extends PresetContainer {
     return 'mass-edit-bag-' + this.preset.uuid;
   }
 
+  /** @override */
   get title() {
     return `Bag: ` + this.preset.name;
   }
 
+  /** @override */
   async getData(options) {
     const bag = this.preset.data[0];
 
@@ -85,6 +87,7 @@ class BagApplication extends PresetContainer {
     };
   }
 
+  /** @override */
   activateListeners(html) {
     super.activateListeners(html);
     this.setAppearance();
@@ -150,6 +153,7 @@ class BagApplication extends PresetContainer {
     this.render(true);
   }
 
+  /** @override */
   async _onDeleteSelectedPresets(item) {
     const [selected, _] = await this._getSelectedPresets({
       editableOnly: false,
@@ -164,6 +168,7 @@ class BagApplication extends PresetContainer {
     }
   }
 
+  /** @override */
   _getHeaderButtons() {
     const buttons = super._getHeaderButtons();
 
@@ -271,6 +276,19 @@ class BagApplication extends PresetContainer {
     this.refreshing = false;
   }
 
+  // TODO OVERRIDE and add flags or post spawn hook to support MTFY
+  // /** @override */
+  // async _onSpawnPreset(preset) {
+
+  //   const flags = this.preset.data[0].flags;
+  //   if(flags) {
+
+  //   }
+
+  //   preset = preset.clone();
+
+  // }
+
   /** @override */
   setPosition(...args) {
     super.setPosition(...args);
@@ -301,6 +319,7 @@ class BagConfig extends FormApplication {
     });
   }
 
+  /** @override */
   activateListeners(html) {
     super.activateListeners(html);
 
@@ -329,6 +348,8 @@ class BagConfig extends FormApplication {
         this.preset.data[0].searches[type] = searches;
       }
     });
+
+    if (formData.flags) this.preset.data[0].flags = formData.flags;
 
     this.preset.data[0].virtualDirectory = formData.virtualDirectory;
     this.preset.data[0].appearance = formData.appearance;
@@ -359,11 +380,12 @@ class BagConfig extends FormApplication {
     this.render(true);
   }
 
-  /* override */
+  /** @override */
   _getFolderContextOptions() {
     return [];
   }
 
+  /** @override */
   async getData(options) {
     const data = this.preset.data[0];
     if (!data.appearance) {
@@ -391,10 +413,12 @@ class BagConfig extends FormApplication {
     this.parentForm?._onRefreshSearch(false);
   }
 
+  /** @override */
   get title() {
     return 'Configure Bag: ' + this.preset.name;
   }
 
+  /** @override */
   get id() {
     return `mass-edit-bag-config-` + this.preset.uuid;
   }

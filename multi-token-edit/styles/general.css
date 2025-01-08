@@ -885,6 +885,7 @@ nav > a[data-tab='me-pinned'] {
   border-right: 1px solid #414141;
   padding-right: 4px;
   padding-left: 4px;
+  overflow-y: auto;
 }
 
 .mass-edit-category-browser .category-list.top {

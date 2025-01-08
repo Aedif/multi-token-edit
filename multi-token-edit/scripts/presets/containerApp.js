@@ -309,16 +309,21 @@ export class PresetContainer extends FormApplication {
 
     ui.notifications.info(`Mass Edit: ${localize('presets.spawning')} [${preset.name}]`);
 
+    // Spawn Preset
     this._setInteractivityState(false);
-    await Spawner.spawnPreset({
+    await this._onSpawnPreset(preset);
+    this._setInteractivityState(true);
+  }
+
+  async _onSpawnPreset(preset, options = {}) {
+    return await Spawner.spawnPreset({
       preset,
       preview: true,
       layerSwitch: PresetBrowser.CONFIG.switchLayer,
       scaleToGrid: PresetBrowser.CONFIG.autoScale || Scenescape.active,
       pivot: PIVOTS.CENTER,
+      ...options,
     });
-
-    this._setInteractivityState(true);
   }
 
   async _onRightClickPreset(eventTarget) {

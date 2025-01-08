@@ -597,6 +597,7 @@ export class PresetAPI {
     else if (!name && !type && !folder && !tags && !query)
       throw Error('UUID, Name, Type, Folder, and/or Query required to retrieve a Preset.');
 
+    let terms;
     if (query) {
       ({ terms, tags, type } = parseSearchQuery(query, { matchAny }));
     }

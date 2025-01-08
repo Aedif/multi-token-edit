@@ -1,3 +1,8 @@
+# 1.79.2
+
+- Category Browser CSS changes
+- Fixed `MassEdit.getPreset` API error
+
 # 1.79.1
 
 - `Move That For You` module support

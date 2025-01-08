@@ -1,10 +1,10 @@
 
 <div class="content {{alignment}}">
-    <div class="menu {{alignment}}">
+    <div class="menu {{alignment}}" data-tooltip-direction="RIGHT" data-tooltip-class="preset-tooltip">
         {{#each menus as |menu|}}
         <div class="category-list {{../alignment}}">
             {{#each menu.categories as |category|}}
-            <div class="category {{#if category.active}}active{{/if}}" data-id="{{category.id}}" title="{{category.title}}{{#if category.query}}&#013;{{category.query}}{{/if}}">
+            <div class="category {{#if category.active}}active{{/if}}" data-id="{{category.id}}" data-tooltip="<h4>{{category.title}}</h4>{{#if category.query}}<div class='mass-edit-tags tags'><span>{{category.query}}</span></div>{{/if}}">
                 {{#if category.img}}
                 <img src="{{category.img}}">
                 {{else if category.fa}}
