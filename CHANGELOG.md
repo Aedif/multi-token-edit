@@ -1,4 +1,4 @@
-# 1.79.3
+# 1.80.0
 
 - While in preview mode:
   - `Shift+D` keybind will no longer trigger default foundry rotate behavior
