@@ -413,20 +413,23 @@ export function registerKeybinds() {
         modifiers: ['Shift'],
       },
     ],
-    onDown: () => {
-      if (game.user.isGM) editPreviewPlaceables();
+    onDown: async (event) => {
+      let editing = false;
+
+      if (game.user.isGM) editing = await editPreviewPlaceables();
       else {
         // Move That For You module support
         if (
           canvas.tiles.controlled.length &&
           canvas.tiles.controlled.every((t) => t.document.allowPlayerMove?.() && t.document.allowPlayerRotate?.())
         ) {
-          editPreviewPlaceables(canvas.tiles.controlled);
+          editing = await editPreviewPlaceables(canvas.tiles.controlled);
         }
       }
+      if (editing) event.event.preventDefault();
     },
     restricted: false,
-    precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
+    precedence: CONST.KEYBINDING_PRECEDENCE.PRIORITY,
   });
 
   game.keybindings.register(MODULE_ID, 'mirrorX', {

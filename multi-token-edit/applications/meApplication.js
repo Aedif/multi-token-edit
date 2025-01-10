@@ -410,7 +410,7 @@ export const WithBaseMassEditForm = (cls) => {
      * @param {Preset} preset
      */
     _applyPreset(preset) {
-      const form = $(this.form);
+      const form = $(this.form ?? this.element);
 
       const customMerge = (obj1, obj2) => {
         if (!obj2) return obj1;
@@ -433,6 +433,8 @@ export const WithBaseMassEditForm = (cls) => {
           el.prop('checked', data[key]);
         } else {
           el.val(data[key]);
+          // Elements such as FilePicker contain the name, but the actual input is a child element
+          el.find('input').val(data[key]).trigger('change');
         }
         el.trigger('change');
       }
@@ -828,12 +830,14 @@ export const WithBaseMassEditForm = (cls) => {
               let json = {};
               try {
                 json = JSON.parse(html.find('.json').val());
-              } catch (e) {}
+              } catch (e) {
+                console.log(e);
+              }
 
               if (!foundry.utils.isEmpty(json)) {
                 const preset = new Preset({
                   documentName: this.documentName,
-                  data: foundry.utils.flattenObject(json),
+                  data: [json],
                 });
                 this._processPreset(preset);
               }

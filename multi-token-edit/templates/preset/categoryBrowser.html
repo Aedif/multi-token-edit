@@ -17,8 +17,17 @@
         </div>
         {{/each}}
     </div>
-    
-    <div class="preset-browser" style="flex: 1;">
-        {{>me-preset-list presets=presets}}
+
+    <div style="width: 100%; display: flex; flex-direction: column;">
+        {{#if searchBar}}
+        <div class="header-search flexrow">
+            <input type="search" name="search" value="{{lastSearch}}" placeholder="{{localize 'FILES.Search'}}" autocomplete="off">
+            <a class="globalSearchToggle {{#if globalSearch}}active{{/if}}" style="flex: 0 0 24px; text-align: center; margin-left: 4px;" data-tooltip="Toggle Global Search"><i class="fas fa-globe fa-lg" style="padding-top: 12px;"></i></a>
+        </div>
+        {{/if}}
+        
+        <div class="preset-browser" style="flex: 1;">
+            {{>me-preset-list presets=presets}}
+        </div>
     </div>
 </div>

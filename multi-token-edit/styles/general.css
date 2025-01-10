@@ -245,7 +245,8 @@
 
 .preset-browser .document-select.active,
 .folder-edit .document-select.active,
-#mass-edit-browser-settings .document-select.active {
+#mass-edit-browser-settings .document-select.active,
+.globalSearchToggle.active {
   color: orange;
 }
 

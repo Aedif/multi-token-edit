@@ -11,7 +11,7 @@ import { PresetContainer } from './containerApp.js';
  */
 export async function openCategoryBrowser(
   menu,
-  { retainState = false, name = 'Category Browser', alignment = 'left' } = {}
+  { retainState = false, name = 'Category Browser', alignment = 'left', searchBar = false, globalSearch = false } = {}
 ) {
   // // If category browser is already open close it
   const app = Object.values(ui.windows).find((w) => w._browserId === name);
@@ -20,7 +20,7 @@ export async function openCategoryBrowser(
     return;
   }
 
-  new CategoryBrowserApplication(menu, { name, retainState, alignment }).render(true);
+  new CategoryBrowserApplication(menu, { name, retainState, alignment, searchBar, globalSearch }).render(true);
 }
 
 /**
@@ -80,9 +80,11 @@ class CategoryBrowserApplication extends PresetContainer {
     // If the state of the window was set to be retained we retrieve it now
     // and run the necessary queries to get the results
     if (options.retainState && CategoryBrowserApplication.oldMenuStates[this._browserId]) {
-      const { menus, categories } = CategoryBrowserApplication.oldMenuStates[this._browserId];
+      const { menus, categories, lastSearch, globalSearch } = CategoryBrowserApplication.oldMenuStates[this._browserId];
       this._menus = menus;
       this._categories = categories;
+      this._lastSearch = lastSearch;
+      this.options.globalSearch = globalSearch;
       this._runQueryTree();
     } else {
       // Otherwise we process the fed in JSON menu structure
@@ -119,6 +121,9 @@ class CategoryBrowserApplication extends PresetContainer {
       menus: this._menus.filter((menu) => menu.active),
       presets: this._presetResults,
       alignment: options.alignment,
+      searchBar: options.searchBar,
+      globalSearch: options.globalSearch,
+      lastSearch: this._lastSearch,
     };
   }
 
@@ -126,7 +131,28 @@ class CategoryBrowserApplication extends PresetContainer {
     super.activateListeners(html);
 
     html.find('.category').on('click', this._onClickCategory.bind(this));
+    html.find('.header-search input').on('input', this._onSearchInput.bind(this));
+    html.find('.globalSearchToggle').on('click', this._onGlobalSearchToggle.bind(this));
     this._setHeaderButtonColors();
+  }
+
+  async _onSearchInput(event) {
+    clearTimeout(this._searchTimer);
+    this._searchTimer = setTimeout(() => this._onSearch(event.target.value), 250);
+  }
+
+  async _onSearch(search) {
+    this._lastSearch = search.length >= 3 ? search : null;
+    if (this._lastSearch || !search) this._runQueryTree();
+  }
+
+  _onGlobalSearchToggle(event) {
+    this.options.globalSearch = !this.options.globalSearch;
+
+    if (this.options.globalSearch) $(event.currentTarget).addClass('active');
+    else $(event.currentTarget).removeClass('active');
+
+    this._runQueryTree();
   }
 
   /**
@@ -231,6 +257,8 @@ class CategoryBrowserApplication extends PresetContainer {
 
   /**
    * Run queries for active categories and renders the results
+   * @param {String} search
+   * @param {Boolean} global
    * @returns
    */
   async _runQueryTree() {
@@ -241,10 +269,16 @@ class CategoryBrowserApplication extends PresetContainer {
     await this._renderContent(true);
 
     const queries = [];
-    for (const menu of this._menus) {
-      if (!menu.active) continue;
-      const category = menu.categories.find((category) => category.active);
-      if (category?.query?.trim()) queries.push(category.query);
+
+    if (this._lastSearch && this.options.globalSearch) {
+      queries.push(this._lastSearch);
+    } else {
+      for (const menu of this._menus) {
+        if (!menu.active) continue;
+        const category = menu.categories.find((category) => category.active);
+        if (category?.query?.trim()) queries.push(category.query);
+      }
+      if (this._lastSearch && queries.length) queries.push(this._lastSearch);
     }
 
     let results;
@@ -309,6 +343,8 @@ class CategoryBrowserApplication extends PresetContainer {
       CategoryBrowserApplication.oldMenuStates[this._browserId] = {
         menus: this._menus,
         categories: this._categories,
+        lastSearch: this._lastSearch,
+        globalSearch: this.options.globalSearch,
       };
     }
 

@@ -1,3 +1,14 @@
+# 1.79.3
+
+- While in preview mode:
+  - `Shift+D` keybind will no longer trigger default foundry rotate behavior
+  - `Alt` will no longer trigger placeable highlighting or web browser tab swap when scrolling
+- Fixed Mass Edit form's `Apply JSON Data` dialog not correctly applying passed in JSON data
+- Fixed Preset browser's folder context menu error
+- Category browser API now supports a `searchBar` and `globalSearch` fields which will add a search function to the form and set it to either search current results or all presets globally
+  - e.g. `MassEdit.openCategoryBrowser(menu, {  name: "My Test Browser", retainState: true, alignment: 'left', searchBar: true, globalSearch: true})`
+  - `globalSearch` simply controls the initial global/local search state, a UI toggle next to the search-bar can be clicked to change it
+
 # 1.79.2
 
 - Category Browser CSS changes

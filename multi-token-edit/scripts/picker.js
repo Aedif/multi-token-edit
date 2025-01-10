@@ -546,7 +546,7 @@ export async function editPreviewPlaceables(placeables, confirmOnRelease = false
     pickerSelected.forEach((d) => controlled.add(d));
   }
 
-  if (!controlled.size) return;
+  if (!controlled.size) return false;
 
   // Generate data from the selected placeables and pass them to Picker to create previews
   const docToData = new Map();
@@ -629,4 +629,6 @@ export async function editPreviewPlaceables(placeables, confirmOnRelease = false
       confirmOnRelease,
     }
   );
+
+  return true;
 }

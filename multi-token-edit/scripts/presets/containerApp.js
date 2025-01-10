@@ -4,7 +4,7 @@ import { BrushMenu } from '../brush.js';
 import { MODULE_ID, PIVOTS, SUPPORTED_PLACEABLES } from '../constants.js';
 import { Scenescape } from '../scenescape/scenescape.js';
 import { applyPresetToScene, isAudio, localize, spawnSceneAsPreset } from '../utils.js';
-import { PresetAPI, PresetCollection, PresetFolder, VirtualFileFolder } from './collection.js';
+import { PresetAPI, PresetCollection, PresetFolder, PresetPackFolder, VirtualFileFolder } from './collection.js';
 import { PresetConfig } from './editApp.js';
 import { PresetBrowser } from './browser/browserApp.js';
 import { Preset } from './preset.js';

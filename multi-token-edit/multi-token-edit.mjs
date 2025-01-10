@@ -97,7 +97,7 @@ Hooks.once('init', () => {
           game.keyboard.downKeys.has('Space'))
       ) {
         // Prevent zooming the entire browser window
-        if (event.ctrlKey) event.preventDefault();
+        if (event.ctrlKey || event.altKey) event.preventDefault();
 
         let dy = (event.delta = event.deltaY);
         if (event.shiftKey && dy === 0) {
@@ -119,6 +119,17 @@ Hooks.once('init', () => {
 
       const result = wrapped(...args);
       return result;
+    },
+    'MIXED'
+  );
+
+  // Prevent placeable highlighting if a preview is active either via a Picker or BrushMenu
+  libWrapper.register(
+    MODULE_ID,
+    'Canvas.prototype.highlightObjects',
+    function (wrapped, ...args) {
+      if (Picker.isActive() || BrushMenu.isActive()) return;
+      return wrapped(...args);
     },
     'MIXED'
   );
