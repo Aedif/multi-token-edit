@@ -529,24 +529,71 @@ export async function exportPresets(presets, fileName) {
  * @returns {object} query components
  */
 export function parseSearchQuery(query, { matchAny = true } = {}) {
-  let parsedQuery = {};
+  let search = { terms: [], tags: [], type: null };
+  let negativeSearch = { terms: [], tags: [], type: null };
 
-  let terms = query
+  query
     .trim()
     .split(' ')
-    .filter((w) => w.length >= 2);
-  if (!terms.length) return parsedQuery;
+    .filter(Boolean)
+    .forEach((t) => {
+      let tSearch = search;
 
-  const tags = terms.filter((f) => f.startsWith('#')).map((f) => f.substring(1));
-  if (tags.length) parsedQuery.tags = { tags, matchAny };
+      if (t.startsWith('-')) {
+        t = t.substring(1);
+        tSearch = negativeSearch;
+      }
 
-  const type = terms.find((f) => f.startsWith('@'))?.substring(1);
-  if (type) parsedQuery.type = type;
+      if (t.length >= 3) {
+        if (t.startsWith('#')) tSearch.tags.push(t.substring(1).toLocaleLowerCase());
+        else if (t.startsWith('@')) tSearch.type = t.substring(1);
+        else tSearch.terms.push(t.toLocaleLowerCase());
+      }
+    });
 
-  terms = terms.filter((f) => !(f.startsWith('#') || f.startsWith('@'))).map((t) => t.toLocaleLowerCase());
-  if (terms.length) parsedQuery.terms = terms;
+  [search, negativeSearch].forEach((s) => {
+    if (!s.terms.length) delete s.terms;
+    if (!s.type) delete s.type;
+    if (!s.tags.length) delete s.tags;
+    else s.tags = { tags: s.tags, matchAny };
+  });
 
-  return parsedQuery;
+  if (!Object.keys(search).length) search = undefined;
+  if (!Object.keys(negativeSearch).length) negativeSearch = undefined;
+
+  return { search, negativeSearch };
+}
+
+/**
+ * Match a preset against the provided search and negativeSearch
+ * @param {Preset} preset
+ * @param {object} param1
+ */
+export function matchPreset(preset, search, negativeSearch) {
+  let match = true;
+
+  if (search) {
+    const { name, terms, type, tags } = search;
+    if (name && name !== preset.name) match = false;
+    else if (type && type !== preset.documentName) match = false;
+    else if (terms && !terms.every((t) => preset.name.toLowerCase().includes(t))) match = false;
+    else if (tags) {
+      if (tags.matchAny) match = tags.tags.some((t) => preset.tags.includes(t));
+      else match = tags.tags.every((t) => preset.tags.includes(t));
+    }
+  }
+  if (match && negativeSearch) {
+    const { name, terms, type, tags } = negativeSearch;
+    if (name && name === preset.name) match = false;
+    else if (type && type === preset.documentName) match = false;
+    else if (terms && !terms.every((t) => !preset.name.toLowerCase().includes(t))) match = false;
+    else if (tags) {
+      if (tags.matchAny) match = tags.tags.some((t) => !preset.tags.includes(t));
+      else match = tags.tags.every((t) => !preset.tags.includes(t));
+    }
+  }
+
+  return match;
 }
 
 export async function importSceneCompendium(pack) {

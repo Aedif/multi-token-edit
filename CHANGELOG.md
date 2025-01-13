@@ -1,3 +1,7 @@
+# 1.80.1
+
+- Fixed `Save Index` virtual folder context menu option being unresponsive
+
 # 1.80.0
 
 - While in preview mode:

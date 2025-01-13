@@ -24,6 +24,7 @@ import { registerBehaviors } from './scripts/behaviors/behaviors.js';
 import { openBag } from './scripts/presets/bagApp.js';
 import { openCategoryBrowser } from './scripts/presets/categoryBrowserApp.js';
 import { PresetContainer, registerPresetHandlebarPartials } from './scripts/presets/containerApp.js';
+import { FileIndexerAPI } from './scripts/presets/fileIndexer.js';
 
 // Initialize module
 Hooks.once('init', () => {
@@ -228,6 +229,7 @@ Hooks.once('init', () => {
     PresetContainer,
     importSceneCompendium,
     openPresetBrowser,
+    FileIndexerAPI,
   };
 
   game.modules.get(MODULE_ID).api = {

@@ -8,7 +8,7 @@ import { META_INDEX_ID, PresetAPI, PresetCollection, PresetPackFolder } from '..
 import { FileIndexer, IndexerForm } from '../fileIndexer.js';
 import { LinkerAPI } from '../../linker/linker.js';
 import { DOC_ICONS, Preset } from '../preset.js';
-import { exportPresets, FolderState, parseSearchQuery, placeableToData } from '../utils.js';
+import { exportPresets, FolderState, matchPreset, parseSearchQuery, placeableToData } from '../utils.js';
 import { MODULE_ID, SUPPORTED_PLACEABLES, UI_DOCS } from '../../constants.js';
 import { PresetContainer } from '../containerApp.js';
 import { PresetConfig } from '../editApp.js';
@@ -505,43 +505,45 @@ export class PresetBrowser extends PresetContainer {
     this._searchTimer = setTimeout(() => this._onSearch(event.target.value, { event }), 250);
   }
 
-  async _onSearch(search, { event, render = true } = {}) {
+  async _onSearch(query, { event, render = true } = {}) {
     let previousSearch = this.lastSearch || '';
-    this.lastSearch = search;
+    this.lastSearch = query;
 
-    if (previousSearch.length >= SEARCH_MIN_CHAR && search.length < SEARCH_MIN_CHAR) {
+    if (previousSearch.length >= SEARCH_MIN_CHAR && query.length < SEARCH_MIN_CHAR) {
       if (event) $(event.target).removeClass('active');
       this._resetSearchState();
       if (render) this._renderContent();
       return;
     }
 
-    if (search.length < SEARCH_MIN_CHAR) return;
+    if (query.length < SEARCH_MIN_CHAR) return;
 
-    const { terms, tags, type } = parseSearchQuery(search, { matchAny: false });
-    if (!(terms || tags || type)) return;
+    const { search, negativeSearch } = parseSearchQuery(query, { matchAny: false });
+    if (!(search || negativeSearch)) return;
+
     if (event) $(event.target).addClass('active');
 
     this._searchFoundPresets = [];
-    this.tree.folders.forEach((f) => this._searchFolder(terms, tags, type, f));
-    this.tree.extFolders.forEach((f) => this._searchFolder(terms, tags, type, f));
-    this.tree.presets.forEach((p) => this._searchPreset(terms, tags, type, p));
+    this.tree.folders.forEach((f) => this._searchFolder(f, search, negativeSearch));
+    this.tree.extFolders.forEach((f) => this._searchFolder(f, search, negativeSearch));
+    this.tree.presets.forEach((p) => this._searchPreset(p, search, negativeSearch));
 
     if (render) this._renderContent();
   }
 
-  _searchFolder(filter, tags, type, folder, forceRender = false) {
+  _searchFolder(folder, search, negativeSearch, forceRender = false) {
     const folderName = folder.name.toLowerCase();
-    let match = !tags && filter?.every((k) => folderName.includes(k));
+    let match = false;
+    if (search) match = !search.tags && search.terms?.every((t) => folderName.includes(t));
 
     let childFolderMatch = false;
     for (const f of folder.children) {
-      if (this._searchFolder(filter, tags, type, f, match || forceRender)) childFolderMatch = true;
+      if (this._searchFolder(f, search, negativeSearch, match || forceRender)) childFolderMatch = true;
     }
 
     let presetMatch = false;
     for (const p of folder.presets) {
-      if (this._searchPreset(filter, tags, type, p, match || forceRender)) presetMatch = true;
+      if (this._searchPreset(p, search, negativeSearch, match || forceRender)) presetMatch = true;
     }
 
     const containsMatch = match || childFolderMatch || presetMatch;
@@ -551,19 +553,13 @@ export class PresetBrowser extends PresetContainer {
     return containsMatch;
   }
 
-  _searchPreset(filter, tags, type, preset, forceRender = false) {
+  _searchPreset(preset, search, negativeSearch, forceRender = false) {
     if (!preset._visible) return false;
 
-    const presetName = preset.name.toLowerCase();
-
     let matched = true;
+
     if (this._searchFoundPresets.length > SEARCH_FOUND_MAX_COUNT) matched = false;
-    else if (filter && !filter.every((k) => presetName.includes(k) || preset.tags.includes(k))) matched = false;
-    else if (type && preset.documentName !== type) matched = false;
-    else if (tags) {
-      if (tags.matchAny) matched = tags.tags.some((k) => preset.tags.includes(k));
-      else matched = tags.tags.every((k) => preset.tags.includes(k));
-    }
+    else matched = matchPreset(preset, search, negativeSearch);
 
     if (matched) {
       preset._render = true;

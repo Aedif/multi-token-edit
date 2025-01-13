@@ -10,6 +10,7 @@ import { PresetBrowser } from './browser/browserApp.js';
 import { Preset } from './preset.js';
 import { Spawner } from './spawner.js';
 import { FolderState, isVideo } from './utils.js';
+import { FileIndexer } from './fileIndexer.js';
 
 export async function registerPresetHandlebarPartials() {
   await getTemplate(`modules/${MODULE_ID}/templates/preset/partials/preset.html`, 'me-preset');
