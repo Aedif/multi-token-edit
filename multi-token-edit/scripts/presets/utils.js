@@ -529,8 +529,8 @@ export async function exportPresets(presets, fileName) {
  * @returns {object} query components
  */
 export function parseSearchQuery(query, { matchAny = true } = {}) {
-  let search = { terms: [], tags: [], type: null };
-  let negativeSearch = { terms: [], tags: [], type: null };
+  let search = { terms: [], tags: [], types: [] };
+  let negativeSearch = { terms: [], tags: [], types: [] };
 
   query
     .trim()
@@ -546,14 +546,14 @@ export function parseSearchQuery(query, { matchAny = true } = {}) {
 
       if (t.length >= 3) {
         if (t.startsWith('#')) tSearch.tags.push(t.substring(1).toLocaleLowerCase());
-        else if (t.startsWith('@')) tSearch.type = t.substring(1);
+        else if (t.startsWith('@')) tSearch.types.push(t.substring(1));
         else tSearch.terms.push(t.toLocaleLowerCase());
       }
     });
 
   [search, negativeSearch].forEach((s) => {
     if (!s.terms.length) delete s.terms;
-    if (!s.type) delete s.type;
+    if (!s.types.length) delete s.types;
     if (!s.tags.length) delete s.tags;
     else s.tags = { tags: s.tags, matchAny };
   });
@@ -573,9 +573,9 @@ export function matchPreset(preset, search, negativeSearch) {
   let match = true;
 
   if (search) {
-    const { name, terms, type, tags } = search;
+    const { name, terms, types, tags } = search;
     if (name && name !== preset.name) match = false;
-    else if (type && type !== preset.documentName) match = false;
+    else if (types && !types.includes(preset.documentName)) match = false;
     else if (terms && !terms.every((t) => preset.name.toLowerCase().includes(t))) match = false;
     else if (tags) {
       if (tags.matchAny) match = tags.tags.some((t) => preset.tags.includes(t));
@@ -583,9 +583,9 @@ export function matchPreset(preset, search, negativeSearch) {
     }
   }
   if (match && negativeSearch) {
-    const { name, terms, type, tags } = negativeSearch;
+    const { name, terms, types, tags } = negativeSearch;
     if (name && name === preset.name) match = false;
-    else if (type && type === preset.documentName) match = false;
+    else if (types && types.includes(preset.documentName)) match = false;
     else if (terms && !terms.every((t) => !preset.name.toLowerCase().includes(t))) match = false;
     else if (tags) {
       if (tags.matchAny) match = tags.tags.some((t) => !preset.tags.includes(t));

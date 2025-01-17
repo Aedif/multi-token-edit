@@ -557,7 +557,7 @@ export class PresetAPI {
    * @param {object} [options={}]
    * @param {String} [options.uuid]                      Preset UUID
    * @param {String} [options.name]                      Preset name
-   * @param {String} [options.type]                      Preset type ("Token", "Tile", etc)
+   * @param {Array[String]} [options.types]              Preset types ("Token", "Tile", etc)
    * @param {String} [options.query]                     Search query to be ran. Format: "blue #castle @AmbientLight"
    *                                                     Terms: blue, Tags: castle, Type: AmbientLight
    *                                                     None, or all component of the query can be provided or excluded
@@ -570,7 +570,7 @@ export class PresetAPI {
   static async getPreset({
     uuid,
     name,
-    type,
+    types,
     folder,
     tags,
     query,
@@ -581,10 +581,10 @@ export class PresetAPI {
     full = true,
   } = {}) {
     if (uuid) return await PresetCollection.get(uuid, { full });
-    else if (!name && !type && !folder && !tags && !query)
-      throw Error('UUID, Name, Type, Folder, and/or Query required to retrieve a Preset.');
-    else if (query && (type || folder || tags || name))
-      throw console.warn(`When 'query' is provided 'type', 'folder', 'tags', and 'name' arguments are ignored.`);
+    else if (!name && !types && !folder && !tags && !query)
+      throw Error('UUID, Name, Types, Folder, and/or Query required to retrieve a Preset.');
+    else if (query && (types || folder || tags || name))
+      throw console.warn(`When 'query' is provided 'types', 'folder', 'tags', and 'name' arguments are ignored.`);
 
     let search, negativeSearch;
     if (query) {
@@ -595,7 +595,7 @@ export class PresetAPI {
         else if (typeof tags === 'string') tags = { tags: tags.split(','), matchAny };
       }
 
-      search = { name, type, folder, tags };
+      search = { name, types, folder, tags };
     }
     if (!search && !negativeSearch) return null;
 
@@ -615,7 +615,7 @@ export class PresetAPI {
    * @param {object} [options={}]
    * @param {String|Array[String]} [options.uuid]        Preset UUID/s
    * @param {String} [options.name]                      Preset name
-   * @param {String} [options.type]                      Preset type ("Token", "Tile", etc)
+   * @param {Array[String]} [options.types]              Preset types ("Token", "Tile", etc)
    * @param {String} [options.query]                     See PresetAPI.getPreset
    * @param {String} [options.folder]                    Folder name
    * @param {String|Array[String]|Object} [options.tags] See PresetAPI.getPreset
@@ -624,7 +624,7 @@ export class PresetAPI {
   static async getPresets({
     uuid,
     name,
-    type,
+    types,
     query,
     matchAny = true,
     folder,
@@ -639,10 +639,10 @@ export class PresetAPI {
       results = [];
       const uuids = Array.isArray(uuid) ? uuid : [uuid];
       return await PresetCollection.getBatch(uuids, { full });
-    } else if (!name && !type && !folder && !tags && !query)
+    } else if (!name && !types && !folder && !tags && !query)
       throw Error('UUID, Name, Type, Folder, Tags, and/or Query required to retrieve Presets.');
-    else if (query && (type || folder || tags || name))
-      throw console.warn(`When 'query' is provided 'type', 'folder', 'tags', and 'name' arguments are ignored.`);
+    else if (query && (types || folder || tags || name))
+      throw console.warn(`When 'query' is provided 'types', 'folder', 'tags', and 'name' arguments are ignored.`);
 
     let search, negativeSearch;
     if (query) {
@@ -653,7 +653,7 @@ export class PresetAPI {
         else if (typeof tags === 'string') tags = { tags: tags.split(','), matchAny };
       }
 
-      search = { name, type, folder, tags };
+      search = { name, types, folder, tags };
     }
     if (!search && !negativeSearch) return [];
 
@@ -666,6 +666,14 @@ export class PresetAPI {
         negativeSearch
       );
     }
+
+    // Incase these presets are to be rendered, we set the _render and _visible flags to true
+    // as we might be re-using presets that have been utilized by other forms and had these flags
+    // toggled
+    presets.forEach((p) => {
+      p._render = true;
+      p._visible = true;
+    });
 
     return presets;
   }

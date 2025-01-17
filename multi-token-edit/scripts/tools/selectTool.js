@@ -148,7 +148,7 @@ function _getControlButtons(controls) {
           name: 'pixelPerfect',
           title: 'Pixel Perfect Hover',
           icon: 'fa-solid fa-bullseye-pointer',
-          visible: game.user.isGM,
+          visible: true,
           active: game.settings.get(MODULE_ID, 'pixelPerfectTile'),
           toggle: true,
           onClick: () => {
@@ -160,7 +160,7 @@ function _getControlButtons(controls) {
           name: 'pixelPerfect',
           title: 'Pixel Perfect Hover',
           icon: 'fa-solid fa-bullseye-pointer',
-          visible: game.user.isGM,
+          visible: true,
           active: game.settings.get(MODULE_ID, 'pixelPerfectToken'),
           toggle: true,
           onClick: () => {

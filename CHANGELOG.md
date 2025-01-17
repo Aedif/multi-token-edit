@@ -1,3 +1,15 @@
+# 1.81.0
+
+- `Pixel Perfect` scene control toggles are now accessible by players
+- Horizontal and Vertical mirroring keybinding are now accessbile by players
+- Flag fields inserted into Bag configuration windows will now be applied to all spawned placeables
+- Preset search queries now support negative terms
+  - Add a `-` next to a name, tag, or preset type to exclude it from the search
+  - e.g. `house -red`
+  - e.g. `house #player -#colorable`
+  - e.g. `ship -@Tile`
+- Fixed bad interaction between multiple preset container forms causing some presets not to be rendered
+
 # 1.80.1
 
 - Fixed `Save Index` virtual folder context menu option being unresponsive

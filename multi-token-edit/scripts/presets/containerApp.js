@@ -751,15 +751,7 @@ export class PresetContainer extends FormApplication {
       }
     }
 
-    Spawner.spawnPreset({
-      preset,
-      x: mouseX,
-      y: mouseY,
-      z: mouseZ,
-      mousePosition: false,
-      layerSwitch: PresetBrowser.CONFIG.switchLayer,
-      scaleToGrid: PresetBrowser.CONFIG.autoScale,
-    });
+    this._onSpawnPreset(preset, { x: mouseX, y: mouseY, z: mouseZ, preview: false });
   }
 
   _folderToggle(folderElement) {

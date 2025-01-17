@@ -442,7 +442,7 @@ export function registerKeybinds() {
       },
     ],
     onDown: () => Picker.mirrorX(),
-    restricted: true,
+    restricted: false,
     precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
   });
 
@@ -456,7 +456,7 @@ export function registerKeybinds() {
       },
     ],
     onDown: () => Picker.mirrorY(),
-    restricted: true,
+    restricted: false,
     precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
   });
 

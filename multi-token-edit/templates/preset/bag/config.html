@@ -4,6 +4,7 @@
     <nav class="sheet-tabs tabs" data-group="primary-tabs">
         <a class="item" data-tab="search"><i class="fa-solid fa-magnifying-glass"></i> Search</a>
         <a class="item" data-tab="appearance"><i class="fa-solid fa-palette"></i> Appearance</a>
+        <a class="item" data-tab="misc"><i class="fas fa-cogs"></i> Misc</a>
     </nav>
 
     <section class="content">
@@ -89,7 +90,9 @@
                     </div>
                 </div>
             </fieldset>
+        </div>
 
+        <div class="tab" data-tab="misc" data-group="primary-tabs">
             <div class="form-group">
                 <label>Display Search Bar</label>
                 <input type="checkbox" name="searchBar" {{checked searchBar}}>

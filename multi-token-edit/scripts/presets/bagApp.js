@@ -1,3 +1,4 @@
+import { BrushMenu } from '../brush.js';
 import { MODULE_ID } from '../constants.js';
 import { TagInput } from '../utils.js';
 import { PresetAPI } from './collection.js';
@@ -276,18 +277,42 @@ class BagApplication extends PresetContainer {
     this.refreshing = false;
   }
 
-  // TODO OVERRIDE and add flags or post spawn hook to support MTFY
-  // /** @override */
-  // async _onSpawnPreset(preset) {
+  /** @override */
+  async _onSpawnPreset(preset, options) {
+    const flags = this.preset.data[0].flags;
+    if (flags) {
+      preset = preset.clone();
 
-  //   const flags = this.preset.data[0].flags;
-  //   if(flags) {
+      preset.data.forEach((d) => {
+        foundry.utils.mergeObject(d, { flags });
+      });
+      preset.attached?.forEach((d) => {
+        foundry.utils.mergeObject(d.data, { flags });
+      });
+    }
+    return super._onSpawnPreset(preset, options);
+  }
 
-  //   }
+  /** @override */
+  async _onActivateBrush(item) {
+    const flags = this.preset.data[0].flags;
+    if (flags) {
+      const [selected, _] = await this._getSelectedPresets({
+        editableOnly: false,
+      });
 
-  //   preset = preset.clone();
+      selected.forEach((preset) => {
+        preset.data.forEach((d) => {
+          foundry.utils.mergeObject(d, { flags });
+        });
+        preset.attached?.forEach((d) => {
+          foundry.utils.mergeObject(d.data, { flags });
+        });
+      });
 
-  // }
+      BrushMenu.addPresets(selected);
+    } else return super._onActivateBrush(item);
+  }
 
   /** @override */
   setPosition(...args) {
