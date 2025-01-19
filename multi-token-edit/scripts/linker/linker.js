@@ -423,7 +423,7 @@ export class LinkerAPI {
       return false;
     }
 
-    document.setFlag(MODULE_ID, 'links', links);
+    await document.setFlag(MODULE_ID, 'links', links);
     Hooks.call(`${MODULE_ID}.addLink`, document.documentName, document.id, linkId, type, label);
 
     return true;
@@ -434,13 +434,14 @@ export class LinkerAPI {
    * @param {Placeable} placeable
    * @param {String} linkId
    */
-  static removeLink(placeable, linkId) {
+  static async removeLink(placeable, linkId) {
     const document = placeable.document ?? placeable;
+
     let links = document.flags[MODULE_ID]?.links;
     if (links) {
       links = links.filter((l) => l.id !== linkId);
-      if (links.length) document.setFlag(MODULE_ID, 'links', links);
-      else document.unsetFlag(MODULE_ID, 'links');
+      if (links.length) await document.setFlag(MODULE_ID, 'links', links);
+      else await document.unsetFlag(MODULE_ID, 'links');
       Hooks.call(`${MODULE_ID}.removeLink`, document.id, linkId);
     }
   }

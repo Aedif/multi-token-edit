@@ -1,3 +1,9 @@
+# 1.83.0
+
+- New button added to Linker menu (Shift+Q) to toggle LinkToken behavior interactions on selected tokens
+  - When toggled on Tokens will not be automatically linked to regions they enter
+- Improved processing of Tokens jumping between two regions with LinkTokens behaviors
+
 # 1.81.0
 
 - `Pixel Perfect` scene control toggles are now accessible by players

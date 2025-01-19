@@ -588,9 +588,23 @@ class LinkerMenu extends FormApplication {
     ];
 
     html.find('.removeLinksSelected').on('click', LinkerAPI.removeLinksFromSelected);
+    html.find('.toggleLinkTokenDisable').on('click', this._onToggleLinkTokenDisable);
 
     // Display node graph
     this.activateGraph(html);
+  }
+
+  _onToggleLinkTokenDisable() {
+    canvas.tokens.controlled.forEach((token) => {
+      const disabled = token.document.getFlag('multi-token-edit', 'disableLinkToken');
+      if (disabled) {
+        token.document.unsetFlag('multi-token-edit', 'disableLinkToken');
+        ui.notifications.info('LinkToken Behavior interaction RE-ENABLED: ' + token.document.name);
+      } else {
+        token.document.setFlag('multi-token-edit', 'disableLinkToken', true);
+        ui.notifications.info('LinkToken Behavior interaction DISABLED: ' + token.document.name);
+      }
+    });
   }
 
   _onCycleLinkType() {

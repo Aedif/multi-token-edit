@@ -1,3 +1,4 @@
+import { MODULE_ID } from '../constants.js';
 import { LINK_TYPES, LinkerAPI } from '../linker/linker.js';
 import { isResponsibleGM, localize } from '../utils.js';
 
@@ -5,6 +6,18 @@ import { isResponsibleGM, localize } from '../utils.js';
  * Region behavior to Link token to the region.
  */
 export class LinkTokenRegionBehaviorType extends foundry.data.regionBehaviors.RegionBehaviorType {
+  static {
+    class PromiseQueue {
+      queue = Promise.resolve();
+
+      add(operation) {
+        this.queue = this.queue.then(operation).catch(() => {});
+      }
+    }
+
+    this.queue = new PromiseQueue();
+  }
+
   static defineSchema() {
     return {
       linkId: new foundry.data.fields.StringField({
@@ -33,17 +46,23 @@ export class LinkTokenRegionBehaviorType extends foundry.data.regionBehaviors.Re
   static async _onTokenMoveIn(event) {
     if (!isResponsibleGM()) return;
 
+    if (event.data.token.getFlag(MODULE_ID, 'disableLinkToken') || event.data.forced) return;
+
     if (LinkerAPI.areLinked(this.region, event.data.token)) return;
 
     if (!LinkerAPI.hasLink(this.region, this.linkId))
       LinkerAPI.addLink(this.region, this.linkId, LINK_TYPES.TWO_WAY, 'LinkTokenBehavior');
 
-    LinkerAPI.addLink(event.data.token, this.linkId, LINK_TYPES.RECEIVE, 'LinkTokenBehavior');
+    LinkTokenRegionBehaviorType.queue.add(async () =>
+      LinkerAPI.addLink(event.data.token, this.linkId, LINK_TYPES.RECEIVE, 'LinkTokenBehavior')
+    );
     return;
   }
 
   static async _onTokenMoveOut(event) {
     if (!isResponsibleGM()) return;
-    if (event.data.teleport || !event.data.forced) LinkerAPI.removeLink(event.data.token, this.linkId);
+    if (event.data.teleport || !event.data.forced) {
+      LinkTokenRegionBehaviorType.queue.add(async () => LinkerAPI.removeLink(event.data.token, this.linkId));
+    }
   }
 }
