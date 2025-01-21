@@ -1,3 +1,7 @@
+# 1.83.1
+
+- Fixed an elevation in spawn previews not resetting when moving out of a Scenescape scene
+
 # 1.83.0
 
 - New button added to Linker menu (Shift+Q) to toggle LinkToken behavior interactions on selected tokens

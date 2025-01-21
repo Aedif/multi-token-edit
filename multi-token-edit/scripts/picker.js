@@ -115,6 +115,10 @@ export class Picker {
       // Position offset to center preview over the mouse
       const setPositions = function (pos) {
         if (!pos) return;
+        else {
+          const { x, y, z } = pos;
+          pos = { x, y, z };
+        }
 
         // Place top-left preview corner on the mouse
         const b = getPresetDataBounds(preview.previewData);
