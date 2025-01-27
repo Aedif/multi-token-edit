@@ -2,7 +2,7 @@ import { checkApplySpecialFields } from '../../applications/formUtils.js';
 import { showGenericForm } from '../../applications/multiConfig.js';
 import { MODULE_ID, PIVOTS } from '../constants.js';
 import { DataTransformer } from '../data/transformer.js';
-import { Picker } from '../picker.js';
+import { PreviewTransformer } from '../previewTransformer.js';
 import { applyRandomization } from '../randomizer/randomizerUtils.js';
 import { Scenescape } from '../scenescape/scenescape.js';
 import { createDocuments, executeScript } from '../utils.js';
@@ -36,7 +36,6 @@ export class Spawner {
    * @param {Boolean} [options.scaleToGrid]              If 'true' Tiles, Drawings, and Walls will be scaled relative to grid size.
    * @param {Boolean} [options.modifyPrompt]             If 'true' a field modification prompt will be shown if configured via `Preset Edit > Modify` form
    * @param {Boolean} [options.preview]                  If 'true' a preview will be shown allowing spawn position to be picked
-   * @param {String} [options.previewLabel]               Label displayed above crosshair when `preview` is enabled
    * @returns {Array[Document]}
    */
   static async spawnPreset({
@@ -51,7 +50,6 @@ export class Spawner {
     y,
     z,
     preview = false,
-    previewLabel,
     previewRestrictedDocuments = null,
     sceneId = canvas.scene.id,
     snapToGrid = true,
@@ -168,14 +166,13 @@ export class Spawner {
     } else {
       // Display preview of the preset
       const coords = await new Promise(async (resolve) => {
-        Picker.activate(resolve, {
-          documentName: preset.documentName,
-          previewData: docToData,
+        PreviewTransformer.activate(resolve, {
+          docToData,
           snap: snapToGrid,
-          label: previewLabel,
           restrict: previewRestrictedDocuments,
           pivot,
-          previewOnly,
+          preview: true,
+          crosshair: !previewOnly,
           ...transform,
           spawner: true,
         });

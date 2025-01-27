@@ -11,7 +11,6 @@ import { enableUniversalSelectTool } from './scripts/tools/selectTool.js';
 import { META_INDEX_ID, PresetAPI, PresetCollection } from './scripts/presets/collection.js';
 import { openPresetBrowser, registerPresetBrowserHooks } from './scripts/presets/browser/browserApp.js';
 import { registerKeybinds, registerSettings } from './scripts/settings.js';
-import { Picker } from './scripts/picker.js';
 import { BrushMenu, activateBrush, deactivateBush, openBrushMenu } from './scripts/brush.js';
 import { V12Migrator } from './scripts/presets/migration.js';
 import { deleteFromClipboard, performMassSearch, performMassUpdate } from './applications/formUtils.js';
@@ -25,6 +24,7 @@ import { openBag } from './scripts/presets/bagApp.js';
 import { openCategoryBrowser } from './scripts/presets/categoryBrowserApp.js';
 import { PresetContainer, registerPresetHandlebarPartials } from './scripts/presets/containerApp.js';
 import { FileIndexerAPI } from './scripts/presets/fileIndexer.js';
+import { PreviewTransformer } from './scripts/previewTransformer.js';
 
 // Initialize module
 Hooks.once('init', () => {
@@ -89,7 +89,7 @@ Hooks.once('init', () => {
       const event = args[0];
 
       if (
-        (Picker.isActive() || BrushMenu.isActive()) &&
+        (PreviewTransformer.isActive() || BrushMenu.isActive()) &&
         (event.ctrlKey ||
           event.shiftKey ||
           event.metaKey ||
@@ -106,14 +106,15 @@ Hooks.once('init', () => {
         }
         if (dy === 0) return;
 
-        if (event.altKey || game.keyboard.downKeys.has('Space')) Picker.addScaling(event.delta < 0 ? 0.05 : -0.05);
+        if (event.altKey || game.keyboard.downKeys.has('Space'))
+          PreviewTransformer.addScaling(event.delta < 0 ? 0.05 : -0.05);
         else if ((event.ctrlKey || event.metaKey) && event.shiftKey) BrushMenu.iterate(event.delta >= 0, true);
-        else if (event.ctrlKey || event.metaKey) Picker.addRotation(event.delta < 0 ? 2.5 : -2.5);
-        else if (event.shiftKey) Picker.addRotation(event.delta < 0 ? 15 : -15);
+        else if (event.ctrlKey || event.metaKey) PreviewTransformer.addRotation(event.delta < 0 ? 2.5 : -2.5);
+        else if (event.shiftKey) PreviewTransformer.addRotation(event.delta < 0 ? 15 : -15);
         else if (game.keyboard.downKeys.has('KeyZ')) {
           let delta = event.delta < 0 ? 1 : -1;
           if (Scenescape.active) delta = delta * Scenescape.depth * 0.01;
-          Picker.addElevation(delta);
+          PreviewTransformer.addElevation(delta);
         }
         return;
       }
@@ -129,7 +130,7 @@ Hooks.once('init', () => {
     MODULE_ID,
     'Canvas.prototype.highlightObjects',
     function (wrapped, ...args) {
-      if (Picker.isActive() || BrushMenu.isActive()) return;
+      if (PreviewTransformer.isActive() || BrushMenu.isActive()) return;
       return wrapped(...args);
     },
     'MIXED'
@@ -241,7 +242,7 @@ Hooks.once('init', () => {
 
 Hooks.on('canvasReady', () => {
   if (BrushMenu.isActive()) BrushMenu.close();
-  else if (Picker.isActive()) Picker.destroy();
+  if (PreviewTransformer.isActive()) PreviewTransformer.destroy();
 });
 
 // Attach Mass Config buttons to Token and Tile HUDs

@@ -11,13 +11,13 @@ import {
 } from '../applications/multiConfig.js';
 import { MODULE_ID, SUPPORTED_COLLECTIONS, SUPPORTED_PLACEABLES, THRESHOLDS } from './constants.js';
 import { LinkerAPI } from './linker/linker.js';
-import { editPreviewPlaceables, Picker } from './picker.js';
 import { PresetCollection } from './presets/collection.js';
 import { openPresetBrowser, PresetBrowser } from './presets/browser/browserApp.js';
 import { Preset } from './presets/preset.js';
 import { Scenescape } from './scenescape/scenescape.js';
 import { enablePixelPerfectSelect } from './tools/selectTool.js';
 import { activeEffectPresetSelect, getDocumentName, localize, TagInput } from './utils.js';
+import { editPreviewPlaceables, PreviewTransformer } from './previewTransformer.js';
 
 export function registerSettings() {
   // Register Settings
@@ -441,7 +441,7 @@ export function registerKeybinds() {
         modifiers: [],
       },
     ],
-    onDown: () => Picker.mirrorX(),
+    onDown: () => PreviewTransformer.mirrorX(),
     restricted: false,
     precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
   });
@@ -455,7 +455,7 @@ export function registerKeybinds() {
         modifiers: [],
       },
     ],
-    onDown: () => Picker.mirrorY(),
+    onDown: () => PreviewTransformer.mirrorY(),
     restricted: false,
     precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
   });
@@ -632,7 +632,7 @@ export function registerKeybinds() {
       },
     ],
     onDown: () => {
-      if (Picker.isActive()) {
+      if (PreviewTransformer.isActive()) {
         Scenescape.autoScale = !Scenescape.autoScale;
         ui.notifications.info('Scenescape: Autoscale => ' + (Scenescape.autoScale ? 'ON' : 'OFF'));
       }

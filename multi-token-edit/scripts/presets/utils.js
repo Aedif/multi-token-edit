@@ -394,7 +394,7 @@ export function getDataBounds(documentName, data) {
     y2 = y1 + (height || 0);
     z2 = z1;
   }
-  return { x1, y1, x2, y2, z1, z2 };
+  return { x1, y1, x2, y2, z1, z2, width: x2 - x1, height: y2 - y1 };
 }
 
 export function isImage(path) {
@@ -506,6 +506,32 @@ export function getPivotOffset(pivot, docToData, bounds) {
   }
 
   return { x: 0, y: 0 };
+}
+
+/**
+ * Get pivot coordinate for the given bounds/doc-to-data map
+ * @param {PIVOT} pivot
+ * @param {Map<string, Array[object]>} docToData
+ * @param {object} bounds
+ * @returns
+ */
+export function getPivotPoint(pivot, docToData, bounds) {
+  bounds = bounds ?? getPresetDataBounds(docToData);
+  const offset = getPivotOffset(pivot, docToData, bounds);
+  return { x: bounds.x + offset.x, y: bounds.y + offset.y };
+}
+
+/**
+ * Get pivot coordinate for the given placeable data
+ * @param {string} documentName
+ * @param {object} data
+ * @param {PIVOTS} pivot
+ * @returns
+ */
+export function getDataPivotPoint(documentName, data, pivot) {
+  const bounds = getDataBounds(documentName, data);
+  const offset = getPivotOffset(pivot, null, bounds);
+  return { x: bounds.x1 + offset.x, y: bounds.y1 + offset.y };
 }
 
 export async function exportPresets(presets, fileName) {

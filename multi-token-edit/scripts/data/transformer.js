@@ -13,6 +13,7 @@ export class DataTransformer {
   static apply(documentName, data, origin, transform, preview) {
     if (transform.x == null) transform.x = 0;
     if (transform.y == null) transform.y = 0;
+    if (transform.z == null) transform.z = 0;
 
     this._3dActive = game.Levels3DPreview?._active;
 
@@ -49,14 +50,17 @@ export class DataTransformer {
     if (transform.scale != null && data.shapes) {
       const scale = transform.scale;
 
+      const originOffsetX = origin.x - origin.x * scale;
+      const originOffsetY = origin.y - origin.y * scale;
+
       for (const shape of data.shapes) {
         if (shape.type === 'polygon') {
           for (let i = 0; i < shape.points.length; i++) {
-            shape.points[i] *= scale;
+            shape.points[i] = shape.points[i] * scale + (i % 2 === 0 ? originOffsetX : originOffsetY);
           }
         } else {
-          shape.x *= scale;
-          shape.y *= scale;
+          shape.x = shape.x * scale + originOffsetX;
+          shape.y = shape.y * scale + originOffsetY;
           if (shape.type === 'ellipse') {
             shape.radiusX *= scale;
             shape.radiusY *= scale;
@@ -201,6 +205,9 @@ export class DataTransformer {
       const scale = transform.scale;
       data.x *= scale;
       data.y *= scale;
+
+      data.x += origin.x - origin.x * scale;
+      data.y += origin.y - origin.y * scale;
     }
 
     data.x += transform.x;
@@ -238,6 +245,9 @@ export class DataTransformer {
       if (this._3dActive && data.elevation != null) {
         data.elevation *= scale;
       }
+
+      data.x += origin.x - origin.x * scale;
+      data.y += origin.y - origin.y * scale;
     }
 
     data.x += transform.x;
@@ -281,6 +291,11 @@ export class DataTransformer {
       c[1] *= scale;
       c[2] *= scale;
       c[3] *= scale;
+
+      c[0] += origin.x - origin.x * scale;
+      c[1] += origin.y - origin.y * scale;
+      c[2] += origin.x - origin.x * scale;
+      c[3] += origin.y - origin.y * scale;
     }
 
     c[0] += transform.x;
@@ -316,6 +331,9 @@ export class DataTransformer {
         data.distance *= scale;
         if (data.width) data.width *= scale;
       }
+
+      data.x += origin.x - origin.x * scale;
+      data.y += origin.y - origin.y * scale;
     }
 
     data.x += transform.x;
@@ -364,6 +382,9 @@ export class DataTransformer {
       if (this._3dActive && data.elevation != null) {
         data.elevation *= scale;
       }
+
+      data.x += origin.x - origin.x * scale;
+      data.y += origin.y - origin.y * scale;
     }
 
     data.x += transform.x;
@@ -420,6 +441,9 @@ export class DataTransformer {
       data.y *= scale;
       data.width *= scale;
       data.height *= scale;
+
+      data.x += origin.x - origin.x * scale;
+      data.y += origin.y - origin.y * scale;
 
       // 3D Support
       if (this._3dActive) {
@@ -504,6 +528,9 @@ export class DataTransformer {
           points[i] *= scale;
         }
       }
+
+      data.x += origin.x - origin.x * scale;
+      data.y += origin.y - origin.y * scale;
     }
 
     data.x += transform.x;
@@ -574,6 +601,9 @@ export class DataTransformer {
         data.height *= scale;
         if (this._3dActive) data.elevation *= scale;
       }
+
+      data.x += origin.x - origin.x * scale;
+      data.y += origin.y - origin.y * scale;
     }
 
     data.x += transform.x;

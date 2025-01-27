@@ -1,5 +1,6 @@
-import { MODULE_ID } from '../constants.js';
-import { editPreviewPlaceables, Picker } from '../picker.js';
+import { MODULE_ID, PIVOTS } from '../constants.js';
+import { getDataPivotPoint } from '../presets/utils.js';
+import { editPreviewPlaceables, PreviewTransformer } from '../previewTransformer.js';
 import { libWrapper } from '../shim/shim.js';
 import { enablePixelPerfectSelect } from '../tools/selectTool.js';
 import { loadImageVideoDimensions } from '../utils.js';
@@ -161,10 +162,10 @@ export class ScenescapeControls {
     );
     this._wrapperIds.push(id);
 
-    id = libWrapper.register(MODULE_ID, 'TokenLayer.prototype.moveMany', this._moveMany, 'OVERRIDE');
+    id = libWrapper.register(MODULE_ID, 'TokenLayer.prototype.moveMany', this._moveManyNew, 'OVERRIDE');
     this._wrapperIds.push(id);
 
-    id = libWrapper.register(MODULE_ID, 'TilesLayer.prototype.moveMany', this._moveMany, 'OVERRIDE');
+    id = libWrapper.register(MODULE_ID, 'TilesLayer.prototype.moveMany', this._moveManyNew, 'OVERRIDE');
     this._wrapperIds.push(id);
 
     id = libWrapper.register(
@@ -229,7 +230,7 @@ export class ScenescapeControls {
       MODULE_ID,
       'PlaceableObject.prototype._canDragLeftStart',
       function (wrapped, user, event) {
-        if (Picker.isActive() || !this._canDrag(game.user, event)) return false;
+        if (PreviewTransformer.isActive() || !this._canDrag(game.user, event)) return false;
 
         return wrapped(user, event);
       },
@@ -256,6 +257,62 @@ export class ScenescapeControls {
     if (token.flags?.[MODULE_ID]?.height != null) height = token.flags[MODULE_ID].height;
 
     return { width, height };
+  }
+
+  static async _moveManyNew({ dx = 0, dy = 0, rotate = false, ids, includeLocked = false } = {}) {
+    if (dx === 0 && dy === 0) return [];
+
+    const objects = this._getMovableObjects(ids, includeLocked);
+    if (!objects.length) return objects;
+
+    // Conceal any active HUD
+    this.hud?.clear();
+
+    const documentName = this.constructor.documentName;
+    const incrementScale = game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.SHIFT) ? 0.5 : 1.0;
+
+    const updateData = [];
+
+    for (const obj of objects) {
+      let update = { _id: obj.id };
+
+      const bottom = getDataPivotPoint(documentName, obj.document, PIVOTS.BOTTOM);
+      const nBottom = Scenescape.moveCoordinate(
+        bottom,
+        dx * incrementScale,
+        dy * incrementScale,
+        documentName === 'Tile'
+      );
+
+      const docToData = new Map();
+      docToData.set(documentName, [obj.document.toObject()]);
+
+      PreviewTransformer.activate(null, {
+        docToData,
+        preview: false,
+        crosshair: false,
+        snap: false,
+        pivot: PIVOTS.BOTTOM,
+      });
+      PreviewTransformer.feedPos(nBottom);
+      PreviewTransformer.destroy();
+
+      const data = docToData.get(documentName)[0];
+      update.width = data.width;
+      update.height = data.height;
+      update.x = data.x;
+      update.y = data.y;
+      update.elevation = data.elevation;
+      if (documentName === 'Token') {
+        update[`flags.${MODULE_ID}.width`] = data.flags[MODULE_ID].width;
+        update[`flags.${MODULE_ID}.height`] = data.flags[MODULE_ID].height;
+      }
+
+      updateData.push(update);
+    }
+
+    await canvas.scene.updateEmbeddedDocuments(documentName, updateData, { teleport: true });
+    return objects;
   }
 
   static async _moveMany({ dx = 0, dy = 0, rotate = false, ids, includeLocked = false } = {}) {

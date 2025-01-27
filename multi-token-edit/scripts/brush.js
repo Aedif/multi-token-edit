@@ -1,10 +1,10 @@
 import { pasteDataUpdate } from '../applications/formUtils.js';
 import { MODULE_ID, PIVOTS } from './constants.js';
 import { Mouse3D } from './mouse3d.js';
-import { Picker } from './picker.js';
 import { PresetAPI, PresetCollection } from './presets/collection.js';
 import { Preset } from './presets/preset.js';
 import { Spawner } from './presets/spawner.js';
+import { PreviewTransformer } from './previewTransformer.js';
 import { applyRandomization } from './randomizer/randomizerUtils.js';
 import { TagInput } from './utils.js';
 
@@ -43,7 +43,7 @@ export class Brush {
       this.lastSpawnTime = now;
 
       if (!this._checkDensity(pos)) return;
-      Picker.resolve(pos);
+      PreviewTransformer.resolve(pos);
       this.spawnPoints.push(pos);
 
       BrushMenu.iterate();
@@ -286,7 +286,7 @@ export class Brush {
     this.brushOverlay.zIndex = Infinity;
 
     this.brushOverlay.on('mousemove', (event) => {
-      Picker.feedPos(event.data.getLocalPosition(this.brushOverlay));
+      PreviewTransformer.feedPos(event.data.getLocalPosition(this.brushOverlay));
       this._onBrushMove(event);
       if (!this.mDownWithinCanvas) return; // Fix to prevent mouse interaction within apps
       if (event.buttons === 1) this._onBrushClickMove(event);
@@ -321,7 +321,7 @@ export class Brush {
 
   static _activate3d() {
     Mouse3D.activate({
-      mouseMoveCallback: Picker.feedPos.bind(Picker),
+      mouseMoveCallback: PreviewTransformer.feedPos.bind(PreviewTransformer),
       mouseClickCallback: this._on3DBrushClick.bind(this),
       mouseWheelClickCallback: this.deactivate.bind(this),
     });
@@ -342,7 +342,7 @@ export class Brush {
       }
       this.hoverTest = null;
       if (!refresh) this.deactivateCallback?.();
-      if (this.spawner) Picker.destroy();
+      if (this.spawner) PreviewTransformer.destroy();
       this.spawner = false;
       this.eraser = false;
       this.deactivateCallback = null;
@@ -882,7 +882,7 @@ export class BrushMenu extends FormApplication {
 
     // Scale and Rotation transformation are accumulated on the picker
     // We want to preserve these when rendering a new preview
-    const accumulatedTransform = Picker.getTransformAccumulator();
+    const accumulatedTransform = PreviewTransformer.getTransformAccumulator();
 
     if (settings.scale[0] === settings.scale[1]) {
       transform.scale = settings.scale[0];
@@ -979,8 +979,8 @@ export class BrushMenu extends FormApplication {
   async close(options = {}) {
     Brush.deactivate();
     BrushMenu._instance = null;
-    Picker.destroy();
-    Picker.resetTransformAccumulator();
+    PreviewTransformer.destroy();
+    PreviewTransformer.resetTransformAccumulator();
     return super.close(options);
   }
 }

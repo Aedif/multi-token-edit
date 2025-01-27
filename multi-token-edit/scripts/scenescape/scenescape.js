@@ -224,6 +224,7 @@ export class Scenescape {
    * @returns {Number} feet
    */
   static _getActorSize(actor, token) {
+    if (typeof actor === 'string') actor = game.actors.get(actor);
     if (!actor) return token.height * 6;
 
     // Retrieves numbers from a string assuming the first number represents feet and the 2nd inches
@@ -253,7 +254,8 @@ export class Scenescape {
     token = token.document ?? token;
 
     let size =
-      foundry.utils.getProperty(token, `flags.${MODULE_ID}.size`) ?? Scenescape._getActorSize(token.actor, token);
+      foundry.utils.getProperty(token, `flags.${MODULE_ID}.size`) ??
+      Scenescape._getActorSize(token.actor ?? token.actorId, token);
     return (size / 6) * 100;
   }
 }
