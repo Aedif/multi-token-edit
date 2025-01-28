@@ -1,8 +1,8 @@
 import { MODULE_ID } from '../constants.js';
-import { SPECIES_GENERATORS } from '../generator/fantasticSpeciesGenerator.js';
-import { GROUP_GENERATORS } from '../generator/groupNamesGenerator.js';
-import { NAME_GENERATOR } from '../generator/nameGenerator.js';
-import { TAVERN_GENERATOR } from '../generator/tavernGenerator.js';
+import { SPECIES_GENERATORS } from '../libs/generator/fantasticSpeciesGenerator.js';
+import { GROUP_GENERATORS } from '../libs/generator/groupNamesGenerator.js';
+import { NAME_GENERATOR } from '../libs/generator/nameGenerator.js';
+import { TAVERN_GENERATOR } from '../libs/generator/tavernGenerator.js';
 import { isImage, isVideo, recursiveTraverse } from '../utils.js';
 import { deselectField, nearestStep, selectField } from './randomizerUtils.js';
 

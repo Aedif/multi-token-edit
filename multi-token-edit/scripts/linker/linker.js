@@ -2,7 +2,7 @@
  * Manage placeable linking to one another using `links` flag.
  */
 
-import { libWrapper } from '../shim/shim.js';
+import { libWrapper } from '../libs/shim/shim.js';
 import { pickerSelectMultiLayerDocuments, updateEmbeddedDocumentsViaGM } from '../utils.js';
 import { getDataBounds } from '../presets/utils.js';
 import { LINKER_DOC_COLORS, MODULE_ID, SUPPORTED_PLACEABLES } from '../constants.js';

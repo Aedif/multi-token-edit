@@ -116,7 +116,7 @@ export async function applyRandomization(updates, objects, randomizeFields) {
           rnOffset = rnOffset / (color2.offset - color1.offset);
 
           // Create a Color.js range
-          const Color = (await import('../color/color.js')).default;
+          const Color = (await import('../libs/color/color.js')).default;
           color1 = new Color(color1.hex);
           color2 = new Color(color2.hex);
           const space = obj.space || 'srgb';

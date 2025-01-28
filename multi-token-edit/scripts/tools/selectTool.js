@@ -1,7 +1,7 @@
 import { MODULE_ID, SUPPORTED_PLACEABLES, THRESHOLDS } from '../constants.js';
 import { DataTransformer } from '../data/transformer.js';
 import { getDataBounds } from '../presets/utils.js';
-import { libWrapper } from '../shim/shim.js';
+import { libWrapper } from '../libs/shim/shim.js';
 
 /**
  * Register/un-register pixel perfect hover wrappers

@@ -6,7 +6,7 @@ import {
   resolveCreateDocumentRequest,
   TagInput,
 } from './scripts/utils.js';
-import { libWrapper } from './scripts/shim/shim.js';
+import { libWrapper } from './scripts/libs/shim/shim.js';
 import { enableUniversalSelectTool } from './scripts/tools/selectTool.js';
 import { META_INDEX_ID, PresetAPI, PresetCollection } from './scripts/presets/collection.js';
 import { openPresetBrowser, registerPresetBrowserHooks } from './scripts/presets/browser/browserApp.js';

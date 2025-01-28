@@ -583,7 +583,7 @@ export class BrushMenu extends FormApplication {
     const settings = this._settings;
     const app = this;
 
-    import('./jquery-ui/jquery-ui.js').then((module) => {
+    import('./libs/jquery-ui/jquery-ui.js').then((module) => {
       const rotationRangeLabel = html.find('.rotation-range-label');
       html.find('.rotation-slider').slider({
         range: true,

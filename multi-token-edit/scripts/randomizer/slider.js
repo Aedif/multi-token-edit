@@ -1,5 +1,5 @@
-import Color from '../color/color.js';
-import '../jquery-ui/jquery-ui.js';
+import Color from '../libs/color/color.js';
+import '../libs/jquery-ui/jquery-ui.js';
 
 export class ColorSlider {
   constructor(html, colors) {

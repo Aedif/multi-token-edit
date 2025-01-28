@@ -1,7 +1,7 @@
 import { MODULE_ID, PIVOTS } from '../constants.js';
 import { getDataPivotPoint } from '../presets/utils.js';
 import { editPreviewPlaceables, PreviewTransformer } from '../previewTransformer.js';
-import { libWrapper } from '../shim/shim.js';
+import { libWrapper } from '../libs/shim/shim.js';
 import { enablePixelPerfectSelect } from '../tools/selectTool.js';
 import { loadImageVideoDimensions } from '../utils.js';
 import ScenescapeConfig from './configuration.js';
