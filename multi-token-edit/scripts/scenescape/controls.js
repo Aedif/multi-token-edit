@@ -213,7 +213,7 @@ export class ScenescapeControls {
         if (objects.length) {
           const draggedObject = objects[0];
           draggedObject._meDragging = true;
-          editPreviewPlaceables([draggedObject], true, () => {
+          editPreviewPlaceables([draggedObject], () => {
             draggedObject._meDragging = undefined;
             draggedObject.renderFlags.set({ refreshState: true });
           });
@@ -287,7 +287,7 @@ export class ScenescapeControls {
       const docToData = new Map();
       docToData.set(documentName, [obj.document.toObject()]);
 
-      PreviewTransformer.activate(null, {
+      PreviewTransformer.activate({
         docToData,
         preview: false,
         crosshair: false,

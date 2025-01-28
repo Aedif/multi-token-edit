@@ -11,6 +11,7 @@ import { Preset } from './preset.js';
 import {
   applyTaggerTagRules,
   getPivotOffset,
+  getPivotPoint,
   getPresetDataBounds,
   getTransformToOrigin,
   mergePresetDataToDefaultDoc,
@@ -59,7 +60,7 @@ export class Spawner {
     modifyPrompt = true,
     pivot = PIVOTS.TOP_LEFT,
     transform = {},
-    previewOnly = false,
+    crosshair = true,
     flags,
   } = {}) {
     if (!canvas.ready) throw Error("Canvas need to be 'ready' for a preset to be spawned.");
@@ -133,16 +134,12 @@ export class Spawner {
       if (Scenescape.active) {
         const size = preset.scenescapeSizeOverride();
         if (size) scale = ((100 / 6) * size) / getPresetDataBounds(docToData).height;
-
-        if (!preview) {
-          const params = Scenescape.getParallaxParameters({ x, y });
-          scale *= params.scale;
-        }
+        const bottom = getPivotPoint(PIVOTS.BOTTOM, docToData);
+        scale *= Scenescape.getParallaxParameters(preview ? bottom : { x, y }).scale;
+        DataTransformer.applyToMap(docToData, bottom, { scale });
       } else {
-        scale = canvas.grid.size / (preset.gridSize || 100);
+        DataTransformer.applyToMap(docToData, { x: 0, y: 0 }, { scale: canvas.grid.size / (preset.gridSize || 100) });
       }
-
-      DataTransformer.applyToMap(docToData, { x: 0, y: 0 }, { scale });
     }
 
     // Handle positioning of data around the spawn location
@@ -165,19 +162,20 @@ export class Spawner {
       DataTransformer.applyToMap(docToData, { x: 0, y: 0 }, posTransform);
     } else {
       // Display preview of the preset
-      const coords = await new Promise(async (resolve) => {
-        PreviewTransformer.activate(resolve, {
+      const confirm = await new Promise(async (resolve) => {
+        await PreviewTransformer.activate({
           docToData,
           snap: snapToGrid,
           restrict: previewRestrictedDocuments,
           pivot,
           preview: true,
-          crosshair: !previewOnly,
+          crosshair: crosshair,
           ...transform,
-          spawner: true,
+          callback: resolve,
         });
+        PreviewTransformer.feedPos(canvas.mousePosition);
       });
-      if (coords == null) return [];
+      if (!confirm) return [];
     }
 
     // ================================

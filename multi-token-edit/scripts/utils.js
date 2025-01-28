@@ -1,8 +1,8 @@
 import { AUDIO_EXTENSIONS, IMAGE_EXTENSIONS, MODULE_ID, SUPPORTED_PLACEABLES, VIDEO_EXTENSIONS } from './constants.js';
+import { Picker } from './picker.js';
 import { PresetBrowser } from './presets/browser/browserApp.js';
 import { Preset } from './presets/preset.js';
 import { Spawner } from './presets/spawner.js';
-import { PreviewTransformer } from './previewTransformer.js';
 import { applyRandomization } from './randomizer/randomizerUtils.js';
 
 export function interpolateColor(u, c1, c2) {
@@ -646,17 +646,12 @@ export class TagInput {
 export async function pickerSelectMultiLayerDocuments() {
   // Activate picker to define select box
   const coords = await new Promise(async (resolve) => {
-    PreviewTransformer.activate(resolve);
+    Picker.activate(resolve);
   });
   if (!coords) return [];
 
   // Selects placeables within the bounding box
-  const selectionRect = new PIXI.Rectangle(
-    coords.start.x,
-    coords.start.y,
-    coords.end.x - coords.start.x,
-    coords.end.y - coords.start.y
-  );
+  const selectionRect = new PIXI.Rectangle(coords.x1, coords.y1, coords.x2 - coords.x1, coords.y2 - coords.y1);
 
   let selected = [];
   SUPPORTED_PLACEABLES.forEach((documentName) => {

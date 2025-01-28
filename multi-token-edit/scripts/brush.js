@@ -176,7 +176,7 @@ export class Brush {
     return Spawner.spawnPreset({
       preset: this.preset,
       preview: true,
-      previewOnly: true,
+      crosshair: false,
       pivot: PIVOTS.CENTER,
       transform: this.transform,
       snapToGrid: this.snap,

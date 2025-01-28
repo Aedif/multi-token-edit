@@ -295,30 +295,23 @@ export default class RandomizerForm extends FormApplication {
 
     const t = this;
 
-    // TODO implement a class that does bound selection
-    // import('../picker.js').then((module) => {
-    //   module.Picker.activate((position) => {
-    //     if (position == null) return;
+    import('../picker.js').then((module) => {
+      module.Picker.activate((position) => {
+        if (position == null) return;
 
-    //     const form = $(event.target).closest('form');
+        const form = $(event.target).closest('form');
+        form.find('[name="minX"]').val(Math.floor(position.x1));
+        form.find('[name="maxX"]').val(Math.floor(position.x2));
+        form.find('[name="minY"]').val(Math.floor(position.y1));
+        form.find('[name="maxY"]').val(Math.floor(position.y2));
+        t.maximize();
+        t.configApp.maximize();
 
-    //     const minX = Math.min(position.start.x, position.end.x);
-    //     const maxX = Math.max(position.start.x, position.end.x);
-    //     const minY = Math.min(position.start.y, position.end.y);
-    //     const maxY = Math.max(position.start.y, position.end.y);
-
-    //     form.find('[name="minX"]').val(Math.floor(minX));
-    //     form.find('[name="maxX"]').val(Math.floor(maxX));
-    //     form.find('[name="minY"]').val(Math.floor(minY));
-    //     form.find('[name="maxY"]').val(Math.floor(maxY));
-    //     t.maximize();
-    //     t.configApp.maximize();
-
-    //     if (game.settings.get(MODULE_ID, 'autoSnap')) {
-    //       t._onSnapToGrid(event);
-    //     }
-    //   });
-    // });
+        if (game.settings.get(MODULE_ID, 'autoSnap')) {
+          t._onSnapToGrid(event);
+        }
+      });
+    });
   }
 
   _onSnapToGrid(event) {

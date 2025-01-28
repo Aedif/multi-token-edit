@@ -12,8 +12,6 @@ import { pickerSelectMultiLayerDocuments, updateEmbeddedDocumentsViaGM } from '.
  */
 export class PreviewTransformer {
   static pickerOverlay;
-  static boundStart;
-  static boundEnd;
   static callback;
   static _transformAccumulator = { rotation: 0, scale: 1 };
 
@@ -28,11 +26,16 @@ export class PreviewTransformer {
 
   static addScaling(scale, origin) {
     this.applyTransform({ scale: 1 + scale }, origin ?? getPivotPoint(this._pivot, this._docToData));
-    this._transformAccumulator.scale *= this._scale;
+    this._transformAccumulator.scale *= 1 + scale;
   }
 
   static addElevation(elevation) {
     this.applyTransform({ z: elevation });
+
+    if (this._label) {
+      this._label.text = `[${getPresetDataBounds(this._docToData).elevation.bottom.toFixed(2)}]`;
+      this._label.anchor.set(1, -2);
+    }
   }
 
   static resetTransformAccumulator() {
@@ -157,53 +160,7 @@ export class PreviewTransformer {
       });
 
       transform.z = params.elevation - b.elevation.bottom;
-    }
-
-    // Dynamic scenescape scaling
-    if (Scenescape.active && Scenescape.autoScale) {
-      // const params = Scenescape.getParallaxParameters({ x, y });
-      // console.log(params);
-      // // Special handling for Token drag
-      // // Tokens have an actor defined size which we want to be maintained unless it was manually scaled during preview
-      // // TODO handle movement of multiple tokens at once, or a token within a prefab
-      // if (this._docToData.size === 1 && this._docToData.get('Token')?.length === 1) {
-      //   const tokenData = this._docToData.get('Token')[0];
-      //   let size;
-      //   // Manual token scaling, this should apply a fixed size to the token
-      //   if (this._scale != 1) {
-      //     size = Scenescape.getTokenSize(tokenData) * this._scale;
-      //     let tSize = (size * 6) / 100;
-      //     foundry.utils.setProperty(tokenData, `flags.${MODULE_ID}.size`, tSize);
-      //     if (this._previews) foundry.utils.setProperty(this._previews[0].document, `flags.${MODULE_ID}.size`, tSize);
-      //   }
-      //   // Scenescape dynamic scaling
-      //   if (params.scale !== this._paraScale) {
-      //     size = size ?? Scenescape.getTokenSize(tokenData);
-      //     const currHeight = tokenData.height * canvas.dimensions.size;
-      //     const targHeight = size * params.scale;
-      //     let scale = targHeight / currHeight;
-      //     this._paraScale = params.scale;
-      //     this._scale *= scale;
-      //   }
-      // } else {
-      //   if (params.scale !== this._paraScale) {
-      //     this._scale *= params.scale / this._paraScale;
-      //     this._paraScale = params.scale;
-      //   }
-      // }
-      // pos.z = params.elevation;
-      // this._elevation = 0;
-      // if (this._label) this._label.text = '';
-    } else {
-      if (this._elevation != 0) {
-        transform.z = this._elevation;
-        delete pos.z;
-        this._elevation = 0;
-        if (this._label) {
-          this._label.text = `[${(b.elevation.bottom + transform.z).toFixed(2)}]`;
-          this._label.anchor.set(1, -2);
-        }
-      }
+      if (this._label) this._label.text = '';
     }
 
     // - end of transform calculations
@@ -229,21 +186,17 @@ export class PreviewTransformer {
    * @param {Boolean} options.snap                  (optional) if true returned coordinates will be snapped to grid
    * @param {String}  options.label                  (optional) preview placeables document name
    */
-  static async activate(
-    callback,
-    {
-      docToData = null,
-      snap = true,
-      restrict = null,
-      pivot = PIVOTS.CENTER,
-      preview = true,
-      crosshair = true,
-      scale = null,
-      rotation = null,
-      spawner = false, // (maybe can be removed, indicated that activation was triggered by Spawner API)
-      confirmOnRelease = false, // TODO confirm what this does
-    } = {}
-  ) {
+  static async activate({
+    docToData = null,
+    snap = true,
+    restrict = null,
+    pivot = PIVOTS.CENTER,
+    preview = true,
+    crosshair = true,
+    scale = null,
+    rotation = null,
+    callback = null,
+  } = {}) {
     this.destroy();
 
     if (!docToData || docToData.size === 0) throw Error('No data provided for transformation.');
@@ -251,12 +204,8 @@ export class PreviewTransformer {
     this.callback = callback;
     this._docToData = docToData;
     this._rotation = rotation ?? 0;
-    this._scale = scale ?? 1;
-    this._elevation = 0;
     this._pivot = Scenescape.active ? PIVOTS.BOTTOM : pivot;
     this._snap = snap;
-    this._mirrorX = false;
-    this._mirrorY = false;
 
     // What 'preview' contains
     // documentName: preset.documentName,
@@ -274,23 +223,8 @@ export class PreviewTransformer {
     // snap
     // restrict  (these are document to ignore when generating previews)
     // pivot
-    // previewOnly (generate previews, no transform according to mouse position)
-    // spawner (maybe can be removed, indicated that activation was triggered by Spawner API)
     // scale (also passed in by Spawner API, which is most used by the BrushMenu)
     // rotation (same as scale)
-    // transformOnly (new new, do not generate preview at all, simply transform previewData)
-
-    if (Scenescape.active && Scenescape.autoScale) {
-      this._snap = false;
-
-      const b = getPresetDataBounds(this._docToData);
-      const bottom = { x: b.x + b.width / 2, y: b.y + b.height };
-      this._paraScale = Scenescape.getParallaxParameters(bottom).scale;
-
-      // If PreviewTransformer was triggered via a spawnPreset(...) we want to apply the initial
-      // scenescape scale at the given position, as the data being previewed was not yet placed on the scene
-      if (spawner) this._scale = (scale ?? 1) * this._paraScale;
-    }
 
     if (preview) {
       let { previews, previewDocuments } = await this._genPreviews(restrict);
@@ -300,12 +234,12 @@ export class PreviewTransformer {
       this._previews = previews;
     }
 
-    if (crosshair) this.createPickerOverlay(confirmOnRelease);
+    if (crosshair) this.createPickerOverlay();
 
     this._active = true;
   }
 
-  static createPickerOverlay(confirmOnRelease) {
+  static createPickerOverlay() {
     if (game.Levels3DPreview?._active) {
       Mouse3D.activate({
         mouseMoveCallback: PreviewTransformer.feedPos.bind(PreviewTransformer),
@@ -336,23 +270,13 @@ export class PreviewTransformer {
       pickerOverlay.interactive = true;
       pickerOverlay.zIndex = 5;
       pickerOverlay.on('remove', () => pickerOverlay.off('pick'));
-      pickerOverlay.on('mousedown', (event) => {
-        this.boundStart = event.data.getLocalPosition(pickerOverlay);
-      });
       pickerOverlay.on('mouseup', (event) => {
-        this.boundEnd = event.data.getLocalPosition(pickerOverlay);
-        if (confirmOnRelease) this.resolve(PreviewTransformer.boundEnd);
-      });
-      pickerOverlay.on('click', (event) => {
         if (event.nativeEvent.which == 2) {
-          this.callback?.(null);
+          this.callback?.(false);
         } else {
-          const minX = Math.min(this.boundStart.x, this.boundEnd.x);
-          const maxX = Math.max(this.boundStart.x, this.boundEnd.x);
-          const minY = Math.min(this.boundStart.y, this.boundEnd.y);
-          const maxY = Math.max(this.boundStart.y, this.boundEnd.y);
-          this.callback?.({ start: { x: minX, y: minY }, end: { x: maxX, y: maxY } });
+          this.callback?.(true);
         }
+        this.callback = null;
         this.destroy();
       });
       canvas.stage.addChild(pickerOverlay);
@@ -365,11 +289,9 @@ export class PreviewTransformer {
     this.setPosition(pos);
   }
 
-  static resolve(pos) {
-    if (this.callback) {
-      if (pos == null) this.callback(null);
-      else this.callback?.({ start: { x: pos.x, y: pos.y, z: pos.z }, end: { x: pos.x, y: pos.y, z: pos.z } });
-    }
+  static resolve(confirm) {
+    this.callback?.(confirm);
+    this.callback = null;
     this.destroy();
   }
 
@@ -378,7 +300,7 @@ export class PreviewTransformer {
       this.pickerOverlay.parent?.removeChild(this.pickerOverlay);
       this.pickerOverlay.destroy(true);
       this.pickerOverlay.children?.forEach((c) => c.destroy(true));
-      this.callback?.(null);
+      this.callback?.(false);
       this.pickerOverlay = null;
       this._label = null;
       Mouse3D.deactivate();
@@ -575,7 +497,7 @@ export class PreviewTransformer {
   }
 }
 
-export async function editPreviewPlaceables(placeables, confirmOnRelease = false, callback = null) {
+export async function editPreviewPlaceables(placeables, callback = null) {
   const controlled = new Set();
 
   if (placeables?.length) {
@@ -631,15 +553,18 @@ export async function editPreviewPlaceables(placeables, confirmOnRelease = false
   });
 
   // Lets create copies of original data so that we can perform a diff after transforms have been
-  // applied by the Picker
+  // applied by the PreviewTransformer
   const originalDocToData = new Map();
   docToData.forEach((dataArr, documentName) => {
     originalDocToData.set(documentName, foundry.utils.deepClone(dataArr));
   });
 
-  PreviewTransformer.activate(
-    async (coords) => {
-      if (coords == null) return callback?.();
+  PreviewTransformer.activate({
+    docToData,
+    snap: true,
+    pivot: PIVOTS.CENTER,
+    callback: async (confirm) => {
+      if (!confirm) return callback?.();
 
       docToData.forEach((data, documentName) => {
         let updates = [];
@@ -665,16 +590,10 @@ export async function editPreviewPlaceables(placeables, confirmOnRelease = false
           );
         }
 
-        callback?.(coords);
+        callback?.(confirm);
       });
     },
-    {
-      docToData,
-      snap: true,
-      pivot: PIVOTS.CENTER,
-      confirmOnRelease,
-    }
-  );
+  });
 
   return true;
 }
