@@ -171,9 +171,9 @@ export class Spawner {
           preview: true,
           crosshair: crosshair,
           ...transform,
+          ...canvas.mousePosition,
           callback: resolve,
         });
-        PreviewTransformer.feedPos(canvas.mousePosition);
       });
       if (!confirm) return [];
     }

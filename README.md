@@ -234,3 +234,7 @@ https://user-images.githubusercontent.com/7693704/196006020-9d308238-1888-4b98-b
 ## Select Tool
 
 Select Tool is added for AmbientLight, AmbientSound, MeasuredTemplate, Note and Region layers.
+
+# Commercial License
+
+Baileywiki Mass Edit is free to use for GMs and players, and for creators that offer free content. Creators who offer paid content must get a Commercial License. Contact Baileywiki on Discord to inquire. https://discord.gg/UVzfyvah6E

@@ -193,9 +193,11 @@ export class PreviewTransformer {
     pivot = PIVOTS.CENTER,
     preview = true,
     crosshair = true,
+    callback = null,
     scale = null,
     rotation = null,
-    callback = null,
+    x = null,
+    y = null,
   } = {}) {
     this.destroy();
 
@@ -203,7 +205,6 @@ export class PreviewTransformer {
 
     this.callback = callback;
     this._docToData = docToData;
-    this._rotation = rotation ?? 0;
     this._pivot = Scenescape.active ? PIVOTS.BOTTOM : pivot;
     this._snap = snap;
 
@@ -225,6 +226,16 @@ export class PreviewTransformer {
     // pivot
     // scale (also passed in by Spawner API, which is most used by the BrushMenu)
     // rotation (same as scale)
+
+    // If transforms have been provided as part of the activation, we will apply them now
+    if (scale != null || rotation != null) {
+      const pivotPoint = getPivotPoint(this._pivot, this._docToData);
+      if (scale != null) this.applyTransform({ scale }, pivotPoint);
+      if (rotation != null) this.applyTransform({ rotation }, pivotPoint);
+    }
+    if (x != null && y != null) {
+      this.setPosition({ x, y });
+    }
 
     if (preview) {
       let { previews, previewDocuments } = await this._genPreviews(restrict);
@@ -286,7 +297,7 @@ export class PreviewTransformer {
   }
 
   static feedPos(pos) {
-    this.setPosition(pos);
+    if (this.isActive()) this.setPosition(pos);
   }
 
   static resolve(confirm) {
