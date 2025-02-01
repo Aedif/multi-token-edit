@@ -472,6 +472,7 @@ export class BrushMenu extends FormApplication {
       }
 
       if (pPath) {
+        const tmfxActive = game.modules.get('tokenmagic')?.active;
         if (this._settings.randomColor) {
           const updates = this.preset.data.map(() => {
             return { color: '' };
@@ -479,12 +480,12 @@ export class BrushMenu extends FormApplication {
           await applyRandomization(updates, null, { color: { type: 'color', ...this._settings.randomColor } });
 
           this.preset.data.forEach((d, i) => {
-            if (this._settings.ddTint) this._applyDDTint(d, updates[i].color);
+            if (this._settings.ddTint && tmfxActive) this._applyDDTint(d, updates[i].color);
             else foundry.utils.setProperty(d, pPath, updates[i].color);
           });
         } else {
           this.preset.data.forEach((d) => {
-            if (this._settings.ddTint) this._applyDDTint(d, this._settings.color);
+            if (this._settings.ddTint && tmfxActive) this._applyDDTint(d, this._settings.color);
             else foundry.utils.setProperty(d, pPath, this._settings.color);
           });
         }

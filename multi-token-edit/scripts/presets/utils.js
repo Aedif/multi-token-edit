@@ -394,7 +394,7 @@ export function getDataBounds(documentName, data) {
     y2 = y1 + (height || 0);
     z2 = z1;
   }
-  return { x1, y1, x2, y2, z1, z2, width: x2 - x1, height: y2 - y1 };
+  return { x1, y1, x2, y2, z1, z2, x: x1, y: y1, width: x2 - x1, height: y2 - y1, elevation: { bottom: z1, top: z2 } };
 }
 
 export function isImage(path) {

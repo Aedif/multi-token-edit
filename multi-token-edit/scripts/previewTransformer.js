@@ -2,7 +2,7 @@ import { MODULE_ID, PIVOTS, SUPPORTED_PLACEABLES } from './constants.js';
 import { DataTransformer } from './data/transformer.js';
 import { LinkerAPI } from './linker/linker.js';
 import { Mouse3D } from './mouse3d.js';
-import { getPivotPoint, getPresetDataBounds } from './presets/utils.js';
+import { getDataBounds, getPivotPoint, getPresetDataBounds } from './presets/utils.js';
 import { Scenescape } from './scenescape/scenescape.js';
 import { pickerSelectMultiLayerDocuments, updateEmbeddedDocumentsViaGM } from './utils.js';
 
@@ -19,14 +19,80 @@ export class PreviewTransformer {
     return this._active;
   }
 
+  static genManipulatorData(documents, pivotReference) {
+    if (!(documents instanceof Set)) documents = new Set(documents);
+
+    const docToData = new Map();
+
+    let pivotReferenceDocument;
+    if (pivotReference) {
+      pivotReferenceDocument = { documentName: pivotReference.documentName, data: pivotReference.toObject() };
+      documents.delete(pivotReference);
+      docToData.set(pivotReferenceDocument.documentName, [pivotReferenceDocument.data]);
+    }
+
+    for (const document of documents) {
+      let data = document.toObject();
+
+      // TokenAttacher support
+      // if (
+      //   document.documentName === 'Token' &&
+      //   game.modules.get('token-attacher')?.active &&
+      //   tokenAttacher?.generatePrototypeAttached
+      // ) {
+      //   const attached = data.flags?.['token-attacher']?.attached || {};
+      //   if (!foundry.utils.isEmpty(attached)) {
+      //     const prototypeAttached = tokenAttacher.generatePrototypeAttached(data, attached);
+      //     foundry.utils.setProperty(data, 'flags.token-attacher.attached', null);
+      //     foundry.utils.setProperty(data, 'flags.token-attacher.prototypeAttached', prototypeAttached);
+      //     foundry.utils.setProperty(data, 'flags.token-attacher.grid', {
+      //       size: canvas.grid.size,
+      //       w: canvas.grid.sizeX,
+      //       h: canvas.grid.sizeY,
+      //     });
+      //   }
+      // }
+
+      if (!docToData.get(document.documentName)) docToData.set(document.documentName, [data]);
+      else docToData.get(document.documentName).push(data);
+    }
+
+    return { pivotReferenceDocument, docToData };
+  }
+
+  static async docToDataUpdate(docToData, scene = canvas.scene, context = {}, originalDocuments = null) {
+    for (let [documentName, dataArr] of docToData.entries()) {
+      if (originalDocuments) {
+        dataArr = dataArr
+          .map((data) => {
+            const document = originalDocuments.find((d) => d.id === data._id);
+            if (document) return { _id: data._id, ...foundry.utils.diffObject(document.toObject(), data) };
+            else return data;
+          })
+          .filter((data) => Object.keys(data).length > 1);
+      }
+
+      await updateEmbeddedDocumentsViaGM(documentName, dataArr, context, scene);
+    }
+  }
+
   static addRotation(rotation) {
-    this.applyTransform({ rotation }, getPivotPoint(this._pivot, this._docToData));
+    this.applyTransform({ rotation }, this.pivotPoint(this._pivot));
     this._transformAccumulator.rotation += rotation;
   }
 
   static addScaling(scale, origin) {
-    this.applyTransform({ scale: 1 + scale }, origin ?? getPivotPoint(this._pivot, this._docToData));
+    this.applyTransform({ scale: 1 + scale }, origin ?? this.pivotPoint(this._pivot));
     this._transformAccumulator.scale *= 1 + scale;
+
+    // If we're on a scenescape we want manual changes to the token scale to override the actor defined token size
+    if (Scenescape.active) {
+      if (this._docToData?.get('Token')) {
+        this._docToData.get('Token').forEach((d) => {
+          foundry.utils.setProperty(d, `flags.${MODULE_ID}.size`, d.height);
+        });
+      }
+    }
   }
 
   static addElevation(elevation) {
@@ -48,14 +114,25 @@ export class PreviewTransformer {
   }
 
   static mirrorX() {
-    this.applyTransform({ mirrorX: true }, getPivotPoint(PIVOTS.CENTER, this._docToData));
+    this.applyTransform({ mirrorX: true }, this.pivotPoint(PIVOTS.CENTER));
   }
 
   static mirrorY() {
-    this.applyTransform({ mirrorY: true }, getPivotPoint(PIVOTS.CENTER, this._docToData));
+    this.applyTransform({ mirrorY: true }, this.pivotPoint(PIVOTS.CENTER));
+  }
+
+  static pivotPoint(pivot) {
+    return getPivotPoint(pivot, null, this.pivotReferenceBounds());
+  }
+
+  static pivotReferenceBounds() {
+    return this._pivotReferenceDocument
+      ? getDataBounds(this._pivotReferenceDocument.documentName, this._pivotReferenceDocument.data)
+      : getPresetDataBounds(this._docToData);
   }
 
   static applyTransform(transform, origin) {
+    origin = origin ?? this.pivotPoint(this._pivot);
     // Apply transformations
     if (this._previews) {
       for (const previewContainer of this._previews) {
@@ -106,13 +183,13 @@ export class PreviewTransformer {
     }
   }
 
-  static setPosition({ x, y, z } = {}) {
+  static setPosition({ x, y, z } = {}, pivotPoint) {
     if (!x && !y && !z) return;
     let pos = { x, y, z };
 
     // Place the preview pivot point on the provided position
-    const b = getPresetDataBounds(this._docToData);
-    const pivotPoint = getPivotPoint(this._pivot, this._docToData, b);
+    const b = this.pivotReferenceBounds();
+    pivotPoint = pivotPoint ?? this.pivotPoint(this._pivot);
     let transform = { x: pos.x - pivotPoint.x, y: pos.y - pivotPoint.y, z: 0 };
 
     if (pos.z != null) {
@@ -126,38 +203,29 @@ export class PreviewTransformer {
 
       transform.x += snapped.x - postTransformPos.x;
       transform.y += snapped.y - postTransformPos.y;
+
+      // TODO apply this to pivot point too?
     }
 
-    // TODO REDO SCENESCAPE scaling
     let paraScale;
     if (Scenescape.active && Scenescape.autoScale) {
-      const previousParams = Scenescape.getParallaxParameters(getPivotPoint(PIVOTS.BOTTOM, null, b));
+      const previousParams = Scenescape.getParallaxParameters(pivotPoint);
       const params = Scenescape.getParallaxParameters({ x, y });
 
       if (previousParams.scale !== params.scale) {
         paraScale = 1 * (params.scale / previousParams.scale);
       }
 
-      // Correct token sizes to get rid of accumulating errors
+      // Correct token size by adjusting the scale to match the expected token size at the new parallax parameter
       // TODO: Move into a function?
-      this._docToData.get('Token')?.forEach((data) => {
-        data.width = foundry.utils.getProperty(data, `flags.${MODULE_ID}.width`) ?? data.width;
+      const data = this._docToData.get('Token')?.[0];
+      if (data) {
         data.height = foundry.utils.getProperty(data, `flags.${MODULE_ID}.height`) ?? data.height;
 
-        const r = data.width / data.height;
-
-        let height = (Scenescape.getTokenSize(data) / canvas.dimensions.size) * previousParams.scale;
-        let width = height * r;
-
-        // Adjust bottom position to take into account the fixed token size
-        data.x += ((width - data.width) / 2) * canvas.dimensions.size;
-        data.y += (data.height - height) * canvas.dimensions.size;
-
-        data.width = width;
-        data.height = height;
-        foundry.utils.setProperty(data, `flags.${MODULE_ID}.width`, data.width);
-        foundry.utils.setProperty(data, `flags.${MODULE_ID}.height`, data.height);
-      });
+        const expectedHeight = (Scenescape.getTokenSize(data) / canvas.dimensions.size) * params.scale;
+        const actualHeight = paraScale * data.height;
+        paraScale *= expectedHeight / actualHeight;
+      }
 
       transform.z = params.elevation - b.elevation.bottom;
       if (this._label) this._label.text = '';
@@ -191,6 +259,7 @@ export class PreviewTransformer {
     snap = true,
     restrict = null,
     pivot = PIVOTS.CENTER,
+    pivotReferenceDocument,
     preview = true,
     crosshair = true,
     callback = null,
@@ -206,30 +275,12 @@ export class PreviewTransformer {
     this.callback = callback;
     this._docToData = docToData;
     this._pivot = Scenescape.active ? PIVOTS.BOTTOM : pivot;
+    this._pivotReferenceDocument = pivotReferenceDocument;
     this._snap = snap;
-
-    // What 'preview' contains
-    // documentName: preset.documentName,
-    // previewData: docToData,
-    // snap: snapToGrid,
-    // label: previewLabel,
-    // restrict: previewRestrictedDocuments,
-    // pivot,
-    // previewOnly,
-    // ...transform,
-    // spawner: true,
-
-    // New parameters
-    // docToData
-    // snap
-    // restrict  (these are document to ignore when generating previews)
-    // pivot
-    // scale (also passed in by Spawner API, which is most used by the BrushMenu)
-    // rotation (same as scale)
 
     // If transforms have been provided as part of the activation, we will apply them now
     if (scale != null || rotation != null) {
-      const pivotPoint = getPivotPoint(this._pivot, this._docToData);
+      const pivotPoint = this.pivotPoint(this._pivot);
       if (scale != null) this.applyTransform({ scale }, pivotPoint);
       if (rotation != null) this.applyTransform({ rotation }, pivotPoint);
     }
@@ -282,6 +333,7 @@ export class PreviewTransformer {
       pickerOverlay.zIndex = 5;
       pickerOverlay.on('remove', () => pickerOverlay.off('pick'));
       pickerOverlay.on('mouseup', (event) => {
+        console.log(event);
         if (event.nativeEvent.which == 2) {
           this.callback?.(false);
         } else {
@@ -290,6 +342,7 @@ export class PreviewTransformer {
         this.callback = null;
         this.destroy();
       });
+
       canvas.stage.addChild(pickerOverlay);
       this.pickerOverlay = pickerOverlay;
       this.feedPos(canvas.mousePosition);
@@ -508,8 +561,9 @@ export class PreviewTransformer {
   }
 }
 
-export async function editPreviewPlaceables(placeables, callback = null) {
+export async function editPreviewPlaceables(placeables, callback = null, mainPlaceable = null) {
   const controlled = new Set();
+  let hoveredDocument = mainPlaceable?.document;
 
   if (placeables?.length) {
     placeables.forEach((p) => {
@@ -522,6 +576,12 @@ export async function editPreviewPlaceables(placeables, callback = null) {
         controlled.add(p.document);
         LinkerAPI.getLinkedDocuments(p.document).forEach((d) => controlled.add(d));
       });
+      const hover = canvas.getLayerByEmbeddedName(documentName).hover;
+      if (hover) {
+        if (!hoveredDocument) hoveredDocument = hover.document;
+        controlled.add(hover.document);
+        LinkerAPI.getLinkedDocuments(hover.document).forEach((d) => controlled.add(d));
+      }
     });
   }
 
@@ -532,77 +592,27 @@ export async function editPreviewPlaceables(placeables, callback = null) {
 
   if (!controlled.size) return false;
 
-  // Generate data from the selected placeables and pass them to Picker to create previews
-  const docToData = new Map();
-
-  controlled.forEach((document) => {
-    const documentName = document.documentName;
-    if (!SUPPORTED_PLACEABLES.includes(documentName)) return;
-
-    let data = document.toObject();
-
-    if (
-      documentName === 'Token' &&
-      game.modules.get('token-attacher')?.active &&
-      tokenAttacher?.generatePrototypeAttached
-    ) {
-      const attached = data.flags?.['token-attacher']?.attached || {};
-      if (!foundry.utils.isEmpty(attached)) {
-        const prototypeAttached = tokenAttacher.generatePrototypeAttached(data, attached);
-        foundry.utils.setProperty(data, 'flags.token-attacher.attached', null);
-        foundry.utils.setProperty(data, 'flags.token-attacher.prototypeAttached', prototypeAttached);
-        foundry.utils.setProperty(data, 'flags.token-attacher.grid', {
-          size: canvas.grid.size,
-          w: canvas.grid.sizeX,
-          h: canvas.grid.sizeY,
-        });
-      }
-    }
-
-    if (docToData.get(documentName)) docToData.get(documentName).push(data);
-    else docToData.set(documentName, [data]);
-  });
-
-  // Lets create copies of original data so that we can perform a diff after transforms have been
-  // applied by the PreviewTransformer
-  const originalDocToData = new Map();
-  docToData.forEach((dataArr, documentName) => {
-    originalDocToData.set(documentName, foundry.utils.deepClone(dataArr));
-  });
+  const { docToData, pivotReferenceDocument } = PreviewTransformer.genManipulatorData(controlled, hoveredDocument);
 
   PreviewTransformer.activate({
     docToData,
     snap: true,
     pivot: PIVOTS.CENTER,
+    pivotReferenceDocument,
     callback: async (confirm) => {
       if (!confirm) return callback?.();
 
-      docToData.forEach((data, documentName) => {
-        let updates = [];
+      await PreviewTransformer.docToDataUpdate(
+        docToData,
+        canvas.scene,
+        {
+          ignoreLinks: true,
+          animate: false,
+        },
+        controlled
+      );
 
-        const originalData = originalDocToData.get(documentName);
-        for (let i = 0; i < originalData.length; i++) {
-          const diff = foundry.utils.diffObject(originalData[i], data[i]);
-          if (!foundry.utils.isEmpty(diff)) {
-            diff._id = originalData[i]._id;
-            updates.push(diff);
-          }
-        }
-        if (updates.length) {
-          updateEmbeddedDocumentsViaGM(
-            documentName,
-            updates,
-            {
-              ignoreLinks: true,
-              animate: false,
-              preventParallaxScaling: true,
-            },
-            canvas.scene
-          );
-        }
-
-        callback?.(confirm);
-      });
+      callback?.(confirm);
     },
   });
 
