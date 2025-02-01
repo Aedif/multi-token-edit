@@ -1,12 +1,12 @@
 import { MODULE_ID, PIVOTS } from '../constants.js';
 import { getDataPivotPoint } from '../presets/utils.js';
-import { editPreviewPlaceables, PreviewTransformer } from '../previewTransformer.js';
 import { libWrapper } from '../libs/shim/shim.js';
 import { enablePixelPerfectSelect } from '../tools/selectTool.js';
 import { loadImageVideoDimensions } from '../utils.js';
 import ScenescapeConfig from './configuration.js';
 import { Scenescape } from './scenescape.js';
 import { LinkerAPI } from '../linker/linker.js';
+import { editPreviewPlaceables, Transformer } from '../transformer.js';
 
 /**
  * Class to manage registering and un-registering of wrapper functions to change
@@ -249,7 +249,7 @@ export class ScenescapeControls {
       MODULE_ID,
       'PlaceableObject.prototype._canDragLeftStart',
       function (wrapped, user, event) {
-        if (PreviewTransformer.isActive() || !this._canDrag(game.user, event)) return false;
+        if (Transformer.active() || !this._canDrag(game.user, event)) return false;
 
         return wrapped(user, event);
       },
@@ -290,11 +290,7 @@ export class ScenescapeControls {
     const documentName = this.constructor.documentName;
     const incrementScale = game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.SHIFT) ? 0.5 : 1.0;
 
-    const updateData = [];
-
     for (const obj of objects) {
-      let update = { _id: obj.id };
-
       const bottom = getDataPivotPoint(documentName, obj.document, PIVOTS.BOTTOM);
       const nBottom = Scenescape.moveCoordinate(
         bottom,
@@ -303,29 +299,12 @@ export class ScenescapeControls {
         documentName === 'Tile'
       );
 
-      const linkedDocuments = LinkerAPI.getHardLinkedDocuments(obj.document, true);
-      const { docToData, pivotReferenceDocument } = PreviewTransformer.genManipulatorData(
-        linkedDocuments,
-        obj.document
-      );
-
-      PreviewTransformer.activate({
-        docToData,
-        preview: false,
-        crosshair: false,
-        snap: false,
-        pivot: PIVOTS.BOTTOM,
-        pivotReferenceDocument,
-      });
-      PreviewTransformer.feedPos(nBottom);
-      PreviewTransformer.destroy();
-
-      PreviewTransformer.docToDataUpdate(docToData, canvas.scene, { teleport: true, ignoreLinks: true }, [
-        obj.document,
-        ...linkedDocuments,
-      ]);
-
-      updateData.push(update);
+      new Transformer()
+        .documents(LinkerAPI.getHardLinkedDocuments(obj.document, true))
+        .pivotDocument(obj)
+        .pivot(PIVOTS.BOTTOM)
+        .position(nBottom)
+        .update({ teleport: true, ignoreLinks: true });
     }
 
     return objects;

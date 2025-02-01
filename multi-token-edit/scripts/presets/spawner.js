@@ -2,9 +2,9 @@ import { checkApplySpecialFields } from '../../applications/formUtils.js';
 import { showGenericForm } from '../../applications/multiConfig.js';
 import { MODULE_ID, PIVOTS } from '../constants.js';
 import { DataTransformer } from '../data/transformer.js';
-import { PreviewTransformer } from '../previewTransformer.js';
 import { applyRandomization } from '../randomizer/randomizerUtils.js';
 import { Scenescape } from '../scenescape/scenescape.js';
+import { Transformer } from '../transformer.js';
 import { createDocuments, executeScript } from '../utils.js';
 import { PresetAPI } from './collection.js';
 import { Preset } from './preset.js';
@@ -163,7 +163,7 @@ export class Spawner {
     } else {
       // Display preview of the preset
       const confirm = await new Promise(async (resolve) => {
-        await PreviewTransformer.activate({
+        new Transformer({
           docToData,
           snap: snapToGrid,
           restrict: previewRestrictedDocuments,
@@ -171,7 +171,6 @@ export class Spawner {
           preview: true,
           crosshair: crosshair,
           ...transform,
-          ...canvas.mousePosition,
           callback: resolve,
         });
       });

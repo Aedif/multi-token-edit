@@ -44,15 +44,15 @@ export const LINKER_DOC_COLORS = {
 };
 
 export const PIVOTS = {
-  TOP_LEFT: 0,
-  TOP: 1,
-  TOP_RIGHT: 2,
-  LEFT: 3,
-  CENTER: 4,
-  RIGHT: 5,
-  BOTTOM_LEFT: 6,
-  BOTTOM: 7,
-  BOTTOM_RIGHT: 8,
+  TOP_LEFT: 'TOP_LEFT',
+  TOP: 'TOP',
+  TOP_RIGHT: 'TOP_RIGHT',
+  LEFT: 'LEFT',
+  CENTER: 'CENTER',
+  RIGHT: 'RIGHT',
+  BOTTOM_LEFT: 'BOTTOM_LEFT',
+  BOTTOM: 'BOTTOM',
+  BOTTOM_RIGHT: 'BOTTOM_RIGHT',
 };
 
 export const THRESHOLDS = {

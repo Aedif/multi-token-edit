@@ -276,7 +276,7 @@ export class PreviewTransformer {
     this._docToData = docToData;
     this._pivot = Scenescape.active ? PIVOTS.BOTTOM : pivot;
     this._pivotReferenceDocument = pivotReferenceDocument;
-    this._snap = snap;
+    this._snap = Scenescape.active ? false : snap;
 
     // If transforms have been provided as part of the activation, we will apply them now
     if (scale != null || rotation != null) {
