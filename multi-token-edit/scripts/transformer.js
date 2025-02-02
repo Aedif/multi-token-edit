@@ -6,6 +6,73 @@ import { getDataBounds, getPivotPoint, getPresetDataBounds } from './presets/uti
 import { Scenescape } from './scenescape/scenescape.js';
 import { pickerSelectMultiLayerDocuments, updateEmbeddedDocumentsViaGM } from './utils.js';
 
+export class TransformBus {
+  static transformers = [];
+  static _transformAccumulator = { rotation: 0, scale: 1 };
+
+  static active() {
+    return Boolean(this.transformers.length);
+  }
+
+  static register(transformer) {
+    this.transformers.push(new WeakRef(transformer));
+  }
+
+  static unregister(transformer) {
+    this.transformers = this.transformers.filter((ref) => ref.deref() != transformer);
+  }
+
+  static clear() {
+    this.transformers = [];
+  }
+
+  static resolve(confirm) {
+    this.transformers = this.transformers.filter((ref) => {
+      const transformer = ref.deref();
+      transformer.callback?.(confirm);
+      return transformer;
+    });
+  }
+
+  // ***********
+  // Static functions to be called by external systems to feed transformations to an active crosshair/preview
+
+  static addRotation(rotation) {
+    this.transformers = this.transformers.filter((ref) => ref.deref()?.rotate(rotation));
+    this._transformAccumulator.rotation += rotation;
+  }
+
+  static addScaling(scale) {
+    this.transformers = this.transformers.filter((ref) => ref.deref()?.scale(1 + scale));
+    this._transformAccumulator.scale *= 1 + scale;
+  }
+
+  static addElevation(elevation) {
+    this.transformers = this.transformers.filter((ref) => ref.deref()?.elevate(elevation));
+  }
+
+  static resetTransformAccumulator() {
+    this._transformAccumulator.rotation = 0;
+    this._transformAccumulator.scale = 1;
+  }
+
+  static getTransformAccumulator() {
+    return foundry.utils.deepClone(this._transformAccumulator);
+  }
+
+  static mirrorX() {
+    this.transformers = this.transformers.filter((ref) => ref.deref()?.mirrorX());
+  }
+
+  static mirrorY() {
+    this.transformers = this.transformers.filter((ref) => ref.deref()?.mirrorY());
+  }
+
+  static position(pos) {
+    this.transformers = this.transformers.filter((ref) => ref.deref()?.position(pos));
+  }
+}
+
 /**
  * Cross-hair and optional preview image/label that can be activated to allow the user to select
  * an area on the screen.
@@ -13,7 +80,6 @@ import { pickerSelectMultiLayerDocuments, updateEmbeddedDocumentsViaGM } from '.
 export class Transformer {
   static crosshairOverlay;
   static callback;
-  static _transformAccumulator = { rotation: 0, scale: 1 };
 
   static active() {
     return Boolean(this.crosshairOverlay);
@@ -35,7 +101,7 @@ export class Transformer {
       pivot = PIVOTS.CENTER,
       preview = false,
       crosshair = false,
-      callback = null,
+      callback,
       scale = null,
       rotation = null,
       x = null,
@@ -62,7 +128,8 @@ export class Transformer {
 
   /**
    * Add documents/placeables to the transformer
-   * @param {*} documents
+   * @param {PlaceableObject | Iterable<PlaceableObject> | Document | Iterable<Document>} documents
+   * @returns {Transformer}
    */
   documents(documents) {
     if (!(Symbol.iterator in Object(documents))) {
@@ -86,6 +153,12 @@ export class Transformer {
     return this;
   }
 
+  /**
+   * Set a document to be used as a pivot for all transformations.
+   * @see pivot
+   * @param {PlaceableObject | Document} document
+   * @returns {Transformer}
+   */
   pivotDocument(document) {
     document = document.document ?? document;
     this.documents(document);
@@ -95,24 +168,54 @@ export class Transformer {
     return this;
   }
 
+  /**
+   * Set the pivot location.
+   * @see PIVOTS
+   * @param {string} pivot
+   * @returns {Transformer}
+   */
   pivot(pivot) {
     if (!PIVOTS.hasOwnProperty(pivot)) throw Error('Invalid Pivot');
     this._pivot = Scenescape.active ? PIVOTS.BOTTOM : pivot;
     return this;
   }
 
+  /**
+   * Should the data be snapped to the canvas grid
+   * @param {boolean} val
+   * @returns {Transformer}
+   */
   snap(val) {
     this._snap = Scenescape.active ? false : val;
     return this;
   }
 
-  rotate(degrees, pivotPoint) {
-    this.applyTransform({ rotation: degrees }, pivotPoint ?? this.pivotPoint(this._pivot));
+  /**
+   * Rotate data by provided number of degrees
+   * @param {number} degrees
+   * @returns {Transformer}
+   */
+  rotate(degrees) {
+    this.applyTransform({ rotation: degrees }, this.pivotPoint(this._pivot));
     return this;
   }
 
-  scale(val, pivotPoint) {
-    this.applyTransform({ scale: val }, pivotPoint ?? this.pivotPoint(this._pivot));
+  elevate(elevation) {
+    this.applyTransform({ z: elevation }, this.pivotPoint(this._pivot));
+    if (Transformer._label) {
+      Transformer._label.text = `[${getPresetDataBounds(this._docToData).elevation.bottom.toFixed(2)}]`;
+      Transformer._label.anchor.set(1, -2);
+    }
+    return this;
+  }
+
+  /**
+   * Scale data by the provided value
+   * @param {number} val
+   * @returns {Transformer}
+   */
+  scale(val) {
+    this.applyTransform({ scale: val }, this.pivotPoint(this._pivot));
 
     // If we're on a scenescape we want manual changes to the token scale to override the actor defined token size
     if (Scenescape.active) {
@@ -125,6 +228,31 @@ export class Transformer {
     return this;
   }
 
+  /**
+   * Mirrors data on the x-axis around the center pivot
+   * @returns {Transformer}
+   */
+  mirrorX() {
+    this.applyTransform({ mirrorX: true }, this.pivotPoint(PIVOTS.CENTER));
+    return this;
+  }
+
+  /**
+   * Mirrors data on the y-axis around the center pivot
+   * @returns {Transformer}
+   */
+  mirrorY() {
+    this.applyTransform({ mirrorY: true }, this.pivotPoint(PIVOTS.CENTER));
+    return this;
+  }
+
+  /**
+   * Position data on the provided coordinates
+   * @param {number | Object} x either a numerical x coordinate or an object containing x, y, and/or z coordinates
+   * @param {number} y
+   * @param {number} z
+   * @returns {Transformer}
+   */
   position(x, y, z) {
     if (x instanceof Object) ({ x, y, z } = x);
     if (x == null && y == null && z == null) throw Error('Invalid position.');
@@ -237,9 +365,14 @@ export class Transformer {
     } else {
       DataTransformer.applyToMap(this._docToData, origin, transform);
     }
+    return this;
   }
 
-  destroyPreview(confirm = false) {
+  /**
+   * Clear previews
+   * @see preview
+   */
+  destroyPreview(confirm) {
     if (this._previewDocuments) {
       this._previewDocuments.forEach((name) => {
         const layer = canvas.getLayerByEmbeddedName(name);
@@ -254,17 +387,22 @@ export class Transformer {
       });
     }
 
+    if (confirm != null) this.callback?.(confirm);
+
     this._layer = null;
     this._previewDocuments = null;
     this._previews = null;
-    this.callback?.(confirm);
-    this.callback = null;
   }
 
+  /**
+   * Create a preview out of documents/data fed in via the constructor or documents(...)
+   * @see documents
+   * @returns {Transformer}
+   */
   preview() {
     if (!this._docToData.size) throw Error('Cannot enable preview before assigning data/documents to the transformer.');
 
-    this.destroyPreview();
+    this.destroyPreview(null);
 
     let { previews, previewDocuments } = Transformer._genPreviews(this._restrict, this._docToData);
     this._layer = previewDocuments.size !== 1 ? canvas.walls : canvas.getLayerByEmbeddedName(previewDocuments.first());
@@ -273,6 +411,12 @@ export class Transformer {
     return this;
   }
 
+  /**
+   * Create a crosshair cursor which continually feed its position via position(...) function
+   * @see position
+   * @param {Function} callback optional callback function to be called when crosshair is exited out of
+   * @returns {Transformer}
+   */
   crosshair(callback) {
     if (callback) this.callback = callback;
 
@@ -283,7 +427,8 @@ export class Transformer {
 
   static destroyCrosshair() {
     if (this.crosshairOverlay) {
-      this.crosshairOverlay.transformer.destroyPreview();
+      this.crosshairOverlay.transformer.destroyPreview(false);
+      TransformBus.unregister(this.crosshairOverlay.transformer);
       this.crosshairOverlay.parent?.removeChild(this.crosshairOverlay);
       this.crosshairOverlay.destroy(true);
       this.crosshairOverlay.children?.forEach((c) => c.destroy(true));
@@ -294,6 +439,12 @@ export class Transformer {
     }
   }
 
+  /**
+   * Performs document updates using the transformed data
+   * @param {object} context
+   * @param {Scene} scene
+   * @returns {Transformer}
+   */
   async update(context = {}, scene = this._scene) {
     for (let [documentName, dataArr] of this._docToData.entries()) {
       if (this._originalDocuments) {
@@ -311,107 +462,6 @@ export class Transformer {
     return this;
   }
 
-  static genManipulatorData(documents, pivotReference) {
-    if (!(documents instanceof Set)) documents = new Set(documents);
-
-    const docToData = new Map();
-
-    let pivotReferenceDocument;
-    if (pivotReference) {
-      pivotReferenceDocument = { documentName: pivotReference.documentName, data: pivotReference.toObject() };
-      documents.delete(pivotReference);
-      docToData.set(pivotReferenceDocument.documentName, [pivotReferenceDocument.data]);
-    }
-
-    for (const document of documents) {
-      let data = document.toObject();
-
-      // TokenAttacher support
-      // if (
-      //   document.documentName === 'Token' &&
-      //   game.modules.get('token-attacher')?.active &&
-      //   tokenAttacher?.generatePrototypeAttached
-      // ) {
-      //   const attached = data.flags?.['token-attacher']?.attached || {};
-      //   if (!foundry.utils.isEmpty(attached)) {
-      //     const prototypeAttached = tokenAttacher.generatePrototypeAttached(data, attached);
-      //     foundry.utils.setProperty(data, 'flags.token-attacher.attached', null);
-      //     foundry.utils.setProperty(data, 'flags.token-attacher.prototypeAttached', prototypeAttached);
-      //     foundry.utils.setProperty(data, 'flags.token-attacher.grid', {
-      //       size: canvas.grid.size,
-      //       w: canvas.grid.sizeX,
-      //       h: canvas.grid.sizeY,
-      //     });
-      //   }
-      // }
-
-      if (!docToData.get(document.documentName)) docToData.set(document.documentName, [data]);
-      else docToData.get(document.documentName).push(data);
-    }
-
-    return { pivotReferenceDocument, docToData };
-  }
-
-  static async docToDataUpdate(docToData, scene = canvas.scene, context = {}, originalDocuments = null) {
-    for (let [documentName, dataArr] of docToData.entries()) {
-      if (originalDocuments) {
-        dataArr = dataArr
-          .map((data) => {
-            const document = originalDocuments.find((d) => d.id === data._id);
-            if (document) return { _id: data._id, ...foundry.utils.diffObject(document.toObject(), data) };
-            else return data;
-          })
-          .filter((data) => Object.keys(data).length > 1);
-      }
-
-      await updateEmbeddedDocumentsViaGM(documentName, dataArr, context, scene);
-    }
-  }
-
-  static addRotation(rotation) {
-    this.crosshairOverlay?.transformer.rotate(rotation);
-    this._transformAccumulator.rotation += rotation;
-  }
-
-  static addScaling(scale) {
-    this.crosshairOverlay?.transformer.scale(1 + scale);
-    this._transformAccumulator.scale *= 1 + scale;
-  }
-
-  static addElevation(elevation) {
-    this.applyTransform({ z: elevation });
-
-    if (this._label) {
-      this._label.text = `[${getPresetDataBounds(this._docToData).elevation.bottom.toFixed(2)}]`;
-      this._label.anchor.set(1, -2);
-    }
-  }
-
-  static resetTransformAccumulator() {
-    this._transformAccumulator.rotation = 0;
-    this._transformAccumulator.scale = 1;
-  }
-
-  static getTransformAccumulator() {
-    return foundry.utils.deepClone(this._transformAccumulator);
-  }
-
-  static mirrorX() {
-    this.crosshairOverlay?.transformer.mirrorX();
-  }
-
-  mirrorX() {
-    this.applyTransform({ mirrorX: true }, this.pivotPoint(PIVOTS.CENTER));
-  }
-
-  static mirrorY() {
-    this.crosshairOverlay?.transformer.mirrorY();
-  }
-
-  mirrorY() {
-    this.applyTransform({ mirrorY: true }, this.pivotPoint(PIVOTS.CENTER));
-  }
-
   pivotPoint(pivot) {
     return getPivotPoint(pivot, null, this._pivotReferenceBounds());
   }
@@ -425,9 +475,9 @@ export class Transformer {
   static createCrosshair(transformer) {
     if (game.Levels3DPreview?._previewActive) {
       Mouse3D.activate({
-        mouseMoveCallback: transformer.position.bind(transformer),
-        mouseClickCallback: Transformer.resolve.bind(Transformer),
-        mouseWheelClickCallback: Transformer.destroy.bind(Transformer),
+        mouseMoveCallback: TransformBus.position.bind(TransformBus),
+        mouseClickCallback: TransformBus.resolve.bind(TransformBus),
+        mouseWheelClickCallback: Transformer.destroyCrosshair.bind(Transformer),
       });
     } else {
       const crosshairOverlay = new PIXI.Container();
@@ -442,7 +492,7 @@ export class Transformer {
         if (client.x !== Transformer.crosshairOverlay.lastX || client.y !== Transformer.crosshairOverlay.lastY) {
           Transformer.crosshairOverlay.lastX = client.x;
           Transformer.crosshairOverlay.lastY = client.y;
-          Transformer.crosshairOverlay.transformer.position(canvas.mousePosition);
+          TransformBus.position(canvas.mousePosition);
         }
       });
 
@@ -452,11 +502,7 @@ export class Transformer {
       crosshairOverlay.zIndex = 5;
       crosshairOverlay.on('remove', () => crosshairOverlay.off('pick'));
       crosshairOverlay.on('mouseup', (event) => {
-        if (event.nativeEvent.which == 2) {
-          crosshairOverlay.transformer.callback?.(false);
-        } else {
-          crosshairOverlay.transformer.callback?.(true);
-        }
+        TransformBus.resolve(event.nativeEvent.which !== 2);
         this.destroyCrosshair();
       });
 
@@ -464,10 +510,9 @@ export class Transformer {
       this.crosshairOverlay = crosshairOverlay;
       crosshairOverlay.transformer.position(canvas.mousePosition);
     }
-  }
 
-  static feedPos(pos) {
-    this.crosshairOverlay?.transformer.position(pos);
+    TransformBus.register(transformer);
+    TransformBus.position(canvas.mousePosition);
   }
 
   static resolve(confirm) {

@@ -64,6 +64,15 @@ export class ScenescapeControls {
 
     let id;
 
+    id = Hooks.on('renderTokenConfig', async (app, html, options) => {
+      const formGroup = await renderTemplate(`modules/${MODULE_ID}/templates/scenescapes/autoFlipFormGroup.html`, {
+        autoFlipX: app.object.getFlag(MODULE_ID, 'autoFlipX'),
+        autoFlipY: app.object.getFlag(MODULE_ID, 'autoFlipY'),
+      });
+      $(html).find('[name="mirrorX"]').closest('.form-group').after(formGroup);
+    });
+    this._hooks.push({ hook: 'renderTokenConfig', id });
+
     id = Hooks.on('preCreateToken', async (token, data, options, userId) => {
       if (!options.spawnPreset && token.actor?.img) token.updateSource({ 'texture.src': token.actor.img });
     });
@@ -299,12 +308,32 @@ export class ScenescapeControls {
         documentName === 'Tile'
       );
 
-      new Transformer()
+      const transformer = new Transformer()
         .documents(LinkerAPI.getHardLinkedDocuments(obj.document, true))
         .pivotDocument(obj)
-        .pivot(PIVOTS.BOTTOM)
-        .position(nBottom)
-        .update({ teleport: true, ignoreLinks: true });
+        .pivot(PIVOTS.BOTTOM);
+
+      const document = obj.document;
+      let update = {};
+      if (document.documentName === 'Token') {
+        if (dx !== 0 && document.getFlag(MODULE_ID, 'autoFlipX')) {
+          if (dx < 0 && document.getFlag(MODULE_ID, 'flippedX')) {
+            transformer.mirrorX();
+            update[`flags.${MODULE_ID}.-=flippedX`] = null;
+          } else if (dx > 0 && !document.getFlag(MODULE_ID, 'flippedX')) {
+            transformer.mirrorX();
+            update[`flags.${MODULE_ID}.flippedX`] = true;
+          }
+        }
+      }
+
+      if (!foundry.utils.isEmpty(update)) {
+        await transformer.update({ teleport: true, ignoreLinks: true });
+        await document.update(update, { animate: false });
+      } else {
+        transformer.position(nBottom);
+        await transformer.update({ teleport: true, ignoreLinks: true });
+      }
     }
 
     return objects;

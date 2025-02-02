@@ -24,7 +24,7 @@ import { openBag } from './scripts/presets/bagApp.js';
 import { openCategoryBrowser } from './scripts/presets/categoryBrowserApp.js';
 import { PresetContainer, registerPresetHandlebarPartials } from './scripts/presets/containerApp.js';
 import { FileIndexerAPI } from './scripts/presets/fileIndexer.js';
-import { Transformer } from './scripts/transformer.js';
+import { TransformBus, Transformer } from './scripts/transformer.js';
 
 // Initialize module
 Hooks.once('init', () => {
@@ -89,7 +89,7 @@ Hooks.once('init', () => {
       const event = args[0];
 
       if (
-        (Transformer.active() || BrushMenu.isActive()) &&
+        (TransformBus.active() || BrushMenu.isActive()) &&
         (event.ctrlKey ||
           event.shiftKey ||
           event.metaKey ||
@@ -106,14 +106,15 @@ Hooks.once('init', () => {
         }
         if (dy === 0) return;
 
-        if (event.altKey || game.keyboard.downKeys.has('Space')) Transformer.addScaling(event.delta < 0 ? 0.05 : -0.05);
+        if (event.altKey || game.keyboard.downKeys.has('Space'))
+          TransformBus.addScaling(event.delta < 0 ? 0.05 : -0.05);
         else if ((event.ctrlKey || event.metaKey) && event.shiftKey) BrushMenu.iterate(event.delta >= 0, true);
-        else if (event.ctrlKey || event.metaKey) Transformer.addRotation(event.delta < 0 ? 2.5 : -2.5);
-        else if (event.shiftKey) Transformer.addRotation(event.delta < 0 ? 15 : -15);
+        else if (event.ctrlKey || event.metaKey) TransformBus.addRotation(event.delta < 0 ? 2.5 : -2.5);
+        else if (event.shiftKey) TransformBus.addRotation(event.delta < 0 ? 15 : -15);
         else if (game.keyboard.downKeys.has('KeyZ')) {
           let delta = event.delta < 0 ? 1 : -1;
           if (Scenescape.active) delta = delta * Scenescape.depth * 0.01;
-          Transformer.addElevation(delta);
+          TransformBus.addElevation(delta);
         }
         return;
       }
@@ -124,12 +125,12 @@ Hooks.once('init', () => {
     'MIXED'
   );
 
-  // Prevent placeable highlighting if a preview is active either via a Picker or BrushMenu
+  // Prevent placeable highlighting if a preview transformer is active
   libWrapper.register(
     MODULE_ID,
     'Canvas.prototype.highlightObjects',
     function (wrapped, ...args) {
-      if (Transformer.active() || BrushMenu.isActive()) return;
+      if (Transformer.active()) return;
       return wrapped(...args);
     },
     'MIXED'
@@ -230,6 +231,7 @@ Hooks.once('init', () => {
     importSceneCompendium,
     openPresetBrowser,
     FileIndexerAPI,
+    Transformer, // TODO don't expose yet
   };
 
   game.modules.get(MODULE_ID).api = {
@@ -240,8 +242,9 @@ Hooks.once('init', () => {
 // Deactivate brush/picker on scene change
 
 Hooks.on('canvasReady', () => {
-  if (BrushMenu.isActive()) BrushMenu.close();
-  if (Transformer.active()) Transformer.destroyCrosshair();
+  BrushMenu.close();
+  Transformer.destroyCrosshair();
+  TransformBus.clear();
 });
 
 // Attach Mass Config buttons to Token and Tile HUDs

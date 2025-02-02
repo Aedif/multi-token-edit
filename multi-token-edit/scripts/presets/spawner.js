@@ -1,5 +1,6 @@
 import { checkApplySpecialFields } from '../../applications/formUtils.js';
 import { showGenericForm } from '../../applications/multiConfig.js';
+import { Brush } from '../brush.js';
 import { MODULE_ID, PIVOTS } from '../constants.js';
 import { DataTransformer } from '../data/transformer.js';
 import { applyRandomization } from '../randomizer/randomizerUtils.js';
@@ -60,7 +61,7 @@ export class Spawner {
     modifyPrompt = true,
     pivot = PIVOTS.TOP_LEFT,
     transform = {},
-    crosshair = true,
+    brushPreview = false,
     flags,
   } = {}) {
     if (!canvas.ready) throw Error("Canvas need to be 'ready' for a preset to be spawned.");
@@ -163,16 +164,17 @@ export class Spawner {
     } else {
       // Display preview of the preset
       const confirm = await new Promise(async (resolve) => {
-        new Transformer({
+        const transformer = new Transformer({
           docToData,
           snap: snapToGrid,
           restrict: previewRestrictedDocuments,
           pivot,
           preview: true,
-          crosshair: crosshair,
+          crosshair: !brushPreview,
           ...transform,
           callback: resolve,
         });
+        if (brushPreview) Brush.spawnPresetTransformer(transformer);
       });
       if (!confirm) return [];
     }

@@ -1,4 +1,5 @@
 import { Mouse3D } from './mouse3d.js';
+import { TransformBus } from './transformer.js';
 
 /**
  * Activate a crosshair overlay that allows selection of a bounding box on the canvas
@@ -17,8 +18,7 @@ export class Picker {
   static createPickerOverlay() {
     if (game.Levels3DPreview?._active) {
       Mouse3D.activate({
-        mouseMoveCallback: Picker.feedPos.bind(Picker),
-        mouseClickCallback: Picker.resolve.bind(Picker),
+        mouseClickCallback: null, // Do something here?? Probably not.. not using 3D mouse to pick anything
         mouseWheelClickCallback: Picker.destroy.bind(Picker),
       });
     } else {

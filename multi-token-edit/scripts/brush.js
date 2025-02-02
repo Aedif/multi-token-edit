@@ -5,7 +5,7 @@ import { PresetAPI, PresetCollection } from './presets/collection.js';
 import { Preset } from './presets/preset.js';
 import { Spawner } from './presets/spawner.js';
 import { applyRandomization } from './randomizer/randomizerUtils.js';
-import { Transformer } from './transformer.js';
+import { TransformBus, Transformer } from './transformer.js';
 import { TagInput } from './utils.js';
 
 export class Brush {
@@ -25,6 +25,9 @@ export class Brush {
   static active = false;
   static hitTest;
 
+  /** @type {Transformer} */
+  static transformer;
+
   static _checkDensity(pos) {
     const d = canvas.grid.size * this.spawnDensity;
     return this.spawnPoints.every((p) => Math.sqrt((p.x - pos.x) ** 2 + (p.y - pos.y) ** 2) >= d);
@@ -43,7 +46,7 @@ export class Brush {
       this.lastSpawnTime = now;
 
       if (!this._checkDensity(pos)) return;
-      Transformer.resolve(pos);
+      TransformBus.resolve(pos);
       this.spawnPoints.push(pos);
 
       BrushMenu.iterate();
@@ -173,15 +176,29 @@ export class Brush {
   }
 
   static async genPreview() {
-    return Spawner.spawnPreset({
+    return await Spawner.spawnPreset({
       preset: this.preset,
       preview: true,
-      crosshair: false,
+      brushPreview: true,
       pivot: PIVOTS.CENTER,
       transform: this.transform,
       snapToGrid: this.snap,
       scaleToGrid: this.scaleToGrid,
     });
+  }
+
+  static spawnPresetTransformer(transformer) {
+    this.destroyTransformer();
+    this.transformer = transformer;
+    TransformBus.register(transformer);
+  }
+
+  static destroyTransformer() {
+    if (this.transformer) {
+      this.transformer.destroyPreview(false);
+      TransformBus.unregister(this.transformer);
+      this.transformer = null;
+    }
   }
 
   /**
@@ -286,7 +303,7 @@ export class Brush {
     this.brushOverlay.zIndex = Infinity;
 
     this.brushOverlay.on('mousemove', (event) => {
-      Transformer.feedPos(event.data.getLocalPosition(this.brushOverlay));
+      TransformBus.position(canvas.mousePosition);
       this._onBrushMove(event);
       if (!this.mDownWithinCanvas) return; // Fix to prevent mouse interaction within apps
       if (event.buttons === 1) this._onBrushClickMove(event);
@@ -321,7 +338,7 @@ export class Brush {
 
   static _activate3d() {
     Mouse3D.activate({
-      mouseMoveCallback: Transformer.feedPos.bind(Transformer),
+      mouseMoveCallback: this.transformer.position.bind(this.transformer),
       mouseClickCallback: this._on3DBrushClick.bind(this),
       mouseWheelClickCallback: this.deactivate.bind(this),
     });
@@ -342,13 +359,17 @@ export class Brush {
       }
       this.hoverTest = null;
       if (!refresh) this.deactivateCallback?.();
-      if (this.spawner) Transformer.destroyCrosshair();
+      if (this.spawner) {
+        Transformer.destroyCrosshair();
+        this.transformer?.destroyPreview(false);
+      }
       this.spawner = false;
       this.eraser = false;
       this.deactivateCallback = null;
       this.app = null;
       this.preset = null;
       this.transform = null;
+      this.destroyTransformer();
       return true;
     }
     Mouse3D.deactivate();
@@ -883,7 +904,7 @@ export class BrushMenu extends FormApplication {
 
     // Scale and Rotation transformation are accumulated on the picker
     // We want to preserve these when rendering a new preview
-    const accumulatedTransform = Transformer.getTransformAccumulator();
+    const accumulatedTransform = TransformBus.getTransformAccumulator();
 
     if (settings.scale[0] === settings.scale[1]) {
       transform.scale = settings.scale[0];
@@ -981,7 +1002,7 @@ export class BrushMenu extends FormApplication {
     Brush.deactivate();
     BrushMenu._instance = null;
     Transformer.destroyCrosshair();
-    Transformer.resetTransformAccumulator();
+    TransformBus.resetTransformAccumulator();
     return super.close(options);
   }
 }
