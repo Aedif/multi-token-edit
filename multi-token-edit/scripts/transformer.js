@@ -110,8 +110,8 @@ export class Transformer {
 
     this.callback = callback;
     this._docToData = docToData;
+    this._docToDataOriginal = new Map();
     this._restrict = restrict;
-    this._originalDocuments = new Set();
 
     if (documents) this.documents(documents);
     if (pivotDocument) this.pivotDocument(pivotDocument);
@@ -125,6 +125,8 @@ export class Transformer {
 
     Scenescape.autoScale = true; // TODO: replace with local variable?
   }
+
+  _copyDocToData() {}
 
   /**
    * Add documents/placeables to the transformer
@@ -144,13 +146,20 @@ export class Transformer {
       if (!this._scene) this._scene = document.parent;
 
       const dataArr = this._docToData.get(document.documentName) ?? [];
-      if (!dataArr.find((d) => d._id === document.id)) dataArr.push(document.toObject());
+      if (!dataArr.find((d) => d._id === document.id)) dataArr.push(this._saveDataOriginal(document));
       this._docToData.set(document.documentName, dataArr);
-
-      this._originalDocuments.add(document);
     }
 
     return this;
+  }
+
+  _saveDataOriginal(document) {
+    const data = document.toObject();
+    const dataArr = this._docToDataOriginal.get(document.documentName) ?? [];
+    dataArr.push(foundry.utils.deepClone(data));
+    this._docToDataOriginal.set(document.documentName, dataArr);
+
+    return data;
   }
 
   /**
@@ -447,11 +456,12 @@ export class Transformer {
    */
   async update(context = {}, scene = this._scene) {
     for (let [documentName, dataArr] of this._docToData.entries()) {
-      if (this._originalDocuments) {
+      const originalDataArr = this._docToDataOriginal.get(documentName);
+      if (originalDataArr) {
         dataArr = dataArr
           .map((data) => {
-            const document = this._originalDocuments.find((d) => d.id === data._id);
-            if (document) return { _id: data._id, ...foundry.utils.diffObject(document.toObject(), data) };
+            const originalData = originalDataArr.find((d) => d._id === data._id);
+            if (originalData) return { _id: data._id, ...foundry.utils.diffObject(originalData, data) };
             else return data;
           })
           .filter((data) => Object.keys(data).length > 1);

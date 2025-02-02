@@ -310,8 +310,7 @@ export class ScenescapeControls {
 
       const transformer = new Transformer()
         .documents(LinkerAPI.getHardLinkedDocuments(obj.document, true))
-        .pivotDocument(obj)
-        .pivot(PIVOTS.BOTTOM);
+        .pivotDocument(obj);
 
       const document = obj.document;
       let update = {};
@@ -325,15 +324,23 @@ export class ScenescapeControls {
             update[`flags.${MODULE_ID}.flippedX`] = true;
           }
         }
+
+        if (dy !== 0 && document.getFlag(MODULE_ID, 'autoFlipY')) {
+          if (dy < 0 && document.getFlag(MODULE_ID, 'flippedY')) {
+            transformer.mirrorY();
+            update[`flags.${MODULE_ID}.-=flippedY`] = null;
+          } else if (dy > 0 && !document.getFlag(MODULE_ID, 'flippedY')) {
+            transformer.mirrorY();
+            update[`flags.${MODULE_ID}.flippedY`] = true;
+          }
+        }
       }
 
-      if (!foundry.utils.isEmpty(update)) {
-        await transformer.update({ teleport: true, ignoreLinks: true });
-        await document.update(update, { animate: false });
-      } else {
-        transformer.position(nBottom);
-        await transformer.update({ teleport: true, ignoreLinks: true });
-      }
+      // If we're doing an auto-flip lets ignore position changes
+      if (!foundry.utils.isEmpty(update)) await document.update(update);
+      else transformer.pivot(PIVOTS.BOTTOM).position(nBottom);
+
+      await transformer.update({ teleport: true, ignoreLinks: true, animate: false });
     }
 
     return objects;
