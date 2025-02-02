@@ -77,9 +77,8 @@ export class TransformBus {
  * Cross-hair and optional preview image/label that can be activated to allow the user to select
  * an area on the screen.
  */
-export class Transformer {
+export class MassTransformer {
   static crosshairOverlay;
-  static callback;
 
   static active() {
     return Boolean(this.crosshairOverlay);
@@ -131,7 +130,7 @@ export class Transformer {
   /**
    * Add documents/placeables to the transformer
    * @param {PlaceableObject | Iterable<PlaceableObject> | Document | Iterable<Document>} documents
-   * @returns {Transformer}
+   * @returns {MassTransformer}
    */
   documents(documents) {
     if (!(Symbol.iterator in Object(documents))) {
@@ -166,7 +165,7 @@ export class Transformer {
    * Set a document to be used as a pivot for all transformations.
    * @see pivot
    * @param {PlaceableObject | Document} document
-   * @returns {Transformer}
+   * @returns {MassTransformer}
    */
   pivotDocument(document) {
     document = document.document ?? document;
@@ -181,7 +180,7 @@ export class Transformer {
    * Set the pivot location.
    * @see PIVOTS
    * @param {string} pivot
-   * @returns {Transformer}
+   * @returns {MassTransformer}
    */
   pivot(pivot) {
     if (!PIVOTS.hasOwnProperty(pivot)) throw Error('Invalid Pivot');
@@ -192,7 +191,7 @@ export class Transformer {
   /**
    * Should the data be snapped to the canvas grid
    * @param {boolean} val
-   * @returns {Transformer}
+   * @returns {MassTransformer}
    */
   snap(val) {
     this._snap = Scenescape.active ? false : val;
@@ -202,7 +201,7 @@ export class Transformer {
   /**
    * Rotate data by provided number of degrees
    * @param {number} degrees
-   * @returns {Transformer}
+   * @returns {MassTransformer}
    */
   rotate(degrees) {
     this.applyTransform({ rotation: degrees }, this.pivotPoint(this._pivot));
@@ -211,9 +210,9 @@ export class Transformer {
 
   elevate(elevation) {
     this.applyTransform({ z: elevation }, this.pivotPoint(this._pivot));
-    if (Transformer._label) {
-      Transformer._label.text = `[${getPresetDataBounds(this._docToData).elevation.bottom.toFixed(2)}]`;
-      Transformer._label.anchor.set(1, -2);
+    if (MassTransformer._label) {
+      MassTransformer._label.text = `[${getPresetDataBounds(this._docToData).elevation.bottom.toFixed(2)}]`;
+      MassTransformer._label.anchor.set(1, -2);
     }
     return this;
   }
@@ -221,7 +220,7 @@ export class Transformer {
   /**
    * Scale data by the provided value
    * @param {number} val
-   * @returns {Transformer}
+   * @returns {MassTransformer}
    */
   scale(val) {
     this.applyTransform({ scale: val }, this.pivotPoint(this._pivot));
@@ -239,7 +238,7 @@ export class Transformer {
 
   /**
    * Mirrors data on the x-axis around the center pivot
-   * @returns {Transformer}
+   * @returns {MassTransformer}
    */
   mirrorX() {
     this.applyTransform({ mirrorX: true }, this.pivotPoint(PIVOTS.CENTER));
@@ -248,7 +247,7 @@ export class Transformer {
 
   /**
    * Mirrors data on the y-axis around the center pivot
-   * @returns {Transformer}
+   * @returns {MassTransformer}
    */
   mirrorY() {
     this.applyTransform({ mirrorY: true }, this.pivotPoint(PIVOTS.CENTER));
@@ -260,7 +259,7 @@ export class Transformer {
    * @param {number | Object} x either a numerical x coordinate or an object containing x, y, and/or z coordinates
    * @param {number} y
    * @param {number} z
-   * @returns {Transformer}
+   * @returns {MassTransformer}
    */
   position(x, y, z) {
     if (x instanceof Object) ({ x, y, z } = x);
@@ -317,9 +316,9 @@ export class Transformer {
       this.applyTransform({ scale: paraScale }, pos);
     }
 
-    if (Transformer._label) {
-      Transformer._label.x = pos.x;
-      Transformer._label.y = pos.y - 38;
+    if (MassTransformer._label) {
+      MassTransformer._label.x = pos.x;
+      MassTransformer._label.y = pos.y - 38;
     }
     return this;
   }
@@ -406,14 +405,14 @@ export class Transformer {
   /**
    * Create a preview out of documents/data fed in via the constructor or documents(...)
    * @see documents
-   * @returns {Transformer}
+   * @returns {MassTransformer}
    */
   preview() {
     if (!this._docToData.size) throw Error('Cannot enable preview before assigning data/documents to the transformer.');
 
     this.destroyPreview(null);
 
-    let { previews, previewDocuments } = Transformer._genPreviews(this._restrict, this._docToData);
+    let { previews, previewDocuments } = MassTransformer._genPreviews(this._restrict, this._docToData);
     this._layer = previewDocuments.size !== 1 ? canvas.walls : canvas.getLayerByEmbeddedName(previewDocuments.first());
     this._previewDocuments = previewDocuments;
     this._previews = previews;
@@ -424,13 +423,13 @@ export class Transformer {
    * Create a crosshair cursor which continually feed its position via position(...) function
    * @see position
    * @param {Function} callback optional callback function to be called when crosshair is exited out of
-   * @returns {Transformer}
+   * @returns {MassTransformer}
    */
   crosshair(callback) {
     if (callback) this.callback = callback;
 
-    Transformer.destroyCrosshair();
-    Transformer.createCrosshair(this);
+    MassTransformer.destroyCrosshair();
+    MassTransformer.createCrosshair(this);
     return this;
   }
 
@@ -441,7 +440,6 @@ export class Transformer {
       this.crosshairOverlay.parent?.removeChild(this.crosshairOverlay);
       this.crosshairOverlay.destroy(true);
       this.crosshairOverlay.children?.forEach((c) => c.destroy(true));
-      this.callback?.(false);
       this.crosshairOverlay = null;
       this._label = null;
       Mouse3D.deactivate();
@@ -452,7 +450,7 @@ export class Transformer {
    * Performs document updates using the transformed data
    * @param {object} context
    * @param {Scene} scene
-   * @returns {Transformer}
+   * @returns {MassTransformer}
    */
   async update(context = {}, scene = this._scene) {
     for (let [documentName, dataArr] of this._docToData.entries()) {
@@ -487,7 +485,7 @@ export class Transformer {
       Mouse3D.activate({
         mouseMoveCallback: TransformBus.position.bind(TransformBus),
         mouseClickCallback: TransformBus.resolve.bind(TransformBus),
-        mouseWheelClickCallback: Transformer.destroyCrosshair.bind(Transformer),
+        mouseWheelClickCallback: MassTransformer.destroyCrosshair.bind(MassTransformer),
       });
     } else {
       const crosshairOverlay = new PIXI.Container();
@@ -499,9 +497,12 @@ export class Transformer {
 
       crosshairOverlay.on('pointermove', (event) => {
         const client = event.data.client;
-        if (client.x !== Transformer.crosshairOverlay.lastX || client.y !== Transformer.crosshairOverlay.lastY) {
-          Transformer.crosshairOverlay.lastX = client.x;
-          Transformer.crosshairOverlay.lastY = client.y;
+        if (
+          client.x !== MassTransformer.crosshairOverlay.lastX ||
+          client.y !== MassTransformer.crosshairOverlay.lastY
+        ) {
+          MassTransformer.crosshairOverlay.lastX = client.x;
+          MassTransformer.crosshairOverlay.lastY = client.y;
           TransformBus.position(canvas.mousePosition);
         }
       });
@@ -556,7 +557,7 @@ export class Transformer {
 
       // Foundry as well as various modules might have complex `isVisible` and 'visible' conditions
       // lets simplify by overriding this function to make sure the preview is always visible
-      Transformer._overridePlaceableVisibility(object);
+      MassTransformer._overridePlaceableVisibility(object);
 
       // 3D Canvas
       if (game.Levels3DPreview?._previewActive) {
@@ -728,7 +729,7 @@ export async function editPreviewPlaceables(placeables, callback = null, mainPla
 
   if (!controlled.size) return false;
 
-  const transformer = new Transformer({ documents: controlled, pivotDocument: hoveredDocument })
+  const transformer = new MassTransformer({ documents: controlled, pivotDocument: hoveredDocument })
     .snap(true)
     .pivot(PIVOTS.CENTER)
     .preview()

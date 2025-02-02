@@ -17,7 +17,7 @@ import { Preset } from './presets/preset.js';
 import { Scenescape } from './scenescape/scenescape.js';
 import { enablePixelPerfectSelect } from './tools/selectTool.js';
 import { activeEffectPresetSelect, getDocumentName, localize, TagInput } from './utils.js';
-import { editPreviewPlaceables, Transformer } from './transformer.js';
+import { editPreviewPlaceables, MassTransformer, TransformBus } from './transformer.js';
 
 export function registerSettings() {
   // Register Settings
@@ -441,7 +441,7 @@ export function registerKeybinds() {
         modifiers: [],
       },
     ],
-    onDown: () => Transformer.mirrorX(),
+    onDown: () => TransformBus.mirrorX(),
     restricted: false,
     precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
   });
@@ -455,7 +455,7 @@ export function registerKeybinds() {
         modifiers: [],
       },
     ],
-    onDown: () => Transformer.mirrorY(),
+    onDown: () => TransformBus.mirrorY(),
     restricted: false,
     precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
   });
@@ -632,7 +632,7 @@ export function registerKeybinds() {
       },
     ],
     onDown: () => {
-      if (Transformer.active()) {
+      if (TransformBus.active()) {
         Scenescape.autoScale = !Scenescape.autoScale;
         ui.notifications.info('Scenescape: Autoscale => ' + (Scenescape.autoScale ? 'ON' : 'OFF'));
       }

@@ -5,7 +5,7 @@ import { PresetAPI, PresetCollection } from './presets/collection.js';
 import { Preset } from './presets/preset.js';
 import { Spawner } from './presets/spawner.js';
 import { applyRandomization } from './randomizer/randomizerUtils.js';
-import { TransformBus, Transformer } from './transformer.js';
+import { TransformBus, MassTransformer } from './transformer.js';
 import { TagInput } from './utils.js';
 
 export class Brush {
@@ -25,7 +25,7 @@ export class Brush {
   static active = false;
   static hitTest;
 
-  /** @type {Transformer} */
+  /** @type {MassTransformer} */
   static transformer;
 
   static _checkDensity(pos) {
@@ -360,7 +360,7 @@ export class Brush {
       this.hoverTest = null;
       if (!refresh) this.deactivateCallback?.();
       if (this.spawner) {
-        Transformer.destroyCrosshair();
+        MassTransformer.destroyCrosshair();
         this.transformer?.destroyPreview(false);
       }
       this.spawner = false;
@@ -1001,7 +1001,7 @@ export class BrushMenu extends FormApplication {
   async close(options = {}) {
     Brush.deactivate();
     BrushMenu._instance = null;
-    Transformer.destroyCrosshair();
+    MassTransformer.destroyCrosshair();
     TransformBus.resetTransformAccumulator();
     return super.close(options);
   }

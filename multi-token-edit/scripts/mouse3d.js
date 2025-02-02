@@ -3,7 +3,7 @@
  */
 
 import { BrushMenu } from './brush.js';
-import { Transformer } from './transformer.js';
+import { MassTransformer, TransformBus } from './transformer.js';
 
 export class Mouse3D {
   // Trick to keep consistent signatures for bound 3d listeners
@@ -113,7 +113,7 @@ export class Mouse3D {
     //console.log(event);
 
     if (
-      (Transformer.active() || BrushMenu.isActive()) &&
+      (TransformBus.active() || BrushMenu.isActive()) &&
       (event.ctrlKey || event.shiftKey || event.metaKey || event.altKey)
     ) {
       event.stopPropagation();
@@ -127,10 +127,10 @@ export class Mouse3D {
 
       // console.log(event.altKey, event.ctrlKey, event.shiftKey, event.delta);
 
-      if (event.altKey) Transformer.addScaling(event.delta < 0 ? 0.05 : -0.05);
+      if (event.altKey) TransformBus.addScaling(event.delta < 0 ? 0.05 : -0.05);
       else if ((event.ctrlKey || event.metaKey) && event.shiftKey) BrushMenu.iterate(event.delta >= 0, true);
-      else if (event.ctrlKey || event.metaKey) Transformer.addRotation(event.delta < 0 ? 2.5 : -2.5);
-      else if (event.shiftKey) Transformer.addRotation(event.delta < 0 ? 15 : -15);
+      else if (event.ctrlKey || event.metaKey) TransformBus.addRotation(event.delta < 0 ? 2.5 : -2.5);
+      else if (event.shiftKey) TransformBus.addRotation(event.delta < 0 ? 15 : -15);
       return;
     }
 

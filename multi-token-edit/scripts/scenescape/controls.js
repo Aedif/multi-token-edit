@@ -6,7 +6,7 @@ import { loadImageVideoDimensions } from '../utils.js';
 import ScenescapeConfig from './configuration.js';
 import { Scenescape } from './scenescape.js';
 import { LinkerAPI } from '../linker/linker.js';
-import { editPreviewPlaceables, Transformer } from '../transformer.js';
+import { editPreviewPlaceables, MassTransformer, TransformBus } from '../transformer.js';
 
 /**
  * Class to manage registering and un-registering of wrapper functions to change
@@ -258,7 +258,7 @@ export class ScenescapeControls {
       MODULE_ID,
       'PlaceableObject.prototype._canDragLeftStart',
       function (wrapped, user, event) {
-        if (Transformer.active() || !this._canDrag(game.user, event)) return false;
+        if (TransformBus.active() || !this._canDrag(game.user, event)) return false;
 
         return wrapped(user, event);
       },
@@ -308,7 +308,7 @@ export class ScenescapeControls {
         documentName === 'Tile'
       );
 
-      const transformer = new Transformer()
+      const transformer = new MassTransformer()
         .documents(LinkerAPI.getHardLinkedDocuments(obj.document, true))
         .pivotDocument(obj);
 

@@ -24,7 +24,7 @@ import { openBag } from './scripts/presets/bagApp.js';
 import { openCategoryBrowser } from './scripts/presets/categoryBrowserApp.js';
 import { PresetContainer, registerPresetHandlebarPartials } from './scripts/presets/containerApp.js';
 import { FileIndexerAPI } from './scripts/presets/fileIndexer.js';
-import { TransformBus, Transformer } from './scripts/transformer.js';
+import { TransformBus, MassTransformer } from './scripts/transformer.js';
 
 // Initialize module
 Hooks.once('init', () => {
@@ -130,7 +130,7 @@ Hooks.once('init', () => {
     MODULE_ID,
     'Canvas.prototype.highlightObjects',
     function (wrapped, ...args) {
-      if (Transformer.active()) return;
+      if (MassTransformer.active()) return;
       return wrapped(...args);
     },
     'MIXED'
@@ -209,6 +209,8 @@ Hooks.once('init', () => {
     promises.push(promise);
   });
 
+  globalThis.MassTransformer = MassTransformer;
+
   globalThis.MassEdit = {
     showGenericForm,
     performMassUpdate,
@@ -231,7 +233,6 @@ Hooks.once('init', () => {
     importSceneCompendium,
     openPresetBrowser,
     FileIndexerAPI,
-    Transformer, // TODO don't expose yet
   };
 
   game.modules.get(MODULE_ID).api = {
@@ -243,7 +244,7 @@ Hooks.once('init', () => {
 
 Hooks.on('canvasReady', () => {
   BrushMenu.close();
-  Transformer.destroyCrosshair();
+  MassTransformer.destroyCrosshair();
   TransformBus.clear();
 });
 
