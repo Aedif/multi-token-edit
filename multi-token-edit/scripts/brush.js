@@ -293,17 +293,22 @@ export class Brush {
     // Create the brush overlay
     this.brushOverlay = new PIXI.Container();
     this.brushOverlay.hitArea = canvas.dimensions.rect;
+    this.brushOverlay.interactive = true;
+    this.brushOverlay.zIndex = 5;
 
     let cursor = 'brush';
     if (spawner) cursor = 'brush_spawn';
     else if (eraser) cursor = 'eraser';
     this.brushOverlay.cursor = cursor;
 
-    this.brushOverlay.interactive = true;
-    this.brushOverlay.zIndex = Infinity;
-
     this.brushOverlay.on('mousemove', (event) => {
-      TransformBus.position(canvas.mousePosition);
+      const client = event.data.client;
+      if (client.x !== this.brushOverlay.lastX || client.y !== this.brushOverlay.lastY) {
+        this.brushOverlay.lastX = client.x;
+        this.brushOverlay.lastY = client.y;
+        TransformBus.position(canvas.mousePosition);
+      }
+
       this._onBrushMove(event);
       if (!this.mDownWithinCanvas) return; // Fix to prevent mouse interaction within apps
       if (event.buttons === 1) this._onBrushClickMove(event);
@@ -338,7 +343,7 @@ export class Brush {
 
   static _activate3d() {
     Mouse3D.activate({
-      mouseMoveCallback: this.transformer.position.bind(this.transformer),
+      mouseMoveCallback: TransformBus.position.bind(TransformBus),
       mouseClickCallback: this._on3DBrushClick.bind(this),
       mouseWheelClickCallback: this.deactivate.bind(this),
     });
@@ -359,17 +364,14 @@ export class Brush {
       }
       this.hoverTest = null;
       if (!refresh) this.deactivateCallback?.();
-      if (this.spawner) {
-        MassTransformer.destroyCrosshair();
-        this.transformer?.destroyPreview(false);
-      }
+      MassTransformer.destroyCrosshair();
+      this.destroyTransformer();
       this.spawner = false;
       this.eraser = false;
       this.deactivateCallback = null;
       this.app = null;
       this.preset = null;
       this.transform = null;
-      this.destroyTransformer();
       return true;
     }
     Mouse3D.deactivate();

@@ -12,6 +12,8 @@ const TEMPLATES = [
 ];
 
 export default class ScenescapeConfig extends FormApplication {
+  static autoScale = true;
+
   static close() {
     Object.values(ui.windows)
       .find((w) => w instanceof ScenescapeConfig)

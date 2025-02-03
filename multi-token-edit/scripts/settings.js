@@ -17,7 +17,7 @@ import { Preset } from './presets/preset.js';
 import { Scenescape } from './scenescape/scenescape.js';
 import { enablePixelPerfectSelect } from './tools/selectTool.js';
 import { activeEffectPresetSelect, getDocumentName, localize, TagInput } from './utils.js';
-import { editPreviewPlaceables, MassTransformer, TransformBus } from './transformer.js';
+import { editPreviewPlaceables, TransformBus } from './transformer.js';
 
 export function registerSettings() {
   // Register Settings
@@ -423,7 +423,7 @@ export function registerKeybinds() {
           canvas.tiles.controlled.length &&
           canvas.tiles.controlled.every((t) => t.document.allowPlayerMove?.() && t.document.allowPlayerRotate?.())
         ) {
-          editing = await editPreviewPlaceables(canvas.tiles.controlled);
+          editing = await editPreviewPlaceables({ placeables: canvas.tiles.controlled });
         }
       }
       if (editing) event.event.preventDefault();
@@ -632,7 +632,7 @@ export function registerKeybinds() {
       },
     ],
     onDown: () => {
-      if (TransformBus.active()) {
+      if (Scenescape.active) {
         Scenescape.autoScale = !Scenescape.autoScale;
         ui.notifications.info('Scenescape: Autoscale => ' + (Scenescape.autoScale ? 'ON' : 'OFF'));
       }

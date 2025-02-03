@@ -236,15 +236,11 @@ export class ScenescapeControls {
 
         if (objects.length) {
           const draggedObject = objects[0];
-          draggedObject._meDragging = true;
-          editPreviewPlaceables(
-            [draggedObject],
-            () => {
-              draggedObject._meDragging = undefined;
-              draggedObject.renderFlags.set({ refreshState: true });
-            },
-            draggedObject
-          );
+          editPreviewPlaceables({
+            placeables: [draggedObject],
+            mainPlaceable: draggedObject,
+            hardLinked: true,
+          });
         }
 
         event.interactionData.clones = [];
@@ -261,17 +257,6 @@ export class ScenescapeControls {
         if (TransformBus.active() || !this._canDrag(game.user, event)) return false;
 
         return wrapped(user, event);
-      },
-      'MIXED'
-    );
-    this._wrapperIds.push(id);
-
-    id = libWrapper.register(
-      MODULE_ID,
-      'PlaceableObject.prototype._getTargetAlpha',
-      function (wrapped) {
-        if (this._meDragging) return 0.4;
-        return wrapped();
       },
       'MIXED'
     );

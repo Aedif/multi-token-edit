@@ -120,9 +120,7 @@ export class MassTransformer {
     if (scale != null) this.scale(scale);
     if (x != null && y != null) this.position({ x, y });
     if (preview) this.preview();
-    if (crosshair) this.crosshair();
-
-    Scenescape.autoScale = true; // TODO: replace with local variable?
+    if (crosshair) this.crosshair(crosshair instanceof Object ? crosshair : {});
   }
 
   _copyDocToData() {}
@@ -425,11 +423,11 @@ export class MassTransformer {
    * @param {Function} callback optional callback function to be called when crosshair is exited out of
    * @returns {MassTransformer}
    */
-  crosshair(callback) {
+  crosshair({ callback } = {}) {
     if (callback) this.callback = callback;
 
     MassTransformer.destroyCrosshair();
-    MassTransformer.createCrosshair(this);
+    MassTransformer.createCrosshair({ transformer: this });
     return this;
   }
 
@@ -480,7 +478,7 @@ export class MassTransformer {
       : getPresetDataBounds(this._docToData);
   }
 
-  static createCrosshair(transformer) {
+  static createCrosshair({ transformer } = {}) {
     if (game.Levels3DPreview?._previewActive) {
       Mouse3D.activate({
         mouseMoveCallback: TransformBus.position.bind(TransformBus),
@@ -698,26 +696,31 @@ export class MassTransformer {
   }
 }
 
-export async function editPreviewPlaceables(placeables, callback = null, mainPlaceable = null) {
+export async function editPreviewPlaceables({
+  placeables,
+  callback = null,
+  mainPlaceable = null,
+  hardLinked = false,
+} = {}) {
   const controlled = new Set();
   let hoveredDocument = mainPlaceable?.document;
 
   if (placeables?.length) {
     placeables.forEach((p) => {
       controlled.add(p.document);
-      LinkerAPI.getLinkedDocuments(p.document).forEach((d) => controlled.add(d));
+      LinkerAPI.getLinkedDocuments(p.document, { hardLinked }).forEach((d) => controlled.add(d));
     });
   } else {
     SUPPORTED_PLACEABLES.forEach((documentName) => {
       canvas.getLayerByEmbeddedName(documentName).controlled.forEach((p) => {
         controlled.add(p.document);
-        LinkerAPI.getLinkedDocuments(p.document).forEach((d) => controlled.add(d));
+        LinkerAPI.getLinkedDocuments(p.document, { hardLinked }).forEach((d) => controlled.add(d));
       });
       const hover = canvas.getLayerByEmbeddedName(documentName).hover;
       if (hover) {
         if (!hoveredDocument) hoveredDocument = hover.document;
         controlled.add(hover.document);
-        LinkerAPI.getLinkedDocuments(hover.document).forEach((d) => controlled.add(d));
+        LinkerAPI.getLinkedDocuments(hover.document, { hardLinked }).forEach((d) => controlled.add(d));
       }
     });
   }
@@ -733,14 +736,16 @@ export async function editPreviewPlaceables(placeables, callback = null, mainPla
     .snap(true)
     .pivot(PIVOTS.CENTER)
     .preview()
-    .crosshair(async (confirm) => {
-      if (!confirm) return callback?.();
-      await transformer.update({
-        ignoreLinks: true,
-        animate: false,
-      });
+    .crosshair({
+      callback: async (confirm) => {
+        if (!confirm) return callback?.();
+        await transformer.update({
+          ignoreLinks: true,
+          animate: false,
+        });
 
-      callback?.(confirm);
+        callback?.(confirm);
+      },
     });
 
   return true;

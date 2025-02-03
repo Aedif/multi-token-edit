@@ -346,7 +346,8 @@ export class LinkerAPI {
    * @param {CanvasDocumentMixin|Array<CanvasDocumentMixin>} documents embedded document/s
    * @returns {Set<CanvasDocumentMixin>}
    */
-  static getLinkedDocuments(documents) {
+  static getLinkedDocuments(documents, { hardLinked = false } = {}) {
+    if (hardLinked) return this.getHardLinkedDocuments(documents);
     if (!Array.isArray(documents)) documents = [documents];
     documents = documents.map((d) => d.document ?? d);
 
