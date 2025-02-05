@@ -11,7 +11,14 @@ import { PresetContainer } from './containerApp.js';
  */
 export async function openCategoryBrowser(
   menu,
-  { retainState = false, name = 'Category Browser', alignment = 'left', searchBar = false, globalSearch = false } = {}
+  {
+    retainState = false,
+    name = 'Category Browser',
+    alignment = 'left',
+    searchBar = false,
+    globalSearch = false,
+    editEnabled = false,
+  } = {}
 ) {
   // // If category browser is already open close it
   const app = Object.values(ui.windows).find((w) => w._browserId === name);
@@ -20,7 +27,9 @@ export async function openCategoryBrowser(
     return;
   }
 
-  new CategoryBrowserApplication(menu, { name, retainState, alignment, searchBar, globalSearch }).render(true);
+  new CategoryBrowserApplication(menu, { name, retainState, alignment, searchBar, globalSearch, editEnabled }).render(
+    true
+  );
 }
 
 /**
@@ -30,11 +39,12 @@ class Category {
   menu = null; // CategoryList this category is part of
   submenu = null; // CategoryList to be displayed when this category is active
 
-  constructor({ title, fa, img, query, menu }) {
+  constructor({ title, fa, img, query, disableQuery, menu }) {
     this.title = title; // Hover text
     this.fa = fa; // Font Awesome icon
     this.img = img; // Image icon
     this.query = query; // Search query to be ran when active
+    this.disableQuery = disableQuery; // Prevent query from being run when category is click (children will still inherit this query)
     this.menu = menu; // CategoryList this category is part of
     this.id = foundry.utils.randomID(); // Unique identifier
   }
@@ -124,6 +134,7 @@ class CategoryBrowserApplication extends PresetContainer {
       searchBar: options.searchBar,
       globalSearch: options.globalSearch,
       lastSearch: this._lastSearch,
+      editEnabled: options.editEnabled,
     };
   }
 
@@ -131,6 +142,9 @@ class CategoryBrowserApplication extends PresetContainer {
     super.activateListeners(html);
 
     html.find('.category').on('click', this._onClickCategory.bind(this));
+    if (this.options.editEnabled) {
+      html.find('.category').on('contextmenu', this._onRightClickCategory.bind(this));
+    }
     html.find('.header-search input').on('input', this._onSearchInput.bind(this));
     html.find('.globalSearchToggle').on('click', this._onGlobalSearchToggle.bind(this));
     this._setHeaderButtonColors();
@@ -192,8 +206,8 @@ class CategoryBrowserApplication extends PresetContainer {
     this._menus.push(categoryList);
 
     submenu.forEach((category) => {
-      const { title, fa, img, submenu, query } = category;
-      const cat = new Category({ title, fa, img, menu: categoryList, query });
+      const { title, fa, img, submenu, query, disableQuery } = category;
+      const cat = new Category({ title, fa, img, menu: categoryList, query, disableQuery });
       if (submenu?.length) cat.submenu = this._processMenu(submenu, cat);
       categoryList.categories.push(cat);
       this._categories.set(cat.id, cat);
@@ -216,6 +230,11 @@ class CategoryBrowserApplication extends PresetContainer {
     this._presetResults = null;
     await this.render(true);
     this._runQueryTree();
+  }
+
+  _onRightClickCategory(event) {
+    const category = this._categories.get($(event.currentTarget).data('id'));
+    new EditCategory(category, this).render(true);
   }
 
   /**
@@ -273,11 +292,17 @@ class CategoryBrowserApplication extends PresetContainer {
     if (this._lastSearch && this.options.globalSearch) {
       queries.push(this._lastSearch);
     } else {
+      let lastCategory;
       for (const menu of this._menus) {
         if (!menu.active) continue;
         const category = menu.categories.find((category) => category.active);
-        if (category?.query?.trim()) queries.push(category.query);
+        if (category?.query?.trim()) {
+          queries.push(category.query);
+          lastCategory = category;
+        }
       }
+      if (lastCategory?.disableQuery) queries.pop();
+
       if (this._lastSearch && queries.length) queries.push(this._lastSearch);
     }
 
@@ -388,8 +413,177 @@ class CategoryBrowserApplication extends PresetContainer {
         icon: 'fa-solid fa-arrows-cross',
         onclick: () => this._toggleSetting('switchLayer'),
       });
+
+      if (this.options.editEnabled) {
+        buttons.unshift({
+          label: '',
+          class: 'mass-edit-category-browser-gen-macro',
+          icon: 'fa-solid fa-dice-d20',
+          onclick: this._generateMacro.bind(this),
+        });
+      }
     }
 
     return buttons;
+  }
+
+  _generateMacro() {
+    const options = this.options;
+
+    let macro = `
+const options = {
+  name: "${options.name}",
+  alignment: "${options.alignment}",
+  retainSate: ${options.retainState},
+  searchBar: ${options.searchBar},
+  globalSearch: ${options.globalSearch},
+  editEnabled: ${options.editEnabled}
+};
+
+const menu = ${JSON.stringify(this._menuToJson(this._menus[0]), null, 2)};
+
+MassEdit.openCategoryBrowser(menu, options);`;
+
+    new Dialog({
+      title: `Open Category Browser Macro`,
+      content: `<textarea style="width:100%; height: 300px;">${macro}</textarea>`,
+      buttons: {
+        close: {
+          label: 'Close',
+        },
+      },
+    }).render(true);
+  }
+
+  _menuToJson(menu) {
+    return menu.categories.map((c) => this._categoryToJson(c));
+  }
+
+  _categoryToJson(category) {
+    const json = { title: category.title };
+    if (category.fa) json.fa = category.fa;
+    if (category.img) json.img = category.img;
+    if (category.query) json.query = category.query;
+    if (category.disableQuery) json.disableQuery = category.disableQuery;
+    if (category.submenu) json.submenu = this._menuToJson(category.submenu);
+    return json;
+  }
+}
+
+class EditCategory extends FormApplication {
+  constructor(category, browser) {
+    super({}, {});
+    this.category = category;
+    this.browser = browser;
+  }
+
+  static get defaultOptions() {
+    return foundry.utils.mergeObject(super.defaultOptions, {
+      classes: ['sheet', 'mass-edit-dark-window'],
+      template: `modules/${MODULE_ID}/templates/preset/categoryEdit.html`,
+      width: 450,
+      height: 'auto',
+      resizable: false,
+    });
+  }
+
+  get title() {
+    return 'Edit Category';
+  }
+
+  async getData(options) {
+    return { category: this.category };
+  }
+
+  /**
+   * @param {JQuery} html
+   */
+  activateListeners(html) {
+    super.activateListeners(html);
+
+    html.on('click', '.moveUp', () => {
+      const menu = this.category.menu;
+      const index = menu.categories.indexOf(this.category);
+      if (index > 0) {
+        menu.categories.splice(index, 1);
+        menu.categories.splice(index - 1, 0, this.category);
+        this.browser.render(true);
+      }
+    });
+    html.on('click', '.moveDown', () => {
+      const menu = this.category.menu;
+      const index = menu.categories.indexOf(this.category);
+      if (index < menu.categories.length - 1) {
+        menu.categories.splice(index, 1);
+        menu.categories.splice(index + 1, 0, this.category);
+        this.browser.render(true);
+      }
+    });
+  }
+
+  /**
+   * @param {Event} event
+   * @param {Object} formData
+   */
+  async _updateObject(event, formData) {
+    const action = event.submitter.value;
+
+    formData.fa = formData.fa.replace('<i class="', '').replace('"></i>', '');
+
+    if (action === 'save') {
+      for (const [key, value] of Object.entries(formData)) {
+        this.category[key] = value;
+      }
+      this.browser.render(true);
+    } else if (action === 'saveNew') {
+      const category = new Category({ menu: this.category.menu });
+      for (const [key, value] of Object.entries(formData)) {
+        category[key] = value;
+      }
+
+      category.menu.categories.push(category);
+      this.browser._categories.set(category.id, category);
+      this.browser.render(true);
+    } else if (action === 'delete') {
+      this._deleteCategory(this.category, this.browser);
+      if (this.browser._menus.length === 0) this.browser.close(true);
+      else this.browser.render(true);
+    } else if (action === 'addSumbenu') {
+      const categoryList = new CategoryList(this.category);
+      this.browser._menus.push(categoryList);
+
+      const cat = new Category({
+        title: 'New Category',
+        fa: 'fa-solid fa-circle-question',
+        img: '',
+        menu: categoryList,
+        query: '',
+      });
+      categoryList.categories.push(cat);
+      this.browser._categories.set(cat.id, cat);
+
+      this.category.submenu = categoryList;
+
+      this.browser.render(true);
+    } else if (action === 'deleteSubmenu') {
+      this.category.submenu.categories.forEach((c) => {
+        this._deleteCategory(c, this.browser);
+      });
+      this.browser.render(true);
+    }
+  }
+
+  _deleteCategory(category, browser) {
+    category.menu.categories = category.menu.categories.filter((c) => c.id !== category.id);
+    browser._categories.delete(category.id);
+
+    if (this.category.menu.categories.length === 0) {
+      browser._menus = browser._menus.filter((m) => m.id !== category.menu.id);
+      category.menu.parentCategory.menu = null;
+    }
+
+    category.submenu?.categories.forEach((c) => {
+      this._deleteCategory(c, browser);
+    });
   }
 }

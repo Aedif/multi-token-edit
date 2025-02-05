@@ -1,0 +1,43 @@
+<form class="flexcol">
+
+    <div class="form-group">
+        <label>Title</label>
+        <input type="text" name="title" value="{{category.title}}"/>
+    </div>
+
+    <div class="form-group">
+        <label>Image</label>
+        <div class="form-fields">
+            <file-picker name="img" type="image" value="{{category.img}}"></file-picker>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label>Font Awesome Icon <a href="https://fontawesome.com/search?o=r&ip=duotone%2Cclassic"><i class="fa-solid fa-magnifying-glass"></i></a></label>
+        <input type="text" name="fa" value="{{category.fa}}"/>
+    </div>
+
+    <div class="form-group">
+        <label>Query</label>
+        <input type="text" name="query" value="{{category.query}}"/>
+    </div>
+
+    <div class="form-group">
+        <label>Do not run query</label>
+        <input type="checkbox" name="disableQuery" {{checked category.disableQuery}}/>
+        <p class="notes">Prevents query from being run when clicked. Child categories will still inherit this query.</p>
+    </div>
+
+    <footer class="sheet-footer flexrow" style="flex-direction: column;">
+        <button type="submit" value="save"><i class="fa-solid fa-floppy-disk"></i> Save</button>
+        <button type="submit" value="saveNew"><i class="fa-solid fa-floppy-disks"></i> Save as New Category</button>
+        <button type="submit" value="delete"><i class="fa-light fa-trash-xmark"></i> Delete Category</button>
+        {{#if category.submenu}}
+        <button type="submit" value="deleteSubmenu"><i class="fa-regular fa-trash-can"></i> Delete Submenu</button>
+        {{else}}
+        <button type="submit" value="addSumbenu"><i class="fa-solid fa-square-caret-right"></i> Add Submenu</button>
+        {{/if}}
+        <button type="button" class="moveUp"><i class="fa-solid fa-arrow-up"></i></button>
+        <button type="button" class="moveDown"><i class="fa-solid fa-arrow-down"></i></button>
+    </footer>
+</div>
