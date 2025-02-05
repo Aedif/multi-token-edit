@@ -330,8 +330,9 @@ export class PresetCollection {
   }
 
   static async _constructVirtualFilePreset(uuid, { full = true } = {}) {
-    const src = uuid.substring(8);
-    const preset = new VirtualFilePreset({ src });
+    let preset = await FileIndexer.getPreset(uuid);
+    if (!preset) preset = new VirtualFilePreset({ src: uuid.substring(8) });
+
     if (full) await preset.load();
     return preset;
   }

@@ -3,7 +3,7 @@
  */
 
 import { BrushMenu } from './brush.js';
-import { MassTransformer, TransformBus } from './transformer.js';
+import { TransformBus } from './transformer.js';
 
 export class Mouse3D {
   // Trick to keep consistent signatures for bound 3d listeners
@@ -14,18 +14,22 @@ export class Mouse3D {
     this._boundOn3dMouseWheel = this._on3dMouseWheel.bind(this);
   }
 
-  static activate({ mouseMoveCallback = null, mouseClickCallback = null, mouseWheelClickCallback = null } = {}) {
-    this.mouseMoveCallback = mouseMoveCallback;
+  static activate({ mouseClickCallback = null, mouseWheelClickCallback = null, transformer } = {}) {
     this.mouseClickCallback = mouseClickCallback;
     this.mouseWheelClickCallback = mouseWheelClickCallback;
+    this.transformer = transformer;
 
     this._createTracker();
     this._activate3DListeners();
+    this._on3dMouseMove(true); // Set initial position
   }
 
   static deactivate() {
     if (this.tracker && game.Levels3DPreview?._active) {
       game.Levels3DPreview.scene.remove(this.tracker);
+      TransformBus.unregister(this.transformer);
+      this.transformer?.destroyPreview(false);
+      this.transformer = null;
       this.tracker = null;
       this.deactivate3DListeners();
     }
@@ -76,13 +80,17 @@ export class Mouse3D {
       const p = game.Levels3DPreview.interactionManager.currentHover?.placeable;
       this.mouseClickCallback?.({ x: posVec.x, y: posVec.y, z: posVec.z, placeable: p });
       //game.Levels3DPreview.interactionManager._downCameraPosition.set(0, 0, 0);
+      TransformBus.resolve({ x: posVec.x, y: posVec.y, z: posVec.z, placeable: p });
+      this.deactivate();
     } else if (event.which === 2) {
       this.mouseWheelClickCallback?.();
+      TransformBus.resolve(false);
+      this.deactivate();
     }
   }
 
-  static _on3dMouseMove() {
-    if (this.delayMoveTimer) return;
+  static _on3dMouseMove(force = false) {
+    if (this.delayMoveTimer && !force) return;
 
     this.delayMoveTimer = setTimeout(function () {
       const mPos = game.Levels3DPreview.interactionManager.canvas3dMousePosition;
@@ -103,15 +111,13 @@ export class Mouse3D {
         Mouse3D.tracker?.position.set(intersect.point.x, intersect.point.y, intersect.point.z);
         const posVec = game.Levels3DPreview.ruler.constructor.pos3DToCanvas(intersect.point);
 
-        Mouse3D.mouseMoveCallback?.({ x: posVec.x, y: posVec.y, z: posVec.z });
+        TransformBus.position({ x: posVec.x, y: posVec.y, z: posVec.z });
       }
       Mouse3D.delayMoveTimer = null;
     }, 100);
   }
 
   static _on3dMouseWheel(event) {
-    //console.log(event);
-
     if (
       (TransformBus.active() || BrushMenu.isActive()) &&
       (event.ctrlKey || event.shiftKey || event.metaKey || event.altKey)
@@ -124,8 +130,6 @@ export class Mouse3D {
         dy = event.delta = event.deltaX;
       }
       if (dy === 0) return;
-
-      // console.log(event.altKey, event.ctrlKey, event.shiftKey, event.delta);
 
       if (event.altKey) TransformBus.addScaling(event.delta < 0 ? 0.05 : -0.05);
       else if ((event.ctrlKey || event.metaKey) && event.shiftKey) BrushMenu.iterate(event.delta >= 0, true);

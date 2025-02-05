@@ -310,9 +310,7 @@ export class MassTransformer {
 
     // - end of transform calculations
     this.applyTransform(transform, pos);
-    if (paraScale) {
-      this.applyTransform({ scale: paraScale }, pos);
-    }
+    if (paraScale) this.applyTransform({ scale: paraScale }, pos);
 
     if (MassTransformer._label) {
       MassTransformer._label.x = pos.x;
@@ -345,7 +343,7 @@ export class MassTransformer {
             doc.sort = preview._meSort + 10000;
           }
           if (!Scenescape.active) {
-            if (!game.Levels3DPreview?._previewActive && doc.elevation != null) {
+            if (!game.Levels3DPreview?._active && doc.elevation != null) {
               if (!preview._meElevation) preview._meElevation = doc.elevation;
               doc.elevation = preview._meElevation + 10000;
             }
@@ -383,7 +381,7 @@ export class MassTransformer {
       this._previewDocuments.forEach((name) => {
         const layer = canvas.getLayerByEmbeddedName(name);
         if (layer) {
-          if (game.Levels3DPreview?._previewActive) {
+          if (game.Levels3DPreview?._active) {
             layer.preview.children.forEach((c) => {
               c._l3dPreview?.destroy();
             });
@@ -440,8 +438,8 @@ export class MassTransformer {
       this.crosshairOverlay.children?.forEach((c) => c.destroy(true));
       this.crosshairOverlay = null;
       this._label = null;
-      Mouse3D.deactivate();
     }
+    Mouse3D.deactivate();
   }
 
   /**
@@ -479,11 +477,9 @@ export class MassTransformer {
   }
 
   static createCrosshair({ transformer } = {}) {
-    if (game.Levels3DPreview?._previewActive) {
+    if (game.Levels3DPreview?._active) {
       Mouse3D.activate({
-        mouseMoveCallback: TransformBus.position.bind(TransformBus),
-        mouseClickCallback: TransformBus.resolve.bind(TransformBus),
-        mouseWheelClickCallback: MassTransformer.destroyCrosshair.bind(MassTransformer),
+        transformer,
       });
     } else {
       const crosshairOverlay = new PIXI.Container();
@@ -558,23 +554,30 @@ export class MassTransformer {
       MassTransformer._overridePlaceableVisibility(object);
 
       // 3D Canvas
-      if (game.Levels3DPreview?._previewActive) {
+      if (game.Levels3DPreview?._active) {
+        let l3dPreview;
         if (documentName === 'Tile') {
           game.Levels3DPreview.createTile(object);
-          const l3dPreview = game.Levels3DPreview.tiles[object.id];
+          l3dPreview = game.Levels3DPreview.tiles[object.id];
 
           l3dPreview.castShadow = false;
           l3dPreview.collision = false;
-
-          object._l3dPreview = l3dPreview;
         } else if (documentName === 'Token') {
           // Tokens get async loaded without a way to await them
           // We'll need to retrieve the 3D token when the transforms are actually getting applied
           game.Levels3DPreview.addToken(object);
-          object._l3dPreview = null;
         } else if (documentName === 'AmbientLight') {
           game.Levels3DPreview.addLight(object);
-          const l3dPreview = game.Levels3DPreview.lights[object.id];
+          l3dPreview = game.Levels3DPreview.lights[object.id];
+        }
+
+        if (l3dPreview) {
+          // Disable interactivity with the 3D preview
+          l3dPreview._onClickLeft = () => {};
+          l3dPreview._onClickLeft2 = () => {};
+          l3dPreview._onClickRight = () => {};
+          l3dPreview._onClickRight2 = () => {};
+
           object._l3dPreview = l3dPreview;
         }
       }
@@ -725,7 +728,7 @@ export async function editPreviewPlaceables({
     });
   }
 
-  if (!controlled.size) {
+  if (!controlled.size && !game.Levels3DPreview?._active) {
     const pickerSelected = await pickerSelectMultiLayerDocuments();
     pickerSelected.forEach((d) => controlled.add(d));
   }

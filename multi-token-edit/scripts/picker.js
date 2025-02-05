@@ -1,5 +1,4 @@
 import { Mouse3D } from './mouse3d.js';
-import { TransformBus } from './transformer.js';
 
 /**
  * Activate a crosshair overlay that allows selection of a bounding box on the canvas

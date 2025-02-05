@@ -17,7 +17,8 @@ export const SUPPORTED_COLLECTIONS = ['Item', 'Cards', 'RollTable', 'Actor', 'Jo
 export const IMAGE_EXTENSIONS = ['webp', 'jpg', 'jpeg', 'png', 'svg', 'apng', 'avif', 'bmp', 'gif', 'tif'];
 export const VIDEO_EXTENSIONS = ['mp4', 'ogv', 'webm', 'm4v'];
 export const AUDIO_EXTENSIONS = ['aac', 'flac', 'm4a', 'mid', 'mp3', 'ogg', 'opus', 'wav'];
-export const FILE_EXTENSIONS = [...IMAGE_EXTENSIONS, ...VIDEO_EXTENSIONS, ...AUDIO_EXTENSIONS];
+export const MODEL_EXTENSIONS = ['glb', 'gltf', 'fbx'];
+export const FILE_EXTENSIONS = [...IMAGE_EXTENSIONS, ...VIDEO_EXTENSIONS, ...AUDIO_EXTENSIONS, ...MODEL_EXTENSIONS];
 
 export const LINKER_DOC_ICONS = {
   Token: 'modules/multi-token-edit/images/linker/person-fill.svg',

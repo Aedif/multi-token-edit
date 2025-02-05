@@ -146,6 +146,10 @@ export function mergePresetDataToDefaultDoc(preset, presetData) {
       break;
     case 'Tile':
       data = {
+        texture: {
+          scaleX: 1,
+          scaleY: 1,
+        },
         width: canvas.grid.sizeX ?? canvas.grid.w, // v12
         height: canvas.grid.sizeY ?? canvas.grid.h, // v12
         x: 0,

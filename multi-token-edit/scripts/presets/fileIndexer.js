@@ -1,4 +1,4 @@
-import { FILE_EXTENSIONS, MODULE_ID } from '../constants.js';
+import { FILE_EXTENSIONS, IMAGE_EXTENSIONS, MODEL_EXTENSIONS, MODULE_ID } from '../constants.js';
 import { TagInput } from '../utils.js';
 import { PresetTree, VirtualFileFolder } from './collection.js';
 import { VirtualFilePreset } from './preset.js';
@@ -286,6 +286,7 @@ export class FileIndexer {
   static _cachePreset(preset) {
     const pDic = { name: encodeURIComponentSafely(preset.name) };
     if (preset.tags?.length) pDic.tags = preset.tags;
+    if (preset._thumb) pDic.thumb = preset._thumb;
     return pDic;
   }
 
@@ -341,6 +342,7 @@ export class FileIndexer {
           src: options.prePend + fullPath + '/' + file.name,
           tags: file.tags,
           folder: fileFolder.id,
+          thumb: file.thumb ? options.prePend + fullPath + '/' + file.thumb : null,
         });
         allPresets.push(preset);
         fileFolder.presets.push(preset);
@@ -403,6 +405,7 @@ export class FileIndexer {
       });
     }
 
+    let modelFiles = [];
     for (let path of content.files) {
       const fileName = path.split('\\').pop().split('/').pop();
       if (settings.fileFilters.some((k) => fileName.includes(k))) continue;
@@ -441,7 +444,30 @@ export class FileIndexer {
         const f = { name: fileName };
         if (tags.length) f.tags = tags;
         folder.files.push(f);
+        if (MODEL_EXTENSIONS.includes(ext)) {
+          f.tags = ['3d-model', ...(f.tags ?? [])];
+          modelFiles.push(f);
+        }
       }
+    }
+
+    // Lets try to matchup 3D Models with image files in the same directory
+    if (modelFiles.length) {
+      modelFiles.forEach((mFile) => {
+        const modelName = mFile.name.split('.')[0];
+        folder.files = folder.files.filter((f) => {
+          if (mFile == f) return true;
+
+          let ext = f.name.split('.');
+          ext = ext[ext.length - 1].toLowerCase();
+
+          if (IMAGE_EXTENSIONS.includes(ext) && f.name.split('.')[0] === modelName) {
+            mFile.thumb = f.name;
+            return false;
+          }
+          return true;
+        });
+      });
     }
 
     for (let dir of content.dirs) {

@@ -343,7 +343,6 @@ export class Brush {
 
   static _activate3d() {
     Mouse3D.activate({
-      mouseMoveCallback: TransformBus.position.bind(TransformBus),
       mouseClickCallback: this._on3DBrushClick.bind(this),
       mouseWheelClickCallback: this.deactivate.bind(this),
     });
