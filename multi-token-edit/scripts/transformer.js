@@ -150,6 +150,20 @@ export class MassTransformer {
     return this;
   }
 
+  /**
+   * Adds currently selected documents to the transformer
+   * @param linked      include placeables linked to the selected
+   * @param hardLinked  only hard (SEND) links are considered
+   * @returns {MassTransformer}
+   */
+  selected({ linked = true, hardLinked = true } = {}) {
+    const selected = [...canvas.activeLayer.controlled].map((p) => p.document);
+    if (!selected.length) return this;
+    this.documents(selected);
+    if (linked) this.documents(LinkerAPI.getLinkedDocuments(selected, { hardLinked }));
+    return this;
+  }
+
   _saveDataOriginal(document) {
     const data = document.toObject();
     const dataArr = this._docToDataOriginal.get(document.documentName) ?? [];
@@ -206,6 +220,11 @@ export class MassTransformer {
     return this;
   }
 
+  /**
+   * Raise or lower elevation
+   * @param {number} elevation
+   * @returns {MassTransformer}
+   */
   elevate(elevation) {
     this.applyTransform({ z: elevation }, this.pivotPoint(this._pivot));
     if (MassTransformer._label) {
@@ -423,6 +442,10 @@ export class MassTransformer {
    */
   crosshair({ callback } = {}) {
     if (callback) this.callback = callback;
+    else if (!this.callback)
+      this.callback = (confirm) => {
+        if (confirm) this.update();
+      };
 
     MassTransformer.destroyCrosshair();
     MassTransformer.createCrosshair({ transformer: this });

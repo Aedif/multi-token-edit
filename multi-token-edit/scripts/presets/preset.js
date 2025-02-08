@@ -349,8 +349,6 @@ export class VirtualFilePreset extends Preset {
   }
 
   async load(force = false) {
-    if (this._storedReference) return this;
-
     const p = await FileIndexer.getPreset(this.uuid);
     if (p) this.tags = p.tags;
     this._storedReference = p;
@@ -364,7 +362,7 @@ export class VirtualFilePreset extends Preset {
     // Load image/video/3D Model metadata to retrieve dimensions
     const src = this.data[0].texture?.src;
 
-    if (game.Levels3DPreview?._active && is3DModel(src)) {
+    if (is3DModel(src) || foundry.utils.getProperty(this.data[0], 'flags.levels-3d-preview.model3d')) {
       await this._load3DModel(src, this.data[0]);
     } else {
       let { width, height } = await loadImageVideoDimensions(src);
@@ -376,6 +374,13 @@ export class VirtualFilePreset extends Preset {
   }
 
   async _load3DModel(src, data) {
+    src = foundry.utils.getProperty(data, 'flags.levels-3d-preview.model3d') ?? src;
+    if (!game.Levels3DPreview) {
+      foundry.utils.setProperty(data, 'flags.levels-3d-preview.model3d', src);
+      foundry.utils.setProperty(data, 'texture.src', 'modules/levels-3d-preview/assets/blank.webp');
+      return;
+    }
+
     data.flags = {
       'levels-3d-preview': {
         model3d: src,

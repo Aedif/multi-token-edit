@@ -74,7 +74,12 @@ export class Spawner {
     preset = preset ?? (await PresetAPI.getPreset({ uuid, name, type, folder, tags, random }));
     if (!preset) throw Error(`No preset could be found matching: { uuid: "${uuid}", name: "${name}", type: "${type}"}`);
 
-    let presetData = foundry.utils.deepClone(preset.data);
+    // Lets clone the preset so that any modifications made to it will not affect the original
+    preset = preset.clone();
+
+    if (!Hooks.call('MassEdit.spawnPreset', preset)) return [];
+
+    let presetData = preset.data;
 
     // Instead of using the entire data group use only one random one
     if (preset.spawnRandom && presetData.length) {
