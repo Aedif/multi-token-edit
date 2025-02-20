@@ -406,21 +406,21 @@ export class FileIndexer {
     }
 
     let modelFiles = [];
+    let thumbnails = []; // Image files ending in _thumb
     for (let path of content.files) {
-      const fileName = path.split('\\').pop().split('/').pop();
-      if (settings.fileFilters.some((k) => fileName.includes(k))) continue;
+      const file = path.split('\\').pop().split('/').pop();
 
       // Special file processing
 
       // Cancel indexing if noscan.txt or cache file is present within the directory
-      if (fileName === 'noscan.txt') return null;
-      else if (fileName === CACHE_NAME && !settings.ignoreExternal) {
+      if (file === 'noscan.txt') return null;
+      else if (file === CACHE_NAME && !settings.ignoreExternal) {
         const cacheDir = settings.cacheDir;
         if (!(cacheDir.target === dir.target && cacheDir.source === source && cacheDir.bucket === bucket)) {
           foundCaches.push(path);
           return null;
         }
-      } else if (fileName === 'module.json') {
+      } else if (file === 'module.json') {
         // Read metadata from module's json file applying subtext to current folder
         // and tags to all files
         const author = await this._getAuthorFromModule(path);
@@ -434,14 +434,25 @@ export class FileIndexer {
             });
           }
         }
+
+        continue;
       }
 
       // Otherwise process the file
-      let ext = fileName.split('.');
-      ext = ext[ext.length - 1].toLowerCase();
+      let [fileName, ext] = file.split('.');
+      ext = ext.toLowerCase();
+
+      // If a file ends with _thumb, we assume it to be a thumbnail image and we will try to associate it to another file later
+      if (fileName.endsWith('_thumb') && IMAGE_EXTENSIONS.includes(ext)) {
+        thumbnails.push({ thumb: file, match: fileName.replace('_thumb', '') });
+        continue;
+      }
+
+      // Apply filters
+      if (settings.fileFilters.some((k) => file.includes(k))) continue;
 
       if (FILE_EXTENSIONS.includes(ext)) {
-        const f = { name: fileName };
+        const f = { name: file };
         if (tags.length) f.tags = tags;
         folder.files.push(f);
         if (MODEL_EXTENSIONS.includes(ext)) {
@@ -467,6 +478,14 @@ export class FileIndexer {
           }
           return true;
         });
+      });
+    }
+
+    // Lets try to match thumbnails (..._thumb) with image files in the same directory
+    if (thumbnails.length) {
+      thumbnails.forEach((t) => {
+        const matchedFile = folder.files.find((f) => f.name.split('.').shift() === t.match);
+        if (matchedFile) matchedFile.thumb = t.thumb;
       });
     }
 

@@ -1326,7 +1326,7 @@ export function registerPresetBrowserHooks() {
       options.push({
         name: 'Spawn as Preset',
         icon: '<i class="fa-solid fa-books"></i>',
-        condition: (li) => game.user.isGM && li.data('documentId') !== canvas.scene.id,
+        condition: (li) => game.user.isGM && canvas.ready && li.data('documentId') !== canvas.scene?.id,
         callback: (li) => {
           spawnSceneAsPreset(game.scenes.get(li.data('documentId')));
         },

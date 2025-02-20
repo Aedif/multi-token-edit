@@ -1,3 +1,34 @@
+# 1.84.0
+
+**Scenescapes**
+
+- Controlled token border has been changed from rectangle to image outline
+- Improved handling of linked placeables
+- Token Configuration forms have an option to enable auto-flip
+  - You need to be on a scenescape for this option to appear
+  - When enabled the Token and all linked objects will be flipped when using WASD/Arrow keys for movement
+- `Scenescape: Toggle Auto-scaling` keybind will now keep the auto scaling on/off until it is pressed again, instead of being reset during next drag/move
+- Dragging one-way linked placeables will no longer grab the rest of the linked objects
+
+**Brush**
+
+- Fixed tint color getting soft-locked after enabling TMFX tinting and disabling TMFX module
+- Fixed video previews not rendering
+
+**Misc**
+
+- Engaging preview mode (`Shift+D`) while hovering over a placeable will now designate it as the pivot; the mouse will be cantered on it and all transformations will happen relative to it
+- `MassEdit.spawnPreset` hook will now be called just before Mass Edit performs any kind of spawn operation
+  - `preset` is available as an argument allowing modification before the module proceeds with spawning
+- Fixed Scene context menu failing to open when a scene is not currently loaded
+
+**Category Browser**
+
+- Initial `width` & `height` can now be passed in
+- If `globalQuery` is provided, it will be appended to any other query run within the category browser
+  - e.g. `globalQuery: "#orcs"
+    - All categories and search bar searches will have #orcs implicitly appended to them
+
 # 1.83.1
 
 - Fixed an elevation in spawn previews not resetting when moving out of a Scenescape scene

@@ -17,7 +17,10 @@ export async function openCategoryBrowser(
     alignment = 'left',
     searchBar = false,
     globalSearch = false,
+    globalQuery = '',
     editEnabled = false,
+    width,
+    height,
   } = {}
 ) {
   // // If category browser is already open close it
@@ -27,9 +30,17 @@ export async function openCategoryBrowser(
     return;
   }
 
-  new CategoryBrowserApplication(menu, { name, retainState, alignment, searchBar, globalSearch, editEnabled }).render(
-    true
-  );
+  new CategoryBrowserApplication(menu, {
+    name,
+    retainState,
+    alignment,
+    searchBar,
+    globalSearch,
+    globalQuery,
+    editEnabled,
+    width,
+    height,
+  }).render(true);
 }
 
 /**
@@ -308,6 +319,11 @@ class CategoryBrowserApplication extends PresetContainer {
 
     let results;
     if (queries.length) {
+      // Insert a global query that applies to all searches
+      if (this.options.globalQuery) {
+        queries.unshift(this.options.globalQuery);
+      }
+
       for (const query of queries) {
         if (this._queryRunTime !== runTime) return;
         results = await this._runQuery(query, false, results);
@@ -437,7 +453,8 @@ const options = {
   retainSate: ${options.retainState},
   searchBar: ${options.searchBar},
   globalSearch: ${options.globalSearch},
-  editEnabled: ${options.editEnabled}
+  globalQuery: ${options.globalQuery},
+  editEnabled: ${options.editEnabled},
 };
 
 const menu = ${JSON.stringify(this._menuToJson(this._menus[0]), null, 2)};
