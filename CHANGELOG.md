@@ -1,3 +1,7 @@
+# 1.84.1
+
+- Fixed TMFX filters getting cleared on Scenescapes
+
 # 1.84.0
 
 **Scenescapes**

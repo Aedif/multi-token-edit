@@ -155,15 +155,17 @@ export class ScenescapeControls {
         const result = wrapped(...args);
         this.border.visible = false;
 
-        if (!this.mesh.filter) this.mesh.filters = [];
-        if (!this.document.isSecret && this.controlled && !this.mesh.filters.find((f) => f.ssOutline)) {
-          const outlineFilter = OutlineFilter.create({
-            outlineColor: Color.from(_token._getBorderColor()).rgb,
-            animated: false,
-          });
-          outlineFilter.ssOutline = true;
-          outlineFilter.animated = false;
-          this.mesh.filters.push(outlineFilter);
+        if (!this.mesh.filters) this.mesh.filters = [];
+        if (!this.document.isSecret && this.controlled) {
+          if (!this.mesh.filters.find((f) => f.ssOutline)) {
+            const outlineFilter = OutlineFilter.create({
+              outlineColor: Color.from(_token._getBorderColor()).rgb,
+              animated: false,
+            });
+            outlineFilter.ssOutline = true;
+            outlineFilter.animated = false;
+            this.mesh.filters.push(outlineFilter);
+          }
         } else {
           this.mesh.filters = this.mesh.filters.filter((f) => !f.ssOutline);
         }
