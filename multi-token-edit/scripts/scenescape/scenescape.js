@@ -24,6 +24,8 @@ export function registerScenescapeHooks() {
 }
 
 export class Scenescape {
+  static autoScale = true;
+
   static get active() {
     return this._active;
   }

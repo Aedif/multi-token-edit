@@ -341,7 +341,6 @@ export class VirtualFilePreset extends Preset {
     }
     data.gridSize = 150;
     super(data);
-    if (data.thumb) this._thumb = data.thumb;
   }
 
   get virtual() {

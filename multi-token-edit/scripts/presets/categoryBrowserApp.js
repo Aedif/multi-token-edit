@@ -453,7 +453,7 @@ const options = {
   retainSate: ${options.retainState},
   searchBar: ${options.searchBar},
   globalSearch: ${options.globalSearch},
-  globalQuery: ${options.globalQuery},
+  globalQuery: "${options.globalQuery}",
   editEnabled: ${options.editEnabled},
 };
 

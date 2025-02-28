@@ -1,3 +1,8 @@
+# 1.84.2
+
+- Fixed Scenescape auto-scaling being off by default
+- Fixed Category Browser's globalQuery not being quoted in the generated macro
+
 # 1.84.1
 
 - Fixed TMFX filters getting cleared on Scenescapes
