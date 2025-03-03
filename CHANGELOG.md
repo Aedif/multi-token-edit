@@ -1,3 +1,7 @@
+# 1.84.3
+
+- Fixed `Link Token` behaviors under certain circumstances being assigned identical IDs
+
 # 1.84.2
 
 - Fixed Scenescape auto-scaling being off by default

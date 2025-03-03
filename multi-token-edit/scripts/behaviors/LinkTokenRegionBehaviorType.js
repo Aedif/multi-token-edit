@@ -23,7 +23,7 @@ export class LinkTokenRegionBehaviorType extends foundry.data.regionBehaviors.Re
       linkId: new foundry.data.fields.StringField({
         label: localize('behavior.linkToken.linkId.label'),
         hint: localize('behavior.linkToken.linkId.hint'),
-        initial: 'LinkTokenBehavior - ' + foundry.utils.randomID(8),
+        initial: () => 'LinkTokenBehavior - ' + foundry.utils.randomID(8),
       }),
       // linkType: new foundry.data.fields.NumberField({
       //   choices: Object.keys(LINK_TYPES).reduce((obj, t) => {
