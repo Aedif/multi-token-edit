@@ -341,6 +341,7 @@ export class VirtualFilePreset extends Preset {
     }
     data.gridSize = 150;
     super(data);
+    this._src = data.src;
   }
 
   get virtual() {
@@ -415,7 +416,7 @@ export class VirtualFilePreset extends Preset {
 
   clone() {
     const data = this.toJSON();
-    data.src = data.img;
+    data.src = this._src;
     return new VirtualFilePreset(data);
   }
 }

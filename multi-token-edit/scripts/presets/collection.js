@@ -59,7 +59,7 @@ export class PresetCollection {
     // Read File Index
     if (virtualDirectory) {
       const vTree = await FileIndexer.getVirtualDirectoryTree(type, { setFormVisibility });
-      if (vTree?.hasVisible || !setFormVisibility) {
+      if (vTree && (vTree.hasVisible || !setFormVisibility)) {
         const topFolder = new VirtualFileFolder({
           name: 'VIRTUAL DIRECTORY',
           children: vTree.folders,
