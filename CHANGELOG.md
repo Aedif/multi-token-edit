@@ -1,3 +1,7 @@
+# 1.84.4
+
+- Fixed an error when virtual directory cache does not exist
+
 # 1.84.3
 
 - Fixed `Link Token` behaviors under certain circumstances being assigned identical IDs
