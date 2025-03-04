@@ -1,3 +1,7 @@
+# 1.84.5
+
+- Fixed Virtual Directory index saving not properly encoding thumbnails
+
 # 1.84.4
 
 - Fixed an error when virtual directory cache does not exist
