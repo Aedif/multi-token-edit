@@ -411,7 +411,10 @@ export class VirtualFilePreset extends Preset {
     if (this._storedReference) {
       this._storedReference.tags = update.tags;
       clearTimeout(VirtualFilePreset._updateTimeout);
-      VirtualFilePreset._updateTimeout = setTimeout(() => FileIndexer.saveIndexToCache(), 3000);
+      VirtualFilePreset._updateTimeout = setTimeout(
+        () => FileIndexer.saveIndexToCache({ processAutoSave: true }),
+        3000
+      );
     }
   }
 

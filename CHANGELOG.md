@@ -1,3 +1,11 @@
+# 1.85.0
+
+- Fixed typo in Category Browser generated macros
+- Scenescapes: Added height field support for the PF2e game system
+- Added 'Auto-Save Index' context menu option for Virtual Directories
+  - When an asset within a virtual directory is tagged and automatic 'Save Index' operation will be performed for the toggled folder
+- `MassEdit.importSceneCompendium(...)` will now update FauxScene names if a mismatch has been found
+
 # 1.84.5
 
 - Fixed Virtual Directory index saving not properly encoding thumbnails

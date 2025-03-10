@@ -247,6 +247,9 @@ export class Scenescape {
     if (game.system.id === 'dnd5e') {
       const height = parseHeightString(actor.system.details?.height ?? '');
       if (height) return height;
+    } else if (game.system.id === 'pf2e') {
+      const height = parseHeightString(actor.system.details?.height?.value ?? '');
+      if (height) return height;
     }
 
     return actor.prototypeToken.height * 6;

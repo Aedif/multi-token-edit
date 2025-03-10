@@ -502,12 +502,38 @@ export class PresetContainer extends FormApplication {
       {
         name: 'Save Index',
         icon: '<i class="fas fa-file-search"></i>',
-        condition: (header) => {
-          const folder = this.tree.allFolders.get(header.closest('.folder').data('uuid'));
-          return folder.indexable;
-        },
+        condition: (header) => this.tree.allFolders.get(header.closest('.folder').data('uuid'))?.indexable,
         callback: (header) => {
           FileIndexer.saveFolderToCache(this.tree.allFolders.get(header.closest('.folder').data('uuid')));
+        },
+      },
+      {
+        name: 'Auto-Save Index',
+        icon: '<i class="fas fa-file-search"></i>',
+        condition: (header) =>
+          this.tree.allFolders.get(header.closest('.folder').data('uuid'))?.indexable &&
+          !game.settings
+            .get(MODULE_ID, 'presetBrowser')
+            .autoSaveFolders?.includes(header.closest('.folder').data('uuid')),
+        callback: (header) => {
+          const settings = game.settings.get(MODULE_ID, 'presetBrowser');
+          settings.autoSaveFolders = [...(settings.autoSaveFolders ?? []), header.closest('.folder').data('uuid')];
+          game.settings.set(MODULE_ID, 'presetBrowser', settings);
+        },
+      },
+      {
+        name: 'Disable Auto-Save Index',
+        icon: '<i class="fas fa-file-search"></i>',
+        condition: (header) =>
+          this.tree.allFolders.get(header.closest('.folder').data('uuid'))?.indexable &&
+          game.settings
+            .get(MODULE_ID, 'presetBrowser')
+            .autoSaveFolders?.includes(header.closest('.folder').data('uuid')),
+        callback: (header) => {
+          const settings = game.settings.get(MODULE_ID, 'presetBrowser');
+          const uuid = header.closest('.folder').data('uuid');
+          settings.autoSaveFolders = (settings.autoSaveFolders ?? []).filter((i) => i !== uuid);
+          game.settings.set(MODULE_ID, 'presetBrowser', settings);
         },
       },
       {

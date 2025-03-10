@@ -157,6 +157,7 @@ export function registerSettings() {
       switchLayer: true,
       documentLock: '',
       dropdownDocuments: ['MeasuredTemplate', 'Note', 'Region'],
+      autoSaveFolders: [],
     },
     onChange: (val) => {
       PresetBrowser.CONFIG = val;

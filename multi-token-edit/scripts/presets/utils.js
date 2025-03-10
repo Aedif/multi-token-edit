@@ -627,8 +627,6 @@ export function matchPreset(preset, search, negativeSearch) {
 }
 
 export async function importSceneCompendium(pack) {
-  // TODO: Display a dialog with scene compendium options
-
   const compendium = game.packs.get(pack) ?? game.packs.getName(pack);
   if (!compendium) throw Error('Invalid pack: ' + pack);
   if (compendium.documentName !== 'Scene') throw Error('Pack provided is not a Scene compendium: ' + pack);
@@ -640,12 +638,16 @@ export async function importSceneCompendium(pack) {
     virtualDirectory: false,
     setFormVisibility: false,
   });
-  const index = workingPackTree.metaDoc?.flags[MODULE_ID].index;
+  // const index = workingPackTree.metaDoc?.flags[MODULE_ID].index;
+  const packIndex = workingPackTree.pack.index;
 
   let alreadyImportedCount = 0;
+  let nameUpdatedCount = 0;
 
-  compendium.index.forEach((i) => {
-    if (!index?.[i._id]) {
+  for (const i of compendium.index) {
+    const jIndex = packIndex.get(i._id);
+
+    if (!jIndex) {
       const preset = new Preset({
         documentName: 'FauxScene',
         id: i._id,
@@ -658,12 +660,23 @@ export async function importSceneCompendium(pack) {
         ],
       });
       presets.push(preset);
+    } else if (jIndex.name !== i.name) {
+      const preset = await PresetCollection.get(jIndex.uuid, { full: true });
+      if (preset) {
+        console.log(preset.name, ' -> ', i.name);
+        preset.update({ name: i.name }, true);
+        nameUpdatedCount++;
+      }
     } else {
       alreadyImportedCount++;
     }
-  });
+  }
 
   await PresetCollection.set(presets);
 
   ui.notifications.info(`Imported scenes: ${presets.length}/${alreadyImportedCount + presets.length}`);
+  if (nameUpdatedCount) {
+    await Preset.processBatchUpdates();
+    ui.notifications.info(`Updated FauxScene names: ${nameUpdatedCount}`);
+  }
 }

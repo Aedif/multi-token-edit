@@ -224,10 +224,13 @@ export class FileIndexer {
     return this._loadedTree.allPresets.find((p) => p.uuid === uuid);
   }
 
-  static async saveIndexToCache(
+  static async saveIndexToCache({
     folders = this._loadedTree?.folders,
-    { path = CACHE_PATH, notify = true, source = 'data' } = {}
-  ) {
+    path = CACHE_PATH,
+    notify = true,
+    source = 'data',
+    processAutoSave = false,
+  } = {}) {
     if (folders) {
       const cache = [];
       for (const sourceFolder of folders) {
@@ -241,6 +244,18 @@ export class FileIndexer {
 
       this._writeIndexToCache(cache, { path, notify, source });
     }
+
+    if (processAutoSave && this._loadedTree) {
+      const folderUuids = game.settings.get(MODULE_ID, 'presetBrowser').autoSaveFolders ?? [];
+      if (!folderUuids.length) return;
+
+      const folders = folderUuids.map((uuid) => this._loadedTree.allFolders.get(uuid)).filter(Boolean);
+      if (!folders.length) return;
+
+      for (const folder of folders) {
+        this.saveFolderToCache(folder, false);
+      }
+    }
   }
 
   static async _writeIndexToCache(index, { path = CACHE_PATH, notify = true, source = 'data' } = {}) {
@@ -250,8 +265,13 @@ export class FileIndexer {
     await FilePicker.upload(source, path, tFile, {}, { notify });
   }
 
-  static async saveFolderToCache(folder) {
-    if (!(this._loadedTree || folder.indexable || folder.source)) return;
+  static async saveFolderToCache(folder, notify = true) {
+    if (!this._loadedTree) {
+      ui.notifications.warn('Index was recently refreshed. Reload the browser before attempting to save the index.');
+      return;
+    }
+
+    if (!(folder.indexable || folder.source)) return;
     const allFolders = this._loadedTree.allFolders;
 
     let wFolder = folder;
@@ -273,7 +293,12 @@ export class FileIndexer {
       wFolder = pFolder;
     }
 
-    this.saveIndexToCache([wFolder], { path: folder.uuid.replace('virtual@', ''), source: folder.source });
+    this.saveIndexToCache({
+      folders: [wFolder],
+      path: folder.uuid.replace('virtual@', ''),
+      source: folder.source,
+      notify,
+    });
   }
 
   static _cacheFolder(folder) {

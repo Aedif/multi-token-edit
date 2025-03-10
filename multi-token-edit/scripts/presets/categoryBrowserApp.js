@@ -450,7 +450,7 @@ class CategoryBrowserApplication extends PresetContainer {
 const options = {
   name: "${options.name}",
   alignment: "${options.alignment}",
-  retainSate: ${options.retainState},
+  retainState: ${options.retainState},
   searchBar: ${options.searchBar},
   globalSearch: ${options.globalSearch},
   globalQuery: "${options.globalQuery}",
