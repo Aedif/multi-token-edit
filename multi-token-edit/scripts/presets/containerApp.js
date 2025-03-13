@@ -869,6 +869,34 @@ export class PresetContainer extends FormApplication {
     }
   }
 
+  /** @override */
+  async _renderOuter() {
+    const html = await super._renderOuter();
+
+    const headerButtons = this._getHeaderButtons();
+    setTimeout(() => {
+      html.find('.header-button').each(function () {
+        const button = headerButtons.find((b) => this.classList.contains(b.class));
+        const el = $(this);
+
+        // Add header button tooltips
+        if (button.tooltip) el.data('tooltip', tooltip);
+
+        // Configure buttons as toggles
+        if (button.toggle) {
+          el.on('click', () => {
+            setTimeout(() => {
+              el.css('color', button.active?.() ? button.color : '');
+            }, 250);
+          });
+          el.css('color', button.active?.() ? button.color : '');
+        }
+      });
+    }, 500);
+
+    return html;
+  }
+
   /**
    * @override
    * Application.setPosition(...) has been modified to use css transform for window translation across the screen

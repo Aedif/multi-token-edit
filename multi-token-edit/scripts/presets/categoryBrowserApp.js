@@ -1,4 +1,5 @@
 import { MODULE_ID } from '../constants.js';
+import { localize } from '../utils.js';
 import { PresetBrowser } from './browser/browserApp.js';
 import { PresetAPI } from './collection.js';
 import { PresetContainer } from './containerApp.js';
@@ -158,7 +159,6 @@ class CategoryBrowserApplication extends PresetContainer {
     }
     html.find('.header-search input').on('input', this._onSearchInput.bind(this));
     html.find('.globalSearchToggle').on('click', this._onGlobalSearchToggle.bind(this));
-    this._setHeaderButtonColors();
   }
 
   async _onSearchInput(event) {
@@ -178,32 +178,6 @@ class CategoryBrowserApplication extends PresetContainer {
     else $(event.currentTarget).removeClass('active');
 
     this._runQueryTree();
-  }
-
-  /**
-   * Hack to set the Preset header button colours
-   */
-  _setHeaderButtonColors() {
-    const windowHeader = this.element.find('.window-header');
-
-    const activeColor = 'darkorange';
-    const inactiveColor = 'var(--color-text-light-highlight)';
-
-    windowHeader
-      .find('.mass-edit-category-browser-external')
-      .css('color', PresetBrowser.CONFIG.externalCompendiums ? activeColor : inactiveColor);
-
-    windowHeader
-      .find('.mass-edit-category-browser-virtual')
-      .css('color', PresetBrowser.CONFIG.virtualDirectory ? activeColor : inactiveColor);
-
-    windowHeader
-      .find('.mass-edit-category-browser-scale')
-      .css('color', PresetBrowser.CONFIG.autoScale ? activeColor : inactiveColor);
-
-    windowHeader
-      .find('.mass-edit-category-browser-switch')
-      .css('color', PresetBrowser.CONFIG.switchLayer ? activeColor : inactiveColor);
   }
 
   /**
@@ -394,7 +368,6 @@ class CategoryBrowserApplication extends PresetContainer {
 
   async _toggleSetting(setting, runQueryTree = false) {
     await PresetBrowser.setSetting(setting, !PresetBrowser.CONFIG[setting]);
-    this._setHeaderButtonColors();
     if (runQueryTree) return this._runQueryTree();
   }
 
@@ -406,28 +379,44 @@ class CategoryBrowserApplication extends PresetContainer {
         label: '',
         class: 'mass-edit-category-browser-virtual',
         icon: 'fas fa-file-search',
+        tooltip: localize('presets.controls.virtual-directory'),
         onclick: () => this._toggleSetting('virtualDirectory', true),
+        toggle: true,
+        active: () => PresetBrowser.CONFIG.virtualDirectory,
+        color: 'darkorange',
       });
 
       buttons.unshift({
         label: '',
         class: 'mass-edit-category-browser-external',
         icon: 'fa-solid fa-books',
+        tooltip: localize('presets.controls.external-compendiums'),
         onclick: () => this._toggleSetting('externalCompendiums', true),
+        toggle: true,
+        active: () => PresetBrowser.CONFIG.externalCompendiums,
+        color: 'darkorange',
       });
 
       buttons.unshift({
         label: '',
         class: 'mass-edit-category-browser-scale',
         icon: 'fa-solid fa-arrow-down-big-small',
+        tooltip: localize('presets.controls.scale-to-grid'),
         onclick: () => this._toggleSetting('autoScale'),
+        toggle: true,
+        active: () => PresetBrowser.CONFIG.autoScale,
+        color: 'darkorange',
       });
 
       buttons.unshift({
         label: '',
         class: 'mass-edit-category-browser-switch',
         icon: 'fa-solid fa-arrows-cross',
+        tooltip: localize('presets.controls.layer-switch'),
         onclick: () => this._toggleSetting('switchLayer'),
+        toggle: true,
+        active: () => PresetBrowser.CONFIG.switchLayer,
+        color: 'darkorange',
       });
 
       if (this.options.editEnabled) {
