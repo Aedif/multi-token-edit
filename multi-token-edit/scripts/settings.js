@@ -317,6 +317,17 @@ export function registerSettings() {
     },
   });
 
+  if (game.modules.get('spotlight-omnisearch')?.active) {
+    game.settings.register(MODULE_ID, 'disableOmniSearchIndex', {
+      name: `Disable preset inclusion within Spotlight Omnisearch`,
+      hint: 'Presets will no longer be included when performing Spotlight Omnisearch searches.',
+      scope: 'world',
+      config: true,
+      type: Boolean,
+      default: false,
+    });
+  }
+
   game.settings.register(MODULE_ID, 'brush', {
     scope: 'world',
     config: false,

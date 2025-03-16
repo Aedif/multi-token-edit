@@ -26,8 +26,38 @@ import { PresetContainer, registerPresetHandlebarPartials } from './scripts/pres
 import { FileIndexerAPI } from './scripts/presets/fileIndexer.js';
 import { TransformBus, MassTransformer } from './scripts/transformer.js';
 
+globalThis.MassTransformer = MassTransformer;
+
+globalThis.MassEdit = {
+  showGenericForm,
+  performMassUpdate,
+  performMassSearch,
+  showMassEdit,
+  getPreset: PresetAPI.getPreset,
+  getPresets: PresetAPI.getPresets,
+  createPreset: PresetAPI.createPreset,
+  spawnPreset: Spawner.spawnPreset,
+  activateBrush: activateBrush,
+  openBag,
+  openCategoryBrowser,
+  deactivateBrush: deactivateBush,
+  openBrushMenu: openBrushMenu,
+  migratePack: (pack, options = {}) => V12Migrator.migratePack(pack, options),
+  migrateAllPacks: (options = {}) => V12Migrator.migrateAllPacks(options),
+  linker: LinkerAPI,
+  PIVOTS: PIVOTS,
+  PresetContainer,
+  importSceneCompendium,
+  openPresetBrowser,
+  FileIndexer: FileIndexerAPI,
+};
+
 // Initialize module
 Hooks.once('init', () => {
+  game.modules.get(MODULE_ID).api = {
+    ...globalThis.MassEdit,
+  };
+
   //Register region behaviors
   registerBehaviors();
 
@@ -205,39 +235,11 @@ Hooks.once('init', () => {
     game.settings.set('spotlight-omnisearch', 'compendiumConfig', old);
 
     // Insert preset index
-    const promise = PresetCollection.buildSpotlightOmnisearchIndex(INDEX);
-    promises.push(promise);
+    if (!game.settings.get(MODULE_ID, 'disableOmniSearchIndex')) {
+      const promise = PresetCollection.buildSpotlightOmnisearchIndex(INDEX);
+      promises.push(promise);
+    }
   });
-
-  globalThis.MassTransformer = MassTransformer;
-
-  globalThis.MassEdit = {
-    showGenericForm,
-    performMassUpdate,
-    performMassSearch,
-    showMassEdit,
-    getPreset: PresetAPI.getPreset,
-    getPresets: PresetAPI.getPresets,
-    createPreset: PresetAPI.createPreset,
-    spawnPreset: Spawner.spawnPreset,
-    activateBrush: activateBrush,
-    openBag,
-    openCategoryBrowser,
-    deactivateBrush: deactivateBush,
-    openBrushMenu: openBrushMenu,
-    migratePack: (pack, options = {}) => V12Migrator.migratePack(pack, options),
-    migrateAllPacks: (options = {}) => V12Migrator.migrateAllPacks(options),
-    linker: LinkerAPI,
-    PIVOTS: PIVOTS,
-    PresetContainer,
-    importSceneCompendium,
-    openPresetBrowser,
-    FileIndexerAPI,
-  };
-
-  game.modules.get(MODULE_ID).api = {
-    ...globalThis.MassEdit,
-  };
 });
 
 // Deactivate brush/picker on scene change

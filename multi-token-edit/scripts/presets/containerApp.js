@@ -54,7 +54,7 @@ export class PresetContainer extends FormApplication {
       this._playPreview(event);
     });
     html.on('mouseleave', '.item', (event) => {
-      this._endPreview(event);
+      this._endPreview();
     });
 
     html.on('dragstart', '.item', (event) => {
@@ -721,6 +721,11 @@ export class PresetContainer extends FormApplication {
         );
       }
     }
+  }
+
+  async close(options = {}) {
+    this._endPreview();
+    return super.close(options);
   }
 
   async _onPresetDragOut(event) {

@@ -10,6 +10,7 @@ const CACHE_NAME = 'mass_edit_cache.json';
 export class FileIndexer {
   static _loadedTree;
   static _buildingIndex = false;
+  static _registeredCacheFiles = [];
 
   static async getVirtualDirectoryTree(type, { setFormVisibility = false } = {}) {
     if (CONFIG.debug.MassEdit) console.time('Virtual File Directory');
@@ -26,8 +27,17 @@ export class FileIndexer {
     const allPresets = [];
     const topLevelFolders = [];
 
-    const cache = await this.loadMainIndexCache();
-    if (!cache) {
+    const cache = (await this.loadMainIndexCache()) ?? [];
+
+    // Always load cache files registered via other modules
+    if (this._registeredCacheFiles.length) {
+      for (const cacheFile of this._registeredCacheFiles) {
+        const extCache = await this.loadIndexCache(cacheFile);
+        if (extCache) this.mergeCaches(cache, extCache);
+      }
+    }
+
+    if (!cache.length) {
       if (CONFIG.debug.MassEdit) console.timeEnd('Virtual File Directory');
       return null;
     }
@@ -794,5 +804,9 @@ export class IndexerForm extends FormApplication {
 export class FileIndexerAPI {
   static async readCacheFile(cacheFile) {
     return FileIndexer.loadIndexCache(cacheFile);
+  }
+
+  static registerCacheFile(cacheFile) {
+    FileIndexer._registeredCacheFiles.push(cacheFile);
   }
 }

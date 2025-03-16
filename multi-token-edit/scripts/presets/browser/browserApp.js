@@ -782,7 +782,6 @@ export class PresetBrowser extends PresetContainer {
   async close(options = {}) {
     PresetBrowser.objectHover = false;
     this._tagSelector?.close();
-    this._endPreview();
     return super.close(options);
   }
 
