@@ -1,3 +1,19 @@
+# 1.86.0
+
+**Preset Browser**
+
+- Added tooltips to header buttons
+- Fixed Video and Sound previews not ending under certain scenarios
+- Fixed File Indexer failing when processing files without extensions
+- Added header button to the category browser to open up File Indexer form
+- If working pack is locked, a new header button will appear allowing to unlock it from within Preset Browser
+
+**Misc.**
+
+- New setting: `Disable preset inclusion within Spotlight Omnisearch`
+  - Presets will no longer be included when performing `Spotlight Omnisearch` searches.
+- Fixed simultaneous updates to many uniquely linked placeables resulting in partial or badly anchored updates
+
 # 1.85.0
 
 - Fixed typo in Category Browser generated macros

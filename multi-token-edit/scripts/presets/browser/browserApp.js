@@ -5,7 +5,6 @@ import { importPresetFromJSONDialog } from '../../dialogs.js';
 import { SortingHelpersFixed } from '../../fixedSort.js';
 import { localFormat, localize, spawnSceneAsPreset } from '../../utils.js';
 import { META_INDEX_ID, PresetAPI, PresetCollection, PresetPackFolder } from '../collection.js';
-import { FileIndexer, IndexerForm } from '../fileIndexer.js';
 import { LinkerAPI } from '../../linker/linker.js';
 import { DOC_ICONS, Preset } from '../preset.js';
 import { exportPresets, FolderState, matchPreset, parseSearchQuery, placeableToData } from '../utils.js';
@@ -977,14 +976,6 @@ export class PresetBrowser extends PresetContainer {
 
   _onSettingConfig() {
     new PresetBrowserSettings(this).render(true);
-  }
-
-  async _onOpenIndexer() {
-    if (FileIndexer._buildingIndex) {
-      ui.notifications.warn('Index Build In-Progress. Wait for it to finish before attempting it again.');
-      return;
-    }
-    new IndexerForm().render(true);
   }
 
   async _onToggleCompendiumLock(event) {

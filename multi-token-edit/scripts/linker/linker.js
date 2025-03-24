@@ -137,12 +137,11 @@ function preUpdate(document, change, options, userId) {
   } else {
     PROCESSED_UPDATES.set(options.modifiedTime, links);
     setTimeout(() => PROCESSED_UPDATES.delete(options.modifiedTime), 2000);
-    foundry.utils.setProperty(options, `links.${document.id}`, links);
-    foundry.utils.setProperty(options, `linkSources.${document.id}`, document.toObject());
-    return true;
   }
 
-  return false;
+  foundry.utils.setProperty(options, `links.${document.id}`, links);
+  foundry.utils.setProperty(options, `linkSources.${document.id}`, document.toObject());
+  return true;
 }
 
 async function update(document, change, options, userId) {

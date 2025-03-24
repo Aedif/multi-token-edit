@@ -10,7 +10,7 @@ import { PresetBrowser } from './browser/browserApp.js';
 import { Preset } from './preset.js';
 import { Spawner } from './spawner.js';
 import { FolderState, isVideo } from './utils.js';
-import { FileIndexer } from './fileIndexer.js';
+import { FileIndexer, IndexerForm } from './fileIndexer.js';
 
 export async function registerPresetHandlebarPartials() {
   await getTemplate(`modules/${MODULE_ID}/templates/preset/partials/preset.html`, 'me-preset');
@@ -314,6 +314,14 @@ export class PresetContainer extends FormApplication {
     this._setInteractivityState(false);
     await this._onSpawnPreset(preset);
     this._setInteractivityState(true);
+  }
+
+  async _onOpenIndexer() {
+    if (FileIndexer._buildingIndex) {
+      ui.notifications.warn('Index Build In-Progress. Wait for it to finish before attempting it again.');
+      return;
+    }
+    new IndexerForm().render(true);
   }
 
   async _onSpawnPreset(preset, options = {}) {
@@ -925,7 +933,7 @@ export class PresetContainer extends FormApplication {
     // Update width if an explicit value is passed, or if no width value is set on the element
     if (!el.style.width || width) {
       const tarW = width || el.offsetWidth;
-      const minW = parseInt(styles.minWidth) || (pop ? MIN_WINDOW_WIDTH : 0);
+      const minW = parseInt(styles.minWidth) || (pop ? 200 : 0);
       const maxW = el.style.maxWidth || window.innerWidth / scale;
       currentPosition.width = width = Math.clamp
         ? Math.clamp(tarW, minW, maxW) // v12
@@ -938,7 +946,7 @@ export class PresetContainer extends FormApplication {
     // Update height if an explicit value is passed, or if no height value is set on the element
     if (!el.style.height || height) {
       const tarH = height || el.offsetHeight + 1;
-      const minH = parseInt(styles.minHeight) || (pop ? MIN_WINDOW_HEIGHT : 0);
+      const minH = parseInt(styles.minHeight) || (pop ? 50 : 0);
       const maxH = el.style.maxHeight || window.innerHeight / scale;
       currentPosition.height = height = Math.clamp
         ? Math.clamp(tarH, minH, maxH) // v12

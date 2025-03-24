@@ -475,6 +475,7 @@ export class FileIndexer {
 
       // Otherwise process the file
       let [fileName, ext] = file.split('.');
+      if (!ext) continue;
       ext = ext.toLowerCase();
 
       // If a file ends with _thumb, we assume it to be a thumbnail image and we will try to associate it to another file later
@@ -505,7 +506,7 @@ export class FileIndexer {
           if (mFile == f) return true;
 
           let ext = f.name.split('.');
-          ext = ext[ext.length - 1].toLowerCase();
+          ext = ext[ext.length - 1]?.toLowerCase();
 
           if (IMAGE_EXTENSIONS.includes(ext) && f.name.split('.')[0] === modelName) {
             mFile.thumb = f.name;

@@ -377,6 +377,14 @@ class CategoryBrowserApplication extends PresetContainer {
     if (game.user.isGM) {
       buttons.unshift({
         label: '',
+        class: 'mass-edit-indexer',
+        tooltip: 'Perform directory indexing.',
+        icon: 'fas fa-archive',
+        onclick: this._onOpenIndexer.bind(this),
+      });
+
+      buttons.unshift({
+        label: '',
         class: 'mass-edit-category-browser-virtual',
         icon: 'fas fa-file-search',
         tooltip: localize('presets.controls.virtual-directory'),
