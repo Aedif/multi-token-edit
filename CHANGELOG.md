@@ -1,3 +1,7 @@
+# 1.86.1
+
+- Fixed simultaneous updates to many uniquely linked placeables resulting in partial or badly anchored updates
+
 # 1.86.0
 
 **Preset Browser**

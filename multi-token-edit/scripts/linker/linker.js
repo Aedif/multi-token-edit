@@ -135,7 +135,7 @@ function preUpdate(document, change, options, userId) {
     if (!links.length) return false;
     links.forEach((l) => puLinks.push(l));
   } else {
-    PROCESSED_UPDATES.set(options.modifiedTime, links);
+    PROCESSED_UPDATES.set(options.modifiedTime, [...links]);
     setTimeout(() => PROCESSED_UPDATES.delete(options.modifiedTime), 2000);
   }
 
