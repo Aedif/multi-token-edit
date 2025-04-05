@@ -1,3 +1,9 @@
+# 1.87.0
+
+- New setting: `Preset Browser Right-Click macro`
+  - Macro uuid which will be executed when preset browser scene control is right-clicked
+- Added indexing support for `Sqyre` (https://www.sqyre.app/) asset paths.
+
 # 1.86.1
 
 - Fixed simultaneous updates to many uniquely linked placeables resulting in partial or badly anchored updates

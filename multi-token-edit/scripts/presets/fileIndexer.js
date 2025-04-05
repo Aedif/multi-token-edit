@@ -55,7 +55,11 @@ export class FileIndexer {
         const s3 = game.data.files.s3;
         if (!s3 || !s3.buckets.includes(source.bucket)) continue;
         prePend = `https://${source.bucket}.${s3.endpoint.host}`;
+      } else if (source.source === 'sqyre') {
+        if (typeof Sqyre === 'undefined' || !Sqyre.CLOUD_STORAGE_PREFIX) continue;
+        prePend = `${Sqyre.CLOUD_STORAGE_PREFIX}/`;
       }
+
       const folders = source.index.map((f) =>
         this._indexToVirtualFolder(f, '', allFolders, allPresets, {
           prePend,
@@ -740,7 +744,7 @@ export class IndexerForm extends FormApplication {
       if (!selection) return;
       if (!selection.bucket) delete selection.bucket;
 
-      if (!['data', 'public', 'forge-bazaar', 'forgevtt', 's3'].includes(selection.source)) {
+      if (!['data', 'public', 'forge-bazaar', 'forgevtt', 's3', 'sqyre'].includes(selection.source)) {
         ui.notifications.warn(`${selection.source} is not a supported source.`);
         return;
       }

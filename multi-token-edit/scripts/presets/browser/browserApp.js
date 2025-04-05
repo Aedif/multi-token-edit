@@ -1285,6 +1285,14 @@ export function registerPresetBrowserHooks() {
       }).render(true);
     });
 
+    presetControl.on('contextmenu', async () => {
+      const macroUuuid =
+        game.settings.get(MODULE_ID, 'browserContextMacroUuid') ||
+        'Compendium.baileywiki-nuts-and-bolts.macros.Macro.Ds6je9mUwVkEnb9f';
+      const macro = await fromUuid(macroUuuid);
+      macro?.execute();
+    });
+
     html.find('.control-tools').find('.scene-control').last().after(presetControl);
   });
 

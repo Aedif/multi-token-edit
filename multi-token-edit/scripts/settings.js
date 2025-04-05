@@ -270,6 +270,15 @@ export function registerSettings() {
       scaleToGrid: true,
     },
   });
+
+  game.settings.register(MODULE_ID, 'browserContextMacroUuid', {
+    name: `Preset Browser Right-Click macro`,
+    hint: 'UUID of the macro to be ran when Preset Browser scene control button is right-clicked.',
+    scope: 'world',
+    config: true,
+    type: String,
+    default: '',
+  });
 }
 
 export function registerKeybinds() {
