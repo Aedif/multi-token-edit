@@ -1,3 +1,8 @@
+# 1.87.1
+
+- Fixed preset export to JSON not working within Category Browsers
+- `#null` can now be included in preset search queries to search for presets containing no tags
+
 # 1.87.0
 
 - New setting: `Preset Browser Right-Click macro`

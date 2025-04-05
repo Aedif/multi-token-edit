@@ -368,11 +368,6 @@ export class PresetBrowser extends PresetContainer {
     if (selected.length) copyToClipboard(selected[0]);
   }
 
-  async _onExportSelectedPresets() {
-    const [selected, _] = await this._getSelectedPresets();
-    exportPresets(selected);
-  }
-
   async _onDeleteSelectedPresets(item) {
     const [selected, items] = await this._getSelectedPresets({
       editableOnly: true,

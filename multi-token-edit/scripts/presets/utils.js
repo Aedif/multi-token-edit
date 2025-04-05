@@ -558,7 +558,7 @@ export async function exportPresets(presets, fileName) {
  * @param {String} query
  * @returns {object} query components
  */
-export function parseSearchQuery(query, { matchAny = true } = {}) {
+export function parseSearchQuery(query, { matchAny = true, noTags = false } = {}) {
   let search = { terms: [], tags: [], types: [] };
   let negativeSearch = { terms: [], tags: [], types: [] };
 
@@ -575,8 +575,11 @@ export function parseSearchQuery(query, { matchAny = true } = {}) {
       }
 
       if (t.length >= 3) {
-        if (t.startsWith('#')) tSearch.tags.push(t.substring(1).toLocaleLowerCase());
-        else if (t.startsWith('@')) tSearch.types.push(t.substring(1));
+        if (t.startsWith('#')) {
+          let tag = t.substring(1).toLocaleLowerCase();
+          if (tag === 'null') noTags = true;
+          tSearch.tags.push(tag);
+        } else if (t.startsWith('@')) tSearch.types.push(t.substring(1));
         else tSearch.terms.push(t.toLocaleLowerCase());
       }
     });
@@ -585,7 +588,7 @@ export function parseSearchQuery(query, { matchAny = true } = {}) {
     if (!s.terms.length) delete s.terms;
     if (!s.types.length) delete s.types;
     if (!s.tags.length) delete s.tags;
-    else s.tags = { tags: s.tags, matchAny };
+    else s.tags = { tags: s.tags, matchAny, noTags };
   });
 
   if (!Object.keys(search).length) search = undefined;
@@ -608,7 +611,8 @@ export function matchPreset(preset, search, negativeSearch) {
     else if (types && !types.includes(preset.documentName)) match = false;
     else if (terms && !terms.every((t) => preset.name.toLowerCase().includes(t))) match = false;
     else if (tags) {
-      if (tags.matchAny) match = tags.tags.some((t) => preset.tags.includes(t));
+      if (tags.noTags) match = !preset.tags.length;
+      else if (tags.matchAny) match = tags.tags.some((t) => preset.tags.includes(t));
       else match = tags.tags.every((t) => preset.tags.includes(t));
     }
   }
@@ -618,7 +622,8 @@ export function matchPreset(preset, search, negativeSearch) {
     else if (types && types.includes(preset.documentName)) match = false;
     else if (terms && !terms.every((t) => !preset.name.toLowerCase().includes(t))) match = false;
     else if (tags) {
-      if (tags.matchAny) match = tags.tags.some((t) => !preset.tags.includes(t));
+      if (tags.noTags) match = !!preset.tags.length;
+      else if (tags.matchAny) match = tags.tags.some((t) => !preset.tags.includes(t));
       else match = tags.tags.every((t) => !preset.tags.includes(t));
     }
   }
