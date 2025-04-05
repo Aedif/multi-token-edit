@@ -1,3 +1,16 @@
+# 1.87.2
+
+- External modules can register messages to be shown when FauxScene import fails.
+  - e.g.
+
+```
+MassEdit.sceneNotFoundMessages?.push({
+  query: '#important',
+  title: 'Attention!',
+  content: '<p>This is a very important scene: {{name}}</p>',
+});
+```
+
 # 1.87.1
 
 - Fixed preset export to JSON not working within Category Browsers

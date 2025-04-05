@@ -50,6 +50,7 @@ globalThis.MassEdit = {
   importSceneCompendium,
   openPresetBrowser,
   FileIndexer: FileIndexerAPI,
+  sceneNotFoundMessages: [],
 };
 
 // Initialize module

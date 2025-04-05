@@ -685,3 +685,28 @@ export async function importSceneCompendium(pack) {
     ui.notifications.info(`Updated FauxScene names: ${nameUpdatedCount}`);
   }
 }
+
+export async function sceneNotFoundError(preset) {
+  let dialog = null;
+
+  for (const message of MassEdit.sceneNotFoundMessages) {
+    if (!(message.query && message.content)) continue;
+    let p = await PresetAPI.getPresets({ presets: [preset], query: message.query });
+    if (p.length) {
+      const content = message.content.replace('{{name}}', preset.name);
+      dialog = new Dialog(
+        {
+          title: message.title ?? `Scene Import Warning`,
+          content,
+          buttons: {},
+        },
+        { height: 'auto' }
+      );
+      await dialog.render(true);
+      setTimeout(() => dialog.setPosition({ height: 'auto' }), 200);
+      break;
+    }
+  }
+
+  if (!dialog) ui.notifications.warn('Unable to load scene: ' + preset.name);
+}

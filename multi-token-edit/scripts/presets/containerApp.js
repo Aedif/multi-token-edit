@@ -9,7 +9,7 @@ import { PresetConfig } from './editApp.js';
 import { PresetBrowser } from './browser/browserApp.js';
 import { Preset } from './preset.js';
 import { Spawner } from './spawner.js';
-import { exportPresets, FolderState, isVideo } from './utils.js';
+import { exportPresets, FolderState, isVideo, sceneNotFoundError } from './utils.js';
 import { FileIndexer, IndexerForm } from './fileIndexer.js';
 
 export async function registerPresetHandlebarPartials() {
@@ -303,7 +303,8 @@ export class PresetContainer extends FormApplication {
       this._onOpenBag(preset.uuid);
     } else if (preset.documentName === 'FauxScene') {
       const scene = await fromUuid(preset.data[0].uuid);
-      scene.sheet.render(true);
+      if (scene) scene.sheet.render(true);
+      else sceneNotFoundError(preset);
     }
 
     if (!SUPPORTED_PLACEABLES.includes(preset.documentName)) return;
@@ -488,13 +489,14 @@ export class PresetContainer extends FormApplication {
     const preset = await PresetAPI.getPreset({ uuid: item.data('uuid') });
     const scene = await fromUuid(preset.data[0].uuid);
     if (scene) game.scenes.importFromCompendium(scene.compendium, scene.id, {}, { renderSheet: true });
-    else ui.notifications.warn('Failed to find scene with UUID: ' + preset.data[0].uuid);
+    else sceneNotFoundError(preset);
   }
 
   async _onSpawnScene(item) {
     const preset = await PresetAPI.getPreset({ uuid: item.data('uuid') });
     const scene = await fromUuid(preset.data[0].uuid);
-    return spawnSceneAsPreset(scene);
+    if (scene) return spawnSceneAsPreset(scene);
+    else sceneNotFoundError(preset);
   }
 
   _getFolderContextOptions() {
