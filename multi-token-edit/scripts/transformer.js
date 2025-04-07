@@ -376,7 +376,7 @@ export class MassTransformer {
           // - Region: We need to simulate doc update via `_onUpdate` call
           // - AmbientLight and AmbientSound sources need to be re-initialized to have their fields properly rendered
           if (documentName === 'Region') {
-            preview._onUpdate({ shapes: null });
+            preview.document._onUpdate({ shapes: null }, { preview: true });
           } else if (documentName === 'AmbientLight') {
             preview.initializeLightSource();
           } else if (documentName === 'AmbientSound') {

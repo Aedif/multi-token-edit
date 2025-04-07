@@ -128,47 +128,40 @@ export function enableUniversalSelectTool() {
  * Insert select tools if missing
  */
 function _getControlButtons(controls) {
-  for (const control of controls) {
-    if (['lighting', 'sounds', 'measure'].includes(control.name)) {
-      if (!control.tools.find((t) => t.name === 'select')) {
-        control.tools.unshift({
-          name: 'select',
-          title: 'CONTROLS.CommonSelect',
-          icon: 'fas fa-expand',
-        });
-        control.activeTool = 'select';
-      }
-    }
-  }
+  ['lighting', 'sounds', 'templates'].forEach((layer) => {
+    controls[layer].tools.select = {
+      name: 'select',
+      order: 0,
+      title: 'CONTROLS.CommonSelect',
+      icon: 'fas fa-expand',
+      active: true,
+    };
+  });
 
   if (!game.settings.get(MODULE_ID, 'disablePixelPerfectHoverButton')) {
-    for (const control of controls) {
-      if (control.name === 'tiles') {
-        control.tools.push({
-          name: 'pixelPerfect',
-          title: 'Pixel Perfect Hover',
-          icon: 'fa-solid fa-bullseye-pointer',
-          visible: true,
-          active: game.settings.get(MODULE_ID, 'pixelPerfectTile'),
-          toggle: true,
-          onClick: () => {
-            game.settings.set(MODULE_ID, 'pixelPerfectTile', !game.settings.get(MODULE_ID, 'pixelPerfectTile'));
-          },
-        });
-      } else if (control.name === 'token') {
-        control.tools.push({
-          name: 'pixelPerfect',
-          title: 'Pixel Perfect Hover',
-          icon: 'fa-solid fa-bullseye-pointer',
-          visible: true,
-          active: game.settings.get(MODULE_ID, 'pixelPerfectToken'),
-          toggle: true,
-          onClick: () => {
-            game.settings.set(MODULE_ID, 'pixelPerfectToken', !game.settings.get(MODULE_ID, 'pixelPerfectToken'));
-          },
-        });
-      }
-    }
+    controls.tiles.tools.pixelPerfect = {
+      name: 'pixelPerfect',
+      title: 'Pixel Perfect Hover',
+      icon: 'fa-solid fa-bullseye-pointer',
+      visible: true,
+      active: game.settings.get(MODULE_ID, 'pixelPerfectTile'),
+      toggle: true,
+      onClick: () => {
+        game.settings.set(MODULE_ID, 'pixelPerfectTile', !game.settings.get(MODULE_ID, 'pixelPerfectTile'));
+      },
+    };
+
+    controls.tokens.tools.pixelPerfect = {
+      name: 'pixelPerfect',
+      title: 'Pixel Perfect Hover',
+      icon: 'fa-solid fa-bullseye-pointer',
+      visible: true,
+      active: game.settings.get(MODULE_ID, 'pixelPerfectToken'),
+      toggle: true,
+      onClick: () => {
+        game.settings.set(MODULE_ID, 'pixelPerfectToken', !game.settings.get(MODULE_ID, 'pixelPerfectToken'));
+      },
+    };
   }
 }
 
@@ -193,22 +186,23 @@ function registerRegionWrappers() {
     function (event) {
       canvas._onDragCanvasPan(event);
       const { clones, destination, origin } = event.interactionData;
-      const { x1, y1 } = getDataBounds('Region', this.document);
+      const { x, y } = getDataBounds('Region', this.document);
 
       // Calculate the (snapped) position of the dragged object
       let position = {
-        x: x1 + (destination.x - origin.x),
-        y: y1 + (destination.y - origin.y),
+        x: x + (destination.x - origin.x),
+        y: y + (destination.y - origin.y),
       };
 
       if (!event.shiftKey) position = this.layer.getSnappedPoint(position);
 
-      const dx = position.x - x1;
-      const dy = position.y - y1;
+      const dx = position.x - x;
+      const dy = position.y - y;
       for (const c of clones || []) {
-        DataTransformer.apply('Region', c.document.toObject(), { x: 0, y: 0 }, { x: dx, y: dy }, c);
+        const data = c.document.toObject();
+        DataTransformer.apply('Region', data, { x: 0, y: 0 }, { x: dx, y: dy }, c);
         c.visible = true;
-        c._onUpdate({ shapes: null });
+        c.document._onUpdate({ shapes: null }, { preview: true });
       }
     },
     'OVERRIDE'

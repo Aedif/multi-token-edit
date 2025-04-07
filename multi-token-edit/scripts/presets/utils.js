@@ -361,7 +361,6 @@ export function getDataBounds(documentName, data) {
         y2 = Math.max(y2, shape.y + (shape.radiusY ?? shape.height));
       }
     });
-    return { x1, y1, x2, y2, z1, z2 };
   } else {
     x1 = data.x || 0;
     y1 = data.y || 0;
