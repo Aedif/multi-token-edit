@@ -30,10 +30,7 @@ export const WithBaseMassEditForm = (cls) => {
 
       BaseMassEditForm._setMEActions(options);
 
-      if (
-        foundry.utils.isNewerVersion(game.version, 12) &&
-        (documentName === 'AmbientSound' || documentName === 'AmbientLight' || documentName === 'Region')
-      ) {
+      if (SUPPORTED_PLACEABLES.includes(documentName)) {
         options.document = doc;
         super(options);
       } else {

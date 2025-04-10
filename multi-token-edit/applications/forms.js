@@ -7,7 +7,7 @@ import { WithBaseMassEditForm, WithMassEditFormApplication, WithMassEditFormAppl
 
 export const WithMassEditForm = (cls) => {
   const base = WithBaseMassEditForm(cls);
-  if (foundry.applications?.api?.ApplicationV2 && cls.BASE_APPLICATION === foundry.applications.api.ApplicationV2) {
+  if (cls.BASE_APPLICATION === foundry.applications.api.ApplicationV2) {
     return WithMassEditFormApplicationV2(base);
   } else {
     return WithMassEditFormApplication(base);

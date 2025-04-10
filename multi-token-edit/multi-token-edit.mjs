@@ -84,76 +84,54 @@ Hooks.once('init', () => {
   // Scenescapes
   registerScenescapeHooks();
 
-  // Register copy-paste wrappers
+  // Register mouse wheel listener by inserting it just before the Foundry's MouseManager
+  // If we're in some kind of placeable preview we want to handle preview transformations and
+  // stop propagation to other wheel related functions
   libWrapper.register(
     MODULE_ID,
-    'ClientKeybindings._onCopy',
+    'MouseManager.prototype._activateListeners',
     function (wrapped, ...args) {
-      if (window.getSelection().toString() === '') {
-        // Check if a Mass Config form is open and if so copy data from there
-        const meForm = getMassEditForm();
-        if (meForm?.performMassCopy()) return true;
-      }
+      window.addEventListener(
+        'wheel',
+        (event) => {
+          if (
+            (TransformBus.active() || BrushMenu.isActive()) &&
+            (event.ctrlKey ||
+              event.shiftKey ||
+              event.metaKey ||
+              event.altKey ||
+              game.keyboard.downKeys.has('KeyZ') ||
+              game.keyboard.downKeys.has('Space'))
+          ) {
+            // Prevent zooming the entire browser window
+            if (event.ctrlKey || event.altKey) event.preventDefault();
 
-      const result = wrapped(...args);
-      // Clear Mass Edit clipboard to allows core pasting again
-      if (result) deleteFromClipboard(canvas.activeLayer.constructor.documentName);
-      return result;
-    },
-    'MIXED'
-  );
-  libWrapper.register(
-    MODULE_ID,
-    'ClientKeybindings._onPaste',
-    function (wrapped, ...args) {
-      if (pasteData()) return true;
+            let dy = (event.delta = event.deltaY);
+            if (event.shiftKey && dy === 0) {
+              dy = event.delta = event.deltaX;
+            }
+            if (dy === 0) return;
+
+            if (event.altKey || game.keyboard.downKeys.has('Space'))
+              TransformBus.addScaling(event.delta < 0 ? 0.05 : -0.05);
+            else if ((event.ctrlKey || event.metaKey) && event.shiftKey) BrushMenu.iterate(event.delta >= 0, true);
+            else if (event.ctrlKey || event.metaKey) TransformBus.addRotation(event.delta < 0 ? 2.5 : -2.5);
+            else if (event.shiftKey) TransformBus.addRotation(event.delta < 0 ? 15 : -15);
+            else if (game.keyboard.downKeys.has('KeyZ')) {
+              let delta = event.delta < 0 ? 1 : -1;
+              if (Scenescape.active) delta = delta * Scenescape.depth * 0.01;
+              TransformBus.addElevation(delta);
+            }
+
+            event.stopImmediatePropagation();
+          }
+        },
+        { passive: false }
+      );
+
       return wrapped(...args);
     },
-    'MIXED'
-  );
-
-  // Register mouse wheel wrapper to scale/rotate preset previews
-  libWrapper.register(
-    MODULE_ID,
-    'MouseManager.prototype._onWheel',
-    function (wrapped, ...args) {
-      const event = args[0];
-
-      if (
-        (TransformBus.active() || BrushMenu.isActive()) &&
-        (event.ctrlKey ||
-          event.shiftKey ||
-          event.metaKey ||
-          event.altKey ||
-          game.keyboard.downKeys.has('KeyZ') ||
-          game.keyboard.downKeys.has('Space'))
-      ) {
-        // Prevent zooming the entire browser window
-        if (event.ctrlKey || event.altKey) event.preventDefault();
-
-        let dy = (event.delta = event.deltaY);
-        if (event.shiftKey && dy === 0) {
-          dy = event.delta = event.deltaX;
-        }
-        if (dy === 0) return;
-
-        if (event.altKey || game.keyboard.downKeys.has('Space'))
-          TransformBus.addScaling(event.delta < 0 ? 0.05 : -0.05);
-        else if ((event.ctrlKey || event.metaKey) && event.shiftKey) BrushMenu.iterate(event.delta >= 0, true);
-        else if (event.ctrlKey || event.metaKey) TransformBus.addRotation(event.delta < 0 ? 2.5 : -2.5);
-        else if (event.shiftKey) TransformBus.addRotation(event.delta < 0 ? 15 : -15);
-        else if (game.keyboard.downKeys.has('KeyZ')) {
-          let delta = event.delta < 0 ? 1 : -1;
-          if (Scenescape.active) delta = delta * Scenescape.depth * 0.01;
-          TransformBus.addElevation(delta);
-        }
-        return;
-      }
-
-      const result = wrapped(...args);
-      return result;
-    },
-    'MIXED'
+    'WRAPPER'
   );
 
   // Prevent placeable highlighting if a preview transformer is active

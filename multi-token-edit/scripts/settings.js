@@ -1,5 +1,5 @@
 import CSSEdit, { STYLES } from '../applications/cssEdit.js';
-import { copyToClipboard } from '../applications/formUtils.js';
+import { copyToClipboard, deleteFromClipboard } from '../applications/formUtils.js';
 import { MassEditGenericForm } from '../applications/generic/genericForm.js';
 import {
   getMassEditForm,
@@ -282,13 +282,15 @@ export function registerSettings() {
 }
 
 export function registerKeybinds() {
+  const { SHIFT, CONTROL, ALT } = KeyboardManager.MODIFIER_KEYS;
+
   game.keybindings.register(MODULE_ID, 'linker', {
     name: localize('keybindings.linkerMenu.name'),
     hint: localize('keybindings.linkerMenu.hint'),
     editable: [
       {
         key: 'KeyQ',
-        modifiers: ['Shift'],
+        modifiers: [SHIFT],
       },
     ],
     onDown: () => {
@@ -336,7 +338,7 @@ export function registerKeybinds() {
     editable: [
       {
         key: 'Delete',
-        modifiers: ['Shift'],
+        modifiers: [SHIFT],
       },
     ],
     onDown: () => {
@@ -357,7 +359,7 @@ export function registerKeybinds() {
     editable: [
       {
         key: 'KeyD',
-        modifiers: ['Shift'],
+        modifiers: [SHIFT],
       },
     ],
     onDown: async (event) => {
@@ -413,7 +415,7 @@ export function registerKeybinds() {
     editable: [
       {
         key: 'KeyE',
-        modifiers: ['Shift'],
+        modifiers: [SHIFT],
       },
     ],
     onDown: () => {
@@ -434,7 +436,7 @@ export function registerKeybinds() {
     editable: [
       {
         key: 'KeyC',
-        modifiers: ['Shift'],
+        modifiers: [SHIFT],
       },
     ],
     onDown: () => {
@@ -471,7 +473,7 @@ export function registerKeybinds() {
     editable: [
       {
         key: 'KeyV',
-        modifiers: ['Shift'],
+        modifiers: [SHIFT],
       },
     ],
     onDown: () => {
@@ -487,7 +489,7 @@ export function registerKeybinds() {
     editable: [
       {
         key: 'KeyF',
-        modifiers: ['Shift'],
+        modifiers: [SHIFT],
       },
     ],
     onDown: () => {
@@ -503,7 +505,7 @@ export function registerKeybinds() {
     editable: [
       {
         key: 'KeyX',
-        modifiers: ['Shift'],
+        modifiers: [SHIFT],
       },
     ],
     onDown: () => {
@@ -550,7 +552,7 @@ export function registerKeybinds() {
     editable: [
       {
         key: 'KeyR',
-        modifiers: ['Shift'],
+        modifiers: [SHIFT],
       },
     ],
     onDown: () => {
@@ -575,7 +577,7 @@ export function registerKeybinds() {
     editable: [
       {
         key: 'KeyZ',
-        modifiers: ['Shift'],
+        modifiers: [SHIFT],
       },
     ],
     onDown: () => {
@@ -586,5 +588,31 @@ export function registerKeybinds() {
     },
     restricted: true,
     precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
+  });
+
+  // Mass Edit form Copy/Paste
+  // May override core functions
+  game.keybindings.register(MODULE_ID, 'onCopy', {
+    name: 'KEYBINDINGS.Copy',
+    uneditable: [{ key: 'KeyC', modifiers: [CONTROL] }],
+    precedence: CONST.KEYBINDING_PRECEDENCE.PRIORITY,
+    onDown: () => {
+      if (window.getSelection().toString() === '') {
+        // Check if a Mass Config form is open and if so copy data from there
+        const meForm = getMassEditForm();
+        if (meForm?.performMassCopy()) return true;
+      }
+
+      deleteFromClipboard(canvas.activeLayer.constructor.documentName);
+    },
+  });
+  game.keybindings.register(MODULE_ID, 'onPaste', {
+    name: 'KEYBINDINGS.Paste',
+    uneditable: [{ key: 'KeyV', modifiers: [CONTROL] }],
+    precedence: CONST.KEYBINDING_PRECEDENCE.PRIORITY,
+    onDown: () => {
+      if (pasteData()) return true;
+    },
+    reservedModifiers: [ALT, SHIFT],
   });
 }

@@ -52,12 +52,12 @@
     },
     "keybindings": {
       "presetApply": {
-        "name": "Open Presets",
-        "hint": "Opens placeable preset window."
+        "name": "Open Preset Browser",
+        "hint": "Opens placeable, bag, and scene configuration browser."
       },
       "presetApplyScene": {
-        "name": "Open Scene Presets",
-        "hint": "Opens scene preset window."
+        "name": "Open Scene Preset Browser",
+        "hint": "Opens scene configuration preset browser."
       },
       "selectKey": {
         "name": "Open Placeable Search and Select",
