@@ -12,11 +12,11 @@ export function registerScenescapeHooks() {
               <i class="fa-regular fa-mountain-sun"></i>
             </button>
         </div>
-        <p class="notes">Configure this scene as a 'Scenescape' allowing dynamic scaling and positioning of assets on a landscape background.</p>
+        <p class="hint">Configure this scene as a 'Scenescape' allowing dynamic scaling and positioning of assets on a landscape background.</p>
     </div>
             `);
     element.on('click', '.configureScenescape', () => new ScenescapeConfig().render(true));
-    html.find('.initial-position').after(element);
+    $(html).find('[name="initial.scale"]').closest('.form-group').after(element);
     app.setPosition({ height: 'auto' });
   });
 

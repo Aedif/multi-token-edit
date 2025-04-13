@@ -1255,15 +1255,14 @@ export function registerPresetBrowserHooks() {
   });
 
   // Scene Control to open preset browser
-  Hooks.on('renderSceneControls', (sceneControls, html, options) => {
+  Hooks.on('renderSceneControls', (sceneControls, html, data, options) => {
     if (!game.user.isGM) return;
     if (!game.settings.get(MODULE_ID, 'presetSceneControl')) return;
-
-    const presetControl = $(`
-<li class="scene-control mass-edit-scene-control" data-control="me-presets" aria-label="Mass Edit: Presets" role="tab" data-tooltip="Mass Edit: Presets">
-  <i class="fa-solid fa-books"></i>
-</li>
-  `);
+    const presetControl = $(
+      `<li>
+       <button type="button" class="control ui-control layer icon mass-edit-scene-control fa-solid fa-books" role="tab"  data-control="me-presets" data-tooltip="" aria-pressed="false" aria-label="Mass Edit: Presets" aria-controls="scene-controls-tools"></button>
+   </li>`
+    );
 
     presetControl.on('click', () => {
       let documentName = canvas.activeLayer.constructor.documentName;
@@ -1288,7 +1287,7 @@ export function registerPresetBrowserHooks() {
       macro?.execute();
     });
 
-    html.find('.control-tools').find('.scene-control').last().after(presetControl);
+    $(html).find('#scene-controls-layers').append(presetControl);
   });
 
   // Change default behavior of JournalEntry click and context menu within the CompendiumDirectory
@@ -1301,11 +1300,11 @@ export function registerPresetBrowserHooks() {
         name: 'Open Journal Compendium',
         icon: '<i class="fas fa-book-open"></i>',
         condition: (li) => {
-          const pack = game.packs.get(li.data('pack'));
+          const pack = game.packs.get(li.dataset.pack);
           return pack.metadata.type === 'JournalEntry' && pack.index.get(META_INDEX_ID);
         },
         callback: (li) => {
-          const pack = game.packs.get(li.data('pack'));
+          const pack = game.packs.get(li.dataset.pack);
           pack.render(true);
         },
       });
@@ -1354,16 +1353,16 @@ export function registerPresetBrowserHooks() {
 
   libWrapper.register(
     MODULE_ID,
-    'CompendiumDirectory.prototype._onClickEntryName',
-    async function (wrapped, event) {
-      const element = event.currentTarget;
-      const packId = element.closest('[data-pack]').dataset.pack;
+    'CompendiumDirectory.prototype._onClickEntry',
+    async function (wrapped, ...args) {
+      const target = args[1];
+      const packId = target.closest('[data-pack]').dataset.pack;
       const pack = game.packs.get(packId);
       if (pack.metadata.type === 'JournalEntry' && pack.index.get(META_INDEX_ID)) {
         openPresetBrowser('ALL');
         return;
       }
-      return wrapped(event);
+      return wrapped(...args);
     },
     'MIXED'
   );

@@ -157,7 +157,7 @@ Hooks.once('init', () => {
           icon: '<i class="fa-solid fa-pen-to-square"></i>',
           condition: game.user.isGM,
           callback: (li) => {
-            const sceneId = li.attr('data-scene-id');
+            const sceneId = $(li).attr('data-scene-id');
             showMassEdit(game.scenes.get(sceneId));
           },
         });

@@ -74,15 +74,10 @@
 
 .me-global-delete {
   position: absolute;
-  left: -15px;
-  bottom: -15px;
+  left: 1px;
+  bottom: -2px;
   color: red;
 }
-
-/* .me-global-delete > a > i {
-  border-width: 0px 1px 1px 1px;
-  border-style: solid solid solid solid;
-} */
 
 /* ===================== 
    === Randomization ===
