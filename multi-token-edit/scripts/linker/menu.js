@@ -236,7 +236,7 @@ class LinkerMenu extends FormApplication {
     // const pos = canvas.clientCoordinatesFromCanvas(canvas.mousePosition);
     // super({}, { left: Math.max(pos.x - 350, 0), top: pos.y });
 
-    const pos = ui.controls.element.find('[data-control="me-presets"]').position();
+    const pos = $(ui.controls.element).find('[data-control="me-presets"]').position();
     super({}, { left: pos.left + 50, top: pos.top });
 
     const links = [];

@@ -282,7 +282,7 @@ export function registerSettings() {
 }
 
 export function registerKeybinds() {
-  const { SHIFT, CONTROL, ALT } = KeyboardManager.MODIFIER_KEYS;
+  const { SHIFT, CONTROL, ALT } = foundry.helpers.interaction.KeyboardManager.MODIFIER_KEYS;
 
   game.keybindings.register(MODULE_ID, 'linker', {
     name: localize('keybindings.linkerMenu.name'),

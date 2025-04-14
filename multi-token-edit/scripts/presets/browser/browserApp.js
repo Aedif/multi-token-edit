@@ -1251,7 +1251,12 @@ export function registerPresetBrowserHooks() {
   };
 
   SUPPORTED_PLACEABLES.forEach((name) => {
-    libWrapper.register(MODULE_ID, `${name}.prototype._onDragLeftDrop`, dragDropHandler, 'MIXED');
+    libWrapper.register(
+      MODULE_ID,
+      `foundry.canvas.placeables.${name}.prototype._onDragLeftDrop`,
+      dragDropHandler,
+      'MIXED'
+    );
   });
 
   // Scene Control to open preset browser
@@ -1325,7 +1330,7 @@ export function registerPresetBrowserHooks() {
         name: 'Spawn as Preset',
         icon: '<i class="fa-solid fa-books"></i>',
         callback: async (li) => {
-          spawnSceneAsPreset(await this.collection.getDocument(li.data('document-id')));
+          spawnSceneAsPreset(await this.collection.getDocument($(li).data('entryId')));
         },
       });
       return options;
@@ -1341,9 +1346,9 @@ export function registerPresetBrowserHooks() {
       options.push({
         name: 'Spawn as Preset',
         icon: '<i class="fa-solid fa-books"></i>',
-        condition: (li) => game.user.isGM && canvas.ready && li.data('documentId') !== canvas.scene?.id,
+        condition: (li) => game.user.isGM && canvas.ready && $(li).data('entryId') !== canvas.scene?.id,
         callback: (li) => {
-          spawnSceneAsPreset(game.scenes.get(li.data('documentId')));
+          spawnSceneAsPreset(game.scenes.get($(li).data('entryId')));
         },
       });
       return options;

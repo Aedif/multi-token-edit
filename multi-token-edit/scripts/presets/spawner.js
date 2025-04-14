@@ -265,7 +265,11 @@ export class Spawner {
       }
     }
 
-    if (!Scenescape.active && snapToGrid && !game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.SHIFT)) {
+    if (
+      !Scenescape.active &&
+      snapToGrid &&
+      !game.keyboard.isModifierActive(foundry.helpers.interaction.KeyboardManager.MODIFIER_KEYS.SHIFT)
+    ) {
       let pos = canvas.getLayerByEmbeddedName(documentName).getSnappedPoint({ x, y });
       x = pos.x;
       y = pos.y;
@@ -278,7 +282,7 @@ export class Spawner {
    * @param {*} docToData
    */
   static _autoModifyData(docToData, hidden, flags, preserveLinks, sceneId) {
-    hidden = hidden || game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.ALT);
+    hidden = hidden || game.keyboard.isModifierActive(foundry.helpers.interaction.KeyboardManager.MODIFIER_KEYS.ALT);
 
     docToData.forEach((dataArr, documentName) => {
       dataArr.forEach((data) => {

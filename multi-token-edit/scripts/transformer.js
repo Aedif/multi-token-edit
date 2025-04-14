@@ -85,7 +85,7 @@ export class MassTransformer {
   }
 
   constructor(options = {}) {
-    if (options instanceof PlaceableObject) {
+    if (options instanceof foundry.canvas.placeables.PlaceableObject) {
       options = { documents: [options] };
     } else if (options instanceof Array) {
       options = { documents: options };
@@ -293,7 +293,11 @@ export class MassTransformer {
     }
 
     // Snap bounds after transform
-    if (this._snap && this._layer && !game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.SHIFT)) {
+    if (
+      this._snap &&
+      this._layer &&
+      !game.keyboard.isModifierActive(foundry.helpers.interaction.KeyboardManager.MODIFIER_KEYS.SHIFT)
+    ) {
       const postTransformPos = { x: b.x + transform.x, y: b.y + transform.y };
       const snapped = this._layer.getSnappedPoint(postTransformPos);
 
@@ -508,7 +512,7 @@ export class MassTransformer {
       const crosshairOverlay = new PIXI.Container();
       crosshairOverlay.transformer = transformer;
 
-      let label = new PreciseText('', { ...CONFIG.canvasTextStyle, _fontSize: 24 });
+      let label = new foundry.canvas.containers.PreciseText('', { ...CONFIG.canvasTextStyle, _fontSize: 24 });
       label.anchor.set(0.5, 1);
       this._label = crosshairOverlay.addChild(label);
 

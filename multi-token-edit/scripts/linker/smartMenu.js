@@ -7,7 +7,7 @@ export function openSmartLinkMenu(placeable) {
 
 class SmartMenu extends FormApplication {
   constructor(placeable) {
-    const pos = ui.controls.element.find('[data-control="me-presets"]').position();
+    const pos = $(ui.controls.element).find('[data-control="me-presets"]').position();
     super({}, { left: pos.left + 50, top: pos.top });
 
     this.placeable = placeable;

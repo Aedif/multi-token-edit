@@ -89,7 +89,7 @@ Hooks.once('init', () => {
   // stop propagation to other wheel related functions
   libWrapper.register(
     MODULE_ID,
-    'MouseManager.prototype._activateListeners',
+    'foundry.helpers.interaction.MouseManager.prototype._activateListeners',
     function (wrapped, ...args) {
       window.addEventListener(
         'wheel',
@@ -137,7 +137,7 @@ Hooks.once('init', () => {
   // Prevent placeable highlighting if a preview transformer is active
   libWrapper.register(
     MODULE_ID,
-    'Canvas.prototype.highlightObjects',
+    'foundry.canvas.Canvas.prototype.highlightObjects',
     function (wrapped, ...args) {
       if (MassTransformer.active()) return;
       return wrapped(...args);
@@ -149,7 +149,7 @@ Hooks.once('init', () => {
   if (game.settings.get(MODULE_ID, 'presetSceneControl')) {
     libWrapper.register(
       MODULE_ID,
-      'SceneNavigation.prototype._getContextMenuOptions',
+      'foundry.applications.ui.SceneNavigation.prototype._getContextMenuOptions',
       function (wrapped, ...args) {
         const options = wrapped(...args);
         options.push({

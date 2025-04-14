@@ -1,7 +1,7 @@
 export async function applyDDTint(placeable, color) {
   placeable = placeable.object ?? placeable;
   color = _string2hex(color);
-  if (placeable instanceof PlaceableObject) {
+  if (placeable instanceof foundry.canvas.placeables.PlaceableObject) {
     if (isNaN(color)) {
       await TokenMagic.deleteFilters(placeable, 'DDTint');
     } else {
@@ -55,7 +55,7 @@ export function getDDTint(placeable) {
 
 export async function applyTMFXPreset(placeable, presetName, remove = false) {
   placeable = placeable.object ?? placeable;
-  if (!(placeable instanceof PlaceableObject)) return;
+  if (!(placeable instanceof foundry.canvas.placeables.PlaceableObject)) return;
   if (presetName === 'DELETE ALL') {
     await TokenMagic.deleteFilters(placeable);
   } else if (remove) {

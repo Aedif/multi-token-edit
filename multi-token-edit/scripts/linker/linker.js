@@ -25,7 +25,7 @@ export function registerLinkerHooks() {
   // UNDO linked document delete operation
   libWrapper.register(
     MODULE_ID,
-    'PlaceablesLayer.prototype.undoHistory',
+    'foundry.canvas.layers.PlaceablesLayer.prototype.undoHistory',
     async function (wrapped, ...args) {
       const type = this.history[this.history.length - 1]?.type;
       const undone = await wrapped(...args);
@@ -123,7 +123,7 @@ function preUpdate(document, change, options, userId) {
   }
 
   // If alt is held during during the update, we want to ignore links
-  if (game.keyboard.isModifierActive(KeyboardManager.MODIFIER_KEYS.ALT)) {
+  if (game.keyboard.isModifierActive(foundry.helpers.interaction.KeyboardManager.MODIFIER_KEYS.ALT)) {
     return true;
   }
 

@@ -22,7 +22,7 @@ export function enablePixelPerfectSelect(force = false) {
   } else if (!pixelPerfectTileWrapper) {
     pixelPerfectTileWrapper = libWrapper.register(
       MODULE_ID,
-      'Tile.prototype._draw',
+      'foundry.canvas.placeables.Tile.prototype._draw',
       async function (wrapped, ...args) {
         const result = await wrapped(...args);
 
@@ -54,7 +54,7 @@ export function enablePixelPerfectSelect(force = false) {
   } else if (!pixelPerfectTokenWrapper) {
     pixelPerfectTokenWrapper = libWrapper.register(
       MODULE_ID,
-      'Token.prototype.getShape',
+      'foundry.canvas.placeables.Token.prototype.getShape',
       function (wrapped, ...args) {
         const shape = wrapped(...args);
 
@@ -106,20 +106,6 @@ export function enableUniversalSelectTool() {
   Hooks.on('drawNote', (note) => {
     setTimeout(() => _placeableRefresh(note), 10);
   });
-
-  // To avoid race conditions between multiple AmbientLight _onDragLeftCancel calls we'll defer the
-  // canvas.perception update within 'updateSource' via a 'defer' argument
-  libWrapper.register(
-    MODULE_ID,
-    'AmbientLight.prototype._onDragLeftCancel',
-    function (...args) {
-      Object.getPrototypeOf(AmbientLight).prototype._onDragLeftCancel.apply(this, args);
-      // V12
-      if (this.initializeLightSource) this.initializeLightSource({ defer: true });
-      else this.updateSource({ defer: true });
-    },
-    'OVERRIDE'
-  );
 
   if (foundry.utils.isNewerVersion(game.version, 12)) registerRegionWrappers();
 }
@@ -182,7 +168,7 @@ function registerRegionWrappers() {
 
   libWrapper.register(
     MODULE_ID,
-    'Region.prototype._onDragLeftMove',
+    'foundry.canvas.placeables.Region.prototype._onDragLeftMove',
     function (event) {
       canvas._onDragCanvasPan(event);
       const { clones, destination, origin } = event.interactionData;
@@ -210,7 +196,7 @@ function registerRegionWrappers() {
 
   libWrapper.register(
     MODULE_ID,
-    'Region.prototype._prepareDragLeftDropUpdates',
+    'foundry.canvas.placeables.Region.prototype._prepareDragLeftDropUpdates',
     function (event) {
       const updates = [];
       for (const clone of event.interactionData.clones) {
@@ -224,7 +210,7 @@ function registerRegionWrappers() {
   // Enable rotation
   libWrapper.register(
     MODULE_ID,
-    'Region.prototype.rotate',
+    'foundry.canvas.placeables.Region.prototype.rotate',
     async function (delta, snap) {
       if (game.paused && !game.user.isGM) {
         ui.notifications.warn('GAME.PausedWarning', { localize: true });
@@ -247,7 +233,7 @@ function registerRegionWrappers() {
 
   libWrapper.register(
     MODULE_ID,
-    'RegionLayer.prototype._onMouseWheel',
+    'foundry.canvas.layers.RegionLayer.prototype._onMouseWheel',
     function (event) {
       // Identify the hovered light source
       const region = this.hover;

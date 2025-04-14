@@ -357,13 +357,13 @@ export class PresetContainer extends FormApplication {
 
   _contextMenu(html) {
     const itemOptions = this._getItemContextOptions().sort((o1, o2) => (o1.sort ?? -1) - (o2.sort ?? -1));
-    ContextMenu.create(this, html, '.item', itemOptions, {
+    ContextMenu.create(this, html[0], '.item', itemOptions, {
       hookName: 'MassEditPresetContext',
       onOpen: this._onRightClickPreset.bind(this),
     });
 
     const folderOptions = this._getFolderContextOptions().sort((o1, o2) => (o1.sort ?? -1) - (o2.sort ?? -1));
-    ContextMenu.create(this, html, '.folder header', folderOptions, {
+    ContextMenu.create(this, html[0], '.folder header', folderOptions, {
       hookName: 'MassEditFolderContext',
     });
   }

@@ -741,17 +741,17 @@ export async function spawnSceneAsPreset(scene) {
     if (!presetData) presetData = attached.shift();
   }
 
+  if (!presetData) {
+    ui.notifications.warn('Attempting to spawn an empty scene.');
+    return;
+  }
+
   const preset = new Preset({ documentName: presetData.documentName, data: [presetData.data], attached });
 
-  const documents = await Spawner.spawnPreset({
+  await Spawner.spawnPreset({
     preset,
     preview: true,
     previewRestrictedDocuments: preset.documentName === 'AmbientLight' ? null : ['AmbientLight'],
     pivot: MassEdit.PIVOTS.CENTER,
   });
-
-  // const linkId = foundry.utils.randomID();
-  // documents.forEach((d) => {
-  //   LinkerAPI.addLink(d, linkId);
-  // });
 }
