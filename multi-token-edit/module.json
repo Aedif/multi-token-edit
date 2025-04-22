@@ -13,8 +13,8 @@
     }
   ],
   "compatibility": {
-    "minimum": 12,
-    "verified": "12"
+    "minimum": 13,
+    "verified": "13"
   },
   "esmodules": ["bundle/mass-edit.js"],
   "styles": ["styles/slider.css", "styles/general.css"],

@@ -1263,6 +1263,9 @@ export function registerPresetBrowserHooks() {
   Hooks.on('renderSceneControls', (sceneControls, html, data, options) => {
     if (!game.user.isGM) return;
     if (!game.settings.get(MODULE_ID, 'presetSceneControl')) return;
+
+    if ($(html).find('.mass-edit-scene-control').length) return;
+
     const presetControl = $(
       `<li>
        <button type="button" class="control ui-control layer icon mass-edit-scene-control fa-solid fa-books" role="tab"  data-control="me-presets" data-tooltip="" aria-pressed="false" aria-label="Mass Edit: Presets" aria-controls="scene-controls-tools"></button>
@@ -1285,10 +1288,10 @@ export function registerPresetBrowserHooks() {
     });
 
     presetControl.on('contextmenu', async () => {
-      const macroUuuid =
+      const macroUuid =
         game.settings.get(MODULE_ID, 'browserContextMacroUuid') ||
         'Compendium.baileywiki-nuts-and-bolts.macros.Macro.Ds6je9mUwVkEnb9f';
-      const macro = await fromUuid(macroUuuid);
+      const macro = await fromUuid(macroUuid);
       macro?.execute();
     });
 

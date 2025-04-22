@@ -82,7 +82,10 @@ export default class RandomizerForm extends FormApplication {
     foundry.utils.mergeObject(data, this.configuration);
 
     // Cache partials
-    await getTemplate(`modules/${MODULE_ID}/templates/randomizer/color.html`, 'me-color');
+    await foundry.applications.handlebars.getTemplate(
+      `modules/${MODULE_ID}/templates/randomizer/color.html`,
+      'me-color'
+    );
 
     if (data.step != null) {
       if (data.step === 'any' || data.step === '') {

@@ -441,6 +441,9 @@ export async function readJSONFile(url) {
  * Handle dropping of AmbientSound presets onto the sidebar playlists
  */
 export function registerSideBarPresetDropListener() {
+  // TODO v13
+  return;
+
   Hooks.on('renderSidebar', (sidebar, html) => {
     if (!game.user.isGM) return;
     html.on('drop', async (event) => {

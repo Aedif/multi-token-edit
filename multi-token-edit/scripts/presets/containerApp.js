@@ -13,10 +13,22 @@ import { exportPresets, FolderState, isVideo, sceneNotFoundError } from './utils
 import { FileIndexer, IndexerForm } from './fileIndexer.js';
 
 export async function registerPresetHandlebarPartials() {
-  await getTemplate(`modules/${MODULE_ID}/templates/preset/partials/preset.html`, 'me-preset');
-  await getTemplate(`modules/${MODULE_ID}/templates/preset/partials/folder.html`, 'me-preset-folder');
-  await getTemplate(`modules/${MODULE_ID}/templates/preset/partials/presetsContent.html`, 'me-presets-content');
-  await getTemplate(`modules/${MODULE_ID}/templates/preset/partials/presetsTopList.html`, 'me-preset-list');
+  await foundry.applications.handlebars.getTemplate(
+    `modules/${MODULE_ID}/templates/preset/partials/preset.html`,
+    'me-preset'
+  );
+  await foundry.applications.handlebars.getTemplate(
+    `modules/${MODULE_ID}/templates/preset/partials/folder.html`,
+    'me-preset-folder'
+  );
+  await foundry.applications.handlebars.getTemplate(
+    `modules/${MODULE_ID}/templates/preset/partials/presetsContent.html`,
+    'me-presets-content'
+  );
+  await foundry.applications.handlebars.getTemplate(
+    `modules/${MODULE_ID}/templates/preset/partials/presetsTopList.html`,
+    'me-preset-list'
+  );
 }
 
 export class PresetContainer extends FormApplication {
@@ -357,13 +369,13 @@ export class PresetContainer extends FormApplication {
 
   _contextMenu(html) {
     const itemOptions = this._getItemContextOptions().sort((o1, o2) => (o1.sort ?? -1) - (o2.sort ?? -1));
-    ContextMenu.create(this, html[0], '.item', itemOptions, {
+    foundry.applications.ux.ContextMenu.create(this, html[0], '.item', itemOptions, {
       hookName: 'MassEditPresetContext',
       onOpen: this._onRightClickPreset.bind(this),
     });
 
     const folderOptions = this._getFolderContextOptions().sort((o1, o2) => (o1.sort ?? -1) - (o2.sort ?? -1));
-    ContextMenu.create(this, html[0], '.folder header', folderOptions, {
+    foundry.applications.ux.ContextMenu.create(this, html[0], '.folder header', folderOptions, {
       hookName: 'MassEditFolderContext',
     });
   }

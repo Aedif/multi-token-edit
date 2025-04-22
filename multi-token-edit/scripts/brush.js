@@ -733,7 +733,9 @@ export class BrushMenu extends FormApplication {
     const subMenu = this._toggleSubMenu('colorize');
     if (!subMenu) return;
 
-    const template = await getTemplate(`modules/${MODULE_ID}/templates/preset/brush/colorize.html`);
+    const template = await foundry.applications.handlebars.getTemplate(
+      `modules/${MODULE_ID}/templates/preset/brush/colorize.html`
+    );
     let content = template(await this.getData({}), {
       allowProtoMethodsByDefault: true,
       allowProtoPropertiesByDefault: true,

@@ -78,8 +78,14 @@ export class MassEditGenericForm extends WMC {
   async getData(options) {
     const data = await super.getData(options);
     // Cache partials
-    await getTemplate(`modules/${MODULE_ID}/templates/generic/navHeaderPartial.html`, 'me-navHeaderPartial');
-    await getTemplate(`modules/${MODULE_ID}/templates/generic/form-group.html`, 'me-form-group');
+    await foundry.applications.handlebars.getTemplate(
+      `modules/${MODULE_ID}/templates/generic/navHeaderPartial.html`,
+      'me-navHeaderPartial'
+    );
+    await foundry.applications.handlebars.getTemplate(
+      `modules/${MODULE_ID}/templates/generic/form-group.html`,
+      'me-form-group'
+    );
 
     data.nav = this.nav;
 
