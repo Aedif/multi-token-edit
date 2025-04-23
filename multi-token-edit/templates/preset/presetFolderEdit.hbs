@@ -1,0 +1,40 @@
+<div class="standard-form">
+    <input type="hidden" name="type" value="{{source.type}}">
+    <input type="hidden" name="folder" value="{{source.folder}}">
+    {{formGroup fields.name value=source.name placeholder=namePlaceholder rootId=rootId}}
+    {{formGroup fields.color value=source.color placeholder="#000000" rootId=rootId}}
+
+    {{#if virtualPackFolder}}
+    <div class="form-group">
+        <label>Group</label>
+        <div class="form-fields">
+            <input type="text" name="group" placeholder="" value="{{group}}">
+        </div>
+    </div>
+    {{/if}}
+
+    {{#unless virtualPackFolder}}
+    <div class="form-group">
+        <label>{{localize "FOLDER.FIELDS.sorting.label"}}</label>
+        <div class="form-fields">
+            <label class="checkbox"><input type="radio" name="sorting" value="a"
+                {{checked (eq source.sorting "a")}}>{{localize "FOLDER.SortAlphabetical"}}</label>
+            <label class="checkbox"><input type="radio" name="sorting" value="m"
+                {{checked (eq source.sorting "m")}}>{{localize "FOLDER.SortManual"}}</label>
+        </div>
+    </div>
+    {{/unless}}
+
+    {{#if docs}}
+    <div class="form-group">
+        <label>Visible in:</label>
+        <div class="form-fields">
+            <div class="flexrow">
+                {{#each docs as |doc|}}
+                <a class="document-select {{#if doc.active}}active{{/if}}" title="{{doc.name}}" data-name="{{doc.name}}"><i class="{{doc.icon}} fa-lg"></i></a>
+                {{/each}}
+            </div>
+        </div>
+    </div>
+    {{/if}}
+</div>

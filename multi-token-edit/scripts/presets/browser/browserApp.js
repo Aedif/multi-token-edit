@@ -410,13 +410,14 @@ export class PresetBrowser extends PresetContainer {
     );
 
     await new Promise((resolve) => {
-      new PresetFolderConfig(folder, { resolve }).render(true);
+      new PresetFolderConfig({ resolve, document: folder }).render(true);
     });
 
     this.render(true);
   }
 
   async _onFolderEdit(header) {
+    header = $(header);
     const uuid = $(header).closest('.folder').data('uuid');
     const pFolder = this.tree.allFolders.get(uuid);
 
@@ -434,14 +435,13 @@ export class PresetBrowser extends PresetContainer {
         { pack: pFolder.uuid }
       );
     } else {
-      folder = await fromUuid($(header).closest('.folder').data('uuid'));
+      folder = await fromUuid(header.closest('.folder').data('uuid'));
     }
 
     new Promise((resolve) => {
-      const options = { resolve, ...header.offset(), folder: pFolder };
+      const options = { resolve, ...header.offset(), folder: pFolder, document: folder };
       options.top += header.height();
-
-      new PresetFolderConfig(folder, options).render(true);
+      new PresetFolderConfig(options).render(true);
     }).then(() => this.render(true));
   }
 
@@ -1034,33 +1034,36 @@ export class PresetBrowser extends PresetContainer {
 class PresetFolderConfig extends foundry.applications.sheets.FolderConfig {
   static name = 'PresetFolderConfig';
 
-  /** @inheritdoc */
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      classes: ['sheet', 'folder-edit'],
-      template: `modules/${MODULE_ID}/templates/preset/presetFolderEdit.html`,
-      width: 360,
-    });
+  constructor(options = {}) {
+    options.classes = ['folder-edit'];
+    super(options);
   }
+
+  /** @override */
+  static PARTS = {
+    body: { template: `modules/${MODULE_ID}/templates/preset/presetFolderEdit.hbs` },
+    footer: { template: 'templates/generic/form-footer.hbs' },
+  };
 
   /* -------------------------------------------- */
 
   /** @override */
   get id() {
-    return this.object.id ? super.id : 'folder-create';
+    return this.document.id ? super.id : 'folder-create';
   }
 
   /* -------------------------------------------- */
 
   /** @override */
   get title() {
-    if (this.object.id) return `${localize('FOLDER.Update', false)}: ${this.object.name}`;
+    if (this.document.id) return `${localize('FOLDER.Update', false)}: ${this.document.name}`;
     return localize('FOLDER.Create', false);
   }
 
-  activateListeners(html) {
-    super.activateListeners(html);
-    html.find('.document-select').on('click', this._onDocumentChange.bind(this));
+  /** @override */
+  _attachPartListeners(partId, htmlElement, options) {
+    super._attachPartListeners(partId, htmlElement, options);
+    if (partId === 'body') $(htmlElement).find('.document-select').on('click', this._onDocumentChange.bind(this));
   }
 
   _onDocumentChange(event) {
@@ -1077,16 +1080,18 @@ class PresetFolderConfig extends foundry.applications.sheets.FolderConfig {
 
   /* -------------------------------------------- */
 
-  /** @override */
-  async getData(options = {}) {
-    const folder = this.document.toObject();
-    const label = localize(Folder.implementation.metadata.label, false);
+  /** @inheritDoc */
+  async _prepareContext(options) {
+    const context = await super._prepareContext(options);
+    const folder = context.document;
+    context.namePlaceholder = folder.constructor.defaultName({ pack: folder.pack });
+    const submitText = localize(folder._id ? 'FOLDER.Update' : 'FOLDER.Create', false);
+    context.buttons = [{ type: 'submit', icon: 'fa-solid fa-floppy-disk', label: submitText }];
 
     let folderDocs = folder.flags[MODULE_ID]?.types ?? ['ALL'];
 
-    let docs;
-
     // This is a non-placeable folder type, so we will not display controls to change types
+    let docs;
     if (
       this.options?.folder instanceof PresetPackFolder ||
       (folderDocs.length === 1 && (folderDocs[0] === 'Bag' || !UI_DOCS.includes(folderDocs[0])))
@@ -1103,59 +1108,50 @@ class PresetFolderConfig extends foundry.applications.sheets.FolderConfig {
         });
       });
     }
+    context.docs = docs;
+    context.virtualPackFolder = this.options.folder instanceof PresetPackFolder;
+    context.group = this.options.folder?.group;
 
-    return {
-      folder: folder,
-      name: folder._id ? folder.name : '',
-      newName: localFormat('DOCUMENT.New', { type: label }, false),
-      safeColor: folder.color ?? '#000000',
-      sortingModes: { a: 'FOLDER.SortAlphabetical', m: 'FOLDER.SortManual' },
-      submitText: localize(folder._id ? 'FOLDER.Update' : 'FOLDER.Create', false),
-      docs,
-      virtualPackFolder: this.options.folder instanceof PresetPackFolder,
-      group: this.options.folder?.group,
-    };
+    return context;
   }
 
   /* -------------------------------------------- */
 
   /** @override */
-  async _updateObject(event, formData) {
+  async _processSubmitData(event, form, submitData, options) {
     if (this.displayTypes) {
       let visibleTypes = [];
-      $(this.form)
+      $(form)
         .find('.document-select.active')
         .each(function () {
-          visibleTypes.push($(this).data('name'));
+          visibleTypes.push(this.dataset.name);
         });
       if (!visibleTypes.length) visibleTypes.push('ALL');
 
-      formData[`flags.${MODULE_ID}.types`] = visibleTypes;
+      submitData[`flags.${MODULE_ID}.types`] = visibleTypes;
     }
 
-    let document = this.object;
     if (this.options.folder instanceof PresetPackFolder) {
-      // This is a virtual folder used to store Compendium contents within
-      // Update using the provided interface
+      // This is a virtual folder used to store Compendium contents,
+      // update using the provided interface
       let update = {};
       ['name', 'color', 'group'].forEach((k) => {
-        if (!formData[k]?.trim()) update['-=' + k] = null;
-        else update[k] = formData[k].trim();
+        if (!submitData[k]?.trim()) update['-=' + k] = null;
+        else update[k] = submitData[k].trim();
       });
 
       await this.options.folder.update(update);
     } else {
       // This is a real folder, update/create it
-      if (!formData.name?.trim()) formData.name = Folder.implementation.defaultName();
-      if (this.object.id) await this.object.update(formData);
+      if (!submitData.name?.trim()) submitData.name = Folder.implementation.defaultName();
+      if (this.document.id) await this.document.update(submitData);
       else {
-        this.object.updateSource(formData);
-        document = await Folder.create(this.object, { pack: this.object.pack });
+        this.document.updateSource(submitData);
+        this.document = await Folder.create(this.document, { pack: this.document.pack });
       }
     }
 
-    this.options.resolve?.(document);
-    return document;
+    this.options.resolve?.(this.document);
   }
 }
 

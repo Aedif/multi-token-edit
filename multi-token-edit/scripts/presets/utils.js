@@ -552,7 +552,11 @@ export async function exportPresets(presets, fileName) {
     return preset;
   });
 
-  saveDataToFile(JSON.stringify(presets, null, 2), 'text/json', (fileName ?? 'mass-edit-presets') + '.json');
+  foundry.utils.saveDataToFile(
+    JSON.stringify(presets, null, 2),
+    'text/json',
+    (fileName ?? 'mass-edit-presets') + '.json'
+  );
 }
 
 /**
