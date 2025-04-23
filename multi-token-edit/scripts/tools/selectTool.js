@@ -159,9 +159,9 @@ function registerRegionWrappers() {
   // Enable drag
   libWrapper.register(
     MODULE_ID,
-    'Region.prototype._canDrag',
-    function () {
-      return game.user.isGM;
+    'foundry.canvas.placeables.Region.prototype._canDrag',
+    function (user, event) {
+      return user.isGM;
     },
     'OVERRIDE'
   );

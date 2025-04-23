@@ -381,7 +381,7 @@ export class ScenescapeControls {
 /**
  * Modified FoundryVTT `OutlineOverlayFilter` filter to not knockout the mesh
  */
-class OutlineFilter extends OutlineOverlayFilter {
+class OutlineFilter extends foundry.canvas.rendering.filters.OutlineOverlayFilter {
   /** @inheritdoc */
   static createFragmentShader() {
     return `

@@ -1031,7 +1031,7 @@ export class PresetBrowser extends PresetContainer {
   }
 }
 
-class PresetFolderConfig extends FolderConfig {
+class PresetFolderConfig extends foundry.applications.sheets.FolderConfig {
   static name = 'PresetFolderConfig';
 
   /** @inheritdoc */
@@ -1301,7 +1301,7 @@ export function registerPresetBrowserHooks() {
   // Change default behavior of JournalEntry click and context menu within the CompendiumDirectory
   libWrapper.register(
     MODULE_ID,
-    'CompendiumDirectory.prototype._getEntryContextOptions',
+    'foundry.applications.sidebar.tabs.CompendiumDirectory.prototype._getEntryContextOptions',
     function (wrapped, ...args) {
       const options = wrapped(...args);
       options.push({
@@ -1323,7 +1323,7 @@ export function registerPresetBrowserHooks() {
 
   libWrapper.register(
     MODULE_ID,
-    'Compendium.prototype._getEntryContextOptions',
+    'foundry.applications.sidebar.apps.Compendium.prototype._getEntryContextOptions',
     function (wrapped, ...args) {
       const options = wrapped(...args);
 
@@ -1343,7 +1343,7 @@ export function registerPresetBrowserHooks() {
 
   libWrapper.register(
     MODULE_ID,
-    'SceneDirectory.prototype._getEntryContextOptions',
+    'foundry.applications.sidebar.tabs.SceneDirectory.prototype._getEntryContextOptions',
     function (wrapped, ...args) {
       const options = wrapped(...args);
       options.push({
@@ -1361,7 +1361,7 @@ export function registerPresetBrowserHooks() {
 
   libWrapper.register(
     MODULE_ID,
-    'CompendiumDirectory.prototype._onClickEntry',
+    'foundry.applications.sidebar.tabs.CompendiumDirectory.prototype._onClickEntry',
     async function (wrapped, ...args) {
       const target = args[1];
       const packId = target.closest('[data-pack]').dataset.pack;
