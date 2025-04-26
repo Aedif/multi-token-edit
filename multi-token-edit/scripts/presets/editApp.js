@@ -7,19 +7,6 @@ import { DOC_ICONS, Preset, VirtualFilePreset } from './preset.js';
 import { exportPresets, mergePresetDataToDefaultDoc, placeableToData } from './utils.js';
 
 export class PresetConfig extends FormApplication {
-  static name = 'PresetConfig';
-
-  /**
-   * @param {Array[Preset]} presets
-   */
-  constructor(presets, options = {}) {
-    super({}, options);
-    this.presets = presets;
-    this.callback = options.callback;
-    this.isCreate = options.isCreate;
-    this.attached = options.attached;
-  }
-
   /** @inheritdoc */
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
@@ -29,22 +16,6 @@ export class PresetConfig extends FormApplication {
       height: 'auto',
       tabs: [{ navSelector: '.sheet-tabs', contentSelector: '.content', initial: 'main' }],
     });
-  }
-
-  /* -------------------------------------------- */
-
-  /** @override */
-  get id() {
-    return 'mass-edit-preset-edit';
-  }
-
-  /* -------------------------------------------- */
-
-  /** @override */
-  get title() {
-    const prefix = this.presets[0] instanceof VirtualFilePreset ? 'File' : 'Preset';
-    if (this.presets.length > 1) return `${prefix}s [${this.presets.length}]`;
-    else return `${prefix}: ${this.presets[0].name.substring(0, 20)}${this.presets[0].name.length > 20 ? '...' : ''}`;
   }
 
   _getHeaderButtons() {
@@ -76,60 +47,6 @@ export class PresetConfig extends FormApplication {
   }
 
   /* -------------------------------------------- */
-
-  /** @override */
-  async getData(options = {}) {
-    const data = {};
-
-    data.virtual = this.presets[0] instanceof VirtualFilePreset;
-
-    data.preset = {};
-    if (this.presets.length === 1) {
-      data.preset = foundry.utils.deepClone(this.presets[0].toJSON());
-      data.displayFieldDelete = true;
-
-      data.attached = this.attached || data.preset.attached;
-      if (data.attached) {
-        data.attached = data.attached.map((at) => {
-          let tooltip = at.documentName;
-          if (at.documentName === 'Token' && at.data.name) tooltip += ': ' + at.data.name;
-          return {
-            icon: DOC_ICONS[at.documentName] ?? DOC_ICONS.DEFAULT,
-            tooltip,
-          };
-        });
-      }
-    } else {
-      data.multiEdit = true;
-      data.preset = {};
-    }
-
-    // Form data stored if re-render was required
-    if (this._submitData) {
-      foundry.utils.mergeObject(data.preset, this._submitData);
-    }
-
-    data.minlength = this.presets.length > 1 ? 0 : 1;
-    data.tva = game.modules.get('token-variants')?.active;
-
-    if ((this.data && !(this.data instanceof Array)) || (!this.data && this.presets[0].isEmpty)) {
-      data.modifyDisabled = true;
-      data.deleteDisabled = true;
-    }
-
-    // Check if all presets are for the same document type and thus can be edited using a Mass Edit form
-    const documentName = this.presets[0].documentName;
-    if (
-      documentName !== 'Actor' &&
-      SUPPORTED_SHEET_CONFIGS.includes(documentName) &&
-      this.presets.every((p) => p.documentName === documentName)
-    ) {
-      data.documentEdit = documentName;
-      data.isPlaceable = SUPPORTED_PLACEABLES.includes(documentName);
-    }
-
-    return data;
-  }
 
   activateListeners(html) {
     super.activateListeners(html);
@@ -185,20 +102,6 @@ export class PresetConfig extends FormApplication {
     TagInput.activateListeners(html, {
       change: () => this.setPosition({ height: 'auto' }),
     });
-  }
-
-  _getSubmitData(updateData = {}) {
-    const data = super._getSubmitData(updateData);
-
-    data.name = data.name?.trim();
-    data.img = data.img?.trim() || null;
-    data.preSpawnScript = data.preSpawnScript?.trim();
-    data.postSpawnScript = data.postSpawnScript?.trim();
-    data.tags = data.tags ? data.tags.split(',') : [];
-    data.addTags = data.addTags ? data.addTags.split(',') : [];
-    data.removeTags = data.removeTags ? data.removeTags.split(',') : [];
-
-    return data;
   }
 
   async render(force = false) {
@@ -321,62 +224,6 @@ export class PresetConfig extends FormApplication {
     }, 400);
   }
 
-  async _updatePresets(formData) {
-    for (const preset of this.presets) {
-      let update;
-      if (this.isCreate) {
-        update = {
-          name: formData.name || preset.name || localize('presets.default-name'),
-          img: formData.img ?? preset.img,
-        };
-      } else {
-        update = {
-          name: formData.name || preset.name,
-          img: formData.img || preset.img,
-        };
-      }
-
-      if (this.data) update.data = this.data;
-      if (this.addSubtract) update.addSubtract = this.addSubtract;
-      if (this.randomize) update.randomize = this.randomize;
-      if (this.modifyOnSpawn) update.modifyOnSpawn = this.modifyOnSpawn;
-      if (this.gridSize || formData.gridSize) update.gridSize = this.gridSize ?? formData.gridSize;
-      if (this.attached) update.attached = this.attached;
-      if (formData.preSpawnScript != null) update.preSpawnScript = formData.preSpawnScript;
-      if (formData.postSpawnScript != null) update.postSpawnScript = formData.postSpawnScript;
-      if (formData.spawnRandom != null) update.spawnRandom = formData.spawnRandom;
-      if (formData.preserveLinks != null) update.preserveLinks = formData.preserveLinks;
-
-      // If this is a single preset config, we override all tags
-      // If not we merge
-      if (this.presets.length === 1) {
-        update.tags = formData.tags;
-      } else if (formData.addTags.length || formData.removeTags.length) {
-        let tags = preset.tags ?? [];
-        if (formData.addTags.length) tags = Array.from(new Set(tags.concat(formData.addTags)));
-        if (formData.removeTags.length) tags = tags.filter((t) => !formData.removeTags.includes(t));
-        update.tags = tags;
-      }
-
-      await preset.update(update, true);
-    }
-
-    await Preset.processBatchUpdates();
-  }
-
-  /* -------------------------------------------- */
-
-  /** @override */
-  async _updateObject(event, formData) {
-    // Particularly large updates can take a while, prevent the submit button being clicked multiple times
-    this.element.find('button[type="submit"]').prop('disabled', true);
-
-    await this._updatePresets(formData);
-
-    if (this.callback) this.callback(this.presets);
-    return this.presets;
-  }
-
   /** @inheritDoc */
   async _renderOuter() {
     const html = await super._renderOuter();
@@ -423,6 +270,217 @@ export class PresetConfig extends FormApplication {
       );
     });
     title.append(idLink);
+  }
+}
+
+export class PresetConfigV2 extends foundry.applications.api.HandlebarsApplicationMixin(
+  foundry.applications.api.ApplicationV2
+) {
+  static name = 'PresetConfig';
+
+  /**
+   * @param {Array[Preset]} presets
+   */
+  constructor(presets, options = {}) {
+    super(options);
+    this.presets = presets;
+    this.callback = options.callback;
+    this.isCreate = options.isCreate;
+    this.attached = options.attached;
+
+    console.log(this);
+  }
+
+  static DEFAULT_OPTIONS = {
+    id: 'mass-edit-preset-edit',
+    tag: 'form',
+    form: {
+      handler: PresetConfigV2._onSubmit,
+      submitOnChange: true,
+      closeOnSubmit: false,
+    },
+    window: {
+      contentClasses: ['standard-form'],
+    },
+    position: {
+      width: 360,
+      height: 'auto',
+    },
+  };
+
+  /** @override */
+  static TABS = {
+    main: {
+      tabs: [
+        { id: 'main', icon: 'fa-regular fa-book-open' },
+        { id: 'spawning', icon: 'fa-solid fa-circle-plus' },
+        { id: 'tags', icon: 'fa-solid fa-tag' },
+      ],
+      initial: 'main',
+      labelPrefix: 'MassEdit.presets',
+    },
+  };
+
+  /** @override */
+  static PARTS = {
+    overlay: { template: `modules/${MODULE_ID}/templates/drag-drop-overlay.hbs` },
+    hidden: { template: `modules/${MODULE_ID}/templates/preset/preset-edit/preset-edit-hidden.hbs` },
+    tabs: { template: 'templates/generic/tab-navigation.hbs' },
+    main: { template: `modules/${MODULE_ID}/templates/preset/preset-edit/preset-edit-main.hbs` },
+    spawning: { template: `modules/${MODULE_ID}/templates/preset/preset-edit/preset-edit-spawning.hbs` },
+    tags: { template: `modules/${MODULE_ID}/templates/preset/preset-edit/preset-edit-tags.hbs` },
+    footer: { template: 'templates/generic/form-footer.hbs' },
+  };
+
+  /** @override */
+  get title() {
+    const prefix = this.presets[0] instanceof VirtualFilePreset ? 'File' : 'Preset';
+    if (this.presets.length > 1) return `${prefix}s [${this.presets.length}]`;
+    else return `${prefix}: ${this.presets[0].name.substring(0, 20)}${this.presets[0].name.length > 20 ? '...' : ''}`;
+  }
+
+  /** @override */
+  async _preparePartContext(partId, context, options) {
+    await super._preparePartContext(partId, context, options);
+    const tab = context.tabs[partId];
+    if (tab) context.tab = tab;
+
+    return context;
+  }
+
+  /** @override */
+  async _prepareContext(options) {
+    const context = await super._prepareContext(options);
+
+    context.virtual = this.presets[0] instanceof VirtualFilePreset;
+    context.multiEdit = this.presets.length !== 1;
+
+    context.preset = {};
+    if (this.presets.length === 1) {
+      context.preset = foundry.utils.deepClone(this.presets[0].toJSON());
+    }
+
+    // Form data stored if re-render was required
+    if (this._submitData) {
+      foundry.utils.mergeObject(context.preset, this._submitData);
+    }
+
+    if ((this.data && !(this.data instanceof Array)) || (!this.data && this.presets[0].isEmpty)) {
+      context.modifyDisabled = true;
+    }
+
+    context.buttons = [{ type: 'submit', icon: 'fas fa-check', label: localize('common.apply') }];
+
+    return context;
+  }
+
+  /** @inheritDoc */
+  async _preparePartContext(partId, context, options) {
+    await super._preparePartContext(partId, context, options);
+    switch (partId) {
+      case 'main':
+        context.displayFieldDelete = this.presets.length === 1;
+        context.minlength = this.presets.length > 1 ? 0 : 1;
+        context.tva = game.modules.get('token-variants')?.active;
+
+        // Check if all presets are for the same document type and thus can be edited using a Mass Edit form
+        const documentName = this.presets[0].documentName;
+        if (
+          documentName !== 'Actor' &&
+          SUPPORTED_SHEET_CONFIGS.includes(documentName) &&
+          this.presets.every((p) => p.documentName === documentName)
+        ) {
+          context.documentEdit = documentName;
+          context.isPlaceable = SUPPORTED_PLACEABLES.includes(documentName);
+        }
+        break;
+      case 'spawning':
+        let attached = this.attached || context.preset?.attached;
+        if (attached) {
+          attached = attached.map((at) => {
+            let tooltip = at.documentName;
+            if (at.documentName === 'Token' && at.data.name) tooltip += ': ' + at.data.name;
+            return {
+              icon: DOC_ICONS[at.documentName] ?? DOC_ICONS.DEFAULT,
+              tooltip,
+            };
+          });
+          context.attached = attached;
+        }
+        break;
+    }
+    if (partId in context.tabs) context.tab = context.tabs[partId];
+    return context;
+  }
+
+  static async _onSubmit(event, form, formData) {
+    // Particularly large updates can take a while, prevent the submit button being clicked multiple times
+    $(form).find('button[type="submit"]').prop('disabled', true);
+
+    const data = formData.object;
+
+    data.name = data.name?.trim();
+    data.img = data.img?.trim() || null;
+    data.preSpawnScript = data.preSpawnScript?.trim();
+    data.postSpawnScript = data.postSpawnScript?.trim();
+    data.tags = data.tags ? data.tags.split(',') : [];
+    data.addTags = data.addTags ? data.addTags.split(',') : [];
+    data.removeTags = data.removeTags ? data.removeTags.split(',') : [];
+
+    this._submitData = data;
+  }
+
+  // TODO
+  // Call this when Apply is clicked
+  async _onUpdate(data) {
+    await this._updatePresets(data);
+
+    if (this.callback) this.callback(this.presets);
+    return this.presets;
+  }
+
+  async _updatePresets(formData) {
+    for (const preset of this.presets) {
+      let update;
+      if (this.isCreate) {
+        update = {
+          name: formData.name || preset.name || localize('presets.default-name'),
+          img: formData.img ?? preset.img,
+        };
+      } else {
+        update = {
+          name: formData.name || preset.name,
+          img: formData.img || preset.img,
+        };
+      }
+
+      if (this.data) update.data = this.data;
+      if (this.addSubtract) update.addSubtract = this.addSubtract;
+      if (this.randomize) update.randomize = this.randomize;
+      if (this.modifyOnSpawn) update.modifyOnSpawn = this.modifyOnSpawn;
+      if (this.gridSize || formData.gridSize) update.gridSize = this.gridSize ?? formData.gridSize;
+      if (this.attached) update.attached = this.attached;
+      if (formData.preSpawnScript != null) update.preSpawnScript = formData.preSpawnScript;
+      if (formData.postSpawnScript != null) update.postSpawnScript = formData.postSpawnScript;
+      if (formData.spawnRandom != null) update.spawnRandom = formData.spawnRandom;
+      if (formData.preserveLinks != null) update.preserveLinks = formData.preserveLinks;
+
+      // If this is a single preset config, we override all tags
+      // If not we merge
+      if (this.presets.length === 1) {
+        update.tags = formData.tags;
+      } else if (formData.addTags.length || formData.removeTags.length) {
+        let tags = preset.tags ?? [];
+        if (formData.addTags.length) tags = Array.from(new Set(tags.concat(formData.addTags)));
+        if (formData.removeTags.length) tags = tags.filter((t) => !formData.removeTags.includes(t));
+        update.tags = tags;
+      }
+
+      // TODO uncomment once ready
+      // await preset.update(update, true);
+    }
+
+    await Preset.processBatchUpdates();
   }
 }
 

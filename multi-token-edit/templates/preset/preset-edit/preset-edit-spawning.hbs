@@ -1,0 +1,69 @@
+<div class="tab{{#if tab.active}} active{{/if}}" data-group="{{tab.group}}" data-tab="{{tab.id}}">
+
+    {{#unless multiEdit}}
+    <div class="form-group">
+        <label>{{localize "MassEdit.common.attached"}}</label>
+
+        <div class="form-fields">
+            {{#if attached}}
+            <div style="max-height: 40px; overflow-y: auto;">
+                {{#each attached}}
+                <a class="attached" data-index="{{@index}}"><i class="{{icon}}" data-tooltip="{{tooltip}}"></i></a>
+                {{/each}}
+            </div>
+            {{else}}
+            <div style="border: 2px dashed; text-align: center; color: orangered; padding: 2px;">{{localize "MassEdit.presets.drag-placeable"}}</div>
+            {{/if}}
+            <button class="attach-selected" type="button" data-tooltip="Attach Selected Placeables"><i class="fas fa-plus-square"></i></button>
+        </div>
+        <p class="hint">{{localize "MassEdit.presets.drag-placeable-hint"}}</p>
+    </div>
+
+    <div class="form-group {{#if modifyDisabled}}disabled{{/if}}">
+        <label>{{localize "MassEdit.common.modify"}}</label>
+        <div class="form-fields">
+            <button  class="spawn-fields" type="button" {{#if modifyDisabled}}disabled{{/if}}><i class="fas fa-tasks"></i></button>
+        </div>
+        <p class="hint">{{localize "MassEdit.presets.select-modify"}}</p>
+    </div>
+
+    <div class="form-group">
+        <label>{{localize "MassEdit.common.random"}}</label>
+        <div class="form-fields">
+            <input type="checkbox" name="spawnRandom" {{#if preset.spawnRandom}}checked{{/if}} />
+        </div>
+        <p class="hint">{{localize "MassEdit.presets.spawn-random"}}</p>
+    </div>
+
+    <div class="form-group">
+        <label>Preserve Links</label>
+        <div class="form-fields">
+            <input type="checkbox" name="preserveLinks" {{#if preset.preserveLinks}}checked{{/if}} />
+        </div>
+        <p class="hint">If not enabled any links present within the preset will be regenerated to ensure uniqueness on the scene after spawn.</p>
+    </div>
+    {{/unless}}
+
+    <div class="form-group">
+        <label>Grid Size</label>
+        <div class="form-fields">
+            <input type="number" name="gridSize" value="{{preset.gridSize}}" min="10" step="1" placeholder="Pixels">
+        </div>
+        <p class="hint">The size of the grid from which the preset has been created. Used to dynamically scale the preset.</p>
+    </div>
+
+    {{#unless multiEdit}}
+    <div class="form-group stacked command">
+        <label>Pre-Spawn Script</label>
+        <p class="hint">data | token actor</p>
+        <textarea style="height: 120px" name="preSpawnScript">{{preset.preSpawnScript}}</textarea>
+    </div>
+
+    <div class="form-group stacked command">
+        <label>Post-Spawn Script</label>
+        <p class="hint">documents objects | token actor</p>
+        <textarea style="height: 120px" name="postSpawnScript">{{preset.postSpawnScript}}</textarea>
+    </div>
+    {{/unless}}
+
+</div>

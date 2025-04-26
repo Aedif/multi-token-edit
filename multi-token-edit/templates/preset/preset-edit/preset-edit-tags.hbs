@@ -1,0 +1,8 @@
+<div class="tab{{#if tab.active}} active{{/if}}" data-group="{{tab.group}}" data-tab="{{tab.id}}">
+    {{#if multiEdit}}
+        {{tagInput name="addTags" label="Add Tags"}}
+        {{tagInput name="removeTags" label="Remove Tags"}}
+    {{else}}
+        {{tagInput tags=preset.tags name="tags"}}
+    {{/if}}
+</div>

@@ -135,6 +135,8 @@
       "drag-over-message": "CREATE PRESET",
       "default-name": "New Preset",
       "spawning": "Spawning",
+      "main": "Main",
+      "tags": "Tags",
       "warn-no-fields": "No fields selected, unable to update.",
       "imported": "Imported {count} presets.",
       "import": "Import Presets",

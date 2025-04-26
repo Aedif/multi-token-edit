@@ -53,11 +53,74 @@ globalThis.MassEdit = {
   sceneNotFoundMessages: [],
 };
 
+class App2Test extends foundry.applications.api.HandlebarsApplicationMixin(foundry.applications.api.ApplicationV2) {
+  static DEFAULT_OPTIONS = {
+    id: 'app-2-test',
+    // classes: ['mass-edit-dark-window'],
+    // form: {
+    //   handler: undefined,
+    //   submitOnChange: false,
+    //   closeOnSubmit: true,
+    // },
+    window: {
+      contentClasses: ['standard-form'],
+      icon: 'fa-solid fa-handshake-angle',
+    },
+    actions: {
+      action1: App2Test.onAction1,
+      action2: App2Test.onAction2,
+    },
+  };
+
+  get title() {
+    return 'Title TEST';
+  }
+
+  /** @override */
+  static TABS = {
+    main: {
+      tabs: [
+        { id: 'tab1', icon: 'fa-regular fa-book-open' },
+        { id: 'tab2', icon: 'fa-solid fa-circle-plus' },
+      ],
+      initial: 'tab1',
+      labelPrefix: 'SCENE.TABS.SHEET',
+    },
+  };
+
+  /** @override */
+  static PARTS = {
+    hidden: { template: `modules/${MODULE_ID}/templates/app2test/hidden.hbs` },
+    tabs: { template: 'templates/generic/tab-navigation.hbs' },
+    tab1: { template: `modules/${MODULE_ID}/templates/app2test/tab1.hbs` },
+    tab2: { template: `modules/${MODULE_ID}/templates/app2test/tab2.hbs` },
+    footer: { template: 'templates/generic/form-footer.hbs' },
+  };
+
+  /** @inheritDoc */
+  async _preparePartContext(partId, context, options) {
+    await super._preparePartContext(partId, context, options);
+    const tab = context.tabs[partId];
+    if (tab) context.tab = tab;
+
+    return context;
+  }
+
+  async _prepareContext(options) {
+    const context = await super._prepareContext(options);
+    return Object.assign(context, {
+      buttons: [{ type: 'submit', icon: 'fa-solid fa-floppy-disk', label: `Submit` }],
+    });
+  }
+}
+
 // Initialize module
 Hooks.once('init', () => {
   game.modules.get(MODULE_ID).api = {
     ...globalThis.MassEdit,
   };
+
+  globalThis.MassEdit.openAppTest = () => new App2Test().render(true);
 
   //Register region behaviors
   registerBehaviors();

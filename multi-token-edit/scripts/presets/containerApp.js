@@ -5,7 +5,7 @@ import { MODULE_ID, PIVOTS, SUPPORTED_PLACEABLES } from '../constants.js';
 import { Scenescape } from '../scenescape/scenescape.js';
 import { applyPresetToScene, isAudio, localize, spawnSceneAsPreset } from '../utils.js';
 import { PresetAPI, PresetCollection, PresetFolder, PresetPackFolder, VirtualFileFolder } from './collection.js';
-import { PresetConfig } from './editApp.js';
+import { PresetConfig, PresetConfigV2 } from './editApp.js';
 import { PresetBrowser } from './browser/browserApp.js';
 import { Preset } from './preset.js';
 import { Spawner } from './spawner.js';
@@ -692,7 +692,12 @@ export class PresetContainer extends FormApplication {
       options.left = event.originalEvent.x - PresetConfig.defaultOptions.width / 2;
       options.top = event.originalEvent.y;
     }
-    new PresetConfig(presets, options).render(true);
+
+    console.log('HERE......');
+
+    new PresetConfigV2(presets, options).render(true);
+
+    //new PresetConfig(presets, options).render(true);
   }
 
   async _playPreview(event) {
