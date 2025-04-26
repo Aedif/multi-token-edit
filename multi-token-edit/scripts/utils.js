@@ -50,7 +50,7 @@ export function is3DModel(path) {
 }
 
 export async function recursiveTraverse(path, source, bucket, files = []) {
-  const result = await FilePicker.browse(source, path, {
+  const result = await foundry.applications.apps.FilePicker.browse(source, path, {
     bucket: bucket,
   });
 

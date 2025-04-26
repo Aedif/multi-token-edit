@@ -276,7 +276,7 @@ export class FileIndexer {
     const str = JSON.stringify(index);
 
     const tFile = await StringCompress.compress(str);
-    await FilePicker.upload(source, path, tFile, {}, { notify });
+    await foundry.applications.apps.FilePicker.upload(source, path, tFile, {}, { notify });
   }
 
   static async saveFolderToCache(folder, notify = true) {
@@ -570,7 +570,7 @@ export class FileIndexer {
     if (source === 'forgevtt' || !['modules', 'systems', 'worlds', 'assets'].includes(dir.replaceAll(/[\/\\]/g, ''))) {
       paths = [dir];
     } else {
-      const contents = await FilePicker.browse(source, dir, { recursive: false });
+      const contents = await foundry.applications.apps.FilePicker.browse(source, dir, { recursive: false });
       paths = contents.dirs;
     }
 
@@ -590,7 +590,7 @@ export class FileIndexer {
     };
 
     for (const path of paths) {
-      const contents = await FilePicker.browse(source, path, { recursive: true });
+      const contents = await foundry.applications.apps.FilePicker.browse(source, path, { recursive: true });
       for (const file of contents.files) {
         const pathname = new URL(file).pathname;
         const components = pathname.split('/');

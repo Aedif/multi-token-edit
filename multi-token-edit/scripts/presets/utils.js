@@ -215,11 +215,14 @@ export async function randomizeChildrenFolderColors(uuid, tree, callback) {
   const children = folder.children;
   if (!children.length) return;
 
-  const colorTemp = await renderTemplate(`modules/${MODULE_ID}/templates/randomizer/color.html`, {
-    method: 'interpolateReverse',
-    space: 'srgb',
-    hue: 'longer',
-  });
+  const colorTemp = await foundry.applications.handlebars.renderTemplate(
+    `modules/${MODULE_ID}/templates/randomizer/color.html`,
+    {
+      method: 'interpolateReverse',
+      space: 'srgb',
+      hue: 'longer',
+    }
+  );
 
   let colorSlider;
 

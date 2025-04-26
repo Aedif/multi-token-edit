@@ -828,13 +828,16 @@ export class PresetContainer extends FormApplication {
       folderElement.removeClass('collapsed');
       folderElement.find('header .folder-icon').first().removeClass('fa-folder-closed').addClass('fa-folder-open');
     } else {
-      let content = await renderTemplate(`modules/${MODULE_ID}/templates/preset/partials/folder.html`, {
-        folder,
-        createEnabled: Boolean(this.configApp),
-        callback: Boolean(this.callback),
-        sortable:
-          !folder.uuid.startsWith('virtual@') && fromUuidSync(folder.uuid)?.pack === PresetCollection.workingPack,
-      });
+      let content = await foundry.applications.handlebars.renderTemplate(
+        `modules/${MODULE_ID}/templates/preset/partials/folder.html`,
+        {
+          folder,
+          createEnabled: Boolean(this.configApp),
+          callback: Boolean(this.callback),
+          sortable:
+            !folder.uuid.startsWith('virtual@') && fromUuidSync(folder.uuid)?.pack === PresetCollection.workingPack,
+        }
+      );
       folderElement.replaceWith(content);
     }
   }
@@ -848,13 +851,16 @@ export class PresetContainer extends FormApplication {
   }
 
   async _renderContent({ callback = false, presets, folders, createEnabled = false, extFolders } = {}) {
-    const content = await renderTemplate(`modules/${MODULE_ID}/templates/preset/partials/presetsContent.html`, {
-      callback,
-      presets,
-      folders,
-      createEnabled,
-      extFolders,
-    });
+    const content = await foundry.applications.handlebars.renderTemplate(
+      `modules/${MODULE_ID}/templates/preset/partials/presetsContent.html`,
+      {
+        callback,
+        presets,
+        folders,
+        createEnabled,
+        extFolders,
+      }
+    );
     this.element.find('.item-list').html(content);
   }
 

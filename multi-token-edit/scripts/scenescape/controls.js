@@ -65,10 +65,13 @@ export class ScenescapeControls {
     let id;
 
     id = Hooks.on('renderTokenConfig', async (app, html, options) => {
-      const formGroup = await renderTemplate(`modules/${MODULE_ID}/templates/scenescapes/autoFlipFormGroup.html`, {
-        autoFlipX: app.object.getFlag(MODULE_ID, 'autoFlipX'),
-        autoFlipY: app.object.getFlag(MODULE_ID, 'autoFlipY'),
-      });
+      const formGroup = await foundry.applications.handlebars.renderTemplate(
+        `modules/${MODULE_ID}/templates/scenescapes/autoFlipFormGroup.html`,
+        {
+          autoFlipX: app.object.getFlag(MODULE_ID, 'autoFlipX'),
+          autoFlipY: app.object.getFlag(MODULE_ID, 'autoFlipY'),
+        }
+      );
       $(html).find('[name="mirrorX"]').closest('.form-group').after(formGroup);
     });
     this._hooks.push({ hook: 'renderTokenConfig', id });

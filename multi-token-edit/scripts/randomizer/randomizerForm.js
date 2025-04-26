@@ -198,7 +198,7 @@ export default class RandomizerForm extends FormApplication {
     $(html)
       .find('.folder-picker')
       .click(() => {
-        new FilePicker({
+        new foundry.applications.apps.FilePicker({
           type: 'folder',
           callback: async (path, fp) => {
             let files = [];

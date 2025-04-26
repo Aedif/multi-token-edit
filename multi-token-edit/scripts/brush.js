@@ -765,12 +765,15 @@ export class BrushMenu extends FormApplication {
 
   async _onRandomizeColor() {
     const randomColor = this._settings.randomColor ?? {};
-    const colorTemp = await renderTemplate(`modules/${MODULE_ID}/templates/randomizer/color.html`, {
-      method: 'random',
-      lockMethod: true,
-      space: randomColor.space,
-      hue: randomColor.hue,
-    });
+    const colorTemp = await foundry.applications.handlebars.renderTemplate(
+      `modules/${MODULE_ID}/templates/randomizer/color.html`,
+      {
+        method: 'random',
+        lockMethod: true,
+        space: randomColor.space,
+        hue: randomColor.hue,
+      }
+    );
 
     let colorSlider;
     let dialog = new Dialog({
