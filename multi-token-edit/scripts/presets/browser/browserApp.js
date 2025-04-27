@@ -1281,10 +1281,10 @@ export function registerPresetBrowserHooks() {
     });
 
     presetControl.on('contextmenu', async () => {
-      const macroUuuid =
+      const macroUuid =
         game.settings.get(MODULE_ID, 'browserContextMacroUuid') ||
-        'Compendium.baileywiki-nuts-and-bolts.macros.Macro.Ds6je9mUwVkEnb9f';
-      const macro = await fromUuid(macroUuuid);
+        'Compendium.baileywiki-nuts-and-bolts.macros.Macro.gjVoFJiIoKerEcB2';
+      const macro = await fromUuid(macroUuid);
       macro?.execute();
     });
 
