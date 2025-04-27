@@ -1,3 +1,8 @@
+# 1.87.3
+
+- Improved scene import macro/api
+  - You can now choose both the input scene compendium and the output preset compendium
+
 # 1.87.2
 
 - External modules can register messages to be shown when FauxScene import fails.
