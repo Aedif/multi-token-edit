@@ -1,4 +1,4 @@
-import { pasteData, showMassEdit, showGenericForm, getMassEditForm } from './applications/multiConfig.js';
+import { showMassEdit, showGenericForm } from './applications/multiConfig.js';
 import {
   activeEffectPresetSelect,
   createDocuments,
@@ -13,7 +13,7 @@ import { openPresetBrowser, registerPresetBrowserHooks } from './scripts/presets
 import { registerKeybinds, registerSettings } from './scripts/settings.js';
 import { BrushMenu, activateBrush, deactivateBush, openBrushMenu } from './scripts/brush.js';
 import { V12Migrator } from './scripts/presets/migration.js';
-import { deleteFromClipboard, performMassSearch, performMassUpdate } from './applications/formUtils.js';
+import { performMassSearch, performMassUpdate } from './applications/formUtils.js';
 import { importSceneCompendium, registerSideBarPresetDropListener } from './scripts/presets/utils.js';
 import { LinkerAPI, registerLinkerHooks } from './scripts/linker/linker.js';
 import { MODULE_ID, PIVOTS } from './scripts/constants.js';
@@ -69,6 +69,7 @@ class App2Test extends foundry.applications.api.HandlebarsApplicationMixin(found
     actions: {
       action1: App2Test.onAction1,
       action2: App2Test.onAction2,
+      action3: App2Test._onAction3,
     },
   };
 
@@ -112,6 +113,14 @@ class App2Test extends foundry.applications.api.HandlebarsApplicationMixin(found
       buttons: [{ type: 'submit', icon: 'fa-solid fa-floppy-disk', label: `Submit` }],
     });
   }
+
+  _onClickAction(event, target) {
+    console.log(event, target);
+  }
+
+  static _onAction3() {
+    console.log('action3');
+  }
 }
 
 // Initialize module
@@ -131,7 +140,6 @@ Hooks.once('init', () => {
   // Linker related hooks
   registerLinkerHooks();
 
-  // TODO: Replace with core v12 implementation of tag HTML element
   TagInput.registerHandlebarsHelper();
 
   // Partials used for Preset rendering

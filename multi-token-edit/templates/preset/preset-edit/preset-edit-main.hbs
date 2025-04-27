@@ -11,9 +11,6 @@
         <label>{{localize "COMBAT.CombatantImage"}}</label>
         <div class="form-fields">
             <file-picker name="img" type="imagevideo" value="{{preset.img}}"></file-picker>
-            {{#if tva}} 
-            <button  class="token-variants-image-select-button" type="button" data-type="imagevideo" data-target="img"><i class="fas fa-images"></i></button>
-            {{/if}}
         </div>
     </div>
 
@@ -23,7 +20,7 @@
         <div class="form-group">
             <label>{{localize "SIDEBAR.Edit"}} [{{documentEdit}}]</label>
             <div class="form-fields">
-                <button  class="edit-document" type="button"><i class="fa-solid fa-gear"></i></button>
+                <button  data-action="editDocument" type="button"><i class="fa-solid fa-gear"></i></button>
             </div>
             <p class="hint">{{localize "MassEdit.presets.data-edit" document=documentEdit}}</p>
         </div>
@@ -31,7 +28,7 @@
         <div class="form-group {{#if modifyDisabled}}disabled{{/if}}">
             <label>{{localize "MassEdit.presets.delete-fields"}}</label>
             <div class="form-fields">
-                <button  class="delete-fields" type="button" {{#if modifyDisabled}}disabled{{/if}}><i class="fas fa-tasks"></i></button>
+                <button  data-action="deleteFields" type="button" {{#if modifyDisabled}}disabled{{/if}}><i class="fas fa-tasks"></i></button>
             </div>
             <p class="hint">{{localize "MassEdit.presets.select-delete"}}</p>
         </div>
@@ -40,7 +37,7 @@
         <div class="form-group">
             <label>Assign [{{documentEdit}}]</label>
             <div class="form-fields">
-                <button  class="assign-document" type="button"><i class="fa-solid fa-arrow-right-to-arc"></i></button>
+                <button  data-action="assignDocument" type="button"><i class="fa-solid fa-arrow-right-to-arc"></i></button>
             </div>
             <p class="hint">{{localize "MassEdit.presets.data-assign" document=documentEdit}}</p>
         </div>
