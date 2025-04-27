@@ -1,3 +1,9 @@
+# 1.88.0
+
+- Added `Search Result Limit` setting to the preset browser
+  - Limits the number of search results displayed during searches
+- Fixed Category Browser's `disableDelete` option not working
+
 # 1.87.3
 
 - Improved scene import macro/api

@@ -158,12 +158,14 @@ export function registerSettings() {
       documentLock: '',
       dropdownDocuments: ['MeasuredTemplate', 'Note', 'Region'],
       autoSaveFolders: [],
+      searchLimit: 1001,
     },
     onChange: (val) => {
       PresetBrowser.CONFIG = val;
     },
   });
   PresetBrowser.CONFIG = game.settings.get(MODULE_ID, 'presetBrowser');
+  if (!PresetBrowser.CONFIG.searchLimit) PresetBrowser.CONFIG.searchLimit = 1001;
 
   // end of Preset Settings
   // ======================

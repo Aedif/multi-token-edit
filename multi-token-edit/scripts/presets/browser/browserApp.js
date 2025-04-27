@@ -368,29 +368,6 @@ export class PresetBrowser extends PresetContainer {
     if (selected.length) copyToClipboard(selected[0]);
   }
 
-  async _onDeleteSelectedPresets(item) {
-    const [selected, items] = await this._getSelectedPresets({
-      editableOnly: true,
-      full: false,
-    });
-    if (selected.length) {
-      const confirm =
-        selected.length === 0
-          ? true
-          : await Dialog.confirm({
-              title: `${localize('common.delete')} [ ${selected.length} ]`,
-              content: `<p>${localize('AreYouSure', false)}</p><p>${localFormat('presets.delete-presets-warn', {
-                count: selected.length,
-              })}</p>`,
-            });
-
-      if (confirm) {
-        await PresetCollection.delete(selected);
-        items.remove();
-      }
-    }
-  }
-
   async _onCreateFolder(event) {
     const types = [];
     if (SUPPORTED_PLACEABLES.includes(this.documentName)) {
@@ -518,9 +495,9 @@ export class PresetBrowser extends PresetContainer {
     if (event) $(event.target).addClass('active');
 
     this._searchFoundPresets = [];
+    this.tree.presets.forEach((p) => this._searchPreset(p, search, negativeSearch));
     this.tree.folders.forEach((f) => this._searchFolder(f, search, negativeSearch));
     this.tree.extFolders.forEach((f) => this._searchFolder(f, search, negativeSearch));
-    this.tree.presets.forEach((p) => this._searchPreset(p, search, negativeSearch));
 
     if (render) this._renderContent();
   }
@@ -552,7 +529,7 @@ export class PresetBrowser extends PresetContainer {
 
     let matched = true;
 
-    if (this._searchFoundPresets.length > SEARCH_FOUND_MAX_COUNT) matched = false;
+    if (this._searchFoundPresets.length > PresetBrowser.CONFIG.searchLimit) matched = false;
     else matched = matchPreset(preset, search, negativeSearch);
 
     if (matched) {
