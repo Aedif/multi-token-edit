@@ -20,6 +20,7 @@ export async function openCategoryBrowser(
     globalSearch = false,
     globalQuery = '',
     editEnabled = false,
+    disableDelete = true,
     width,
     height,
   } = {}
@@ -39,6 +40,7 @@ export async function openCategoryBrowser(
     globalSearch,
     globalQuery,
     editEnabled,
+    disableDelete,
     width,
     height,
   }).render(true);
@@ -96,7 +98,7 @@ class CategoryBrowserApplication extends PresetContainer {
   constructor(menu, options = {}) {
     const id = options.name ?? foundry.utils.randomID();
     let positionOpts = CategoryBrowserApplication.previousPositions[id] ?? {};
-    super({}, { ...options, disableDelete: true, ...positionOpts });
+    super({}, { ...options, ...positionOpts });
     this._browserId = id;
 
     // If the state of the window was set to be retained we retrieve it now
@@ -452,6 +454,7 @@ const options = {
   globalSearch: ${options.globalSearch},
   globalQuery: "${options.globalQuery}",
   editEnabled: ${options.editEnabled},
+  disableDelete: ${options.disableDelete}
 };
 
 const menu = ${JSON.stringify(this._menuToJson(this._menus[0]), null, 2)};

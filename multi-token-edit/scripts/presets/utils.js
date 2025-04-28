@@ -640,20 +640,16 @@ export function matchPreset(preset, search, negativeSearch) {
   return match;
 }
 
-export async function importSceneCompendium(pack) {
-  const compendium = game.packs.get(pack) ?? game.packs.getName(pack);
-  if (!compendium) throw Error('Invalid pack: ' + pack);
+export async function importSceneCompendium(scenePack, presetPack) {
+  const compendium = game.packs.get(scenePack) ?? game.packs.getName(scenePack);
+  if (!compendium) throw Error('Invalid scene pack: ' + pack);
   if (compendium.documentName !== 'Scene') throw Error('Pack provided is not a Scene compendium: ' + pack);
 
   const presets = [];
 
-  const workingPackTree = await PresetCollection.getTree('SceneP', {
-    externalCompendiums: false,
-    virtualDirectory: false,
-    setFormVisibility: false,
-  });
   // const index = workingPackTree.metaDoc?.flags[MODULE_ID].index;
-  const packIndex = workingPackTree.pack.index;
+  const packIndex = (game.packs.get(presetPack) ?? game.packs.getName(presetPack))?.index;
+  if (!packIndex) throw Error('Invalid preset pack: ' + presetPack);
 
   let alreadyImportedCount = 0;
   let nameUpdatedCount = 0;
@@ -686,7 +682,7 @@ export async function importSceneCompendium(pack) {
     }
   }
 
-  await PresetCollection.set(presets);
+  await PresetCollection.set(presets, presetPack);
 
   ui.notifications.info(`Imported scenes: ${presets.length}/${alreadyImportedCount + presets.length}`);
   if (nameUpdatedCount) {

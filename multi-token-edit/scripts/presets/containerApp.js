@@ -3,7 +3,7 @@ import { getMassEditForm } from '../../applications/multiConfig.js';
 import { BrushMenu } from '../brush.js';
 import { MODULE_ID, PIVOTS, SUPPORTED_PLACEABLES } from '../constants.js';
 import { Scenescape } from '../scenescape/scenescape.js';
-import { applyPresetToScene, isAudio, localize, spawnSceneAsPreset } from '../utils.js';
+import { applyPresetToScene, isAudio, localFormat, localize, spawnSceneAsPreset } from '../utils.js';
 import { PresetAPI, PresetCollection, PresetFolder, PresetPackFolder, VirtualFileFolder } from './collection.js';
 import { PresetConfig } from './editApp.js';
 import { PresetBrowser } from './browser/browserApp.js';
@@ -899,7 +899,27 @@ export class PresetContainer extends FormApplication {
   }
 
   async _onDeleteSelectedPresets(item) {
-    throw new Error('A subclass of the PresetContainer must implement the _onDeleteSelectedPresets method.');
+    const [selected, items] = await this._getSelectedPresets({
+      editableOnly: true,
+      full: false,
+    });
+
+    if (selected.length) {
+      const confirm =
+        selected.length === 0
+          ? true
+          : await Dialog.confirm({
+              title: `${localize('common.delete')} [ ${selected.length} ]`,
+              content: `<p>${localize('AreYouSure', false)}</p><p>${localFormat('presets.delete-presets-warn', {
+                count: selected.length,
+              })}</p>`,
+            });
+
+      if (confirm) {
+        await PresetCollection.delete(selected);
+        items.remove();
+      }
+    }
   }
 
   async _onOpenBag(uuid) {

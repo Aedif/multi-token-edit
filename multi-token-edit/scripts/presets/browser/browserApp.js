@@ -15,7 +15,6 @@ import { TagSelector } from '../tagSelector.js';
 import PresetBrowserSettings from './settingsApp.js';
 
 const SEARCH_MIN_CHAR = 2;
-const SEARCH_FOUND_MAX_COUNT = 1001;
 
 // const FLAG_DATA = {
 //   documentName: null,
@@ -368,29 +367,6 @@ export class PresetBrowser extends PresetContainer {
     if (selected.length) copyToClipboard(selected[0]);
   }
 
-  async _onDeleteSelectedPresets(item) {
-    const [selected, items] = await this._getSelectedPresets({
-      editableOnly: true,
-      full: false,
-    });
-    if (selected.length) {
-      const confirm =
-        selected.length === 0
-          ? true
-          : await Dialog.confirm({
-              title: `${localize('common.delete')} [ ${selected.length} ]`,
-              content: `<p>${localize('AreYouSure', false)}</p><p>${localFormat('presets.delete-presets-warn', {
-                count: selected.length,
-              })}</p>`,
-            });
-
-      if (confirm) {
-        await PresetCollection.delete(selected);
-        items.remove();
-      }
-    }
-  }
-
   async _onCreateFolder(event) {
     const types = [];
     if (SUPPORTED_PLACEABLES.includes(this.documentName)) {
@@ -519,8 +495,8 @@ export class PresetBrowser extends PresetContainer {
 
     this._searchFoundPresets = [];
     this.tree.folders.forEach((f) => this._searchFolder(f, search, negativeSearch));
-    this.tree.extFolders.forEach((f) => this._searchFolder(f, search, negativeSearch));
     this.tree.presets.forEach((p) => this._searchPreset(p, search, negativeSearch));
+    this.tree.extFolders.forEach((f) => this._searchFolder(f, search, negativeSearch));
 
     if (render) this._renderContent();
   }
@@ -552,7 +528,7 @@ export class PresetBrowser extends PresetContainer {
 
     let matched = true;
 
-    if (this._searchFoundPresets.length > SEARCH_FOUND_MAX_COUNT) matched = false;
+    if (this._searchFoundPresets.length > PresetBrowser.CONFIG.searchLimit) matched = false;
     else matched = matchPreset(preset, search, negativeSearch);
 
     if (matched) {
@@ -1286,7 +1262,7 @@ export function registerPresetBrowserHooks() {
     presetControl.on('contextmenu', async () => {
       const macroUuid =
         game.settings.get(MODULE_ID, 'browserContextMacroUuid') ||
-        'Compendium.baileywiki-nuts-and-bolts.macros.Macro.Ds6je9mUwVkEnb9f';
+        'Compendium.baileywiki-nuts-and-bolts.macros.Macro.gjVoFJiIoKerEcB2';
       const macro = await fromUuid(macroUuid);
       macro?.execute();
     });

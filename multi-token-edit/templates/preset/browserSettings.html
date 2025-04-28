@@ -6,7 +6,14 @@
             <input type="checkbox" name="persistentSearch" {{checked persistentSearch}}/>
         </div>
         <p class="notes">Search field will be retained after window closure and category changes.</p>
+    </div>
 
+    <div class="form-group">
+        <label>Search Result Limit</label>
+        <div class="form-fields">
+            <input type="number" name="searchLimit" value="{{searchLimit}}" min="100", max="999999999"/>
+        </div>
+        <p class="notes">Limit number of results displayed during searches.</p>
     </div>
 
     <div class="form-group">
