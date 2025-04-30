@@ -5,13 +5,12 @@ import { MODULE_ID, PIVOTS, SUPPORTED_PLACEABLES } from '../constants.js';
 import { Scenescape } from '../scenescape/scenescape.js';
 import { applyPresetToScene, isAudio, localFormat, localize, spawnSceneAsPreset } from '../utils.js';
 import { PresetAPI, PresetCollection, PresetFolder, PresetPackFolder, VirtualFileFolder } from './collection.js';
-import { PresetConfig } from './editApp.js';
 import { PresetBrowser } from './browser/browserApp.js';
 import { Preset } from './preset.js';
 import { Spawner } from './spawner.js';
 import { exportPresets, FolderState, isVideo, sceneNotFoundError } from './utils.js';
 import { FileIndexer, IndexerForm } from './fileIndexer.js';
-import { PresetConfigV2 } from './editAppv2.js';
+import { PresetConfig } from './editApp.js';
 
 export async function registerPresetHandlebarPartials() {
   await foundry.applications.handlebars.getTemplate(
@@ -690,15 +689,11 @@ export class PresetContainer extends FormApplication {
   _editPresets(presets, options = {}, event) {
     options.callback = () => this.render(true);
     if (!('left' in options) && event) {
-      options.left = event.originalEvent.x - PresetConfig.defaultOptions.width / 2;
+      options.left = event.originalEvent.x - PresetConfig.DEFAULT_OPTIONS.position.width / 2;
       options.top = event.originalEvent.y;
     }
 
-    console.log('HERE......');
-
-    new PresetConfigV2(presets, options).render(true);
-
-    //new PresetConfig(presets, options).render(true);
+    new PresetConfig(presets, options).render(true);
   }
 
   async _playPreview(event) {

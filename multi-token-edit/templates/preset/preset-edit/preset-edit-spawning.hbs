@@ -8,21 +8,22 @@
             {{#if attached}}
             <div style="max-height: 40px; overflow-y: auto;">
                 {{#each attached}}
-                <a class="attached" data-index="{{@index}}"><i class="{{icon}}" data-tooltip="{{tooltip}}"></i></a>
+                <a class="attached" data-index="{{@index}}" data-action="attachedRemove"><i class="{{icon}}" data-tooltip="{{tooltip}}"></i></a>
                 {{/each}}
             </div>
             {{else}}
             <div style="border: 2px dashed; text-align: center; color: orangered; padding: 2px;">{{localize "MassEdit.presets.drag-placeable"}}</div>
             {{/if}}
-            <button class="attach-selected" type="button" data-tooltip="Attach Selected Placeables"><i class="fas fa-plus-square"></i></button>
+            <button data-action="attachSelected" type="button" data-tooltip="Attach Selected Placeables"><i class="fas fa-plus-square"></i></button>
         </div>
         <p class="hint">{{localize "MassEdit.presets.drag-placeable-hint"}}</p>
     </div>
 
-    <div class="form-group {{#if modifyDisabled}}disabled{{/if}}">
+
+    <div class="form-group">
         <label>{{localize "MassEdit.common.modify"}}</label>
         <div class="form-fields">
-            <button  class="spawn-fields" type="button" {{#if modifyDisabled}}disabled{{/if}}><i class="fas fa-tasks"></i></button>
+            <button data-action="fieldModify" type="button"><i class="fas fa-tasks"></i></button>
         </div>
         <p class="hint">{{localize "MassEdit.presets.select-modify"}}</p>
     </div>

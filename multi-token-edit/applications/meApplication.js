@@ -1023,7 +1023,7 @@ export const WithMassEditFormApplicationV2 = (cls) => {
 
     _getSubmitData() {
       const form = this.element;
-      const formData = new FormDataExtended(form);
+      const formData = new foundry.applications.ux.FormDataExtended(form);
       const submitData = this._prepareSubmitData(null, form, formData);
       return submitData;
     }

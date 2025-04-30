@@ -652,6 +652,23 @@ export class TagInput {
   }
 }
 
+export class DragHoverOverlay {
+  static attachListeners(html, { condition = null, hoverOutCallback = null } = {}) {
+    const overlay = $(html);
+
+    overlay
+      .closest('.window-content')
+      .on('mouseover', () => {
+        if (condition?.()) overlay.show();
+        else overlay.hide();
+      })
+      .on('mouseout', () => {
+        overlay.hide();
+        hoverOutCallback?.();
+      });
+  }
+}
+
 /**
  * Activates Picker allowing drag selection of document across all placeables layers
  * @returns {Array[CanvasDocumentMixin]}

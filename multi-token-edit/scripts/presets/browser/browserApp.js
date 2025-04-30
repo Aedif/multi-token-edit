@@ -3,16 +3,16 @@ import { copyToClipboard } from '../../../applications/formUtils.js';
 import { countFolderItems, trackProgress } from '../../../applications/progressDialog.js';
 import { importPresetFromJSONDialog } from '../../dialogs.js';
 import { SortingHelpersFixed } from '../../fixedSort.js';
-import { localFormat, localize, spawnSceneAsPreset } from '../../utils.js';
+import { DragHoverOverlay, localFormat, localize, spawnSceneAsPreset } from '../../utils.js';
 import { META_INDEX_ID, PresetAPI, PresetCollection, PresetPackFolder } from '../collection.js';
 import { LinkerAPI } from '../../linker/linker.js';
 import { DOC_ICONS, Preset } from '../preset.js';
 import { exportPresets, FolderState, matchPreset, parseSearchQuery, placeableToData } from '../utils.js';
 import { MODULE_ID, SUPPORTED_PLACEABLES, UI_DOCS } from '../../constants.js';
 import { PresetContainer } from '../containerApp.js';
-import { PresetConfig } from '../editApp.js';
 import { TagSelector } from '../tagSelector.js';
 import PresetBrowserSettings from './settingsApp.js';
+import { PresetConfig } from '../editApp.js';
 
 const SEARCH_MIN_CHAR = 2;
 
@@ -167,22 +167,15 @@ export class PresetBrowser extends PresetContainer {
   activateListeners(html) {
     super.activateListeners(html);
 
-    const hoverOverlay = html.closest('.window-content').find('.drag-drop-overlay');
-    html
-      .closest('.window-content')
-      .on('mouseover', (event) => {
-        if (canvas.activeLayer?.preview?.children.some((c) => c._original?.mouseInteractionManager?.isDragging)) {
-          hoverOverlay.show();
-          PresetBrowser.objectHover = true;
-        } else {
-          hoverOverlay.hide();
-          PresetBrowser.objectHover = false;
-        }
-      })
-      .on('mouseout', () => {
-        hoverOverlay.hide();
-        PresetBrowser.objectHover = false;
-      });
+    DragHoverOverlay.attachListeners(html.closest('.window-content').find('.drag-hover-overlay'), {
+      condition: () => {
+        PresetBrowser.objectHover = canvas.activeLayer?.preview?.children.some(
+          (c) => c._original?.mouseInteractionManager?.isDragging
+        );
+        return PresetBrowser.objectHover;
+      },
+      hoverOutCallback: () => (PresetBrowser.objectHover = false),
+    });
 
     // Create Preset from Selected
     html.find('.create-preset').on('click', () => {
@@ -1033,7 +1026,7 @@ class PresetFolderConfig extends foundry.applications.sheets.FolderConfig {
   /** @override */
   get title() {
     if (this.document.id) return `${localize('FOLDER.Update', false)}: ${this.document.name}`;
-    return localize('FOLDER.Create', false);
+    return localize('SIDEBAR.ACTIONS.CREATE.Folder', false);
   }
 
   /** @override */
@@ -1061,7 +1054,7 @@ class PresetFolderConfig extends foundry.applications.sheets.FolderConfig {
     const context = await super._prepareContext(options);
     const folder = context.document;
     context.namePlaceholder = folder.constructor.defaultName({ pack: folder.pack });
-    const submitText = localize(folder._id ? 'FOLDER.Update' : 'FOLDER.Create', false);
+    const submitText = localize(folder._id ? 'FOLDER.Update' : 'SIDEBAR.ACTIONS.CREATE.Folder', false);
     context.buttons = [{ type: 'submit', icon: 'fa-solid fa-floppy-disk', label: submitText }];
 
     let folderDocs = folder.flags[MODULE_ID]?.types ?? ['ALL'];
@@ -1107,6 +1100,7 @@ class PresetFolderConfig extends foundry.applications.sheets.FolderConfig {
       submitData[`flags.${MODULE_ID}.types`] = visibleTypes;
     }
 
+    let document = this.document;
     if (this.options.folder instanceof PresetPackFolder) {
       // This is a virtual folder used to store Compendium contents,
       // update using the provided interface
@@ -1120,14 +1114,14 @@ class PresetFolderConfig extends foundry.applications.sheets.FolderConfig {
     } else {
       // This is a real folder, update/create it
       if (!submitData.name?.trim()) submitData.name = Folder.implementation.defaultName();
-      if (this.document.id) await this.document.update(submitData);
+      if (document.id) await document.update(submitData);
       else {
-        this.document.updateSource(submitData);
-        this.document = await Folder.create(this.document, { pack: this.document.pack });
+        document.updateSource(submitData);
+        document = await Folder.create(document, { pack: document.pack });
       }
     }
 
-    this.options.resolve?.(this.document);
+    this.options.resolve?.(document);
   }
 }
 
@@ -1206,15 +1200,16 @@ export function registerPresetBrowserHooks() {
   const dragDropHandler = function (wrapped, ...args) {
     if (PresetBrowser.objectHover || PresetConfig.objectHover) {
       this.mouseInteractionManager.cancel(...args);
-      const app = Object.values(ui.windows).find(
-        (x) =>
-          (PresetBrowser.objectHover && x instanceof PresetBrowser) ||
-          (PresetConfig.objectHover && x instanceof PresetConfig)
-      );
+      let app;
+
+      if (PresetBrowser.objectHover) app = Object.values(ui.windows).find((x) => x instanceof PresetBrowser);
+      else if (PresetConfig.objectHover) app = foundry.applications.instances.get('mass-edit-preset-edit');
+
       if (app) {
         const placeables = canvas.activeLayer.controlled.length ? [...canvas.activeLayer.controlled] : [this];
         app.dropPlaceable(placeables, ...args);
       }
+
       // Pass in a fake event that hopefully is enough to allow other modules to function
       this._onDragLeftCancel(...args);
     } else {
