@@ -425,9 +425,9 @@ export class PresetConfig extends foundry.applications.api.HandlebarsApplication
   }
 }
 
-class PresetFieldSelect extends FormApplication {
-  static name = 'PresetFieldSelect';
-
+class PresetFieldSelect extends foundry.applications.api.HandlebarsApplicationMixin(
+  foundry.applications.api.ApplicationV2
+) {
   constructor(data, callback) {
     super();
     this.presetData = data;
@@ -435,29 +435,31 @@ class PresetFieldSelect extends FormApplication {
     this.callback = callback;
   }
 
-  /** @inheritdoc */
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      classes: ['sheet', 'preset-field-select', 'mass-edit-dark-window', 'mass-edit-window-fill'],
-      template: `modules/${MODULE_ID}/templates/preset/presetFieldSelect.html`,
+  /** @override */
+  static DEFAULT_OPTIONS = {
+    classes: ['preset-field-select', 'mass-edit-window-fill'],
+    tag: 'form',
+    actions: {
+      fieldSelect: PresetFieldSelect._onFieldSelect,
+    },
+    position: {
       width: 600,
-      resizable: false,
-    });
-  }
-
-  /* -------------------------------------------- */
-
-  activateListeners(html) {
-    super.activateListeners(html);
-    html.find('.item').on('click', this._onFieldClick);
-  }
-
-  _onFieldClick(e) {
-    itemSelect(e, $(e.target).closest('.preset-field-list'));
-  }
+    },
+    window: {
+      contentClasses: ['standard-form'],
+    },
+  };
 
   /** @override */
-  async getData(options = {}) {
+  static PARTS = {
+    main: { template: `modules/${MODULE_ID}/templates/preset/presetFieldSelect.hbs` },
+    footer: { template: 'templates/generic/form-footer.hbs' },
+  };
+
+  /** @override */
+  async _prepareContext(options) {
+    const context = await super._prepareContext(options);
+
     let data = foundry.utils.flattenObject(this.presetData);
 
     const singleData = !this.isObject && this.presetData.length === 1;
@@ -486,7 +488,13 @@ class PresetFieldSelect extends FormApplication {
       fields.push({ name: k, label, value, selected: false });
     }
 
-    return { fields };
+    context.fields = fields;
+
+    return context;
+  }
+
+  static _onFieldSelect(event) {
+    itemSelect(event, $(event.target).closest('.preset-field-list'));
   }
 }
 
@@ -498,6 +506,15 @@ class PresetFieldModify extends PresetFieldSelect {
     this.modifyOnSpawn = modifyOnSpawn ?? [];
   }
 
+  /** @override */
+  static DEFAULT_OPTIONS = {
+    id: 'preset-field-modify',
+    form: {
+      handler: PresetFieldModify._onSubmit,
+      closeOnSubmit: true,
+    },
+  };
+
   /* -------------------------------------------- */
 
   /** @override */
@@ -506,37 +523,48 @@ class PresetFieldModify extends PresetFieldSelect {
   }
 
   /** @override */
-  async getData(options = {}) {
-    const data = await super.getData(options);
-    data.button = {
-      icon: '<i class="fas fa-check"></i>',
-      text: localize('CONTROLS.CommonSelect', false),
-    };
-    for (const field of data.fields) {
+  async _prepareContext(options) {
+    const context = await super._prepareContext(options);
+
+    context.buttons = [
+      {
+        type: 'submit',
+        icon: 'fas fa-check',
+        label: 'CONTROLS.CommonSelect',
+      },
+    ];
+
+    for (const field of context.fields) {
       if (this.modifyOnSpawn.includes(field.name)) field.selected = true;
     }
-    return data;
+
+    return context;
   }
 
   /* -------------------------------------------- */
 
-  /** @override */
-  async _updateObject(event, formData) {
-    const form = $(event.target).closest('form');
+  static _onSubmit(event, form, formData) {
     const modifyOnSpawn = [];
-    form.find('.item.selected').each(function () {
-      let name = $(this).attr('name');
-      modifyOnSpawn.push(name);
-    });
+    $(form)
+      .find('.item.selected')
+      .each(function () {
+        let name = $(this).attr('name');
+        modifyOnSpawn.push(name);
+      });
 
     this.callback(modifyOnSpawn);
   }
 }
 
 class PresetFieldDelete extends PresetFieldSelect {
-  static name = 'PresetFieldDelete';
-
-  /* -------------------------------------------- */
+  /** @override */
+  static DEFAULT_OPTIONS = {
+    id: 'preset-field-delete',
+    form: {
+      handler: PresetFieldDelete._onSubmit,
+      closeOnSubmit: true,
+    },
+  };
 
   /** @override */
   get title() {
@@ -544,26 +572,31 @@ class PresetFieldDelete extends PresetFieldSelect {
   }
 
   /** @override */
-  async getData(options = {}) {
-    const data = await super.getData(options);
-    data.button = {
-      icon: '<i class="fas fa-trash"></i>',
-      text: localize('common.delete'),
-    };
-    return data;
+  async _prepareContext(options) {
+    const context = await super._prepareContext(options);
+
+    context.buttons = [
+      {
+        type: 'submit',
+        icon: 'fas fa-trash',
+        label: localize('common.delete'),
+      },
+    ];
+
+    return context;
   }
 
   /* -------------------------------------------- */
 
-  /** @override */
-  async _updateObject(event, formData) {
+  static _onSubmit(event, form, formData) {
     let data = foundry.utils.flattenObject(this.presetData);
 
-    const form = $(event.target).closest('form');
-    form.find('.item.selected').each(function () {
-      const name = $(this).attr('name');
-      delete data[name];
-    });
+    $(form)
+      .find('.item.selected')
+      .each(function () {
+        const name = $(this).attr('name');
+        delete data[name];
+      });
     data = foundry.utils.expandObject(data);
 
     if (!this.isObject) {

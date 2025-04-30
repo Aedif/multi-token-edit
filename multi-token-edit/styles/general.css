@@ -520,6 +520,7 @@ input.me-subtract {
   text-align: center;
   background: rgba(0, 0, 0, 0.5);
   line-height: 31px;
+  border: 1px solid antiquewhite;
 }
 
 #mass-edit-preset-edit .form-group.disabled {
