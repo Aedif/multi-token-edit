@@ -1,5 +1,4 @@
 import { FILE_EXTENSIONS, IMAGE_EXTENSIONS, MODEL_EXTENSIONS, MODULE_ID } from '../constants.js';
-import { TagInput } from '../utils.js';
 import { PresetTree, VirtualFileFolder } from './collection.js';
 import { VirtualFilePreset } from './preset.js';
 import { encodeURIComponentSafely, readJSONFile } from './utils.js';
@@ -427,7 +426,7 @@ export class FileIndexer {
 
     if (opts.tags) {
       tags = opts.tags
-        .map((t) => TagInput.simplifyString(t))
+        .map((t) => t.slugify({ strict: true }))
         .filter(Boolean)
         .concat(tags);
     }
@@ -465,7 +464,7 @@ export class FileIndexer {
         const author = await this._getAuthorFromModule(path);
         if (author) {
           folder.subtext = opts.subtext ?? author;
-          const tag = TagInput.simplifyString(author.split(/[ ,\-_@]+/)[0] ?? '');
+          const tag = (author.split(/[ ,\-_@]+/)[0] ?? '').slugify({ strict: true });
           if (tag && tag.length >= 3) {
             tags = [...tags, tag];
             folder.files.forEach((f) => {

@@ -16,7 +16,7 @@ import { openPresetBrowser, PresetBrowser } from './presets/browser/browserApp.j
 import { Preset } from './presets/preset.js';
 import { Scenescape } from './scenescape/scenescape.js';
 import { enablePixelPerfectSelect } from './tools/selectTool.js';
-import { activeEffectPresetSelect, getDocumentName, localize, TagInput } from './utils.js';
+import { activeEffectPresetSelect, getDocumentName, localize } from './utils.js';
 import { editPreviewPlaceables, TransformBus } from './transformer.js';
 
 export function registerSettings() {

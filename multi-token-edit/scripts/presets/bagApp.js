@@ -1,6 +1,5 @@
 import { BrushMenu } from '../brush.js';
 import { MODULE_ID } from '../constants.js';
-import { TagInput } from '../utils.js';
 import { PresetAPI } from './collection.js';
 import { PresetContainer } from './containerApp.js';
 import { Preset } from './preset.js';
@@ -12,7 +11,7 @@ export async function openBag(uuid) {
   // This is to support the conversion of the old bag system to the new preset based bag system
   // 11/12/24
   if (!journal) {
-    journal = await PresetAPI.getPreset({ tags: [`id-${TagInput.simplifyString(uuid)}`] });
+    journal = await PresetAPI.getPreset({ tags: [`id-${uuid.slugify({ strict: true })}`] });
 
     if (!journal) {
       ui.notifications.warn(`Bag not found: ` + uuid);

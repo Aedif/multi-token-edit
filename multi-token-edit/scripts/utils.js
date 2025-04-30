@@ -549,11 +549,11 @@ export class SeededRandom {
   }
 }
 
+/**
+ * TODO:
+ * Is currently used just for the Brush TMFX field. Explore replacing it with foundry's StringTag input
+ */
 export class TagInput {
-  static simplifyString(str) {
-    return str.replace(/[^0-9a-zA-Z_\- ]/gi, '').toLowerCase();
-  }
-
   static registerHandlebarsHelper() {
     Handlebars.registerHelper('tagInput', (options) => {
       const name = options.hash.name;
@@ -612,7 +612,7 @@ export class TagInput {
         .split(',')
         .map((t) => {
           t = t.trim();
-          if (simplifyTags) t = this.simplifyString(t);
+          if (simplifyTags) t = t.slugify({ strict: true });
           return t;
         })
         .filter(Boolean);
