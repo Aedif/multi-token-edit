@@ -41,45 +41,57 @@ export function showPlaceableTypeSelectDialog() {
   }).render(true);
 }
 
+/**
+ * Opens a dialog allowing JSON file upload
+ * @returns Array of Presets as JSON
+ */
 export async function importPresetFromJSONDialog() {
-  const content = `
+  const html = `
   <div class="form-group">
       <label for="data">${localize('FILES.SelectFile', false)} </label>
       <input type="file" name="data">
   </div>
   `;
 
-  let dialog = new Promise((resolve, reject) => {
-    new Dialog(
+  const content = document.createElement('div');
+  content.innerHTML = html;
+
+  let file;
+
+  await foundry.applications.api.DialogV2.wait({
+    window: { title: localize('presets.import') },
+    content: await foundry.applications.handlebars.renderTemplate('templates/apps/import-data.hbs', {
+      hint1: 'You may import Preset data from an exported JSON file.',
+      hint2: 'Newly created presets will be added to the current working compendium.',
+    }),
+    position: { width: 400 },
+    buttons: [
       {
-        title: localize('presets.import'),
-        content: content,
-        buttons: {
-          import: {
-            icon: '<i class="fas fa-file-import"></i>',
-            label: localize('common.import'),
-            callback: async (html) => {
-              let presets;
-              readTextFromFile(html.find('[name="data"]')[0].files[0]).then((json) => {
-                try {
-                  presets = JSON.parse(json);
-                } catch (e) {}
-                resolve(presets);
-              });
-            },
-          },
-          no: {
-            icon: '<i class="fas fa-times"></i>',
-            label: localize('Cancel', false),
-            callback: () => resolve(false),
-          },
+        action: 'import',
+        label: 'Import',
+        icon: 'fa-solid fa-file-import',
+        callback: (event, button) => {
+          const form = button.form;
+          if (!form.data.files.length) {
+            return ui.notifications.error('DOCUMENT.ImportDataError', { localize: true });
+          }
+          file = form.data.files[0];
         },
-        default: 'no',
       },
       {
-        width: 400,
-      }
-    ).render(true);
+        action: 'cancel',
+        label: 'Cancel',
+      },
+    ],
   });
-  return await dialog;
+
+  if (!file) return null;
+  let text = await foundry.utils.readTextFromFile(file);
+
+  let presets;
+  try {
+    presets = JSON.parse(text);
+  } catch (e) {}
+
+  return presets;
 }
