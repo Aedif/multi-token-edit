@@ -294,7 +294,7 @@ export class Preset {
       if (metaDoc) {
         if (batch) Preset.batchUpdate(metaDoc, { flags: { [MODULE_ID]: { index: { [this.id]: update } } } });
         else await metaDoc.setFlag(MODULE_ID, 'index', { [this.id]: update });
-        delete PresetTree._packTrees[pack.metadata.name];
+        delete PresetTree._packTrees[pack.metadata.id];
       } else {
         console.warn(`META INDEX missing in ${this.document.pack}`);
         return;

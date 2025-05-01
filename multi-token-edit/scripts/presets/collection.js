@@ -130,7 +130,7 @@ export class PresetCollection {
     if (!foundry.utils.isEmpty(update)) {
       if (CONFIG.debug.MassEdit) console.log('Mass Edit - Index Cleanup', update);
       metaDoc.setFlag(MODULE_ID, 'index', update);
-      delete PresetTree._packTrees[pack.metadata.name];
+      delete PresetTree._packTrees[pack.metadata.id];
     }
   }
 
@@ -185,7 +185,7 @@ export class PresetCollection {
     });
 
     await metaDoc.setFlag(MODULE_ID, 'index', { [preset.id]: update });
-    delete PresetTree._packTrees[compendium.metadata.name];
+    delete PresetTree._packTrees[compendium.metadata.id];
   }
 
   /**
@@ -371,7 +371,7 @@ export class PresetCollection {
       opts.ids = deleteIds; // v12 fix
       await JournalEntry.deleteDocuments(deleteIds, opts);
       await metaDoc.setFlag(MODULE_ID, 'index', metaUpdate);
-      delete PresetTree._packTrees[compendium.metadata.name];
+      delete PresetTree._packTrees[compendium.metadata.id];
     }
   }
 
@@ -434,7 +434,7 @@ export class PresetCollection {
       metaDoc.setFlag(MODULE_ID, 'index', metaUpdate);
     }
 
-    delete PresetTree._packTrees[folderDoc.compendium.metadata.name];
+    delete PresetTree._packTrees[folderDoc.compendium.metadata.id];
     return await folderDoc.delete({ deleteSubfolders: deleteAll, deleteContents: deleteAll });
   }
 
@@ -904,8 +904,8 @@ export class PresetTree {
     if (CONFIG.debug.MassEdit) console.time(pack.title);
 
     // Re-use tree if already parsed
-    if (!forceLoad && PresetTree._packTrees[pack.metadata.name]) {
-      const tree = PresetTree._packTrees[pack.metadata.name];
+    if (!forceLoad && PresetTree._packTrees[pack.metadata.id]) {
+      const tree = PresetTree._packTrees[pack.metadata.id];
       if (setFormVisibility) tree.setVisibility(type);
       if (CONFIG.debug.MassEdit) console.timeEnd(pack.title);
       return tree;
@@ -1005,7 +1005,8 @@ export class PresetTree {
     });
 
     if (setFormVisibility) tree.setVisibility(type);
-    PresetTree._packTrees[pack.metadata.name] = tree;
+
+    PresetTree._packTrees[pack.metadata.id] = tree;
 
     return tree;
   }

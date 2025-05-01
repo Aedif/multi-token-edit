@@ -143,7 +143,7 @@ export class V12Migrator {
       ui.notifications.notify('Mass Edit - Migrated ' + updates.length + ' presets within "' + pack.metadata.label);
 
       setTimeout(() => {
-        delete PresetTree._packTrees[pack.metadata.name];
+        delete PresetTree._packTrees[pack.metadata.id];
         Object.values(ui.windows)
           .find((app) => app instanceof PresetBrowser)
           ?.render(true);

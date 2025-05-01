@@ -286,9 +286,8 @@ export class PresetBrowser extends PresetContainer {
   }
 
   async _onExportFolder(uuid) {
-    let { pack, keepId } = await new Promise((resolve) =>
-      getCompendiumDialog(resolve, { exportTo: true, keepIdSelect: true })
-    );
+    let { pack, keepId } = await getCompendiumDialog({ exportTo: true, keepIdSelect: true });
+
     if (pack && !this._importTracker?.active) {
       const folder = this.tree.allFolders.get(uuid);
       if (folder) {
@@ -349,9 +348,7 @@ export class PresetBrowser extends PresetContainer {
   }
 
   async _onExportSelectedPresetsToComp() {
-    let { pack, keepId } = await new Promise((resolve) =>
-      getCompendiumDialog(resolve, { exportTo: true, keepIdSelect: true })
-    );
+    let { pack, keepId } = await getCompendiumDialog({ exportTo: true, keepIdSelect: true });
     if (pack) this._onCopySelectedPresets(pack, { keepId });
   }
 
@@ -931,7 +928,7 @@ export class PresetBrowser extends PresetContainer {
   }
 
   async _onWorkingPackChange() {
-    let pack = await new Promise((resolve) => getCompendiumDialog(resolve, {}));
+    let { pack } = await getCompendiumDialog();
     if (pack && pack !== PresetCollection.workingPack) {
       await game.settings.set(MODULE_ID, 'workingPack', pack);
       this.render(true);
@@ -1125,7 +1122,7 @@ class PresetFolderConfig extends foundry.applications.sheets.FolderConfig {
   }
 }
 
-function getCompendiumDialog(resolve, { excludePack, exportTo = false, keepIdSelect = false } = {}) {
+async function getCompendiumDialog({ excludePack, exportTo = false, keepIdSelect = false } = {}) {
   let config;
   if (exportTo) {
     config = {
@@ -1150,48 +1147,53 @@ function getCompendiumDialog(resolve, { excludePack, exportTo = false, keepIdSel
     }
   }
 
-  let content = `
+  let html = `
   <p style="color: orangered;">${config.message}</p>
   <div class="form-group">
     <label>${localize('PACKAGE.TagCompendium', false)}</label>
     <div class="form-fields">
-      <select style="width: 100%; margin-bottom: 10px;">${options}</select>
+      <select style="width: 100%; margin-bottom: 10px;" name="pack">${options}</select>
     </div>
   </div>`;
 
   if (keepIdSelect) {
-    content += `
+    html += `
 <div class="form-group">
     <label>${localize('presets.keep-ids')}</label>
     <input type="checkbox" name="keepId" checked>
-    <p style="font-size: smaller;">${localize('presets.keep-ids-hint')}</p>
+    <p class="hint">${localize('presets.keep-ids-hint')}</p>
 </div>`;
   }
 
-  new Dialog({
-    title: config.title,
-    content: content,
-    buttons: {
-      export: {
+  const content = document.createElement('div');
+  content.innerHTML = html;
+
+  let result = {};
+  await foundry.applications.api.DialogV2.wait({
+    window: { title: config.title, icon: 'fas fa-atlas' },
+    content,
+    position: { width: 400 },
+    buttons: [
+      {
+        action: 'ok',
         label: config.buttonLabel,
-        callback: (html) => {
-          const pack = $(html).find('select').val();
-          if (keepIdSelect)
-            resolve({
-              pack,
-              keepId: $(html).find('[name="keepId"]').is(':checked'),
-            });
-          else resolve(pack);
+        icon: '',
+        callback: (event, button) => {
+          const fd = new foundry.applications.ux.FormDataExtended(button.form);
+          result = {
+            pack: fd.object.pack,
+            keepId: fd.object.keepId,
+          };
         },
       },
-      cancel: {
-        label: localize('Cancel', false),
-        callback: () => resolve(keepIdSelect ? {} : null),
+      {
+        action: 'cancel',
+        label: 'Cancel',
       },
-    },
-    close: () => resolve(keepIdSelect ? {} : null),
-    default: 'cancel',
-  }).render(true);
+    ],
+  });
+
+  return result;
 }
 
 export function registerPresetBrowserHooks() {

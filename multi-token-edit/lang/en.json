@@ -165,7 +165,7 @@
       "export-to-compendium": "Export to Compendium",
       "copy-to-clipboard": "Copy to Clipboard",
       "copy-source-to-clipboard": "Copy Source to Clipboard",
-      "keep-ids": "Keep Preset and Folder IDs",
+      "keep-ids": "Keep IDs",
       "keep-ids-hint": "Presets and Folders with the same IDs will be overridden at the destination.",
       "search-presets": "Search Presets",
       "search-presets-folders": "Search Presets & Folders",
