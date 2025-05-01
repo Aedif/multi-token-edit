@@ -14,19 +14,19 @@ import { PresetConfig } from './editApp.js';
 
 export async function registerPresetHandlebarPartials() {
   await foundry.applications.handlebars.getTemplate(
-    `modules/${MODULE_ID}/templates/preset/partials/preset.html`,
+    `modules/${MODULE_ID}/templates/preset/container/partials/preset.hbs`,
     'me-preset'
   );
   await foundry.applications.handlebars.getTemplate(
-    `modules/${MODULE_ID}/templates/preset/partials/folder.html`,
+    `modules/${MODULE_ID}/templates/preset/container/partials/folder.hbs`,
     'me-preset-folder'
   );
   await foundry.applications.handlebars.getTemplate(
-    `modules/${MODULE_ID}/templates/preset/partials/presetsContent.html`,
+    `modules/${MODULE_ID}/templates/preset/container/partials/presetsContent.hbs`,
     'me-presets-content'
   );
   await foundry.applications.handlebars.getTemplate(
-    `modules/${MODULE_ID}/templates/preset/partials/presetsTopList.html`,
+    `modules/${MODULE_ID}/templates/preset/container/partials/presetsTopList.hbs`,
     'me-preset-list'
   );
 }

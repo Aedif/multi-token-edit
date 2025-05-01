@@ -523,13 +523,6 @@ input.me-subtract {
   border: 1px solid antiquewhite;
 }
 
-#mass-edit-preset-edit .form-group.disabled {
-  opacity: 0.5;
-}
-
-#mass-edit-preset-edit input[type="checkbox"]:checked {
-  accent-color: darkorange;
-}
 
 @container (min-width: 450px) {
   .preset-browser .preset-items {

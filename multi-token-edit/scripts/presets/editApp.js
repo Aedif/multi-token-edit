@@ -9,8 +9,6 @@ import { exportPresets, mergePresetDataToDefaultDoc, placeableToData } from './u
 export class PresetConfig extends foundry.applications.api.HandlebarsApplicationMixin(
   foundry.applications.api.ApplicationV2
 ) {
-  static name = 'PresetConfig';
-
   /**
    * @param {Array[Preset]} presets
    */
@@ -74,11 +72,11 @@ export class PresetConfig extends foundry.applications.api.HandlebarsApplication
   /** @override */
   static PARTS = {
     overlay: { template: `modules/${MODULE_ID}/templates/drag-hover-overlay.hbs` },
-    hidden: { template: `modules/${MODULE_ID}/templates/preset/preset-edit/preset-edit-hidden.hbs` },
+    hidden: { template: `modules/${MODULE_ID}/templates/preset/preset-edit/hidden.hbs` },
     tabs: { template: 'templates/generic/tab-navigation.hbs' },
-    main: { template: `modules/${MODULE_ID}/templates/preset/preset-edit/preset-edit-main.hbs` },
-    spawning: { template: `modules/${MODULE_ID}/templates/preset/preset-edit/preset-edit-spawning.hbs` },
-    tags: { template: `modules/${MODULE_ID}/templates/preset/preset-edit/preset-edit-tags.hbs` },
+    main: { template: `modules/${MODULE_ID}/templates/preset/preset-edit/main.hbs` },
+    spawning: { template: `modules/${MODULE_ID}/templates/preset/preset-edit/spawning.hbs` },
+    tags: { template: `modules/${MODULE_ID}/templates/preset/preset-edit/tags.hbs` },
     footer: { template: 'templates/generic/form-footer.hbs' },
   };
 
@@ -452,7 +450,7 @@ class PresetFieldSelect extends foundry.applications.api.HandlebarsApplicationMi
 
   /** @override */
   static PARTS = {
-    main: { template: `modules/${MODULE_ID}/templates/preset/presetFieldSelect.hbs` },
+    main: { template: `modules/${MODULE_ID}/templates/preset/preset-edit/field-select.hbs` },
     footer: { template: 'templates/generic/form-footer.hbs' },
   };
 
