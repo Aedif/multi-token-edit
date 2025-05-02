@@ -26,7 +26,7 @@ export async function openCategoryBrowser(
   } = {}
 ) {
   // // If category browser is already open close it
-  const app = Object.values(ui.windows).find((w) => w._browserId === name);
+  const app = foundry.applications.instances.values().find((i) => i._browserId === name);
   if (app) {
     app.close(true);
     return;
@@ -89,6 +89,7 @@ class CategoryList {
 class CategoryBrowserApplication extends PresetContainerV2 {
   static DEFAULT_OPTIONS = {
     tag: 'form',
+    classes: ['mass-edit-window-fill'],
     form: {
       handler: undefined,
       submitOnChange: true,
@@ -144,20 +145,12 @@ class CategoryBrowserApplication extends PresetContainerV2 {
     }
   }
 
-  /** @inheritdoc */
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      classes: ['sheet', 'mass-edit-dark-window', 'mass-edit-category-browser'],
-      template: `modules/${MODULE_ID}/templates/preset/categoryBrowser.html`,
-      width: 450,
-      height: 450,
-      resizable: true,
-      minimizable: true,
-      scrollY: ['.item-list', '.category-list'],
-    });
+  /** @override */
+  _initializeApplicationOptions(options) {
+    options = super._initializeApplicationOptions(options);
+    options.uniqueId = 'mass-edit-category-browser:' + options.name;
+    return options;
   }
-
-  /* -------------------------------------------- */
 
   /** @override */
   get id() {

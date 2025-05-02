@@ -204,7 +204,7 @@
   right: 1px;
   font-size: 0.5rem;
   background: black;
-  color: var(--color-text-light-highlight);
+  color: var(--color-text-selection);
   padding: 1px;
   border-radius: 4px;
 }
@@ -302,13 +302,12 @@
   padding-left: 2px;
   margin-top: 1px;
   padding: 0;
-  padding-top: 1px;
   margin: 0;
 }
 
 .preset-browser .folder {
   border-width: 2px 0px 4px 7px;
-  border-color: rgba(0, 0, 0, 0.6);
+  border-color: black;
   border-style: solid;
   margin-right: 0;
   margin-bottom: 1px;
@@ -342,12 +341,12 @@
 .preset-browser .folder header {
   padding: 6px;
   line-height: 24px;
-  background: rgba(0, 0, 0, 0.6);
+  background: black;
 }
 
 .preset-browser .folder header h3 {
   margin: 0;
-  color: var(--color-text-light-highlight);
+  color: var(--color-text-selection);
   font-size: var(--font-size-14);
   line-height: 24px;
   border: none;
@@ -471,8 +470,9 @@
 .preset-browser .dropdown-content {
   display: none;
   position: absolute;
-  background-color: rgb(0 0 0 / 78%);
+  background-color:  var(--background);;
   width: 60px;
+  padding: 5px;
   box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
   border-radius: 8px;
   z-index: 1;
@@ -480,6 +480,7 @@
 
 .preset-browser .dropdown-content .document-select {
   flex: 25px;
+  margin-top: 6px;
 }
 
 .preset-browser .dropdown:hover .dropdown-content {
@@ -854,12 +855,13 @@ nav > a[data-tab='me-pinned'] {
 
 .mass-edit-category-browser .menu {
   display: flex;
-  margin-right: 4px;
   border: 1px solid black;
   border-radius: 6px;
   padding: 8px 3px 3px 3px;
   box-shadow: 0 0 3px dimgray;
   border: 1px solid var(--color-border-dark);
+  margin: 3px;
+  margin-right: 4px;
 }
 
 .mass-edit-category-browser .menu.top {
@@ -896,7 +898,7 @@ nav > a[data-tab='me-pinned'] {
   font-size: 24px;
   text-align: center;
   box-shadow: 0 0 3px dimgray;
-  border: 1px solid var(--color-border-dark);
+  border: 1px solid var(--color-border-dark-5);
   border-radius: 5px;
   margin-bottom: 5px;
 }

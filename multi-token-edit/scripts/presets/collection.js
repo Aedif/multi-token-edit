@@ -64,7 +64,7 @@ export class PresetCollection {
           name: 'VIRTUAL DIRECTORY',
           children: vTree.folders,
           uuid: 'virtual_directory',
-          color: '#1c5fa385',
+          color: '#00739f',
         });
         extFolders.push(topFolder);
 
