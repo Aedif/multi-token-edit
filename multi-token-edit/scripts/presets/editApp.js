@@ -2,7 +2,7 @@ import { showMassEdit } from '../../applications/multiConfig.js';
 import { MODULE_ID, SUPPORTED_PLACEABLES, SUPPORTED_SHEET_CONFIGS } from '../constants.js';
 import { LinkerAPI } from '../linker/linker.js';
 import { DragHoverOverlay, localFormat, localize } from '../utils.js';
-import { itemSelect } from './containerApp.js';
+import { itemSelect } from './containerAppV2.js';
 import { DOC_ICONS, Preset, VirtualFilePreset } from './preset.js';
 import { exportPresets, mergePresetDataToDefaultDoc, placeableToData } from './utils.js';
 
@@ -174,6 +174,9 @@ export class PresetConfig extends foundry.applications.api.HandlebarsApplication
         break;
       case 'tags':
         if (context.virtual) context.tab.active = true;
+        break;
+      case 'overlay':
+        context.dragHoverOverlay = localize('common.attach');
         break;
     }
 
@@ -491,8 +494,8 @@ class PresetFieldSelect extends foundry.applications.api.HandlebarsApplicationMi
     return context;
   }
 
-  static _onFieldSelect(event) {
-    itemSelect(event, $(event.target).closest('.preset-field-list'));
+  static _onFieldSelect(event, element) {
+    itemSelect(event, element, $(element).closest('.preset-field-list'));
   }
 }
 

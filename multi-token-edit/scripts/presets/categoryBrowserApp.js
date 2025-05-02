@@ -2,7 +2,7 @@ import { MODULE_ID } from '../constants.js';
 import { localize } from '../utils.js';
 import { PresetBrowser } from './browser/browserApp.js';
 import { PresetAPI } from './collection.js';
-import { PresetContainer } from './containerApp.js';
+import { PresetContainerV2 } from './containerAppV2.js';
 
 /**
  * Constructs and opens a menu for browsing through Mass Edit presets
@@ -86,7 +86,35 @@ class CategoryList {
   }
 }
 
-class CategoryBrowserApplication extends PresetContainer {
+class CategoryBrowserApplication extends PresetContainerV2 {
+  static DEFAULT_OPTIONS = {
+    tag: 'form',
+    form: {
+      handler: undefined,
+      submitOnChange: true,
+      closeOnSubmit: false,
+    },
+    window: {
+      contentClasses: ['standard-form', 'mass-edit-category-browser'],
+      resizable: true,
+      minimizable: true,
+    },
+    position: {
+      width: 450,
+      height: 450,
+    },
+    actions: {
+      categorySelect: CategoryBrowserApplication._onCategorySelect,
+      generateMacro: CategoryBrowserApplication._onGenerateMacro,
+      toggleSetting: CategoryBrowserApplication._onToggleSetting,
+    },
+  };
+
+  /** @override */
+  static PARTS = {
+    main: { template: `modules/${MODULE_ID}/templates/preset/categoryBrowser.html` },
+  };
+
   static oldMenuStates = {};
 
   _menus = [];
@@ -140,8 +168,11 @@ class CategoryBrowserApplication extends PresetContainer {
     return this.options.name ?? 'Category Browser';
   }
 
-  async getData(options) {
-    return {
+  /** @override */
+  async _prepareContext(options) {
+    const context = await super._prepareContext(options);
+
+    return Object.assign(context, {
       menus: this._menus.filter((menu) => menu.active),
       presets: this._presetResults,
       alignment: options.alignment,
@@ -149,13 +180,12 @@ class CategoryBrowserApplication extends PresetContainer {
       globalSearch: options.globalSearch,
       lastSearch: this._lastSearch,
       editEnabled: options.editEnabled,
-    };
+    });
   }
 
   activateListeners(html) {
     super.activateListeners(html);
 
-    html.find('.category').on('click', this._onClickCategory.bind(this));
     if (this.options.editEnabled) {
       html.find('.category').on('contextmenu', this._onRightClickCategory.bind(this));
     }
@@ -207,8 +237,8 @@ class CategoryBrowserApplication extends PresetContainer {
    * Handle category click event
    * @param {*} event
    */
-  async _onClickCategory(event) {
-    const category = this._categories.get($(event.currentTarget).data('id'));
+  static async _onCategorySelect(event, element) {
+    const category = this._categories.get(element.dataset.id);
 
     this._menus.forEach((menu) => (menu.active = false));
     if (category.active) this._setCategoryInactive(category);
@@ -319,11 +349,13 @@ class CategoryBrowserApplication extends PresetContainer {
    */
   async _renderContent(loading = false) {
     if (loading) {
-      this.element.find('.item-list').html(
-        `<div style="width: 100%; height: 100%; text-align: center; font-size: xxx-large;">
+      $(this.form)
+        .find('.item-list')
+        .html(
+          `<div style="width: 100%; height: 100%; text-align: center; font-size: xxx-large;">
             <i class="fa-duotone fa-solid fa-spinner fa-spin-pulse" style="position: relative; top: 30%;"></i>
            </div>`
-      );
+        );
     } else {
       return super._renderContent({ presets: this._presetResults });
     }
@@ -368,73 +400,60 @@ class CategoryBrowserApplication extends PresetContainer {
     return super.close(options);
   }
 
-  async _toggleSetting(setting, runQueryTree = false) {
+  static async _onToggleSetting(event, target) {
+    const setting = target.dataset.setting;
+    if (!setting) return;
     await PresetBrowser.setSetting(setting, !PresetBrowser.CONFIG[setting]);
-    if (runQueryTree) return this._runQueryTree();
+    $(target).css('color', PresetBrowser.CONFIG[setting] ? 'darkorange' : '');
+    if (setting === 'virtualDirectory' || setting === 'externalCompendiums') return this._runQueryTree();
   }
 
   _getHeaderButtons() {
-    const buttons = super._getHeaderButtons();
+    const buttons = [];
 
     if (game.user.isGM) {
       buttons.unshift({
-        label: '',
-        class: 'mass-edit-indexer',
-        tooltip: 'Perform directory indexing.',
         icon: 'fas fa-archive',
-        onclick: this._onOpenIndexer.bind(this),
+        action: 'openIndexer',
+        tooltip: 'Open Directory Indexer',
       });
 
       buttons.unshift({
-        label: '',
-        class: 'mass-edit-category-browser-virtual',
         icon: 'fas fa-file-search',
         tooltip: localize('presets.controls.virtual-directory'),
-        onclick: () => this._toggleSetting('virtualDirectory', true),
-        toggle: true,
+        action: 'toggleSetting',
+        setting: 'virtualDirectory',
         active: () => PresetBrowser.CONFIG.virtualDirectory,
-        color: 'darkorange',
       });
 
       buttons.unshift({
-        label: '',
-        class: 'mass-edit-category-browser-external',
         icon: 'fa-solid fa-books',
         tooltip: localize('presets.controls.external-compendiums'),
-        onclick: () => this._toggleSetting('externalCompendiums', true),
-        toggle: true,
+        action: 'toggleSetting',
+        setting: 'externalCompendiums',
         active: () => PresetBrowser.CONFIG.externalCompendiums,
-        color: 'darkorange',
       });
 
       buttons.unshift({
-        label: '',
-        class: 'mass-edit-category-browser-scale',
         icon: 'fa-solid fa-arrow-down-big-small',
         tooltip: localize('presets.controls.scale-to-grid'),
-        onclick: () => this._toggleSetting('autoScale'),
-        toggle: true,
+        action: 'toggleSetting',
+        setting: 'autoScale',
         active: () => PresetBrowser.CONFIG.autoScale,
-        color: 'darkorange',
       });
 
       buttons.unshift({
-        label: '',
-        class: 'mass-edit-category-browser-switch',
         icon: 'fa-solid fa-arrows-cross',
         tooltip: localize('presets.controls.layer-switch'),
-        onclick: () => this._toggleSetting('switchLayer'),
-        toggle: true,
+        action: 'toggleSetting',
+        setting: 'switchLayer',
         active: () => PresetBrowser.CONFIG.switchLayer,
-        color: 'darkorange',
       });
 
       if (this.options.editEnabled) {
         buttons.unshift({
-          label: '',
-          class: 'mass-edit-category-browser-gen-macro',
           icon: 'fa-solid fa-dice-d20',
-          onclick: this._generateMacro.bind(this),
+          action: 'generateMacro',
         });
       }
     }
@@ -442,7 +461,26 @@ class CategoryBrowserApplication extends PresetContainer {
     return buttons;
   }
 
-  _generateMacro() {
+  /** @override */
+  async _renderFrame(options) {
+    const frame = await super._renderFrame(options);
+    if (!this.hasFrame) return frame;
+
+    const headerButtons = this._getHeaderButtons();
+    let html = '';
+    headerButtons.forEach((button) => {
+      html += `
+        <button ${button.active?.() ? 'style="color: darkorange"' : ''} type="button"
+        class="header-control icon ${button.icon}" data-action="${button.action}" data-setting="${button.setting}"
+                data-tooltip="${button.tooltip}" aria-label="${button.tooltip}"></button>
+      `;
+    });
+    this.window.close.insertAdjacentHTML('beforebegin', html);
+
+    return frame;
+  }
+
+  static _onGenerateMacro() {
     const options = this.options;
 
     let macro = `

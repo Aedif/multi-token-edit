@@ -7,7 +7,6 @@ import {
   VIDEO_EXTENSIONS,
 } from './constants.js';
 import { Picker } from './picker.js';
-import { PresetBrowser } from './presets/browser/browserApp.js';
 import { Preset } from './presets/preset.js';
 import { Spawner } from './presets/spawner.js';
 import { applyRandomization } from './randomizer/randomizerUtils.js';
@@ -273,86 +272,6 @@ export function flattenToDepth(obj, d = 0) {
     } else flat[k] = v;
   }
   return flat;
-}
-
-export function activeEffectPresetSelect(aeConfig) {
-  const showPresetGeneric = function (documentName) {
-    new PresetBrowser(
-      aeConfig,
-      async (preset) => {
-        if (!foundry.utils.isEmpty(preset.randomize)) {
-          await applyRandomization(preset.data, null, preset.randomize);
-        }
-
-        const changes = aeConfig.object.changes ?? [];
-        let nChanges = [];
-
-        Object.keys(preset.data[0]).forEach((k) => {
-          let value;
-          if (foundry.utils.getType(preset.data[0][k]) === 'string') value = preset.data[0][k];
-          else value = JSON.stringify(preset.data[0][k]);
-
-          nChanges.push({
-            key: documentName === 'Token' ? 'ATL.' + k : k,
-            mode: CONST.ACTIVE_EFFECT_MODES.OVERRIDE,
-            priority: 20,
-            value,
-          });
-        });
-
-        for (let i = changes.length - 1; i >= 0; i--) {
-          if (!nChanges.find((nc) => nc.key === changes[i].key)) nChanges.unshift(changes[i]);
-        }
-
-        aeConfig.object.update({ changes: nChanges });
-      },
-      documentName
-    ).render(true);
-  };
-
-  const showPresetActiveEffect = function () {
-    new PresetBrowser(
-      aeConfig,
-      (preset) => {
-        const changes = aeConfig.object.changes ?? [];
-        let nChanges = [];
-
-        preset.data[0].changes?.forEach((change) => {
-          if (change.key) {
-            nChanges.push(
-              foundry.utils.mergeObject({ mode: CONST.ACTIVE_EFFECT_MODES.OVERRIDE, priority: 20 }, change)
-            );
-          }
-        });
-
-        for (let i = changes.length - 1; i >= 0; i--) {
-          if (!nChanges.find((nc) => nc.key === changes[i].key)) nChanges.unshift(changes[i]);
-        }
-
-        aeConfig.object.update({ changes: nChanges });
-      },
-      'ActiveEffect'
-    ).render(true);
-  };
-
-  new Dialog({
-    title: localize('common.presets'),
-    content: ``,
-    buttons: {
-      activeEffect: {
-        label: 'ActiveEffect',
-        callback: () => showPresetActiveEffect(),
-      },
-      token: {
-        label: 'Token',
-        callback: () => showPresetGeneric('Token'),
-      },
-      actor: {
-        label: 'Actor',
-        callback: () => showPresetGeneric('Actor'),
-      },
-    },
-  }).render(true);
 }
 
 export function getDocumentName(doc) {

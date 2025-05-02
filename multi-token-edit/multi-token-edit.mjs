@@ -1,11 +1,5 @@
 import { showMassEdit, showGenericForm } from './applications/multiConfig.js';
-import {
-  activeEffectPresetSelect,
-  createDocuments,
-  isResponsibleGM,
-  resolveCreateDocumentRequest,
-  TagInput,
-} from './scripts/utils.js';
+import { createDocuments, isResponsibleGM, resolveCreateDocumentRequest, TagInput } from './scripts/utils.js';
 import { libWrapper } from './scripts/libs/shim/shim.js';
 import { enableUniversalSelectTool } from './scripts/tools/selectTool.js';
 import { META_INDEX_ID, PresetAPI, PresetCollection } from './scripts/presets/collection.js';
@@ -259,14 +253,5 @@ Hooks.on('renderTileHUD', (hud, html, tileData) => {
     $(html).on('click', '[data-action="massConfig"]', () => {
       showMassEdit();
     });
-  }
-});
-
-Hooks.on('renderActiveEffectConfig', (app) => {
-  const el = $(app.form).find('.effects-header .key');
-  if (el.length) {
-    const me = $('<i title="Apply \'Mass Edit\' preset" style="font-size:smaller;color:brown;"> <a>[ME]</a></i>');
-    me.on('click', () => activeEffectPresetSelect(app));
-    el.append(me);
   }
 });

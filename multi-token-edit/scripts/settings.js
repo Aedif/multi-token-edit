@@ -16,7 +16,7 @@ import { openPresetBrowser, PresetBrowser } from './presets/browser/browserApp.j
 import { Preset } from './presets/preset.js';
 import { Scenescape } from './scenescape/scenescape.js';
 import { enablePixelPerfectSelect } from './tools/selectTool.js';
-import { activeEffectPresetSelect, getDocumentName, localize } from './utils.js';
+import { getDocumentName, localize } from './utils.js';
 import { editPreviewPlaceables, TransformBus } from './transformer.js';
 
 export function registerSettings() {
@@ -511,16 +511,9 @@ export function registerKeybinds() {
       },
     ],
     onDown: () => {
-      const app = Object.values(ui.windows).find((w) => w instanceof PresetBrowser);
-      if (app) {
-        app.close(true);
-        return;
-      }
-
-      // Special logic for populating Active Effect
-      const aeConfig = Object.values(ui.windows).find((x) => x instanceof ActiveEffectConfig);
-      if (aeConfig) {
-        activeEffectPresetSelect(aeConfig);
+      const presetBrowser = foundry.applications.instances.get(PresetBrowser.DEFAULT_OPTIONS.id);
+      if (presetBrowser) {
+        presetBrowser.close(true);
         return;
       }
 
@@ -537,9 +530,9 @@ export function registerKeybinds() {
     hint: localize('keybindings.presetApplyScene.hint'),
     editable: [],
     onDown: () => {
-      const app = Object.values(ui.windows).find((w) => w instanceof PresetBrowser);
-      if (app) {
-        app.close(true);
+      const presetBrowser = foundry.applications.instances.get(PresetBrowser.DEFAULT_OPTIONS.id);
+      if (presetBrowser) {
+        presetBrowser.close(true);
         return;
       }
       openPresetBrowser('Scene');

@@ -97,7 +97,7 @@ export class TagSelector extends FormApplication {
   _onClickTag(event) {
     const tag = '#' + $(event.currentTarget).find('span').first().text();
 
-    const searchInput = this.presetsApp.element.find('.header-search input');
+    const searchInput = $(this.presetsApp.element).find('.header-search input');
     let search = searchInput.val();
 
     if ($(event.currentTarget).hasClass('active')) {

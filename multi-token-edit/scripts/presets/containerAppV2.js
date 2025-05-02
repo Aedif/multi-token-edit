@@ -31,9 +31,11 @@ export async function registerPresetHandlebarPartials() {
   );
 }
 
-export class PresetContainer extends FormApplication {
+export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplicationMixin(
+  foundry.applications.api.ApplicationV2
+) {
   constructor(opts1, opts2) {
-    super(opts1, opts2);
+    super(opts2);
 
     // Drag/Drop tracking
     this.dragType = null;
@@ -46,33 +48,68 @@ export class PresetContainer extends FormApplication {
     this.presetsDisableDelete = opts2.disableDelete;
   }
 
+  /** @override */
+  static DEFAULT_OPTIONS = {
+    actions: {
+      itemClick: PresetContainerV2._onItemClick, // Multi-select
+      folderClick: PresetContainerV2._onFolderClick,
+      openIndexer: PresetContainerV2._onOpenIndexer,
+    },
+    position: {
+      width: 600,
+    },
+    window: {
+      contentClasses: ['standard-form'],
+    },
+  };
+
   /**
-   * @param {JQuery} html
+   * Handle mouse click on a preset
+   * @param {EvenPointerEventt} event
+   * @param {HTMLElement} target
+   * @returns
    */
-  activateListeners(html) {
-    super.activateListeners(html);
+  static _onItemClick(event, target) {
+    if (event.detail === 1) {
+      itemSelect(event, target);
+    } else {
+      this._onDoubleClickPreset(event, target);
+    }
+  }
 
-    // =====================
-    // Preset multi-select & drag Listeners
-    const itemList = html.find('.item-list');
+  /** @override */
+  _attachFrameListeners() {
+    super._attachFrameListeners();
+    const html = $(this.element);
 
-    // Multi-select
-    html.on('click', '.item', (event) => {
-      itemSelect(event, itemList);
-    });
+    this._attachPreviewListeners(html);
+    this._attachDragDropListeners(html);
+    this._contextMenu(html);
+  }
 
-    // Play previews
+  /**
+   * Manage video/sound preview playing on mouse enter and leave
+   * @param {*} html
+   */
+  _attachPreviewListeners(html) {
     html.on('mouseenter', '.item', (event) => {
       this._playPreview(event);
     });
     html.on('mouseleave', '.item', (event) => {
       this._endPreview();
     });
+  }
 
+  /**
+   * Manage preset drag and drop listeners
+   * @param {*} html
+   */
+  _attachDragDropListeners(html) {
     html.on('dragstart', '.item', (event) => {
       this.dragType = 'item';
 
       const item = $(event.target).closest('.item');
+      const itemList = html.find('.item-list');
 
       // Drag has been started on an item that hasn't been selected
       // Assume that this is the only item to be dragged and select it
@@ -134,7 +171,7 @@ export class PresetContainer extends FormApplication {
           if (!targetItem.hasClass('selected')) {
             // Move HTML Elements
             (top ? uuids : uuids.reverse()).forEach((uuid) => {
-              const item = itemList.find(`.item[data-uuid="${uuid}"]`);
+              const item = html.find(`.item[data-uuid="${uuid}"]`);
               if (item) {
                 if (top) item.insertBefore(targetItem);
                 else item.insertAfter(targetItem);
@@ -162,7 +199,6 @@ export class PresetContainer extends FormApplication {
 
     // ================
     // Folder Listeners
-    html.on('click', '.folder > header', (event) => this._folderToggle($(event.target).closest('.folder')));
 
     if (this.presetsSortable) {
       html.on('dragstart', '.folder.sortable', (event) => {
@@ -247,7 +283,7 @@ export class PresetContainer extends FormApplication {
           // Move HTML Elements
           const presetItems = targetFolder.children('.preset-items');
           uuids?.forEach((uuid) => {
-            const item = itemList.find(`.item[data-uuid="${uuid}"]`);
+            const item = html.find(`.item[data-uuid="${uuid}"]`);
             if (item.length) presetItems.append(item);
           });
 
@@ -277,7 +313,7 @@ export class PresetContainer extends FormApplication {
           // Move HTML Elements
           const target = html.find('.top-level-preset-items');
           uuids?.forEach((uuid) => {
-            const item = itemList.find(`.item[data-uuid="${uuid}"]`);
+            const item = html.find(`.item[data-uuid="${uuid}"]`);
             if (item.length) target.append(item);
           });
 
@@ -291,16 +327,16 @@ export class PresetContainer extends FormApplication {
     }
     // End of Folder Listeners
     // ================
-
-    html.on('dblclick', '.item', this._onDoubleClickPreset.bind(this));
-
-    // Activate context menu
-    this._contextMenu(html.find('.item-list'));
   }
 
-  async _onDoubleClickPreset(event) {
-    const item = $(event.target).closest('.item');
-    const uuid = item.data('uuid');
+  /**
+   * Handle mouse double-click on a preset
+   * @param {EvenPointerEventt} event
+   * @param {HTMLElement} target
+   * @returns
+   */
+  async _onDoubleClickPreset(event, target) {
+    const uuid = target.dataset.uuid;
     if (!uuid) return;
 
     let preset = await PresetAPI.getPreset({ uuid });
@@ -329,7 +365,7 @@ export class PresetContainer extends FormApplication {
     this._setInteractivityState(true);
   }
 
-  async _onOpenIndexer() {
+  static async _onOpenIndexer() {
     if (FileIndexer._buildingIndex) {
       ui.notifications.warn('Index Build In-Progress. Wait for it to finish before attempting it again.');
       return;
@@ -363,22 +399,19 @@ export class PresetContainer extends FormApplication {
    * @param {Boolean} state true = active, false = inactive
    */
   _setInteractivityState(state) {
-    if (state) this.element.removeClass('mass-edit-inactive');
-    else this.element.addClass('mass-edit-inactive');
+    if (state) $(this.form).removeClass('mass-edit-inactive');
+    else $(this.form).addClass('mass-edit-inactive');
   }
 
-  _contextMenu(html) {
-    const itemOptions = this._getItemContextOptions().sort((o1, o2) => (o1.sort ?? -1) - (o2.sort ?? -1));
-    foundry.applications.ux.ContextMenu.create(this, html[0], '.item', itemOptions, {
-      hookName: 'MassEditPresetContext',
+  _contextMenu() {
+    this._createContextMenu(this._getItemContextOptions, '.item', {
+      hookName: 'getPresetContextOptions',
+      parentClassHook: false,
       onOpen: this._onRightClickPreset.bind(this),
-      jQuery: false,
     });
 
-    const folderOptions = this._getFolderContextOptions().sort((o1, o2) => (o1.sort ?? -1) - (o2.sort ?? -1));
-    foundry.applications.ux.ContextMenu.create(this, html[0], '.folder header', folderOptions, {
-      hookName: 'MassEditFolderContext',
-      jQuery: false,
+    this._createContextMenu(this._getFolderContextOptions, '.folder header', {
+      hookName: 'getPresetFolderContextOptions',
     });
   }
 
@@ -671,7 +704,7 @@ export class PresetContainer extends FormApplication {
     let selector = '.item.selected';
     if (virtualOnly) selector += '.virtual';
 
-    let items = this.element.find('.item-list').find(selector);
+    let items = $(this.form).find('.item-list').find(selector);
     if (editableOnly)
       items = items.filter(function () {
         return Preset.isEditable($(this).data('uuid'));
@@ -813,7 +846,9 @@ export class PresetContainer extends FormApplication {
     this._onSpawnPreset(preset, { x: mouseX, y: mouseY, z: mouseZ, preview: false });
   }
 
-  _folderToggle(folderElement) {
+  static _onFolderClick(event, target) {
+    const folderElement = $(target).closest('.folder');
+
     const uuid = folderElement.data('uuid');
 
     const folder = this.tree.allFolders.get(uuid);
@@ -862,16 +897,16 @@ export class PresetContainer extends FormApplication {
         extFolders,
       }
     );
-    this.element.find('.item-list').html(content);
+    $(this.form).find('.item-list').html(content);
   }
 
   _onCopyUUID(item) {
-    game.clipboard.copyPlainText(item.data('uuid'));
+    game.clipboard.copyPlainText(item.dataset.uuid);
     ui.notifications.info(
       game.i18n.format('DOCUMENT.IdCopiedClipboard', {
-        label: item.attr('name'),
+        label: item.attributes.name,
         type: 'uuid',
-        id: item.data('uuid'),
+        id: item.dataset.uuid,
       })
     );
   }
@@ -932,99 +967,6 @@ export class PresetContainer extends FormApplication {
       module.openBag(uuid);
     }
   }
-
-  /**
-   * @override
-   * Application.setPosition(...) has been modified to use css transform for window translation across the screen
-   * instead of top/left css properties which force full-window style recomputation
-   */
-  setPosition({ left, top, width, height, scale } = {}) {
-    if (!this.popOut && !this.options.resizable) return; // Only configure position for popout or resizable apps.
-    const el = this.element[0];
-    const currentPosition = this.position;
-    const pop = this.popOut;
-    const styles = window.getComputedStyle(el);
-    if (scale === null) scale = 1;
-    scale = scale ?? currentPosition.scale ?? 1;
-
-    // If Height is "auto" unset current preference
-    if (height === 'auto' || this.options.height === 'auto') {
-      el.style.height = '';
-      height = null;
-    }
-
-    // Update width if an explicit value is passed, or if no width value is set on the element
-    if (!el.style.width || width) {
-      const tarW = width || el.offsetWidth;
-      const minW = parseInt(styles.minWidth) || (pop ? 200 : 0);
-      const maxW = el.style.maxWidth || window.innerWidth / scale;
-      currentPosition.width = width = Math.clamp
-        ? Math.clamp(tarW, minW, maxW) // v12
-        : Math.clamped(tarW, minW, maxW);
-      el.style.width = `${width}px`;
-      if (width * scale + currentPosition.left > window.innerWidth) left = currentPosition.left;
-    }
-    width = el.offsetWidth;
-
-    // Update height if an explicit value is passed, or if no height value is set on the element
-    if (!el.style.height || height) {
-      const tarH = height || el.offsetHeight + 1;
-      const minH = parseInt(styles.minHeight) || (pop ? 50 : 0);
-      const maxH = el.style.maxHeight || window.innerHeight / scale;
-      currentPosition.height = height = Math.clamp
-        ? Math.clamp(tarH, minH, maxH) // v12
-        : Math.clamped(tarH, minH, maxH);
-      el.style.height = `${height}px`;
-      if (height * scale + currentPosition.top > window.innerHeight + 1) top = currentPosition.top - 1;
-    }
-    height = el.offsetHeight;
-
-    let leftT, topT;
-    // Update Left
-    if ((pop && !this.posSet) || Number.isFinite(left)) {
-      const scaledWidth = width * scale;
-      const tarL = Number.isFinite(left) ? left : (window.innerWidth - scaledWidth) / 2;
-      const maxL = Math.max(window.innerWidth - scaledWidth, 0);
-      currentPosition.left = left = Math.clamp
-        ? Math.clamp(tarL, 0, maxL) // v12
-        : Math.clamped(tarL, 0, maxL);
-      leftT = left;
-    }
-
-    // Update Top
-    if ((pop && !this.posSet) || Number.isFinite(top)) {
-      const scaledHeight = height * scale;
-      const tarT = Number.isFinite(top) ? top : (window.innerHeight - scaledHeight) / 2;
-      const maxT = Math.max(window.innerHeight - scaledHeight, 0);
-      currentPosition.top = Math.clamp
-        ? Math.clamp(tarT, 0, maxT) // v12
-        : Math.clamped(tarT, 0, maxT);
-
-      topT = currentPosition.top;
-    }
-
-    let transform = '';
-
-    // Update Scale
-    if (scale) {
-      currentPosition.scale = Math.max(scale, 0);
-
-      if (scale === 1) transform += ``;
-      else transform += `scale(${scale})`;
-    }
-
-    if (leftT || topT) {
-      this.posSet = true;
-      transform += 'translate(' + leftT + 'px,' + topT + 'px)';
-    }
-
-    if (transform) {
-      el.style.transform = transform;
-    }
-
-    // Return the updated position object
-    return currentPosition;
-  }
 }
 
 /**
@@ -1032,22 +974,24 @@ export class PresetContainer extends FormApplication {
  * @param {*} e item click event
  * @param {*} itemList list of items that this item exists within
  */
-export function itemSelect(e, itemList) {
-  const item = $(e.target).closest('.item');
+export function itemSelect(event, element, itemList) {
+  if (!itemList) itemList = $(element).closest('.item-list');
+  const item = $(element);
   const items = itemList.find('.item');
   const lastSelected = items.filter('.last-selected');
 
-  if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+  if (!event.ctrlKey && !event.metaKey && !event.shiftKey) {
     lastSelected.removeClass('last-selected');
+    const wasSelected = item.hasClass('selected');
     items.removeClass('selected');
-    item.addClass('selected').addClass('last-selected');
-  } else if (e.ctrlKey || e.metaKey) {
+    if (!wasSelected) item.addClass('selected').addClass('last-selected');
+  } else if (event.ctrlKey || event.metaKey) {
     item.toggleClass('selected');
     if (item.hasClass('selected')) {
       lastSelected.removeClass('last-selected');
       item.addClass('last-selected');
     } else item.removeClass('last-index');
-  } else if (e.shiftKey) {
+  } else if (event.shiftKey) {
     if (lastSelected.length) {
       let itemIndex = items.index(item);
       let lastSelectedIndex = items.index(lastSelected);
@@ -1072,14 +1016,19 @@ export function itemSelect(e, itemList) {
   }
 }
 
+/**
+ * Check if mouse is currently within bound of an application
+ * @param {*} event
+ * @returns
+ */
 function checkMouseInWindow(event) {
   let inWindow = false;
 
   if (ui.sidebar?.element?.length) {
-    inWindow = _coordOverElement(event.pageX, event.pageY, ui.sidebar.element);
+    inWindow = _coordOverElement(event.pageX, event.pageY, $(ui.sidebar.element));
   }
   if (!inWindow) {
-    inWindow = _coordOverElement(event.pageX, event.pageY, $(event.target).closest('.window-app'));
+    inWindow = _coordOverElement(event.pageX, event.pageY, $(event.target).closest('.application'));
   }
 
   return inWindow;

@@ -181,15 +181,16 @@
   flex: 1;
   justify-content: center;
   align-items: center;
+  margin-bottom: 3px;
 }
 
 .preset-browser .preset-header .window-controls {
-  margin-left: 4px;
+  margin-left: 1px;
   border-left: 2px solid gray;
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
-  padding-bottom: 12px;
-  padding-left: 5px;
+  padding-bottom: 0px;
+  padding-left: 4px;
 }
 
 .preset-browser .preset-header .window-controls .header-control {
@@ -262,6 +263,7 @@
   border-top: 1px solid dimgray;
   box-shadow: none;
   position: relative;
+  margin-bottom: 0;
 }
 
 .preset-browser .folder {
@@ -317,7 +319,7 @@
 }
 
 .preset-browser .folder.drag-mid > header h3 {
-  font-size: var(--font-size-18);
+  font-size: var(--font-size-16);
   color: orange;
 }
 
@@ -346,7 +348,7 @@
 .preset-browser .folder header h3 {
   margin: 0;
   color: var(--color-text-light-highlight);
-  font-size: var(--font-size-16);
+  font-size: var(--font-size-14);
   line-height: 24px;
   border: none;
 }
@@ -369,9 +371,9 @@
 }
 
 .preset-browser .item img {
-  flex: 0 0 var(--sidebar-item-height);
-  height: var(--sidebar-item-height);
-  width: var(--sidebar-item-height);
+  flex: 0 0 48px;
+  height: 48px;
+  width: 48px;
   object-fit: cover;
   object-position: center;
   border: none;

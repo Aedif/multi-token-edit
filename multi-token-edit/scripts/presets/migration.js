@@ -144,9 +144,7 @@ export class V12Migrator {
 
       setTimeout(() => {
         delete PresetTree._packTrees[pack.metadata.id];
-        Object.values(ui.windows)
-          .find((app) => app instanceof PresetBrowser)
-          ?.render(true);
+        foundry.applications.instances.get(PresetBrowser.DEFAULT_OPTIONS.id)?.render(true);
       }, 500);
     }
 

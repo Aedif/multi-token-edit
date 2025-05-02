@@ -544,7 +544,7 @@ export class FileIndexer {
     if (source === 'forge-bazaar' || source === 'forgevtt') {
       return this._fauxForgeBrowser?.get(dir) ?? { dirs: [], files: [] };
     } else {
-      return await FilePicker.browse(source, dir, options);
+      return await foundry.applications.apps.FilePicker.implementation.FilePicker.browse(source, dir, options);
     }
   }
 
