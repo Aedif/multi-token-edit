@@ -34,6 +34,8 @@ export async function registerPresetHandlebarPartials() {
 export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplicationMixin(
   foundry.applications.api.ApplicationV2
 ) {
+  static _oldPositions = {};
+
   constructor(opts1, opts2) {
     super(opts2);
 
@@ -63,6 +65,28 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
     },
   };
 
+  /** @override */
+  setPosition(...args) {
+    const position = super.setPosition(...args);
+
+    const { left, top, width, height } = position;
+    PresetContainerV2._oldPositions[this.id] = { left, top, width, height };
+
+    return position;
+  }
+
+  /** @override */
+  _initializeApplicationOptions(options) {
+    options = super._initializeApplicationOptions(options);
+
+    if (!options.preventPositionOverride) {
+      const oldPosition = PresetContainerV2._oldPositions[options.id];
+      if (oldPosition && options.position) Object.assign(options.position, oldPosition);
+    }
+
+    return options;
+  }
+
   /**
    * Handle mouse click on a preset
    * @param {EvenPointerEventt} event
@@ -89,7 +113,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
 
   /**
    * Manage video/sound preview playing on mouse enter and leave
-   * @param {*} html
+   * @param {JQuery} html
    */
   _attachPreviewListeners(html) {
     html.on('mouseenter', '.item', (event) => {
@@ -102,7 +126,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
 
   /**
    * Manage preset drag and drop listeners
-   * @param {*} html
+   * @param {JQuery} html
    */
   _attachDragDropListeners(html) {
     html.on('dragstart', '.item', (event) => {
@@ -365,6 +389,9 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
     this._setInteractivityState(true);
   }
 
+  /**
+   * Opens directory indexer
+   */
   static async _onOpenIndexer() {
     if (FileIndexer._buildingIndex) {
       ui.notifications.warn('Index Build In-Progress. Wait for it to finish before attempting it again.');
@@ -677,13 +704,20 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
     BrushMenu.addPresets(selected);
   }
 
-  async _onOpenJournal(item) {
+  /**
+   * Open journals of selected presets.
+   */
+  async _onOpenJournal() {
     const [selected, _] = await this._getSelectedPresets({
       editableOnly: false,
     });
     selected.forEach((p) => p.openJournal());
   }
 
+  /**
+   * Open PresetConfig form to edit all selected presets.
+   * @param {HTMLElement} item
+   */
   async _onEditSelectedPresets(item) {
     const [selected, _] = await this._getSelectedPresets({
       virtualOnly: item.classList.contains('virtual'),
@@ -699,6 +733,13 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
     }
   }
 
+  /**
+   * Returns an array of selected presets and their elements
+   * @param {Boolean} editableOnly filter and return editable presets only
+   * @param {Boolean} virtualOnly filter and return virtual presets only
+   * @param {Boolean} full load preset data before returning
+   * @returns {Array[Array[Preset], Array[Jquery]}
+   */
   async _getSelectedPresets({ editableOnly = false, virtualOnly = false, full = true } = {}) {
     const uuids = [];
     let selector = '.item.selected';
@@ -784,6 +825,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
     }
   }
 
+  // TODO confirm if this is correct way to handle APP v2
   async close(options = {}) {
     this._endPreview();
     return super.close(options);

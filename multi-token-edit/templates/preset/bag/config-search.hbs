@@ -1,0 +1,46 @@
+<div class="tab{{#if tab.active}} active{{/if}}" data-group="{{tab.group}}" data-tab="{{tab.id}}">    
+    <p class="hint">Preset searches to be performed and included within the bag.</p>
+    <fieldset>
+        <legend>Inclusive Search <a data-action="addSearchTerm" data-type="inclusive"><i class="fas fa-plus"></i></a></legend>
+        <p class="hint">These searches will <b>include</b> matched presets within the bag.</p>
+        {{#each searches.inclusive as |search| }}
+        <div class="form-group">
+            <div class="search">
+                <input class="terms" type="text" value="{{search.terms}}" name="searches.inclusive.{{@index}}.terms">
+                <div class="match" title="All tags within the search must be matched.">
+                    <label><i class="fa-solid fa-tag"></i> All</label>
+                    <input type="checkbox" name="searches.inclusive.{{@index}}.matchAll" {{checked search.matchAll}}>
+                </div>
+                <a data-action="removeSearchTerm" data-index="{{@index}}" data-type="inclusive"><i class="fas fa-trash"></i></a>
+            </div>
+        </div>
+        {{/each}}
+    </fieldset>
+
+    <br>
+
+    <fieldset>
+        <legend>Exclusive Search <a data-action="addSearchTerm" data-type="exclusive"><i class="fas fa-plus"></i></a></legend>
+        <p class="hint">These searches will <b>exclude</b> matched presets from the bag.</p>
+        {{#each searches.exclusive as |search| }}
+        <div class="form-group">
+            <div class="search">
+                <input class="terms" type="text" value="{{search.terms}}" name="searches.exclusive.{{@index}}.terms">
+                <div class="match" title="All tags within the search must be matched.">
+                    <label><i class="fa-solid fa-tag"></i> All</label>
+                    <input type="checkbox" name="searches.exclusive.{{@index}}.matchAll" {{checked search.matchAll}}>
+                </div>
+                <a data-action="removeSearchTerm" data-index="{{@index}}" data-type="exclusive"><i class="fas fa-trash"></i></a>
+            </div>
+        </div>
+        {{/each}}
+    </fieldset>
+
+    <br>
+
+    <div class="form-group">
+        <label>Virtual Directory</label>
+        <input type="checkbox" name="virtualDirectory" {{checked virtualDirectory}}>
+        <p class="hint">Should virtual directories be included in searches?</p>
+    </div>
+</div>

@@ -26,7 +26,8 @@ export async function openCategoryBrowser(
   } = {}
 ) {
   // // If category browser is already open close it
-  const app = foundry.applications.instances.values().find((i) => i._browserId === name);
+  const id = 'mass-edit-category-browser-' + (name?.slugify() ?? foundry.utils.randomID());
+  const app = foundry.applications.instances.get(id);
   if (app) {
     app.close(true);
     return;
@@ -43,6 +44,7 @@ export async function openCategoryBrowser(
     disableDelete,
     width,
     height,
+    id,
   }).render(true);
 }
 
@@ -113,7 +115,7 @@ class CategoryBrowserApplication extends PresetContainerV2 {
 
   /** @override */
   static PARTS = {
-    main: { template: `modules/${MODULE_ID}/templates/preset/categoryBrowser.html` },
+    main: { template: `modules/${MODULE_ID}/templates/preset/categoryBrowser.hbs` },
   };
 
   static oldMenuStates = {};
@@ -121,24 +123,22 @@ class CategoryBrowserApplication extends PresetContainerV2 {
   _menus = [];
   _categories = new Map();
 
-  // Track positions of previously opened apps
-  static previousPositions = {};
-
   constructor(menu, options = {}) {
-    const id = options.name ?? foundry.utils.randomID();
-    let positionOpts = CategoryBrowserApplication.previousPositions[id] ?? {};
-    super({}, { ...options, ...positionOpts });
-    this._browserId = id;
+    if (options.retainState && CategoryBrowserApplication.oldMenuStates[options.id]) {
+      const { globalSearch } = CategoryBrowserApplication.oldMenuStates[options.id];
+      options.globalSearch = globalSearch;
+    }
+
+    super({}, options);
 
     // If the state of the window was set to be retained we retrieve it now
     // and run the necessary queries to get the results
-    if (options.retainState && CategoryBrowserApplication.oldMenuStates[this._browserId]) {
-      const { menus, categories, lastSearch, globalSearch } = CategoryBrowserApplication.oldMenuStates[this._browserId];
+    if (options.retainState && CategoryBrowserApplication.oldMenuStates[options.id]) {
+      const { menus, categories, lastSearch } = CategoryBrowserApplication.oldMenuStates[options.id];
       this._menus = menus;
       this._categories = categories;
       this._lastSearch = lastSearch;
-      this.options.globalSearch = globalSearch;
-      this._runQueryTree();
+      this._forceQueryRun = true;
     } else {
       // Otherwise we process the fed in JSON menu structure
       this._processMenu(menu)._topMenu = true;
@@ -152,11 +152,6 @@ class CategoryBrowserApplication extends PresetContainerV2 {
     return options;
   }
 
-  /** @override */
-  get id() {
-    return 'mass-edit-category-browser-' + this._browserId;
-  }
-
   get title() {
     return this.options.name ?? 'Category Browser';
   }
@@ -164,6 +159,11 @@ class CategoryBrowserApplication extends PresetContainerV2 {
   /** @override */
   async _prepareContext(options) {
     const context = await super._prepareContext(options);
+
+    if (this._forceQueryRun) {
+      this._forceQueryRun = false;
+      await this._runQueryTree(true);
+    }
 
     return Object.assign(context, {
       menus: this._menus.filter((menu) => menu.active),
@@ -290,7 +290,7 @@ class CategoryBrowserApplication extends PresetContainerV2 {
    * @param {Boolean} global
    * @returns
    */
-  async _runQueryTree() {
+  async _runQueryTree(resultsOnly = false) {
     const runTime = new Date().getTime();
     this._queryRunTime = runTime;
     this._presetResults = null;
@@ -332,7 +332,7 @@ class CategoryBrowserApplication extends PresetContainerV2 {
     if (this._queryRunTime !== runTime) return;
     this._presetResults = results;
 
-    return this._renderContent();
+    if (!resultsOnly) return this._renderContent();
   }
 
   /**
@@ -372,17 +372,9 @@ class CategoryBrowserApplication extends PresetContainerV2 {
     });
   }
 
-  /** @override */
-  setPosition(...args) {
-    super.setPosition(...args);
-
-    const { left, top, width, height } = this.position;
-    CategoryBrowserApplication.previousPositions[this._browserId] = { left, top, width, height };
-  }
-
   async close(options = {}) {
     if (this.options.retainState) {
-      CategoryBrowserApplication.oldMenuStates[this._browserId] = {
+      CategoryBrowserApplication.oldMenuStates[this.id] = {
         menus: this._menus,
         categories: this._categories,
         lastSearch: this._lastSearch,

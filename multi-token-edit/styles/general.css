@@ -383,7 +383,7 @@
 .preset-browser .item .icon {
   position: absolute;
   left: 2px;
-  color: white;
+  color: var(--color-text-primary);
   bottom: 2px;
 }
 

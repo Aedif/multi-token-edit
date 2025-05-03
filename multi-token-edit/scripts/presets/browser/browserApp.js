@@ -69,11 +69,6 @@ export class PresetBrowser extends PresetContainerV2 {
   }
 
   constructor(configApp, callback, documentName, options = {}) {
-    // Restore position and dimensions the previously closed window
-    if (!options.preventPositionOverride && PresetBrowser.previousPosition) {
-      options = { ...options, ...PresetBrowser.previousPosition };
-    }
-
     super({}, { ...options, sortable: true, duplicatable: true });
     this.callback = callback;
 
@@ -126,7 +121,7 @@ export class PresetBrowser extends PresetContainerV2 {
   /** @override */
   static PARTS = {
     overlay: { template: `modules/${MODULE_ID}/templates/drag-hover-overlay.hbs` },
-    main: { template: `modules/${MODULE_ID}/templates/preset/browser.html` },
+    main: { template: `modules/${MODULE_ID}/templates/preset/browser.hbs` },
   };
 
   get title() {
@@ -710,7 +705,6 @@ export class PresetBrowser extends PresetContainerV2 {
   }
 
   static async _onToggleSetting(event, element) {
-    console.log('TOGGLE SETTING', event, element);
     const setting = element.dataset.setting;
     await PresetBrowser.setSetting(setting, !PresetBrowser.CONFIG[setting]);
     this.render(true);
@@ -747,24 +741,6 @@ export class PresetBrowser extends PresetContainerV2 {
       this._tagSelector = new TagSelector(this);
       this._tagSelector.render(true);
     }
-  }
-
-  /**
-   * @override
-   * Application.setPosition(...) has been modified to use css transform for window translation across the screen
-   * instead of top/left css properties which force full-window style recomputation
-   */
-  setPosition(...args) {
-    const position = super.setPosition(...args);
-
-    // Track position post window close
-    if (!this.options.preventPositionOverride) {
-      const { left, top, width, height } = position;
-      PresetBrowser.previousPosition = { left, top, width, height };
-    }
-
-    // Return the updated position object
-    return position;
   }
 
   async close(options = {}) {
@@ -898,47 +874,47 @@ export class PresetBrowser extends PresetContainerV2 {
   }
 
   _getHeaderControls() {
-    const buttons = super._getHeaderControls();
+    const controls = super._getHeaderControls();
 
     if (game.packs.get(PresetCollection.workingPack)?.locked) {
-      buttons.push({
+      controls.push({
         label: 'Un-Lock Working Compendium',
         icon: 'fas fa-lock fa-fw',
         action: 'toggleCompendiumLock',
       });
     }
 
-    buttons.push({
+    controls.push({
       label: 'Compendium',
       icon: 'fas fa-atlas',
       action: 'workingPackChange',
     });
 
-    buttons.push({
+    controls.push({
       label: 'Directory Indexer',
       icon: 'fas fa-archive',
       action: 'openIndexer',
     });
 
-    buttons.push({
+    controls.push({
       label: 'Import Presets',
       icon: 'fas fa-file-import',
       action: 'importPresets',
     });
 
-    buttons.push({
+    controls.push({
       label: 'Export Presets',
       icon: 'fas fa-file-export',
       action: 'exportPresets',
     });
 
-    buttons.push({
+    controls.push({
       label: 'Browser Settings',
       icon: 'fas fa-gear',
       action: 'openSettingConfig',
     });
 
-    return buttons;
+    return controls;
   }
 
   static async _onWorkingPackChange() {

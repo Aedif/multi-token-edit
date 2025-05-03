@@ -622,7 +622,7 @@ export async function loadImageVideoDimensions(src) {
   let width, height;
 
   try {
-    const baseTexture = (await loadTexture(src)).baseTexture;
+    const baseTexture = (await foundry.canvas.loadTexture(src)).baseTexture;
     width = baseTexture.width;
     height = baseTexture.height;
   } catch (e) {}

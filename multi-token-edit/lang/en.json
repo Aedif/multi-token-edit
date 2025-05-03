@@ -170,7 +170,12 @@
       "search-presets": "Search Presets",
       "search-presets-folders": "Search Presets & Folders",
       "delete-presets-warn": "You are about to permanently delete [ {count} ] presets.",
-      "spawn-random": "Instead of the entire group, spawn a random placeable."
+      "spawn-random": "Instead of the entire group, spawn a random placeable.",
+      "bag": {
+        "search": "Search",
+        "appearance": "Appearance",
+        "misc": "Misc."
+      }
     },
     "css": {
       "pick": "Pick a style:"

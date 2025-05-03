@@ -1,0 +1,33 @@
+<div class="tab{{#if tab.active}} active{{/if}}" data-group="{{tab.group}}" data-tab="{{tab.id}}"> 
+    <fieldset>
+        <legend>Header</legend>
+        <div class="form-group">
+            <label>Color</label>
+            <div class="form-fields">
+                <color-picker name="appearance.header.color" value="{{appearance.header.color}}"></color-picker>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Opacity</label>
+            <div class="form-fields">
+                {{ rangePicker name="appearance.header.alpha" value=appearance.header.alpha min="0" max="1" step="0.05" }}
+            </div>
+        </div>
+    </fieldset>
+
+    <fieldset>
+        <legend>Background</legend>
+        <div class="form-group">
+            <label>Color</label>
+            <div class="form-fields">
+                <color-picker name="appearance.background.color" value="{{appearance.background.color}}"></color-picker>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Opacity</label>
+            <div class="form-fields">
+                {{ rangePicker name="appearance.background.alpha" value=appearance.background.alpha min="0" max="1" step="0.05" }}
+            </div>
+        </div>
+    </fieldset>
+</div>

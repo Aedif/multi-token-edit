@@ -1,7 +1,8 @@
 import { BrushMenu } from '../brush.js';
 import { MODULE_ID } from '../constants.js';
+import { localize } from '../utils.js';
 import { PresetAPI } from './collection.js';
-import { PresetContainer } from './containerApp.js';
+import { PresetContainerV2 } from './containerAppV2.js';
 import { Preset } from './preset.js';
 
 export async function openBag(uuid) {
@@ -29,40 +30,53 @@ export async function openBag(uuid) {
 
   const preset = await PresetAPI.getPreset({ uuid });
 
-  new BagApplication(preset).render(true);
+  new BagApplication({ preset, id: 'mass-edit-bag-' + uuid }).render(true);
 }
 
-class BagApplication extends PresetContainer {
-  // Track positions of previously opened bags
-  static previousPositions = {};
-
-  constructor(preset, options = {}) {
-    let positionOpts = BagApplication.previousPositions[preset.uuid] ?? {};
-
-    super({}, { ...options, forceAllowDelete: true, ...positionOpts });
-    this.preset = preset;
+class BagApplication extends PresetContainerV2 {
+  constructor(options = {}) {
+    super({}, { ...options, forceAllowDelete: true });
+    this.preset = options.preset;
     this.presetBag = true;
   }
 
-  /** @inheritdoc */
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      classes: ['sheet', 'mass-edit-dark-window', 'mass-edit-bag'],
-      template: `modules/${MODULE_ID}/templates/preset/bag/bag.html`,
-      width: 360,
-      height: 360,
+  static DEFAULT_OPTIONS = {
+    tag: 'form',
+    classes: ['mass-edit-window-fill'],
+    form: {
+      handler: undefined,
+      submitOnChange: true,
+      closeOnSubmit: false,
+    },
+    window: {
+      contentClasses: ['standard-form', 'mass-edit-bag'],
       resizable: true,
       minimizable: true,
-      scrollY: ['.item-list'],
-    });
-  }
+    },
+    position: {
+      width: 360,
+      height: 360,
+    },
+    actions: {
+      configureBag: BagApplication._onConfigureBag,
+      createMacro: BagApplication._onCreateMacro,
+      refreshSearch: BagApplication._onRefreshSearch,
+    },
+  };
+
+  /** @override */
+  static PARTS = {
+    main: { template: `modules/${MODULE_ID}/templates/preset/bag/bag.hbs` },
+  };
 
   /* -------------------------------------------- */
 
-  /** @override */
-  get id() {
-    return 'mass-edit-bag-' + this.preset.uuid;
-  }
+  // /** @override */
+  // _initializeApplicationOptions(options) {
+  //   options = super._initializeApplicationOptions(options);
+  //   options.uniqueId = 'mass-edit-bag-' + options.preset.uuid;
+  //   return options;
+  // }
 
   /** @override */
   get title() {
@@ -70,7 +84,9 @@ class BagApplication extends PresetContainer {
   }
 
   /** @override */
-  async getData(options) {
+  async _prepareContext(options) {
+    const context = await super._prepareContext(options);
+
     const bag = this.preset.data[0];
 
     let uuids = bag.uuids.map((i) => i.uuid);
@@ -79,19 +95,23 @@ class BagApplication extends PresetContainer {
       ? await PresetAPI.getPresets({ uuid: bag.completedSearch, full: false })
       : null;
 
-    return {
+    return Object.assign(context, {
       containedPresets,
       searchedPresets,
       displayLabels: containedPresets && searchedPresets,
       searchBar: bag.searchBar,
-    };
+    });
   }
 
   /** @override */
-  activateListeners(html) {
-    super.activateListeners(html);
-    this.setAppearance();
-    html.find('.header-search input').on('input', this._onSearchInput.bind(this));
+  _attachPartListeners(partId, element, options) {
+    super._attachPartListeners(partId, element, options);
+    switch (partId) {
+      case 'main':
+        $(element).find('.header-search input').on('input', this._onSearchInput.bind(this));
+        this.setAppearance();
+        break;
+    }
   }
 
   _onSearchInput(event) {
@@ -149,7 +169,7 @@ class BagApplication extends PresetContainer {
       }
     }
 
-    this.preset.update({ data: { uuids: bag.uuids } });
+    await this.preset.update({ data: { uuids: bag.uuids } });
     this.render(true);
   }
 
@@ -168,43 +188,42 @@ class BagApplication extends PresetContainer {
     }
   }
 
+  static _onConfigureBag() {
+    new BagConfig(this.preset, this).render(true);
+  }
+
   /** @override */
-  _getHeaderButtons() {
-    const buttons = super._getHeaderButtons();
+  _getHeaderControls() {
+    const controls = super._getHeaderControls();
 
     if (game.user.isGM) {
       if (Preset.isEditable(this.preset.uuid)) {
-        buttons.unshift({
-          label: '',
-          class: 'mass-edit-bag-configure',
+        controls.unshift({
+          label: 'Configure Bag',
           icon: 'fa-solid fa-gear',
-          onclick: () => {
-            new BagConfig(this.preset, this).render(true);
-          },
+          action: 'configureBag',
         });
       }
 
-      buttons.unshift({
-        label: '',
-        class: 'mass-edit-bag-macro',
+      controls.unshift({
+        label: 'Create Macro',
         icon: 'fas fa-terminal',
-        onclick: this._onCreateMacro.bind(this),
+        action: 'createMacro',
       });
     }
 
     if (game.user.isGM && Preset.isEditable(this.preset.uuid)) {
-      buttons.unshift({
-        label: '',
-        class: 'mass-edit-bag-refresh',
+      controls.unshift({
+        label: 'Refresh Bag',
         icon: 'fa-solid fa-arrows-rotate',
-        onclick: this._onRefreshSearch.bind(this),
+        action: 'refreshSearch',
       });
     }
 
-    return buttons;
+    return controls;
   }
 
-  async _onCreateMacro() {
+  static async _onCreateMacro() {
     const response = await new Promise((resolve) => {
       Dialog.confirm({
         title: 'Create Bag Macro',
@@ -227,7 +246,7 @@ class BagApplication extends PresetContainer {
     macro.sheet.render(true);
   }
 
-  async _onRefreshSearch(notify = true) {
+  static async _onRefreshSearch(notify = true) {
     if (this.refreshing) {
       ui.notification.warn('Refresh is in progress. Please wait.');
       return;
@@ -272,7 +291,7 @@ class BagApplication extends PresetContainer {
       },
     });
     if (notify) ui.notifications.info('Bag contents have been refreshed: ' + this.preset.name);
-    this.render(true);
+    await this.render(true);
     this.refreshing = false;
   }
 
@@ -312,55 +331,64 @@ class BagApplication extends PresetContainer {
       BrushMenu.addPresets(selected);
     } else return super._onActivateBrush(item);
   }
-
-  /** @override */
-  setPosition(...args) {
-    super.setPosition(...args);
-
-    const { left, top, width, height } = this.position;
-    BagApplication.previousPositions[this.preset.uuid] = { left, top, width, height };
-  }
 }
 
-class BagConfig extends FormApplication {
+class BagConfig extends foundry.applications.api.HandlebarsApplicationMixin(foundry.applications.api.ApplicationV2) {
   constructor(preset, parentForm) {
-    super({}, {});
+    super({ preset });
     this.preset = preset.clone();
     this._originalPreset = preset;
     this.parentForm = parentForm;
   }
 
-  /** @inheritdoc */
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      classes: ['sheet', 'mass-edit-dark-window', 'mass-edit-bag-config'],
-      template: `modules/${MODULE_ID}/templates/preset/bag/config.html`,
-      width: 370,
-      height: 'auto',
-      tabs: [{ navSelector: '.sheet-tabs', contentSelector: '.content', initial: 'search' }],
+  static DEFAULT_OPTIONS = {
+    tag: 'form',
+    form: {
+      handler: BagConfig._onSubmit,
+      submitOnChange: true,
+      closeOnSubmit: false,
       resizable: false,
       minimizable: true,
-    });
-  }
+    },
+    window: {
+      contentClasses: ['standard-form', 'mass-edit-bag-config'],
+    },
+    position: {
+      width: 370,
+      height: 'auto',
+    },
+    actions: {
+      addSearchTerm: BagConfig._onAddSearchTerm,
+      removeSearchTerm: BagConfig._onRemoveSearchTerm,
+    },
+  };
 
   /** @override */
-  activateListeners(html) {
-    super.activateListeners(html);
+  static TABS = {
+    main: {
+      tabs: [
+        { id: 'search', icon: 'fa-solid fa-magnifying-glass' },
+        { id: 'appearance', icon: 'fa-solid fa-palette' },
+        { id: 'misc', icon: 'fas fa-cogs' },
+      ],
+      initial: 'search',
+      labelPrefix: 'MassEdit.presets.bag',
+    },
+  };
 
-    html.on('click', '.addSearchTerm', this._onAddSearchTerm.bind(this));
-    html.on('click', '.removeSearchTerm', this._onRemoveSearchTerm.bind(this));
-
-    //html.on('input', 'color-picker', this._onAppearanceFieldChange.bind(this));
-    html.on('change', 'color-picker, [type="range"]', this._onAppearanceFieldChange.bind(this));
-    html.on('input', 'input', () => this._saveState());
-  }
+  /** @override */
+  static PARTS = {
+    tabs: { template: 'templates/generic/tab-navigation.hbs' },
+    search: { template: `modules/${MODULE_ID}/templates/preset/bag/config-search.hbs` },
+    appearance: { template: `modules/${MODULE_ID}/templates/preset/bag/config-appearance.hbs` },
+    misc: { template: `modules/${MODULE_ID}/templates/preset/bag/config-misc.hbs` },
+    footer: { template: 'templates/generic/form-footer.hbs' },
+  };
 
   _saveState(formData, clearEmptySearch = false) {
-    if (!formData) formData = this._getSubmitData();
+    formData = foundry.utils.expandObject(formData.object);
 
-    formData = foundry.utils.expandObject(formData);
-
-    ['inclusive', 'exclusive'].forEach((type) => {
+    [('inclusive', 'exclusive')].forEach((type) => {
       if (formData.searches?.[type]) {
         const searches = [];
         let i = 0;
@@ -378,39 +406,31 @@ class BagConfig extends FormApplication {
     this.preset.data[0].virtualDirectory = formData.virtualDirectory;
     this.preset.data[0].appearance = formData.appearance;
     this.preset.data[0].searchBar = formData.searchBar;
+
+    this.parentForm?.setAppearance(formData.appearance);
   }
 
-  async _onAppearanceFieldChange() {
-    const appearance = foundry.utils.expandObject(this._getSubmitData()).appearance;
-    this.parentForm?.setAppearance(appearance);
-  }
-
-  async _onAddSearchTerm(event) {
-    const type = $(event.currentTarget).data('type');
-
+  static async _onAddSearchTerm(event, target) {
+    const type = target.dataset.type;
     this.preset.data[0].searches[type].push({
       terms: '',
       matchAll: true,
     });
-
     this.render(true);
   }
 
-  async _onRemoveSearchTerm(event) {
-    const type = $(event.currentTarget).data('type');
-    const index = $(event.currentTarget).data('index');
+  static async _onRemoveSearchTerm(event, target) {
+    const type = target.dataset.type;
+    const index = target.dataset.index;
 
     this.preset.data[0].searches[type].splice(index, 1);
     this.render(true);
   }
 
   /** @override */
-  _getFolderContextOptions() {
-    return [];
-  }
+  async _prepareContext(options) {
+    const context = await super._prepareContext(options);
 
-  /** @override */
-  async getData(options) {
     const data = this.preset.data[0];
     if (!data.appearance) {
       data.appearance = {
@@ -424,17 +444,32 @@ class BagConfig extends FormApplication {
         },
       };
     }
-    return data;
+
+    context.buttons = [{ type: 'submit', icon: 'fas fa-check', label: localize('common.apply') }];
+
+    return Object.assign(context, data);
+  }
+
+  async _preparePartContext(partId, context, options) {
+    await super._preparePartContext(partId, context, options);
+    if (partId in context.tabs) context.tab = context.tabs[partId];
+    return context;
   }
 
   /**
-   * @param {Event} event
-   * @param {Object} formData
+   * Process form data
    */
-  async _updateObject(event, formData) {
+  static async _onSubmit(event, form, formData) {
     this._saveState(formData, true);
     this._originalPreset.update({ data: this.preset.data });
-    this.parentForm?._onRefreshSearch(false);
+
+    if (event.type === 'submit') {
+      if (this.parentForm) {
+        BagApplication._onRefreshSearch.call(this.parentForm, false);
+        this.parentForm.setAppearance();
+      }
+      this.close(true);
+    }
   }
 
   /** @override */
@@ -443,7 +478,9 @@ class BagConfig extends FormApplication {
   }
 
   /** @override */
-  get id() {
-    return `mass-edit-bag-config-` + this.preset.uuid;
+  _initializeApplicationOptions(options) {
+    options = super._initializeApplicationOptions(options);
+    options.uniqueId = 'mass-edit-bag-config-' + options.preset.uuid;
+    return options;
   }
 }

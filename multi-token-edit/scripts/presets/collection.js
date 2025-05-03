@@ -635,37 +635,36 @@ export class PresetAPI {
     full = true,
     presets,
   } = {}) {
-    let results;
     if (uuid) {
-      results = [];
       const uuids = Array.isArray(uuid) ? uuid : [uuid];
-      return await PresetCollection.getBatch(uuids, { full });
+      presets = await PresetCollection.getBatch(uuids, { full });
     } else if (!name && !types && !folder && !tags && !query)
       throw Error('UUID, Name, Type, Folder, Tags, and/or Query required to retrieve Presets.');
     else if (query && (types || folder || tags || name))
       throw console.warn(`When 'query' is provided 'types', 'folder', 'tags', and 'name' arguments are ignored.`);
+    else {
+      let search, negativeSearch;
+      if (query) {
+        ({ search, negativeSearch } = parseSearchQuery(query, { matchAny }));
+      } else {
+        if (tags) {
+          if (Array.isArray(tags)) tags = { tags, matchAny };
+          else if (typeof tags === 'string') tags = { tags: tags.split(','), matchAny };
+        }
 
-    let search, negativeSearch;
-    if (query) {
-      ({ search, negativeSearch } = parseSearchQuery(query, { matchAny }));
-    } else {
-      if (tags) {
-        if (Array.isArray(tags)) tags = { tags, matchAny };
-        else if (typeof tags === 'string') tags = { tags: tags.split(','), matchAny };
+        search = { name, types, folder, tags };
       }
+      if (!search && !negativeSearch) return [];
 
-      search = { name, types, folder, tags };
-    }
-    if (!search && !negativeSearch) return [];
-
-    if (presets) {
-      presets = PresetCollection._searchPresets(presets, search, negativeSearch);
-    } else {
-      presets = PresetCollection._searchPresetTree(
-        await PresetCollection.getTree(null, { externalCompendiums, virtualDirectory }),
-        search,
-        negativeSearch
-      );
+      if (presets) {
+        presets = PresetCollection._searchPresets(presets, search, negativeSearch);
+      } else {
+        presets = PresetCollection._searchPresetTree(
+          await PresetCollection.getTree(null, { externalCompendiums, virtualDirectory }),
+          search,
+          negativeSearch
+        );
+      }
     }
 
     // Incase these presets are to be rendered, we set the _render and _visible flags to true

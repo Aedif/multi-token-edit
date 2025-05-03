@@ -147,7 +147,7 @@ export async function applyRandomization(updates, objects, randomizeFields) {
             const height = objects?.[i]?.height ?? update.height;
             if (height != null && width != null) {
               try {
-                const tex = await loadTexture(update[field]);
+                const tex = await foundry.canvas.loadTexture(update[field]);
                 if (tex) {
                   const tileRatio = width / height;
                   const texRatio = tex.width / tex.height;

@@ -16,7 +16,7 @@ import { Spawner } from './scripts/presets/spawner.js';
 import { registerBehaviors } from './scripts/behaviors/behaviors.js';
 import { openBag } from './scripts/presets/bagApp.js';
 import { openCategoryBrowser } from './scripts/presets/categoryBrowserApp.js';
-import { PresetContainer, registerPresetHandlebarPartials } from './scripts/presets/containerApp.js';
+import { registerPresetHandlebarPartials } from './scripts/presets/containerAppV2.js';
 import { FileIndexerAPI } from './scripts/presets/fileIndexer.js';
 import { TransformBus, MassTransformer } from './scripts/transformer.js';
 
@@ -40,7 +40,6 @@ globalThis.MassEdit = {
   migrateAllPacks: (options = {}) => V12Migrator.migrateAllPacks(options),
   linker: LinkerAPI,
   PIVOTS: PIVOTS,
-  PresetContainer,
   importSceneCompendium,
   openPresetBrowser,
   FileIndexer: FileIndexerAPI,
