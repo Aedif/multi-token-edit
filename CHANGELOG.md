@@ -1,3 +1,7 @@
+# 2.0.0
+
+- Foundry v13 Support
+
 # 1.87.2
 
 - External modules can register messages to be shown when FauxScene import fails.
