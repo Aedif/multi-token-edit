@@ -844,7 +844,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
     }
 
     // If release on top of a Preset Bag, pass dragged UUIDs to it
-    let forms = Object.values(ui.windows).filter((w) => w.presetBag);
+    let forms = Array.from(foundry.applications.instances.values()).filter((w) => w.presetBag);
     for (const form of forms) {
       if (form && hoverForm(form, event.pageX, event.pageY)) {
         form._dropUuids(this.dragData);

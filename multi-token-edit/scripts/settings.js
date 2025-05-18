@@ -444,7 +444,7 @@ export function registerKeybinds() {
     onDown: () => {
       // Check if a Mass Config form is open and if so copy data from there
       if (window.getSelection().toString() === '') {
-        const app = Object.values(ui.windows).find((app) => app.meObjects != null);
+        const app = Array.from(foundry.applications.instances.values()).find((app) => app.meObjects != null);
         if (app) return app.performMassCopy();
       }
 

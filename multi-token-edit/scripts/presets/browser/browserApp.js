@@ -1236,7 +1236,7 @@ export function registerPresetBrowserHooks() {
       let documentName = canvas.activeLayer.constructor.documentName;
       if (!SUPPORTED_PLACEABLES.includes(documentName)) documentName = 'ALL';
 
-      const presetForm = Object.values(ui.windows).find((app) => app instanceof PresetBrowser);
+      const presetForm = foundry.applications.instances.get('mass-edit-presets');
       if (presetForm) {
         presetForm.close();
         return;

@@ -221,15 +221,15 @@ export default class ScenescapeConfig extends FormApplication {
 
   _onMinimize() {
     this.minimize();
-    Object.values(ui.windows)
-      .find((w) => w.object?.id === this.scene.id)
+    Array.from(foundry.applications.instances.values())
+      .find((w) => w.document?.id === this.scene.id)
       ?.minimize();
   }
 
   _onMaximize() {
     this.maximize();
-    Object.values(ui.windows)
-      .find((w) => w.object?.id === this.scene.id)
+    Array.from(foundry.applications.instances.values())
+      .find((w) => w.document?.id === this.scene.id)
       ?.maximize();
   }
 

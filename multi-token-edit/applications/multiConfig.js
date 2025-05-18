@@ -248,8 +248,5 @@ export function showGenericForm(data, name = 'GenericData', options) {
  * @returns
  */
 export function getMassEditForm() {
-  return (
-    Object.values(ui.windows).find((app) => app.meObjects != null) ??
-    Array.from(foundry.applications.instances.values()).find((app) => app.meObjects != null)
-  );
+  return Array.from(foundry.applications.instances.values()).find((app) => app.meObjects != null);
 }

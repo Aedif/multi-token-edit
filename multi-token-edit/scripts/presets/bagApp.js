@@ -21,8 +21,10 @@ export async function openBag(uuid) {
     uuid = journal.uuid;
   }
 
+  const id = 'mass-edit-bag-' + uuid;
+
   // If bag is already open toggle it off
-  const app = Object.values(ui.windows).find((w) => w.presetBag && w.preset.uuid === uuid);
+  const app = foundry.applications.instances.get(id);
   if (app) {
     app.close(true);
     return;
@@ -30,7 +32,7 @@ export async function openBag(uuid) {
 
   const preset = await PresetAPI.getPreset({ uuid });
 
-  new BagApplication({ preset, id: 'mass-edit-bag-' + uuid }).render(true);
+  new BagApplication({ preset, id }).render(true);
 }
 
 class BagApplication extends PresetContainerV2 {
