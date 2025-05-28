@@ -38,10 +38,12 @@ jobs:
           allowUpdates: true # set this to false if you want to prevent updating existing releases
           name: ${{ github.event.release.name }}
           token: ${{ secrets.GITHUB_TOKEN }}
+          prerelease: github.event.release.prerelease,
           artifacts: 'multi-token-edit/module.json, multi-token-edit/multi-token-edit.zip'
           tag: ${{ github.event.release.tag_name }}
           body: ${{ github.event.release.body }}
 
+      # Publish the release if it has been set as latest
       - name: Publish Module to FoundryVTT Website
         id: publish-to-foundry-website
         if: github.event.release.prerelease == false
