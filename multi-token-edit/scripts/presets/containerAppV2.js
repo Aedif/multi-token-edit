@@ -89,7 +89,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
 
   /**
    * Handle mouse click on a preset
-   * @param {EvenPointerEventt} event
+   * @param {PointerEvent} event
    * @param {HTMLElement} target
    * @returns
    */
@@ -355,7 +355,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
 
   /**
    * Handle mouse double-click on a preset
-   * @param {EvenPointerEventt} event
+   * @param {PointerEvent} event
    * @param {HTMLElement} target
    * @returns
    */

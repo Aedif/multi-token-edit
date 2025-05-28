@@ -176,11 +176,6 @@ async function update(document, change, options, userId) {
 
     for (const [documentName, updates] of docUpdates.entries()) {
       const options = { ignoreLinks: true, animate: false };
-      if (documentName === 'Token') {
-        options.RidingMovement = true; // 'Auto-Rotate' module compatibility
-        options.forced = true; // Regions
-      }
-      //await scene.updateEmbeddedDocuments(documentName, updates, options);
       await updateEmbeddedDocumentsViaGM(documentName, updates, options, scene);
     }
   });

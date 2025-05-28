@@ -46,7 +46,11 @@ export class LinkTokenRegionBehaviorType extends foundry.data.regionBehaviors.Re
   static async _onTokenMoveIn(event) {
     if (!isResponsibleGM()) return;
 
-    if (event.data.token.getFlag(MODULE_ID, 'disableLinkToken') || event.data.forced) return;
+    if (
+      event.data.token.getFlag(MODULE_ID, 'disableLinkToken') ||
+      !['dragging', 'keyboard', 'undo'].includes(event.data.movement.method)
+    )
+      return;
 
     if (LinkerAPI.areLinked(this.region, event.data.token)) return;
 
@@ -56,12 +60,12 @@ export class LinkTokenRegionBehaviorType extends foundry.data.regionBehaviors.Re
     LinkTokenRegionBehaviorType.queue.add(async () =>
       LinkerAPI.addLink(event.data.token, this.linkId, LINK_TYPES.RECEIVE, 'LinkTokenBehavior')
     );
-    return;
+    return;g
   }
 
   static async _onTokenMoveOut(event) {
     if (!isResponsibleGM()) return;
-    if (event.data.teleport || !event.data.forced) {
+    if (['dragging', 'keyboard', 'undo'].includes(event.data.movement.method)) {
       LinkTokenRegionBehaviorType.queue.add(async () => LinkerAPI.removeLink(event.data.token, this.linkId));
     }
   }

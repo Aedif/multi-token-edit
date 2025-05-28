@@ -1,3 +1,8 @@
+# 2.0.1
+
+- Fixed drag and drop not working on Preset Bags
+- Fixed 'Link Token' behavior decoupling Token after a single move
+
 # 2.0.0
 
 - Foundry v13 Support
