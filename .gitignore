@@ -1,6 +1,5 @@
 multi-token-edit/multi-token-edit.zip
 .vscode/settings.json
-multi-token-edit/packs/*
 multi-token-edit/bundle/*
 node_modules/*
 package-lock.json
