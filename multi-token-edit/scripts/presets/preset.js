@@ -319,6 +319,7 @@ export class Preset {
   clone() {
     const clone = new Preset(this.toJSON());
     clone.document = this.document;
+    clone._postSpawnHooks = this._postSpawnHooks;
     return clone;
   }
 }
@@ -421,6 +422,8 @@ export class VirtualFilePreset extends Preset {
   clone() {
     const data = this.toJSON();
     data.src = this._src;
-    return new VirtualFilePreset(data);
+    const clone = new VirtualFilePreset(data);
+    clone._postSpawnHooks = this._postSpawnHooks;
+    return clone;
   }
 }
