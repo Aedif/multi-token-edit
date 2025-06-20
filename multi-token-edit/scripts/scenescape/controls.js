@@ -34,11 +34,9 @@ export class ScenescapeControls {
   static _checkActivateControls() {
     if (Scenescape.active) {
       ScenescapeControls._register();
-      this.displayBlackBars(Scenescape.blackBars);
       enablePixelPerfectSelect(Scenescape.pixelPerfect);
     } else {
       ScenescapeControls._unregister();
-      this.displayBlackBars(false);
       enablePixelPerfectSelect();
     }
   }
@@ -348,36 +346,6 @@ export class ScenescapeControls {
     }
 
     return objects;
-  }
-
-  static displayBlackBars(display) {
-    let bars = canvas.primary.getChildByName('scenescapeBlackBars');
-    if (!display && bars) {
-      canvas.primary.removeChild(bars)?.destroy(true);
-    } else if (display) {
-      if (bars) canvas.primary.removeChild(bars)?.destroy(true);
-
-      bars = new PIXI.Container();
-      bars.name = 'scenescapeBlackBars';
-      bars.sortLayer = PrimaryCanvasGroup.SORT_LAYERS.DRAWINGS;
-      bars.elevation = 99999999;
-      bars.restrictsLight = true;
-
-      const graphics = new PIXI.Graphics();
-      bars.addChild(graphics);
-
-      const dimensions = canvas.scene.dimensions;
-
-      graphics.beginFill(0x000000);
-      graphics.drawRect(0, 0, dimensions.width, dimensions.height);
-      graphics.endFill();
-
-      graphics.beginHole();
-      graphics.drawRect(dimensions.sceneX, dimensions.sceneY, dimensions.sceneWidth, dimensions.sceneHeight);
-      graphics.endHole();
-
-      canvas.primary.addChild(bars);
-    }
   }
 }
 

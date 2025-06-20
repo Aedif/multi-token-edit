@@ -24,7 +24,7 @@ export class V12Migrator {
       }
 
       try {
-        this.migratePack({ pack, migrateFunc, transformFunc, coreMigration });
+        await this.migratePack({ pack, migrateFunc, transformFunc, coreMigration });
       } catch (e) {
         console.warn(`Mass Edit - Ran into an issue while migrating ${pack.metadata.label}`);
         console.error(e);

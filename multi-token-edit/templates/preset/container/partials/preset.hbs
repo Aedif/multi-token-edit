@@ -9,12 +9,12 @@
 
   <div class="item-controls flexrow">
     {{#if createEnabled}}
-    <div class="item-control preset-update"><a title="{{localize 'MassEdit.presets.update-preset'}}"><i class="fas fa-sync"></i></a></div>
+    <div class="item-control" data-action="presetUpdate"><a title="{{localize 'MassEdit.presets.update-preset'}}"><i class="fas fa-sync"></i></a></div>
     &nbsp;
     {{/if}}
     {{#if callback}}
     &nbsp;
-    <div class="item-control preset-callback"><a title="{{localize 'MassEdit.common.apply'}}"><i class="fa-solid fa-arrow-right-to-arc"></i></a></div>
+    <div class="item-control" data-action="applyPreset"><a title="{{localize 'MassEdit.common.apply'}}"><i class="fa-solid fa-arrow-right-to-arc"></i></a></div>
     {{/if}}
   </div>
   <i class="icon {{preset.icon}}"></i>

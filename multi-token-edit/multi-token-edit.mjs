@@ -19,6 +19,8 @@ import { openCategoryBrowser } from './scripts/presets/categoryBrowserApp.js';
 import { registerPresetHandlebarPartials } from './scripts/presets/containerAppV2.js';
 import { FileIndexerAPI } from './scripts/presets/fileIndexer.js';
 import { TransformBus, MassTransformer } from './scripts/transformer.js';
+import { registerBlackBarHooks } from './scripts/auxilaryFeatures/blackbars.js';
+import { registerSceneConfigHooks } from './scripts/auxilaryFeatures/sceneConfig.js';
 
 globalThis.MassTransformer = MassTransformer;
 
@@ -160,6 +162,8 @@ Hooks.once('init', () => {
   }
 
   registerPresetBrowserHooks();
+  registerBlackBarHooks();
+  registerSceneConfigHooks();
 
   // Handle broadcasts
   // Needed to allow players to spawn Presets by delegating create document request to GMs

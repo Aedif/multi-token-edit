@@ -115,6 +115,9 @@ export class PresetBrowser extends PresetContainerV2 {
       importPresets: PresetBrowser._onImportPresets,
       toggleCompendiumLock: PresetBrowser._onToggleCompendiumLock,
       createBag: PresetBrowser._onCreateBag,
+      presetCreate: PresetBrowser._onPresetCreate,
+      presetUpdate: PresetBrowser._onPresetUpdate,
+      applyPreset: PresetBrowser._onApplyPreset,
     },
   };
 
@@ -211,17 +214,6 @@ export class PresetBrowser extends PresetContainerV2 {
         $(element).find('.header-search input').on('input', this._onSearchInput.bind(this));
         break;
     }
-  }
-
-  /**
-   * @param {JQuery} html
-   */
-  activateListeners(html) {
-    super.activateListeners(html);
-
-    html.on('click', '.preset-create', this._onPresetCreate.bind(this));
-    html.on('click', '.preset-update a', this._onPresetUpdate.bind(this));
-    html.on('click', '.preset-callback', this._onApplyPreset.bind(this));
   }
 
   /**
@@ -726,7 +718,7 @@ export class PresetBrowser extends PresetContainerV2 {
     }
   }
 
-  async _onApplyPreset(event) {
+  static async _onApplyPreset(event) {
     if (this.callback) {
       const uuid = $(event.target).closest('.item').data('uuid');
       this.callback(await PresetCollection.get(uuid));
@@ -749,7 +741,7 @@ export class PresetBrowser extends PresetContainerV2 {
     return super.close(options);
   }
 
-  async _onPresetUpdate(event) {
+  static async _onPresetUpdate(event) {
     const preset = await PresetCollection.get($(event.target).closest('.item').data('uuid'));
     if (!preset) return;
 
@@ -773,7 +765,7 @@ export class PresetBrowser extends PresetContainerV2 {
     ui.notifications.info(`Preset "${preset.name}" updated`);
   }
 
-  async _onPresetCreate(event) {
+  static async _onPresetCreate(event) {
     const selectedFields = this.configApp.getSelectedFields();
     if (!selectedFields || foundry.utils.isEmpty(selectedFields)) {
       ui.notifications.warn(localize('presets.warn-no-fields'));

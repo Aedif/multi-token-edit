@@ -236,7 +236,6 @@
   margin: 4px;
   min-width: max-content;
   white-space: nowrap;
-  background: rgba(255, 255, 240, 0.8);
 }
 
 .preset-browser .document-select.active,

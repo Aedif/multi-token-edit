@@ -30,7 +30,7 @@ export const WithBaseMassEditForm = (cls) => {
 
       BaseMassEditForm._setMEActions(options);
 
-      if (SUPPORTED_PLACEABLES.includes(documentName)) {
+      if (SUPPORTED_PLACEABLES.includes(documentName) || documentName === 'Scene') {
         options.document = doc;
         super(options);
       } else {
@@ -855,7 +855,7 @@ export const WithBaseMassEditForm = (cls) => {
     }
 
     static _setMEActions(options) {
-      const actions = options.action ?? {};
+      const actions = options.actions ?? {};
       actions.meMacroGen = this._openMacroForm;
       actions.meBrush = this._activateBrushTool;
       actions.meEditPermissions = this._openEditPermissions;
