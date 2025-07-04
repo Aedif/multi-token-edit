@@ -900,6 +900,8 @@ nav > a[data-tab='me-pinned'] {
   border: 1px solid var(--color-border-dark-5);
   border-radius: 5px;
   margin-bottom: 5px;
+  border-style: solid;
+  border-width: 1px;
 }
 
 .mass-edit-category-browser .category img {

@@ -110,6 +110,7 @@ class CategoryBrowserApplication extends PresetContainerV2 {
       categorySelect: CategoryBrowserApplication._onCategorySelect,
       generateMacro: CategoryBrowserApplication._onGenerateMacro,
       toggleSetting: CategoryBrowserApplication._onToggleSetting,
+      globalSearchToggle: CategoryBrowserApplication._onGlobalSearchToggle,
     },
   };
 
@@ -143,6 +144,8 @@ class CategoryBrowserApplication extends PresetContainerV2 {
       // Otherwise we process the fed in JSON menu structure
       this._processMenu(menu)._topMenu = true;
     }
+
+    this._globalSearch = this.options.globalSearch;
   }
 
   /** @override */
@@ -168,22 +171,26 @@ class CategoryBrowserApplication extends PresetContainerV2 {
     return Object.assign(context, {
       menus: this._menus.filter((menu) => menu.active),
       presets: this._presetResults,
-      alignment: options.alignment,
-      searchBar: options.searchBar,
-      globalSearch: options.globalSearch,
+      alignment: this.options.alignment,
+      searchBar: this.options.searchBar,
+      globalSearch: this._globalSearch,
       lastSearch: this._lastSearch,
-      editEnabled: options.editEnabled,
+      editEnabled: this.options.editEnabled,
     });
   }
 
-  activateListeners(html) {
-    super.activateListeners(html);
-
-    if (this.options.editEnabled) {
-      html.find('.category').on('contextmenu', this._onRightClickCategory.bind(this));
+  /** @override */
+  _attachPartListeners(partId, element, options) {
+    super._attachPartListeners(partId, element, options);
+    switch (partId) {
+      case 'main':
+        let html = $(element);
+        if (this.options.editEnabled) {
+          html.find('.category').on('contextmenu', this._onRightClickCategory.bind(this));
+        }
+        html.find('.header-search input').on('input', this._onSearchInput.bind(this));
+        break;
     }
-    html.find('.header-search input').on('input', this._onSearchInput.bind(this));
-    html.find('.globalSearchToggle').on('click', this._onGlobalSearchToggle.bind(this));
   }
 
   async _onSearchInput(event) {
@@ -196,11 +203,13 @@ class CategoryBrowserApplication extends PresetContainerV2 {
     if (this._lastSearch || !search) this._runQueryTree();
   }
 
-  _onGlobalSearchToggle(event) {
-    this.options.globalSearch = !this.options.globalSearch;
+  static _onGlobalSearchToggle(event) {
+    this._globalSearch = !this._globalSearch;
 
-    if (this.options.globalSearch) $(event.currentTarget).addClass('active');
-    else $(event.currentTarget).removeClass('active');
+    const element = event.target.closest('.globalSearchToggle');
+
+    if (!this._globalSearch) element.classList.remove('active');
+    else element.classList.add('active');
 
     this._runQueryTree();
   }
@@ -299,7 +308,7 @@ class CategoryBrowserApplication extends PresetContainerV2 {
 
     const queries = [];
 
-    if (this._lastSearch && this.options.globalSearch) {
+    if (this._lastSearch && this._globalSearch) {
       queries.push(this._lastSearch);
     } else {
       let lastCategory;
@@ -378,7 +387,7 @@ class CategoryBrowserApplication extends PresetContainerV2 {
         menus: this._menus,
         categories: this._categories,
         lastSearch: this._lastSearch,
-        globalSearch: this.options.globalSearch,
+        globalSearch: this._globalSearch,
       };
     }
 
@@ -474,7 +483,7 @@ const options = {
   alignment: "${options.alignment}",
   retainState: ${options.retainState},
   searchBar: ${options.searchBar},
-  globalSearch: ${options.globalSearch},
+  globalSearch: ${this._globalSearch},
   globalQuery: "${options.globalQuery}",
   editEnabled: ${options.editEnabled},
   disableDelete: ${options.disableDelete}

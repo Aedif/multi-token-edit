@@ -1,3 +1,12 @@
+# 2.0.2
+
+- Fixed randomization not working with the Token `texture.src` field
+- Added `Black Bars` setting to Scene Config
+  - When enabled black bars will be displayed in the padded area of the scene
+- Fixed Scene Mass Edit window header buttons
+- Fixed Search Bar not rendering within Category Browser
+- Fixed categories not highlighting upon selection within Category Browser
+
 # 2.0.1
 
 - Fixed drag and drop not working on Preset Bags
