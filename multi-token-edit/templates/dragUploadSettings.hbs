@@ -1,0 +1,18 @@
+<div>
+    <div class="form-group">
+        <label>Enable Drag Upload</label>
+        <input type="checkbox" name="enabled" {{checked enabled}}>
+        <p class="hint">Files dragged onto canvas or preset browser will be uploaded to the destination directory.</p>
+    </div>
+
+    <hr>
+
+    <div class="form-group">
+        <label>Upload Destination</label>
+        <div class="form-fields">
+            <label>{{source}} : {{#if bucket}}{{bucket}} : {{/if}}{{target}}</label>
+            <button data-action="browse">Browse</button>
+        </div>
+        <p class="hint">Location the dragged in files are to be stored within.</p>
+    </div>
+</div>

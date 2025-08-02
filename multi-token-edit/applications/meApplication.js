@@ -995,6 +995,11 @@ export const WithMassEditFormApplicationV2 = (cls) => {
   class MassEditForm extends cls {
     _attachFrameListeners() {
       super._attachFrameListeners();
+      $(this.element).on('drop', async (event) => {
+        const dragData = foundry.applications.ux.TextEditor.implementation.getDragEventData(event.originalEvent);
+        if (dragData.type !== 'preset') return;
+        this._applyPreset(await MassEdit.getPreset({ uuid: dragData.uuids[0], full: true }));
+      });
     }
 
     _onRender() {

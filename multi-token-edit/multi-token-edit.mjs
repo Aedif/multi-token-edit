@@ -16,11 +16,12 @@ import { Spawner } from './scripts/presets/spawner.js';
 import { registerBehaviors } from './scripts/behaviors/behaviors.js';
 import { openBag } from './scripts/presets/bagApp.js';
 import { openCategoryBrowser } from './scripts/presets/categoryBrowserApp.js';
-import { registerPresetHandlebarPartials } from './scripts/presets/containerAppV2.js';
+import { registerPresetDragDropHooks, registerPresetHandlebarPartials } from './scripts/presets/containerAppV2.js';
 import { FileIndexerAPI } from './scripts/presets/fileIndexer.js';
 import { TransformBus, MassTransformer } from './scripts/transformer.js';
 import { registerBlackBarHooks } from './scripts/auxilaryFeatures/blackbars.js';
 import { registerSceneConfigHooks } from './scripts/auxilaryFeatures/sceneConfig.js';
+import { registerDragUploadHooks } from './scripts/auxilaryFeatures/dragUpload.js';
 
 globalThis.MassTransformer = MassTransformer;
 
@@ -60,6 +61,9 @@ Hooks.once('init', () => {
   // Allow users to drop AmbientSound presets onto playlists
   registerSideBarPresetDropListener();
 
+  // Handle preset drag drop onto canvas
+  registerPresetDragDropHooks();
+
   // Linker related hooks
   registerLinkerHooks();
 
@@ -77,6 +81,9 @@ Hooks.once('init', () => {
 
   // Scenescapes
   registerScenescapeHooks();
+
+  // Drag Upload
+  registerDragUploadHooks();
 
   // Register mouse wheel listener by inserting it just before the Foundry's MouseManager
   // If we're in some kind of placeable preview we want to handle preview transformations and

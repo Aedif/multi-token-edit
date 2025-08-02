@@ -110,7 +110,13 @@ class BagApplication extends PresetContainerV2 {
     super._attachPartListeners(partId, element, options);
     switch (partId) {
       case 'main':
-        $(element).find('.header-search input').on('input', this._onSearchInput.bind(this));
+        let html = $(element);
+        html.find('.header-search input').on('input', this._onSearchInput.bind(this));
+        html.on('drop', (event) => {
+          const dragData = foundry.applications.ux.TextEditor.implementation.getDragEventData(event.originalEvent);
+          if (dragData.type !== 'preset') return;
+          this._dropUuids(dragData.uuids);
+        });
         this.setAppearance();
         break;
     }

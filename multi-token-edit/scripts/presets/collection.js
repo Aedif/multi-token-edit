@@ -675,6 +675,8 @@ export class PresetAPI {
       p._visible = true;
     });
 
+    if (full) await this.batchLoadPresets(presets);
+
     return presets;
   }
 

@@ -18,6 +18,7 @@ import { Scenescape } from './scenescape/scenescape.js';
 import { enablePixelPerfectSelect } from './tools/selectTool.js';
 import { getDocumentName, localize } from './utils.js';
 import { editPreviewPlaceables, TransformBus } from './transformer.js';
+import { DragUploadSettingsApp } from './auxilaryFeatures/dragUpload.js';
 
 export function registerSettings() {
   // Register Settings
@@ -27,6 +28,28 @@ export function registerSettings() {
     config: false,
     type: Boolean,
     default: false,
+  });
+
+  game.settings.register(MODULE_ID, 'dragUpload', {
+    scope: 'world',
+    config: false,
+    type: Object,
+    default: {
+      enabled: true,
+      target: 'me_uploads',
+      source: 'data',
+      bucket: '',
+    },
+  });
+
+  game.settings.registerMenu(MODULE_ID, 'dragUpload', {
+    name: 'Drag Upload',
+    hint: 'Configure drag upload settings.',
+    label: '',
+    scope: 'world',
+    icon: 'fas fa-cog',
+    type: DragUploadSettingsApp,
+    restricted: true,
   });
 
   game.settings.register(MODULE_ID, 'cssStyle', {

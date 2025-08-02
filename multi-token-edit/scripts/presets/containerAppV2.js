@@ -1,5 +1,4 @@
 import { pasteDataUpdate } from '../../applications/formUtils.js';
-import { getMassEditForm } from '../../applications/multiConfig.js';
 import { BrushMenu } from '../brush.js';
 import { MODULE_ID, PIVOTS, SUPPORTED_PLACEABLES } from '../constants.js';
 import { Scenescape } from '../scenescape/scenescape.js';
@@ -38,11 +37,6 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
 
   constructor(opts1, opts2) {
     super(opts2);
-
-    // Drag/Drop tracking
-    this.dragType = null;
-    this.dragData = null;
-    this.draggedElements = null;
 
     this.presetsSortable = opts2.sortable;
     this.presetsDuplicatable = opts2.duplicatable;
@@ -130,8 +124,6 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
    */
   _attachDragDropListeners(html) {
     html.on('dragstart', '.item', (event) => {
-      this.dragType = 'item';
-
       const item = $(event.target).closest('.item');
       const itemList = html.find('.item-list');
 
@@ -146,51 +138,48 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
       itemList.find('.item.selected').each(function () {
         uuids.push($(this).data('uuid'));
       });
-      this.dragData = uuids;
-      this.draggedElements = itemList.find('.item.selected');
 
-      if (event.originalEvent.dataTransfer) {
-        event.originalEvent.dataTransfer.clearData();
-        event.originalEvent.dataTransfer.setData('text/plain', JSON.stringify({ uuids }));
-      }
+      event.originalEvent.dataTransfer.clearData();
+      event.originalEvent.dataTransfer.setData(
+        'text/plain',
+        JSON.stringify({ uuids, sortable: itemList.find('.item.selected').hasClass('sortable'), type: 'preset' })
+      );
     });
 
     if (this.presetsSortable) {
       html.on('dragleave', '.item.sortable', (event) => {
-        $(event.target).closest('.item').removeClass('drag-bot').removeClass('drag-top');
+        const item = event.target.closest('.item');
+        item.classList.remove('drag-bot');
+        item.classList.remove('drag-top');
       });
 
       html.on('dragover', '.item.sortable', (event) => {
-        if (this.dragType !== 'item') return;
-        if (!this.draggedElements.hasClass('sortable')) return;
-
-        const targetItem = $(event.target).closest('.item');
-
-        // Check that we're not above a selected item  (i.e. item being dragged)
-        if (targetItem.hasClass('selected')) return;
-
         // Determine if mouse is hovered over top, middle, or bottom
         var domRect = event.currentTarget.getBoundingClientRect();
         let prc = event.offsetY / domRect.height;
 
+        const targetItem = event.target.closest('.item');
         if (prc < 0.2) {
-          targetItem.removeClass('drag-bot').addClass('drag-top');
+          targetItem.classList.remove('drag-bot');
+          targetItem.classList.add('drag-top');
         } else if (prc > 0.8) {
-          targetItem.removeClass('drag-top').addClass('drag-bot');
+          targetItem.classList.remove('drag-top');
+          targetItem.classList.add('drag-bot');
         }
       });
 
       html.on('drop', '.item.sortable', (event) => {
         if (this.lastSearch?.length) return; // Prevent drops while searching
-        if (this.dragType !== 'item') return;
-        if (!this.draggedElements.hasClass('sortable')) return;
+
+        const dragData = foundry.applications.ux.TextEditor.implementation.getDragEventData(event.originalEvent);
+        if (dragData.type !== 'preset' || !dragData.sortable) return;
 
         const targetItem = $(event.target).closest('.item');
 
         const top = targetItem.hasClass('drag-top');
         targetItem.removeClass('drag-bot').removeClass('drag-top');
 
-        const uuids = this.dragData;
+        const uuids = dragData.uuids;
         if (uuids) {
           if (!targetItem.hasClass('selected')) {
             // Move HTML Elements
@@ -208,27 +197,14 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
             });
           }
         }
-
-        this.dragType = null;
-        this.dragData = null;
-        this.draggedElements = null;
       });
     }
-
-    html.on('dragend', '.item', (event) => {
-      if (!checkMouseInWindow(event)) {
-        this._onPresetDragOut(event);
-      }
-    });
 
     // ================
     // Folder Listeners
 
     if (this.presetsSortable) {
       html.on('dragstart', '.folder.sortable', (event) => {
-        if (this.dragType == 'item') return;
-        this.dragType = 'folder';
-
         const folder = $(event.target).closest('.folder');
         const uuids = [folder.data('uuid')];
 
@@ -238,31 +214,29 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
             uuids.push($(this).data('uuid'));
           });
 
-        this.dragData = uuids;
+        event.originalEvent.dataTransfer.clearData();
+        event.originalEvent.dataTransfer.setData('text/plain', JSON.stringify({ uuids, type: 'folder' }));
       });
 
       html.on('dragleave', '.folder.sortable header', (event) => {
-        $(event.target).closest('.folder').removeClass('drag-mid').removeClass('drag-top');
+        const folder = event.target.closest('.folder');
+        folder.classList.remove('drag-mid');
+        folder.classList.remove('drag-top');
       });
 
       html.on('dragover', '.folder.sortable header', (event) => {
-        const targetFolder = $(event.target).closest('.folder');
+        const folder = event.target.closest('.folder');
 
-        if (this.dragType === 'folder') {
-          // Check that we're not above folders being dragged
-          if (this.dragData.includes(targetFolder.data('uuid'))) return;
+        // Determine if mouse is hovered over top, middle, or bottom
+        var domRect = event.currentTarget.getBoundingClientRect();
+        let prc = event.offsetY / domRect.height;
 
-          // Determine if mouse is hovered over top, middle, or bottom
-          var domRect = event.currentTarget.getBoundingClientRect();
-          let prc = event.offsetY / domRect.height;
-
-          if (prc < 0.2) {
-            targetFolder.removeClass('drag-mid').addClass('drag-top');
-          } else {
-            targetFolder.removeClass('drag-top').addClass('drag-mid');
-          }
-        } else if (this.dragType === 'item' && this.draggedElements.hasClass('sortable')) {
-          targetFolder.addClass('drag-mid');
+        if (prc < 0.2) {
+          folder.classList.remove('drag-mid');
+          folder.classList.add('drag-top');
+        } else {
+          folder.classList.remove('drag-top');
+          folder.classList.add('drag-mid');
         }
       });
 
@@ -270,13 +244,15 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
         if (this._foundryDrop?.(event)) return;
         if (this.lastSearch?.length) return; // Prevent drops while searching
 
+        const dragData = foundry.applications.ux.TextEditor.implementation.getDragEventData(event.originalEvent);
+
         const targetFolder = $(event.target).closest('.folder');
 
-        if (this.dragType === 'folder') {
+        if (dragData.type === 'folder') {
           const top = targetFolder.hasClass('drag-top');
           targetFolder.removeClass('drag-mid').removeClass('drag-top');
 
-          const uuids = this.dragData;
+          const uuids = dragData.uuids;
           if (uuids) {
             if (uuids.includes(targetFolder.data('uuid'))) return;
 
@@ -300,9 +276,9 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
               }
             }
           }
-        } else if (this.dragType === 'item' && this.draggedElements.hasClass('sortable')) {
+        } else if (dragData.type === 'item' && dragData.sortable) {
           targetFolder.removeClass('drag-mid');
-          const uuids = this.dragData;
+          const uuids = dragData.uuids;
 
           // Move HTML Elements
           const presetItems = targetFolder.children('.preset-items');
@@ -315,24 +291,22 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
             folderUuid: targetFolder.data('uuid'),
           });
         }
-
-        this.dragType = null;
-        this.dragData = null;
-        this.draggedElements = null;
       });
 
       html.on('drop', '.top-level-preset-items', (event) => {
         if (this._foundryDrop?.(event)) return;
         if (this.lastSearch?.length) return; // Prevent drops while searching
-        if (this.dragType === 'folder') {
+
+        const dragData = foundry.applications.ux.TextEditor.implementation.getDragEventData(event.originalEvent);
+        if (dragData.type === 'folder') {
           // Move HTML Elements
           const target = html.find('.top-level-folder-items');
-          const folder = html.find(`.folder[data-uuid="${this.dragData[0]}"]`);
+          const folder = html.find(`.folder[data-uuid="${dragData.uuids[0]}"]`);
           target.append(folder);
 
-          this._onFolderSort(this.dragData[0], null);
-        } else if (this.dragType === 'item' && this.draggedElements.hasClass('sortable')) {
-          const uuids = this.dragData;
+          this._onFolderSort(dragData.uuids[0], null);
+        } else if (dragData.type === 'item' && dragData.sortable) {
+          const uuids = dragData.uuids;
 
           // Move HTML Elements
           const target = html.find('.top-level-preset-items');
@@ -343,10 +317,6 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
 
           this._onItemSort(uuids, null);
         }
-
-        this.dragType = null;
-        this.dragData = null;
-        this.draggedElements = null;
       });
     }
     // End of Folder Listeners
@@ -831,63 +801,6 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
     return super.close(options);
   }
 
-  async _onPresetDragOut(event) {
-    const uuid = $(event.originalEvent.target).closest('.item').data('uuid');
-    const preset = await PresetCollection.get(uuid);
-    if (!preset) return;
-
-    // If released on top of a Mass Edit form, apply the preset to it instead of spawning it
-    let form = getMassEditForm();
-    if (form && form.documentName === preset.documentName && hoverForm(form, event.pageX, event.pageY)) {
-      form._applyPreset(preset);
-      return;
-    }
-
-    // If release on top of a Preset Bag, pass dragged UUIDs to it
-    let forms = Array.from(foundry.applications.instances.values()).filter((w) => w.presetBag);
-    for (const form of forms) {
-      if (form && hoverForm(form, event.pageX, event.pageY)) {
-        form._dropUuids(this.dragData);
-        return;
-      }
-    }
-
-    // If it's a scene preset apply it to the currently active scene
-    if (preset.documentName === 'Scene') {
-      applyPresetToScene(preset);
-      return;
-    }
-
-    if (!SUPPORTED_PLACEABLES.includes(preset.documentName)) return;
-
-    // For some reason canvas.mousePosition does not get updated during drag and drop
-    // Acquire the cursor position transformed to Canvas coordinates
-    let mouseX;
-    let mouseY;
-    let mouseZ;
-
-    if (game.Levels3DPreview?._active) {
-      game.Levels3DPreview.interactionManager._onMouseMove(event, true);
-      const { x, y, z } = game.Levels3DPreview.interactionManager.canvas2dMousePosition;
-      mouseX = x;
-      mouseY = y;
-      mouseZ = z;
-    } else {
-      const [x, y] = [event.clientX, event.clientY];
-      const t = canvas.stage.worldTransform;
-
-      mouseX = (x - t.tx) / canvas.stage.scale.x;
-      mouseY = (y - t.ty) / canvas.stage.scale.y;
-
-      if (preset.documentName === 'Token' || preset.documentName === 'Tile') {
-        mouseX -= canvas.dimensions.size / 2;
-        mouseY -= canvas.dimensions.size / 2;
-      }
-    }
-
-    this._onSpawnPreset(preset, { x: mouseX, y: mouseY, z: mouseZ, preview: false });
-  }
-
   static _onFolderClick(event, target) {
     const folderElement = $(target).closest('.folder');
 
@@ -1090,24 +1003,24 @@ function _coordOverElement(x, y, element) {
 }
 
 /**
- * Return true if mouse is hovering over the provided form
- * @param {Number} mouseX
- * @param {Number} mouseY
- * @returns {Application|null} MassEdit form
+ * Handle preset being dragged out onto the canvas
  */
-function hoverForm(form, mouseX, mouseY) {
-  if (!form) return false;
+export function registerPresetDragDropHooks() {
+  Hooks.on('dropCanvasData', async (canvas, point, event) => {
+    const dragData = foundry.applications.ux.TextEditor.implementation.getDragEventData(event);
+    if (dragData.type !== 'preset') return;
 
-  const hitTest = function (app) {
-    const position = app.position;
-    const appX = position.left;
-    const appY = position.top;
-    const height = Number.isNumeric(position.height) ? position.height : $(app.element).height();
-    const width = Number.isNumeric(position.width) ? position.width : $(app.element).width();
-
-    if (mouseX > appX && mouseX < appX + width && mouseY > appY && mouseY < appY + height) return true;
-    return false;
-  };
-
-  return hitTest(form);
+    const preset = await MassEdit.getPreset({ uuid: dragData.uuids[0] });
+    if (preset.documentName === 'Scene') {
+      applyPresetToScene(preset);
+    } else if (SUPPORTED_PLACEABLES.includes(preset.documentName)) {
+      MassEdit.spawnPreset({
+        preset,
+        ...point,
+        layerSwitch: PresetBrowser.CONFIG.switchLayer,
+        scaleToGrid: PresetBrowser.CONFIG.autoScale || Scenescape.active,
+        pivot: PIVOTS.CENTER,
+      });
+    }
+  });
 }
