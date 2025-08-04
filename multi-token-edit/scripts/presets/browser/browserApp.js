@@ -13,6 +13,7 @@ import { TagSelector } from '../tagSelector.js';
 import PresetBrowserSettings from './settingsApp.js';
 import { PresetConfig } from '../editApp.js';
 import { PresetContainerV2 } from '../containerAppV2.js';
+import { uploadFiles } from '../../auxilaryFeatures/utils.js';
 
 const SEARCH_MIN_CHAR = 2;
 
@@ -255,6 +256,31 @@ export class PresetBrowser extends PresetContainerV2 {
       return false;
     }
     return false;
+  }
+
+  /**
+   * Process files being dropped into the container.
+   * @param {DropEvent} event
+   */
+  async _fileDrop(event) {
+    const files = event.dataTransfer.files;
+    if (!files?.length) return {};
+
+    let multiPreset = true;
+    if (files.length > 1) {
+      multiPreset = await foundry.applications.api.DialogV2.confirm({
+        window: { title: 'Should a preset be created for each file?' },
+        content: '',
+        yes: { label: 'Multiple Presets', default: false, icon: 'fa-solid fa-layer-group' },
+        no: { label: 'Single Preset', default: true, icon: 'fa-solid fa-rectangle' },
+      });
+    }
+
+    const presets = await uploadFiles(files, 'presets', !multiPreset);
+    await PresetCollection.set(presets);
+    await this._refreshTree();
+
+    return { type: 'preset', uuids: presets.map((p) => p.uuid), sortable: true };
   }
 
   async _importActorFolder(folder, parentFolder = null, options = {}) {

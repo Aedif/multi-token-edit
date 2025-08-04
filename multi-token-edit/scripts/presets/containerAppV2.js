@@ -10,7 +10,6 @@ import { Spawner } from './spawner.js';
 import { exportPresets, FolderState, isVideo, sceneNotFoundError } from './utils.js';
 import { FileIndexer, IndexerForm } from './fileIndexer.js';
 import { PresetConfig } from './editApp.js';
-import { uploadFiles } from '../auxilaryFeatures/utils.js';
 
 export async function registerPresetHandlebarPartials() {
   await foundry.applications.handlebars.getTemplate(
@@ -173,10 +172,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
         if (this.lastSearch?.length) return; // Prevent drops while searching
 
         let dragData = foundry.applications.ux.TextEditor.implementation.getDragEventData(event.originalEvent);
-        if (foundry.utils.isEmpty(dragData)) {
-          dragData = await processFileDrop(event.originalEvent);
-          if (!foundry.utils.isEmpty(dragData)) await this._refreshTree?.();
-        }
+        if (foundry.utils.isEmpty(dragData)) dragData = (await this._fileDrop?.(event.originalEvent)) ?? {};
 
         const targetItem = event.target.closest('.item');
         if (dragData.type === 'preset' && dragData.sortable) {
@@ -242,10 +238,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
         if (this.lastSearch?.length) return; // Prevent drops while searching
 
         let dragData = foundry.applications.ux.TextEditor.implementation.getDragEventData(event.originalEvent);
-        if (foundry.utils.isEmpty(dragData)) {
-          dragData = await processFileDrop(event.originalEvent);
-          if (!foundry.utils.isEmpty(dragData)) await this._refreshTree?.();
-        }
+        if (foundry.utils.isEmpty(dragData)) dragData = (await this._fileDrop?.(event.originalEvent)) ?? {};
 
         const targetFolder = $(event.target).closest('.folder');
 
@@ -1018,17 +1011,4 @@ export function registerPresetDragDropHooks() {
       });
     }
   });
-}
-
-/**
- * If file/s have been dropped in we want to create presets
- * @param {DropEvent} event
- */
-async function processFileDrop(event) {
-  if (!event.dataTransfer.files?.length) return {};
-
-  const presets = await uploadFiles(event.dataTransfer.files, 'presets', false);
-  await PresetCollection.set(presets);
-
-  return { type: 'preset', uuids: presets.map((p) => p.uuid), sortable: true };
 }

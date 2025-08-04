@@ -120,7 +120,7 @@ async function filesToPresets(files, singlePreset = false) {
     p.id = foundry.utils.randomID();
   });
 
-  if (singlePreset) {
+  if (presets.length > 1 && singlePreset) {
     return [packPresets(presets)];
   }
 
