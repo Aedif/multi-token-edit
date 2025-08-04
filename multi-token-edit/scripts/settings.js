@@ -36,9 +36,10 @@ export function registerSettings() {
     type: Object,
     default: {
       enabled: true,
-      target: 'me_uploads',
+      target: 'drag_uploads',
       source: 'data',
       bucket: '',
+      presets: {},
     },
   });
 

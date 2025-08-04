@@ -10,6 +10,7 @@ import { Spawner } from './spawner.js';
 import { exportPresets, FolderState, isVideo, sceneNotFoundError } from './utils.js';
 import { FileIndexer, IndexerForm } from './fileIndexer.js';
 import { PresetConfig } from './editApp.js';
+import { uploadFiles } from '../auxilaryFeatures/utils.js';
 
 export async function registerPresetHandlebarPartials() {
   await foundry.applications.handlebars.getTemplate(
@@ -35,7 +36,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
 ) {
   static _oldPositions = {};
 
-  constructor(opts1, opts2) {
+  constructor(opts1, opts2 = {}) {
     super(opts2);
 
     this.presetsSortable = opts2.sortable;
@@ -168,35 +169,31 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
         }
       });
 
-      html.on('drop', '.item.sortable', (event) => {
+      html.on('drop', '.item.sortable', async (event) => {
         if (this.lastSearch?.length) return; // Prevent drops while searching
 
-        const dragData = foundry.applications.ux.TextEditor.implementation.getDragEventData(event.originalEvent);
-        if (dragData.type !== 'preset' || !dragData.sortable) return;
+        let dragData = foundry.applications.ux.TextEditor.implementation.getDragEventData(event.originalEvent);
+        if (foundry.utils.isEmpty(dragData)) {
+          dragData = await processFileDrop(event.originalEvent);
+          if (!foundry.utils.isEmpty(dragData)) await this._refreshTree?.();
+        }
 
-        const targetItem = $(event.target).closest('.item');
+        const targetItem = event.target.closest('.item');
+        if (dragData.type === 'preset' && dragData.sortable) {
+          const top = targetItem.classList.contains('drag-top');
 
-        const top = targetItem.hasClass('drag-top');
-        targetItem.removeClass('drag-bot').removeClass('drag-top');
-
-        const uuids = dragData.uuids;
-        if (uuids) {
-          if (!targetItem.hasClass('selected')) {
-            // Move HTML Elements
-            (top ? uuids : uuids.reverse()).forEach((uuid) => {
-              const item = html.find(`.item[data-uuid="${uuid}"]`);
-              if (item) {
-                if (top) item.insertBefore(targetItem);
-                else item.insertAfter(targetItem);
-              }
-            });
-
-            this._onItemSort(uuids, targetItem.data('uuid'), {
-              before: top,
-              folderUuid: targetItem.closest('.folder').data('uuid'),
-            });
+          const uuids = dragData.uuids;
+          if (uuids) {
+            if (!targetItem.classList.contains('selected')) {
+              this._onItemSort(uuids, targetItem.dataset.uuid, {
+                before: top,
+                folderUuid: targetItem.closest('.folder')?.dataset.uuid,
+              });
+            }
           }
         }
+        targetItem.classList.remove('drag-bot');
+        targetItem.classList.remove('drag-top');
       });
     }
 
@@ -204,7 +201,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
     // Folder Listeners
 
     if (this.presetsSortable) {
-      html.on('dragstart', '.folder.sortable', (event) => {
+      html.on('dragstart', '.folder.sortable header', (event) => {
         const folder = $(event.target).closest('.folder');
         const uuids = [folder.data('uuid')];
 
@@ -240,11 +237,15 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
         }
       });
 
-      html.on('drop', '.folder.sortable header', (event) => {
+      html.on('drop', '.folder.sortable header', async (event) => {
         if (this._foundryDrop?.(event)) return;
         if (this.lastSearch?.length) return; // Prevent drops while searching
 
-        const dragData = foundry.applications.ux.TextEditor.implementation.getDragEventData(event.originalEvent);
+        let dragData = foundry.applications.ux.TextEditor.implementation.getDragEventData(event.originalEvent);
+        if (foundry.utils.isEmpty(dragData)) {
+          dragData = await processFileDrop(event.originalEvent);
+          if (!foundry.utils.isEmpty(dragData)) await this._refreshTree?.();
+        }
 
         const targetFolder = $(event.target).closest('.folder');
 
@@ -276,20 +277,14 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
               }
             }
           }
-        } else if (dragData.type === 'item' && dragData.sortable) {
+        } else if (dragData.type === 'preset' && dragData.sortable) {
           targetFolder.removeClass('drag-mid');
           const uuids = dragData.uuids;
-
-          // Move HTML Elements
-          const presetItems = targetFolder.children('.preset-items');
-          uuids?.forEach((uuid) => {
-            const item = html.find(`.item[data-uuid="${uuid}"]`);
-            if (item.length) presetItems.append(item);
-          });
-
           this._onItemSort(uuids, null, {
             folderUuid: targetFolder.data('uuid'),
           });
+        } else {
+          targetFolder.removeClass('drag-mid');
         }
       });
 
@@ -1023,4 +1018,17 @@ export function registerPresetDragDropHooks() {
       });
     }
   });
+}
+
+/**
+ * If file/s have been dropped in we want to create presets
+ * @param {DropEvent} event
+ */
+async function processFileDrop(event) {
+  if (!event.dataTransfer.files?.length) return {};
+
+  const presets = await uploadFiles(event.dataTransfer.files, 'presets', false);
+  await PresetCollection.set(presets);
+
+  return { type: 'preset', uuids: presets.map((p) => p.uuid), sortable: true };
 }

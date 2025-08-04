@@ -133,15 +133,19 @@ export class PresetBrowser extends PresetContainerV2 {
     return title;
   }
 
-  /** @override */
-  async _prepareContext(options) {
-    const context = await super._prepareContext(options);
-
+  async _refreshTree() {
     this.tree = await PresetCollection.getTree(this.documentName, {
       externalCompendiums: PresetBrowser.CONFIG.externalCompendiums,
       virtualDirectory: PresetBrowser.CONFIG.virtualDirectory,
       setFormVisibility: true,
     });
+  }
+
+  /** @override */
+  async _prepareContext(options) {
+    const context = await super._prepareContext(options);
+
+    await this._refreshTree();
     this._tagSelector?.render(true);
 
     if (PresetBrowser.CONFIG.persistentSearch && this.lastSearch) {

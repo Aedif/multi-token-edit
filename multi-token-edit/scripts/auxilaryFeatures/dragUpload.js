@@ -1,25 +1,23 @@
 import { MODULE_ID } from '../constants.js';
-import { VirtualFilePreset } from '../presets/preset.js';
-import { isAudio, isImage, isVideo } from '../utils.js';
+import { PresetContainerV2 } from '../presets/containerAppV2.js';
+import { uploadFiles } from './utils.js';
 
 export function registerDragUploadHooks() {
   Hooks.on('dropCanvasData', async (canvas, point, event) => {
     if (
+      !game.user.isGM ||
       !event.dataTransfer.files?.length ||
       !foundry.utils.isEmpty(foundry.applications.ux.TextEditor.implementation.getDragEventData(event))
     )
       return;
-    const { imageVideo, audio, text } = await uploadFiles(event.dataTransfer.files, 'canvas');
-    if (imageVideo.length) {
-      const preset = new VirtualFilePreset({ name: 'DragDrop', src: imageVideo[0] });
-      MassEdit.spawnPreset({ preset, x: point.x, y: point.y, pivot: MassEdit.PIVOTS.CENTER });
+    const presets = await uploadFiles(event.dataTransfer.files, 'canvas');
+    for (const preset of presets) {
+      MassEdit.spawnPreset({ preset, x: point.x, y: point.y, pivot: MassEdit.PIVOTS.CENTER, layerSwitch: true });
     }
   });
 }
 
-export class DragUploadSettingsApp extends foundry.applications.api.HandlebarsApplicationMixin(
-  foundry.applications.api.ApplicationV2
-) {
+export class DragUploadSettingsApp extends PresetContainerV2 {
   constructor() {
     super();
     this._settings = foundry.utils.deepClone(game.settings.get(MODULE_ID, 'dragUpload'));
@@ -61,7 +59,37 @@ export class DragUploadSettingsApp extends foundry.applications.api.HandlebarsAp
       { type: 'button', icon: 'fa-solid fa-floppy-disk', label: 'SETTINGS.Save', action: 'performUpdate' },
     ];
 
-    return Object.assign(context, this._settings);
+    let uuids = ['Token', 'Tile', 'AmbientSound']
+      .map((documentName) => this._settings.presets[documentName])
+      .filter(Boolean);
+
+    let presets = await MassEdit.getPresets({ uuid: uuids });
+    if (!presets.length) presets = null;
+
+    return Object.assign(context, { ...this._settings, presets });
+  }
+
+  /** @override */
+  _attachPartListeners(partId, element, options) {
+    super._attachPartListeners(partId, element, options);
+    switch (partId) {
+      case 'main':
+        $(element).on('drop', '.preset-browser', this._onPresetDrop.bind(this));
+        break;
+    }
+  }
+
+  async _onPresetDrop(event) {
+    const dragData = foundry.applications.ux.TextEditor.implementation.getDragEventData(event.originalEvent);
+    if (dragData.type !== 'preset') return;
+
+    (await MassEdit.getPresets({ uuid: dragData.uuids }))
+      .filter((p) => ['Token', 'Tile', 'AmbientSound'].includes(p.documentName))
+      .forEach((p) => {
+        this._settings.presets[p.documentName] = p.uuid;
+      });
+
+    this.render(true);
   }
 
   /**
@@ -95,71 +123,14 @@ export class DragUploadSettingsApp extends foundry.applications.api.HandlebarsAp
     fp.activeSource = source;
     fp.browse();
   }
-}
 
-/**
- * Check if a folder exists, if not attempts to create it
- * @param {string} target
- * @param {string} source
- * @param {string} bucket
- * @returns {boolean} true if a folder exists, false if it doesn't
- */
-async function checkCreateUploadFolder(target, source, bucket) {
-  // Attempt to browse the folder
-  // If the operation throws an error it means the folder does not exists and we will attempt to create it
-  try {
-    await foundry.applications.apps.FilePicker.browse(source, target, source === 's3' ? { bucket } : {});
-    return true;
-  } catch (e) {
-    const folders = target.split('/');
-    if (folders.length > 1)
-      await checkCreateUploadFolder(folders.slice(0, folders.length - 1).join('/'), source, bucket);
-    await FilePicker.createDirectory(source, target, source === 's3' ? { bucket } : {});
+  /** @override */
+  async _onDeleteSelectedPresets(item) {
+    const [selected, _] = await this._getSelectedPresets({
+      editableOnly: false,
+      full: false,
+    });
+    selected.forEach((p) => (this._settings.presets[p.documentName] = null));
+    this.render(true);
   }
-
-  await foundry.applications.apps.FilePicker.browse(source, target, source === 's3' ? { bucket } : {});
-}
-
-export async function uploadFiles(files, subDirectory = 'canvas') {
-  let { source, bucket, target } = game.settings.get(MODULE_ID, 'dragUpload');
-  target += '/' + subDirectory + '/';
-
-  const uploadedFiles = { audio: [], image: [], video: [], text: [] };
-
-  for (const file of files) {
-    const name = file.name;
-
-    let type;
-    if (isVideo(name)) type = 'video';
-    else if (isAudio(name)) type = 'audio';
-    else if (isImage(name)) type = 'image';
-    else {
-      console.warn(`Invalid file format: ${name}`);
-      continue;
-    }
-
-    const path = target + type;
-
-    try {
-      await checkCreateUploadFolder(path, source, bucket);
-    } catch (e) {
-      console.error(e);
-      continue;
-    }
-
-    const result = await foundry.applications.apps.FilePicker.upload(
-      source,
-      path,
-      file,
-      {},
-      source === 's3' ? { bucket } : {}
-    );
-
-    if (result.status === 'success') uploadedFiles[type].push(result.path);
-    else console.warn('Failed to upload: ' + file.name, result);
-  }
-
-  uploadedFiles.imageVideo = uploadedFiles.image.concat(uploadedFiles.video);
-
-  return uploadedFiles;
 }

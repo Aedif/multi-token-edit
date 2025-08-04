@@ -675,7 +675,7 @@ export class PresetAPI {
       p._visible = true;
     });
 
-    if (full) await this.batchLoadPresets(presets);
+    if (full) await PresetCollection.batchLoadPresets(presets);
 
     return presets;
   }

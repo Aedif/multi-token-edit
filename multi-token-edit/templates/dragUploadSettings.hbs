@@ -15,4 +15,25 @@
         </div>
         <p class="hint">Location the dragged in files are to be stored within.</p>
     </div>
+
+    <hr>
+
+    <div class="form-group" style="display: block;">
+        <label>Template Presets</label>
+        <p class="hint">Token, Tile, and AmbientSound presets to be used as templates for the drag uploaded files.</p>
+        <br>
+        <div class="form-fields">
+            <div class="preset-browser" style="min-height: 120px;">
+                {{#if presets}}
+                <div class="item-list folder-items" data-tooltip-direction="RIGHT" data-tooltip-class="preset-tooltip" style="min-height: 170px; margin: 1px">
+                    {{>me-presets-content createEnabled=False callback=../callback presets=presets}}
+                </div>
+                {{else}}
+                <span style="width: 95%;height: 120px;position: absolute;text-align: center;align-content: center;border: 1px dashed;">DRAG PRESETS HERE</span>
+                {{/if}}
+            </div>
+        </div>
+    </div>
+
+
 </div>
