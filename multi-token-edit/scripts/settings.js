@@ -45,10 +45,10 @@ export function registerSettings() {
 
   game.settings.registerMenu(MODULE_ID, 'dragUpload', {
     name: 'Drag Upload',
-    hint: 'Configure drag upload settings.',
     label: '',
     scope: 'world',
-    icon: 'fas fa-cog',
+    label: 'Configure',
+    icon: 'fa-solid fa-folder-arrow-up',
     type: DragUploadSettingsApp,
     restricted: true,
   });
@@ -68,11 +68,10 @@ export function registerSettings() {
   });
 
   game.settings.registerMenu(MODULE_ID, 'cssEdit', {
-    name: localize('settings.cssEdit.name'),
-    hint: localize('settings.cssEdit.hint'),
-    label: '',
+    name: 'CSS',
+    label: 'Configure',
     scope: 'world',
-    icon: 'fas fa-cog',
+    icon: 'fa-solid fa-palette',
     type: CSSEdit,
     restricted: true,
   });

@@ -104,10 +104,6 @@
       "singleDocDefaultConfig": {
         "name": "Single placeable: Default Config",
         "hint": "When a single placeable is selected or hovered over, open the default configuration window instead of the modified Mass Edit config."
-      },
-      "cssEdit": {
-        "name": "Configure CSS",
-        "hint": "Change the look of the modified configuration window."
       }
     },
     "randomizer": {

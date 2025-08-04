@@ -1,3 +1,25 @@
+# 2.1.0
+
+**Drag/Drop Upload**
+
+- Files dragged onto canvas or 'Preset Browser' will be uploaded to a configurable location
+- Files dropped on canvas will be spawned as Tiles (images/video), Tokens (images/video + `Shift` key), or AmbientSounds (audio)
+- Files dropped onto the 'Preset Browser' will be created as Tile/Token/AmbientSound presets
+  - If multiple files are dropped in a prompt will be shown to allow creation of multiple or a singular preset containing all files
+- Settings
+  - `Enable Drag Upload`
+    - Allows toggling the feature on/off
+  - `Upload Destination`
+    - Location the dragged in files are to be stored within
+  - `Template Presets`
+    - Presets of Token, Tile, and AmbientSound types can be dragged in here to act as templates
+    - Dragged in files will be matched against a template and replace the template's referenced image, video, or audio file
+    - If a template does not define width and/or height these will be derived from the original file
+
+**Misc**
+
+- Improved preset drag/drop handling to align better with foundry drag/drop flows
+
 # 2.0.2
 
 - Fixed randomization not working with the Token `texture.src` field
