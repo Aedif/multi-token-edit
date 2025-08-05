@@ -4,7 +4,7 @@ import { countFolderItems, trackProgress } from '../../../applications/progressD
 import { importPresetFromJSONDialog } from '../../dialogs.js';
 import { SortingHelpersFixed } from '../../fixedSort.js';
 import { DragHoverOverlay, localFormat, localize, spawnSceneAsPreset } from '../../utils.js';
-import { META_INDEX_ID, PresetAPI, PresetCollection, PresetPackFolder } from '../collection.js';
+import { META_INDEX_ID, PresetAPI, PresetCollection, PresetPackFolder, PresetStorage } from '../collection.js';
 import { LinkerAPI } from '../../linker/linker.js';
 import { DOC_ICONS, Preset } from '../preset.js';
 import { exportPresets, FolderState, matchPreset, parseSearchQuery, placeableToData } from '../utils.js';
@@ -58,6 +58,14 @@ export class PresetBrowser extends PresetContainerV2 {
 
   static async setSetting(setting, value) {
     return await game.settings.set(MODULE_ID, 'presetBrowser', { ...PresetBrowser.CONFIG, [setting]: value });
+  }
+
+  /**
+   * Re-render currently active PresetBrowser instance.
+   * Called after mutations are performed to preset compendiums
+   */
+  static async renderActiveBrowser() {
+    foundry.applications.instances.get(PresetBrowser.DEFAULT_OPTIONS.id)?.render(true);
   }
 
   get lastSearch() {
@@ -135,7 +143,7 @@ export class PresetBrowser extends PresetContainerV2 {
   }
 
   async _refreshTree() {
-    this.tree = await PresetCollection.getTree(this.documentName, {
+    this.tree = await PresetStorage.getTree(this.documentName, {
       externalCompendiums: PresetBrowser.CONFIG.externalCompendiums,
       virtualDirectory: PresetBrowser.CONFIG.virtualDirectory,
       setFormVisibility: true,
@@ -147,6 +155,9 @@ export class PresetBrowser extends PresetContainerV2 {
     const context = await super._prepareContext(options);
 
     await this._refreshTree();
+    context.presets = this.tree.presets;
+    context.folders = this.tree.children.map((ch) => ch.folder);
+
     this._tagSelector?.render(true);
 
     if (PresetBrowser.CONFIG.persistentSearch && this.lastSearch) {
@@ -155,8 +166,8 @@ export class PresetBrowser extends PresetContainerV2 {
     } else context.lastSearch = '';
 
     context.presets = this.tree.presets;
-    context.folders = this.tree.folders;
-    context.extFolders = this.tree.extFolders.length ? this.tree.extFolders : null;
+    // context.folders = this.tree.folders;
+    //context.extFolders = this.tree.extFolders.length ? this.tree.extFolders : null;
 
     context.createEnabled = Boolean(this.configApp);
     context.isPlaceable = SUPPORTED_PLACEABLES.includes(this.documentName) || this.documentName === 'ALL';
@@ -169,7 +180,7 @@ export class PresetBrowser extends PresetContainerV2 {
     context.sortMode = SORT_MODES[PresetBrowser.CONFIG.sortMode];
     context.searchMode = SEARCH_MODES[PresetBrowser.CONFIG.searchMode];
     context.displayDragDropMessage =
-      context.allowDocumentSwap && !(this.tree.presets.length || this.tree.folders.length || context.extFolders);
+      context.allowDocumentSwap && !(this.tree.children.length || this.tree.entries.length || context.extTree);
 
     context.docs = [];
     context.docsDropdown = PresetBrowser.CONFIG.dropdownDocuments.length ? [] : null;
@@ -184,6 +195,7 @@ export class PresetBrowser extends PresetContainerV2 {
 
     context.callback = Boolean(this.callback);
 
+    console.log(context);
     return context;
   }
 
@@ -245,10 +257,7 @@ export class PresetBrowser extends PresetContainerV2 {
         return true;
       } else if (data.type === 'Actor') {
         PresetAPI.createPresetFromActorUuid(data.uuid, { keepId: true }).then((preset) => {
-          if (preset)
-            PresetCollection.set(preset).then(() => {
-              this.render(true);
-            });
+          if (preset) PresetStorage.createDocuments(preset);
         });
         return true;
       }
@@ -277,7 +286,7 @@ export class PresetBrowser extends PresetContainerV2 {
     }
 
     const presets = await uploadFiles(files, 'presets', !multiPreset);
-    await PresetCollection.set(presets);
+    PresetStorage.createDocuments(presets);
     await this._refreshTree();
 
     return { type: 'preset', uuids: presets.map((p) => p.uuid), sortable: true };
@@ -294,7 +303,7 @@ export class PresetBrowser extends PresetContainerV2 {
         color: folder.color ?? '#000000',
         flags: { [MODULE_ID]: { types: ['ALL', 'Token'] } },
       },
-      { pack: PresetCollection.workingPack }
+      { pack: PresetStorage.workingPack }
     );
 
     nFolder = await Folder.create(nFolder, {
@@ -320,9 +329,7 @@ export class PresetBrowser extends PresetContainerV2 {
       this._importTracker.incrementCount();
     }
 
-    await PresetCollection.set(presets);
-
-    this.render(true);
+    await PresetStorage.createDocuments(presets);
   }
 
   async _onExportFolder(uuid) {
@@ -342,7 +349,7 @@ export class PresetBrowser extends PresetContainerV2 {
   }
 
   async _onCopyFolder(uuid, parentId = null, pack, render = true, keepId = true) {
-    if (!pack) pack = PresetCollection.workingPack;
+    if (!pack) pack = PresetStorage.workingPack;
 
     const folder = this.tree.allFolders.get(uuid);
     const folderDoc = await fromUuid(uuid);
@@ -363,7 +370,7 @@ export class PresetBrowser extends PresetContainerV2 {
       };
       const nFolder = await Folder.create(data, { pack, keepId });
 
-      const presets = await PresetCollection.batchLoadPresets(folder.presets);
+      const presets = await PresetStorage._batchLoadPresets(folder.presets);
 
       const toCreate = [];
 
@@ -376,7 +383,7 @@ export class PresetBrowser extends PresetContainerV2 {
         this._importTracker?.incrementCount();
       }
 
-      await PresetCollection.set(toCreate, pack);
+      await PresetStorage.createDocuments(toCreate, pack);
 
       for (const child of folder.children) {
         if (!this._importTracker?.active) break;
@@ -412,7 +419,7 @@ export class PresetBrowser extends PresetContainerV2 {
         sorting: 'm',
         flags: { [MODULE_ID]: { types } },
       },
-      { pack: PresetCollection.workingPack }
+      { pack: PresetStorage.workingPack }
     );
 
     await new Promise((resolve) => {
@@ -451,7 +458,7 @@ export class PresetBrowser extends PresetContainerV2 {
     }).then(() => this.render(true));
   }
 
-  async _onFolderDelete(uuid, { render = true, deleteAll = false } = {}) {
+  async _onFolderDelete(uuid, { deleteAll = false } = {}) {
     const folder = this.tree.allFolders.get(uuid);
     if (folder) {
       let confirm;
@@ -492,10 +499,7 @@ export class PresetBrowser extends PresetContainerV2 {
         });
       }
 
-      if (confirm) {
-        await PresetCollection.deleteFolder(uuid, deleteAll);
-        if (render) this.render(true);
-      }
+      if (confirm) await folder.delete({ deleteSubfolders: deleteAll, deleteContents: deleteAll });
     }
   }
 
@@ -643,7 +647,7 @@ export class PresetBrowser extends PresetContainerV2 {
         ctrl.target.sort = update.sort;
       });
       await Folder.updateDocuments(updates, {
-        pack: PresetCollection.workingPack,
+        pack: PresetStorage.workingPack,
       });
     }
     this.render(true);
@@ -751,7 +755,7 @@ export class PresetBrowser extends PresetContainerV2 {
   static async _onApplyPreset(event) {
     if (this.callback) {
       const uuid = $(event.target).closest('.item').data('uuid');
-      this.callback(await PresetCollection.get(uuid));
+      this.callback(await PresetStorage.retrieveSingle({ uuid }));
     }
   }
 
@@ -772,7 +776,7 @@ export class PresetBrowser extends PresetContainerV2 {
   }
 
   static async _onPresetUpdate(event) {
-    const preset = await PresetCollection.get($(event.target).closest('.item').data('uuid'));
+    const preset = await PresetStorage.retrieveSingle({ uuid: event.target.closest('.item').dataset.uuid });
     if (!preset) return;
 
     const selectedFields = this.configApp.getSelectedFields();
@@ -810,8 +814,7 @@ export class PresetBrowser extends PresetContainerV2 {
       randomize: this.configApp.randomizeFields,
     });
 
-    await PresetCollection.set(preset);
-    this.render(true);
+    await PresetStorage.createDocuments(preset);
 
     this._editPresets([preset], { isCreate: true }, event);
   }
@@ -832,8 +835,7 @@ export class PresetBrowser extends PresetContainerV2 {
         },
       ],
     });
-    await PresetCollection.set(presetBag);
-    this.render(true);
+    await PresetStorage.createDocuments(presetBag);
   }
 
   /**
@@ -898,7 +900,7 @@ export class PresetBrowser extends PresetContainerV2 {
   _getHeaderControls() {
     const controls = super._getHeaderControls();
 
-    if (game.packs.get(PresetCollection.workingPack)?.locked) {
+    if (game.packs.get(PresetStorage.workingPack)?.locked) {
       controls.push({
         label: 'Un-Lock Working Compendium',
         icon: 'fas fa-lock fa-fw',
@@ -941,7 +943,7 @@ export class PresetBrowser extends PresetContainerV2 {
 
   static async _onWorkingPackChange() {
     let { pack } = await getCompendiumDialog();
-    if (pack && pack !== PresetCollection.workingPack) {
+    if (pack && pack !== PresetStorage.workingPack) {
       await game.settings.set(MODULE_ID, 'workingPack', pack);
       this.render(true);
     }
@@ -955,7 +957,7 @@ export class PresetBrowser extends PresetContainerV2 {
   }
 
   static async _onToggleCompendiumLock() {
-    const pack = game.packs.get(PresetCollection.workingPack);
+    const pack = game.packs.get(PresetStorage.workingPack);
     if (pack) {
       await pack.configure({ locked: false });
       this.render(true);
@@ -963,10 +965,10 @@ export class PresetBrowser extends PresetContainerV2 {
   }
 
   /**
-   * Export all working pack presets as as JSON file
+   * Export all working pack presets as a JSON file
    */
   static async _onExportPresets() {
-    const pack = game.packs.get(PresetCollection.workingPack);
+    const pack = game.packs.get(PresetStorage.workingPack);
     await pack.getDocuments();
     const tree = await PresetCollection.getTree(null, { externalCompendiums: false, virtualDirectory: false });
     exportPresets(tree.allPresets);
@@ -993,12 +995,10 @@ export class PresetBrowser extends PresetContainerV2 {
         importCount++;
       }
 
-      await PresetCollection.set(presets);
+      await PresetStorage.createDocuments(presets);
     }
 
     ui.notifications.info(`Mass Edit: ${localFormat('presets.imported', { count: importCount })}`);
-
-    if (importCount) this.render(true);
   }
 
   /**
@@ -1007,7 +1007,7 @@ export class PresetBrowser extends PresetContainerV2 {
    */
   async _updateObject(event, formData) {
     if (this.callback) {
-      this.callback(await PresetCollection.get(event.submitter.data.id));
+      this.callback(await PresetStorage.retrieveSingle({ uuid: event.submitter.data.id }));
     }
   }
 }
@@ -1155,7 +1155,7 @@ async function getCompendiumDialog({ excludePack, exportTo = false, keepIdSelect
   for (const p of game.packs) {
     if (!p.locked && p.documentName === 'JournalEntry') {
       if (p.collection === excludePack) continue;
-      const workingPack = p.collection === PresetCollection.workingPack;
+      const workingPack = p.collection === PresetStorage.workingPack;
       options += `<option value="${p.collection}" ${workingPack ? 'selected="selected"' : ''}>${p.title}</option>`;
     }
   }

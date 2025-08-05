@@ -2,7 +2,7 @@ import { showMassEdit, showGenericForm } from './applications/multiConfig.js';
 import { createDocuments, isResponsibleGM, resolveCreateDocumentRequest, TagInput } from './scripts/utils.js';
 import { libWrapper } from './scripts/libs/shim/shim.js';
 import { enableUniversalSelectTool } from './scripts/tools/selectTool.js';
-import { META_INDEX_ID, PresetAPI, PresetCollection } from './scripts/presets/collection.js';
+import { META_INDEX_ID, PresetAPI, PresetCollection, PresetStorage } from './scripts/presets/collection.js';
 import { openPresetBrowser, registerPresetBrowserHooks } from './scripts/presets/browser/browserApp.js';
 import { registerKeybinds, registerSettings } from './scripts/settings.js';
 import { BrushMenu, activateBrush, deactivateBush, openBrushMenu } from './scripts/brush.js';
@@ -84,6 +84,8 @@ Hooks.once('init', () => {
 
   // Drag Upload
   registerDragUploadHooks();
+
+  PresetStorage._init();
 
   // Register mouse wheel listener by inserting it just before the Foundry's MouseManager
   // If we're in some kind of placeable preview we want to handle preview transformations and

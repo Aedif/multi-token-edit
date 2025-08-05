@@ -1,9 +1,9 @@
 <ol class="folder-items top-level-folder-items">
     {{#each folders as |folder|}}
         {{#if folder.visible}}
-        {{#if folder.render}}
+        {{!-- {{#if folder.render}} --}}
             {{>me-preset-folder folder=folder createEnabled=../createEnabled callback=../callback sortable=true}}
-        {{/if}}
+        {{!-- {{/if}} --}}
         {{/if}}
     {{/each}}
 </ol>

@@ -6,10 +6,10 @@
     {{#if folder.expanded}}
     <ol class="folder-items">
         {{#each folder.children as |child|}}
-            {{#if child.visible}}
-            {{#if child.render}}
-                 {{>me-preset-folder folder=child createEnabled=../createEnabled callback=../callback sortable=../sortable}}
-            {{/if}}
+            {{#if child.folder.visible}}
+            {{!-- {{#if child.render}} --}}
+                 {{>me-preset-folder folder=child.folder createEnabled=../createEnabled callback=../callback sortable=../sortable}}
+            {{!-- {{/if}} --}}
             {{/if}}
         {{/each}}
     </ol>

@@ -36,47 +36,49 @@ export class PresetCollection {
       mainTree = await PresetTree.init(pack, type, { forceLoad: true, setFormVisibility });
     }
 
-    const extFolders = [];
+    return pack.tree;
 
-    if (externalCompendiums) {
-      for (const p of game.packs) {
-        if (p.collection !== this.workingPack && p.index.get(META_INDEX_ID)) {
-          const tree = await PresetTree.init(p, type, { setFormVisibility });
-          if (setFormVisibility && !tree.hasVisible) continue;
+    // const extFolders = [];
 
-          const topFolder = new PresetPackFolder({ pack: p, tree });
-          extFolders.push(topFolder);
+    // if (externalCompendiums) {
+    //   for (const p of game.packs) {
+    //     if (p.collection !== this.workingPack && p.index.get(META_INDEX_ID)) {
+    //       const tree = await PresetTree.init(p, type, { setFormVisibility });
+    //       if (setFormVisibility && !tree.hasVisible) continue;
 
-          // Collate all folders with the main tree
-          mainTree.allFolders.set(topFolder.uuid, topFolder);
-          for (const [uuid, folder] of tree.allFolders) {
-            mainTree.allFolders.set(uuid, folder);
-          }
-        }
-      }
-    }
+    //       const topFolder = new PresetPackFolder({ pack: p, tree });
+    //       extFolders.push(topFolder);
 
-    // Read File Index
-    if (virtualDirectory) {
-      const vTree = await FileIndexer.getVirtualDirectoryTree(type, { setFormVisibility });
-      if (vTree && (vTree.hasVisible || !setFormVisibility)) {
-        const topFolder = new VirtualFileFolder({
-          name: 'VIRTUAL DIRECTORY',
-          children: vTree.folders,
-          uuid: 'virtual_directory',
-          color: '#00739f',
-        });
-        extFolders.push(topFolder);
+    //       // Collate all folders with the main tree
+    //       mainTree.allFolders.set(topFolder.uuid, topFolder);
+    //       for (const [uuid, folder] of tree.allFolders) {
+    //         mainTree.allFolders.set(uuid, folder);
+    //       }
+    //     }
+    //   }
+    // }
 
-        // Collate all folders with the main tree
-        mainTree.allFolders.set(topFolder.uuid, topFolder);
-        for (const [uuid, folder] of vTree.allFolders) {
-          mainTree.allFolders.set(uuid, folder);
-        }
-      }
-    }
+    // // Read File Index
+    // if (virtualDirectory) {
+    //   const vTree = await FileIndexer.getVirtualDirectoryTree(type, { setFormVisibility });
+    //   if (vTree && (vTree.hasVisible || !setFormVisibility)) {
+    //     const topFolder = new VirtualFileFolder({
+    //       name: 'VIRTUAL DIRECTORY',
+    //       children: vTree.folders,
+    //       uuid: 'virtual_directory',
+    //       color: '#00739f',
+    //     });
+    //     extFolders.push(topFolder);
 
-    mainTree.extFolders = this._groupExtFolders(extFolders, mainTree.allFolders);
+    //     // Collate all folders with the main tree
+    //     mainTree.allFolders.set(topFolder.uuid, topFolder);
+    //     for (const [uuid, folder] of vTree.allFolders) {
+    //       mainTree.allFolders.set(uuid, folder);
+    //     }
+    //   }
+    // }
+
+    //mainTree.extFolders = this._groupExtFolders(extFolders, mainTree.allFolders);
 
     if (CONFIG.debug.MassEdit) console.timeEnd('getTree');
     return mainTree;
@@ -1052,3 +1054,481 @@ export class PresetTree {
     }
   }
 }
+
+export class PresetStorage {
+  static async getTree(type, { externalCompendiums = true, virtualDirectory = true, setFormVisibility = false } = {}) {
+    this.workingPack = DEFAULT_PACK; // temp assign it correct working pack
+
+    const compendium = game.packs.get(this.workingPack);
+    if (!compendium.tree.meTree) {
+      const index = await this._loadIndex(compendium);
+      this._assignPresetsToTree(index, compendium.tree);
+      compendium.tree.meTree = true;
+    }
+
+    return compendium.tree;
+  }
+
+  static _assignPresetsToTree(index, tree) {
+    if (tree.folder) tree.folder.presets = tree.entries.map((entry) => index.get(entry._id));
+    else tree.presets = tree.entries.map((entry) => index.get(entry._id));
+    for (const child of tree.children) {
+      this._assignPresetsToTree(index, child);
+    }
+  }
+
+  /**
+   * Construct a collection of presets representing the index of the passed in compendium
+   * @param {Collection} pack
+   * @returns
+   */
+  static async _loadIndex(pack) {
+    if (pack._meIndex) return pack._meIndex;
+    const metadataDocument = await pack.getDocument(META_INDEX_ID);
+    const rawIndex = metadataDocument.getFlag(MODULE_ID, 'index');
+
+    const index = new Collection();
+    for (const [id, content] of Object.entries(rawIndex)) {
+      index.set(id, new Preset({ id, uuid: pack.getUuid(id), ...content }));
+    }
+
+    pack._meIndex = index;
+    return index;
+  }
+
+  /**
+   * Retrieves a compendium and create a metadata document within it
+   * If it's a DEFAULT_PACK and does not exist it will be created
+   * @param {string} packId
+   * @returns
+   */
+  static async _initCompendium(packId) {
+    // Get/Create compendium
+    let compendium = game.packs.get(packId);
+    if (!compendium && packId === DEFAULT_PACK) {
+      if (!this._creatingDefaultCompendium)
+        this._creatingDefaultCompendium = CompendiumCollection.createCompendium({
+          label: 'Mass Edit: Presets (MAIN)',
+          type: 'JournalEntry',
+          ownership: {
+            GAMEMASTER: 'NONE',
+            PLAYER: 'NONE',
+            ASSISTANT: 'NONE',
+          },
+          packageType: 'world',
+        });
+
+      compendium = await this._creatingDefaultCompendium;
+    }
+
+    // Get/Create metadata document
+    let metadataDocument = await compendium?.getDocument(this.META_INDEX_ID);
+    if (compendium && !metadataDocument) {
+      if (!compendium._creatingMetadataDocument)
+        compendium._creatingMetadataDocument = compendium.documentClass.createDocuments(
+          [
+            {
+              _id: META_INDEX_ID,
+              name: '!!! METADATA: DO NOT DELETE !!!',
+              flags: { [MODULE_ID]: { index: {} } },
+            },
+          ],
+          {
+            pack: packId,
+            keepId: true,
+          }
+        );
+
+      const documents = await compendium._creatingMetadataDocument;
+      metadataDocument = documents[0];
+    }
+
+    return { compendium, metadataDocument };
+  }
+
+  /**
+   * Creates a JournalEntry document representing the passed in preset
+   * @param {Preset|Array[Preset]} preset
+   */
+  static async createDocuments(presets, pack = this.workingPack) {
+    if (!Array.isArray(presets)) presets = [presets];
+
+    const compendium = game.packs.get(pack);
+
+    presets = presets.filter((p) => !compendium.index.get(p.id));
+    if (!presets.length) return;
+
+    const data = presets.map((preset) => {
+      return {
+        _id: preset.id,
+        name: preset.name,
+        pages: preset.pages ?? [],
+        folder: preset.folder,
+        flags: { [MODULE_ID]: { preset: preset.toJSON() } },
+      };
+    });
+
+    const documents = await JournalEntry.createDocuments(data, {
+      pack: pack,
+      keepId: true,
+    });
+
+    for (const preset of presets) {
+      const document = documents.find((d) => d.id === preset.id);
+      preset.uuid = document.uuid;
+      await preset.load(false, document);
+    }
+
+    return presets;
+  }
+
+  // Initialize hooks to manage update, deletion, and creation of preset JournalEntry's,
+  // hiding of managed compendiums
+  static _init() {
+    // Hooks.on(`preUpdate${documentType}`, this._preUpdate.bind(this));
+    // Hooks.on(`update${documentType}`, this._update.bind(this));
+    // Hooks.on(`delete${documentType}`, this._delete.bind(this));
+    Hooks.on(`preCreate${documentType}`, this._preCreate.bind(this));
+    // Hooks.on(`create${documentType}`, this._create.bind(this));
+    Hooks.on('updateCompendium', this._updateCompendium.bind(this));
+
+    // Hooks.on('activateCompendiumDirectory', (directory) => {
+    //   //if (game.settings.get(MODULE_ID, 'hideManagedPacks'))
+    //   game.packs
+    //     .filter((p) => p.index.get(META_INDEX_ID))
+    //     .forEach((pack) => {
+    //       directory.element.querySelector(`[data-pack="${pack.collection}"]`)?.setAttribute('hidden', true);
+    //     });
+    // });
+  }
+
+  static _updateCompendium(compendium, documents, operation, userId) {
+    console.log('updateCompendium', { compendium, documents, operation, userId });
+    if (!document.collection.index?.get(META_INDEX_ID)) return;
+
+    if (operation.action === 'create') return this._updateCompendiumCreate(compendium, documents, operation, userId);
+    else if (operation === 'update') return this._updateCompendiumUpdate(compendium, documents, operation, userId);
+    else if (operation === 'delete') return this._updateCompendiumDelete(compendium, documents, operation, userId);
+  }
+
+  static _updateCompendiumCreate(compendium, documents, operation, userId) {}
+
+  // Sync document update with index
+  static _updateCompendiumUpdate(compendium, documents, operation, userId) {
+    const indexUpdate = {};
+    for (const update of operation.updates) {
+      if (update._id === META_INDEX_ID) continue;
+      const preset = foundry.utils.getProperty(change, `flags.${MODULE_ID}.preset`);
+      if (preset) {
+        const indexChanges = {};
+        META_INDEX_FIELDS.forEach((k) => {
+          if (k in preset) indexChanges[k] = preset[k];
+        });
+        if ('name' in update) indexChanges.name = update.name;
+        if (compendium._meIndex) Object.assign(compendium._meIndex.get(update._id), indexChanges);
+        if (!foundry.utils.isEmpty(indexChanges))
+          foundry.utils.setProperty(indexUpdate, `flags.${MODULE_ID}.index.${update._id}`, indexChanges);
+      }
+    }
+
+    if (game.user.id !== userId) return;
+
+    if (!foundry.utils.isEmpty(indexUpdate))
+      document.collection.getDocument(META_INDEX_ID).then((metaDocument) => {
+        metaDocument.update(indexUpdate);
+      });
+  }
+
+  // Document deletion within managed collection automatically remove it from the metadata document index
+  static _updateCompendiumDelete(compendium, documents, operation, userId) {
+    if (compendium._meIndex) operation.ids.forEach((id) => compendium._meIndex.delete(id));
+
+    if (game.user.id === userId) {
+      const update = {};
+      operation.ids.forEach((id) => {
+        update[`flags.${MODULE_ID}.index.-=${id}`] = null;
+      });
+      document.collection.getDocument(META_INDEX_ID).then((metaDocument) => {
+        metaDocument.update(update).then(PresetBrowser.renderActiveBrowser());
+      });
+    }
+  }
+  // /**
+  //  * Sync Document and index names
+  //  * @param {Document} document
+  //  * @param {object} change
+  //  * @param {object} options
+  //  * @param {string} userId
+  //  */
+  // static _preUpdate(document, change, options, userId) {
+  //   if (
+  //     document.collection.index?.get(META_INDEX_ID) &&
+  //     document.id !== META_INDEX_ID &&
+  //     ('name' in change || foundry.utils.getProperty(change, `flags.${MODULE_ID}.index.name`) != null)
+  //   ) {
+  //     if ('name' in change) foundry.utils.setProperty(change, `flags.${MODULE_ID}.preset.name`, change.name);
+  //     else change.name = change.flags[MODULE_ID].index.name;
+  //   }
+  // }
+
+  /**
+   * If a Document has been created within a managed compendium without the use of MassEdit API default preset data will be inserted here.
+   * @param {Document} document
+   * @param {object} data
+   * @param {object} options
+   * @param {object} userId
+   */
+  static _preCreate(document, data, options, userId) {
+    if (
+      document.collection.index?.get(META_INDEX_ID) &&
+      !foundry.utils.getProperty(data, `flags.${MODULE_ID}.preset`)
+    ) {
+      foundry.utils.setProperty(
+        data,
+        `flags.${MODULE_ID}.preset`,
+        new Preset({ name: document.name, data: [{}] }).toJSON()
+      );
+    }
+  }
+
+  /**
+   * Newly created documents within managed compendiums automatically update metadata document index
+   * @param {Document} document
+   * @param {object} options
+   * @param {string} userId
+   * @returns
+   */
+  static _create(document, options, userId) {
+    if (game.user.id === userId && document.collection.index?.get(META_INDEX_ID)) {
+      document.collection.getDocument(META_INDEX_ID).then((metaDocument) => {
+        const preset = document.getFlag(MODULE_ID, 'preset');
+        const index = {};
+        META_INDEX_FIELDS.forEach((k) => {
+          if (k in preset) index[k] = preset[k];
+        });
+
+        metaDocument.setFlag(MODULE_ID, 'index', { [document.id]: index });
+      });
+    }
+  }
+
+  // =========================================================================
+  // Preset retrieval API
+
+  /**
+   * Retrieve presets
+   * @param {object} [options={}]
+   * @param {String|Array[String]} [options.uuid]        Preset UUID/s
+   * @param {String} [options.name]                      Preset name
+   * @param {Array[String]} [options.types]              Preset types ("Token", "Tile", etc)
+   * @param {String} [options.query]                     See PresetAPI.getPreset
+   * @param {String} [options.folder]                    Folder name
+   * @param {String|Array[String]|Object} [options.tags] See PresetAPI.getPreset
+   * @returns {Array[Preset]|Array[String]|Array[Object]}
+   */
+  static async retrieve({
+    uuid,
+    name,
+    types,
+    query,
+    matchAny = true,
+    folder,
+    tags,
+    virtualDirectory = true,
+    externalCompendiums = true,
+    full = true, // deprecated
+    load = false,
+    presets,
+  } = {}) {
+    if (full !== undefined) load = full;
+
+    if (uuid) {
+      const uuids = Array.isArray(uuid) ? uuid : [uuid];
+      presets = await this.getPresetsFromUUID(uuids, { load });
+    } else if (!name && !types && !folder && !tags && !query)
+      throw Error('UUID, Name, Type, Folder, Tags, and/or Query required to retrieve Presets.');
+    else if (query && (types || folder || tags || name))
+      throw console.warn(`When 'query' is provided 'types', 'folder', 'tags', and 'name' arguments are ignored.`);
+    else {
+      let search, negativeSearch;
+      if (query) {
+        ({ search, negativeSearch } = parseSearchQuery(query, { matchAny }));
+      } else {
+        if (tags) {
+          if (Array.isArray(tags)) tags = { tags, matchAny };
+          else if (typeof tags === 'string') tags = { tags: tags.split(','), matchAny };
+        }
+
+        search = { name, types, folder, tags };
+      }
+      if (!search && !negativeSearch) return [];
+
+      if (presets) presets = presets.filter((preset) => this._matchPreset(preset, search, negativeSearch));
+      else presets = await this._search(search, negativeSearch, { virtualDirectory, externalCompendiums });
+    }
+
+    // Incase these presets are to be rendered, we set the _render and _visible flags to true
+    // as we might be re-using presets that have been utilized by other forms and had these flags
+    // toggled
+    presets.forEach((p) => {
+      p._render = true;
+      p._visible = true;
+    });
+
+    if (load) await this._batchLoadPresets(presets);
+
+    return presets;
+  }
+
+  /**
+   * Retrieve a single preset that matches the provided criteria
+   * See getPresets(...)
+   * @returns {Preset}
+   */
+  static async retrieveSingle(options = {}) {
+    const presets = await this.retrieve({ ...options, load: false });
+
+    const preset = options.random ? presets[Math.floor(Math.random() * presets.length)] : presets[0];
+    if (preset && options.load) await preset.load();
+
+    return preset;
+  }
+
+  /**
+   * Search all managed packs
+   * @param {object} search
+   * @param {object} negativeSearch
+   * @returns
+   */
+  static async _search(search, negativeSearch, { virtualDirectory, externalCompendiums } = {}) {
+    const results = [];
+    for (const pack of game.packs) {
+      if (!pack.index.get(META_INDEX_ID)) continue;
+      if (!pack._meIndex) await this._loadIndex(pack);
+
+      for (const entry of pack._meIndex) {
+        if (this._matchPreset(entry, search, negativeSearch)) results.push(entry);
+      }
+    }
+
+    // TODO: virtualDirectory, externalCompendiums
+
+    return results;
+  }
+
+  /**
+   * Match an entry against the provided search and negativeSearch
+   * @param {Entry} entry
+   * @param {object} search
+   * @param {object} negativeSearch
+   */
+  static _matchPreset(entry, search, negativeSearch) {
+    let match = true;
+
+    if (search) {
+      const { name, terms, types, tags } = search;
+      if (name && name !== entry.name) match = false;
+      else if (types && !types.includes(entry.type)) match = false;
+      else if (terms && !terms.every((t) => entry.name.toLowerCase().includes(t))) match = false;
+      else if (tags) {
+        if (tags.noTags) match = !entry.tags.length;
+        else if (tags.matchAnyTag) match = tags.tags.some((t) => entry.tags.includes(t));
+        else match = tags.tags.every((t) => entry.tags.includes(t));
+      }
+    }
+    if (match && negativeSearch) {
+      const { name, terms, types, tags } = negativeSearch;
+      if (name && name === entry.name) match = false;
+      else if (types && types.includes(entry.type)) match = false;
+      else if (terms && !terms.every((t) => !entry.name.toLowerCase().includes(t))) match = false;
+      else if (tags) {
+        if (tags.noTags) match = !!entry.tags.length;
+        else if (tags.matchAnyTag) match = tags.tags.some((t) => !entry.tags.includes(t));
+        else match = tags.tags.every((t) => !entry.tags.includes(t));
+      }
+    }
+
+    return match;
+  }
+
+  /**
+   * Returns provided UUIDs as Presets
+   * @param {Array[string]|string} uuids
+   * @param {object} [options]
+   * @param {boolean} [options.load] Should the associated entry documents be immediately loaded?
+   * @returns {Array[Entry]}
+   */
+  static async getPresetsFromUUID(uuids, { load = true }) {
+    if (!Array.isArray(uuids)) uuids = [uuids];
+    const presets = [];
+
+    for (const uuid of uuids) {
+      if (uuid.startsWith('virtual@')) {
+        presets.push(await this._constructVirtualFilePreset(uuid));
+        continue;
+      }
+
+      const { collection, documentId } = foundry.utils.parseUuid(uuid);
+      if (!collection) {
+        console.warn('Invalid UUID: ', uuid);
+        continue;
+      }
+      const index = collection.index.get(documentId);
+
+      if (index) {
+        if (!collection._meIndex) await this._loadIndex(collection);
+        presets.push(collection._meIndex.get(documentId));
+      }
+    }
+
+    if (load) return this._batchLoadPresets(presets);
+    return presets;
+  }
+
+  static async _constructVirtualFilePreset(uuid) {
+    let preset = await FileIndexer.getPreset(uuid);
+    if (!preset) preset = new VirtualFilePreset({ src: uuid.substring(8) });
+    return preset;
+  }
+
+  /**
+   * Batch load preset documents using pack.getDocuments({ _id__in: ids }) query.
+   * @param {Array[Preset]} presets to be loaded with their document
+   * @returns {Array[Preset]}
+   */
+  static async _batchLoadPresets(presets) {
+    // Organize presets according to their packs
+    const packToPreset = {};
+    for (const preset of presets) {
+      if (preset instanceof VirtualFilePreset) {
+        await preset.load();
+        continue;
+      }
+
+      if (!preset.document) {
+        const { collection, documentId } = foundry.utils.parseUuid(preset.uuid);
+        if (!packToPreset[collection]) packToPreset[collection] = {};
+        packToPreset[collection][documentId] = preset;
+      }
+    }
+
+    // Load documents from each pack and assign them to entries
+    for (const [pack, idToPresets] of Object.entries(packToPreset)) {
+      const documents = await pack.getDocuments({ _id__in: Object.keys(idToPresets) });
+      for (const document of documents) {
+        idToPresets[document.id].load(false, document);
+      }
+    }
+
+    return presets;
+  }
+}
+
+// TODO, re-use CompendiumCollection (pack) tree to do rendering and search
+// hook into 'updateCompendium' hook to update the _meIndex/Preset on changes
+// When searching the tree use the _id in the normal index to query the _meIndex for the additional fields
+
+// search:
+// search all presets and return via  _getVisibleTreeContents
+// simple wrap of DirectoryCollectionMixin, return only matched presets and Folders
+// let the DirectoryCollectionMixin to construct the tree to be rendered

@@ -794,27 +794,25 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
 
     const uuid = folderElement.data('uuid');
 
-    const folder = this.tree.allFolders.get(uuid);
+    const folder = fromUuidSync(uuid);
     if (folder.expanded) this._folderCollapse(folderElement, folder);
     else this._folderExpand(folderElement, folder);
   }
 
   async _folderExpand(folderElement, folder) {
-    FolderState.setExpanded(folder.uuid, true);
-    folder.expanded = true;
+    game.folders._expanded[folder.uuid] = true;
 
     if (folderElement.find('.folder-items').length) {
       folderElement.removeClass('collapsed');
       folderElement.find('header .folder-icon').first().removeClass('fa-folder-closed').addClass('fa-folder-open');
     } else {
-      let content = await foundry.applications.handlebars.renderTemplate(
+      const content = await foundry.applications.handlebars.renderTemplate(
         `modules/${MODULE_ID}/templates/preset/container/partials/folder.hbs`,
         {
           folder,
           createEnabled: Boolean(this.configApp),
           callback: Boolean(this.callback),
-          sortable:
-            !folder.uuid.startsWith('virtual@') && fromUuidSync(folder.uuid)?.pack === PresetCollection.workingPack,
+          sortable: !folder.uuid.startsWith('virtual@') && folder.pack === PresetCollection.workingPack,
         }
       );
       folderElement.replaceWith(content);
@@ -824,9 +822,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
   _folderCollapse(folderElement, folder) {
     folderElement.addClass('collapsed');
     folderElement.find('header .folder-icon').first().removeClass('fa-folder-open').addClass('fa-folder-closed');
-
-    FolderState.setExpanded(folder.uuid, false);
-    folder.expanded = false;
+    game.folders._expanded[folder.uuid] = false;
   }
 
   async _renderContent({ callback = false, presets, folders, createEnabled = false, extFolders } = {}) {

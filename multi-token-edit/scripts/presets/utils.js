@@ -571,6 +571,8 @@ export function parseSearchQuery(query, { matchAny = true, noTags = false } = {}
   let search = { terms: [], tags: [], types: [] };
   let negativeSearch = { terms: [], tags: [], types: [] };
 
+  if (!query) return { search, negativeSearch };
+
   query
     .trim()
     .split(' ')
