@@ -864,16 +864,14 @@ export class VirtualFileFolder extends PresetVirtualFolder {
 }
 
 export class PresetPackFolder extends PresetVirtualFolder {
-  constructor(options) {
-    const tree = options.tree;
-    const pack = options.pack;
-    const packFolderData = tree.metaDoc.getFlag(MODULE_ID, 'folder') ?? {};
-    const uuid = pack.collection;
+  constructor(tree, compendium, metaDoc) {
+    const packFolderData = metaDoc.getFlag(MODULE_ID, 'folder') ?? {};
+    const uuid = compendium.collection;
     super({
       uuid,
       id: SeededRandom.randomID(uuid),
-      name: packFolderData.name ?? pack.title,
-      children: tree.folders,
+      name: packFolderData.name ?? compendium.title,
+      children: tree.children,
       presets: tree.presets,
       draggable: false,
       color: packFolderData.color ?? '#000000',
@@ -1056,27 +1054,6 @@ export class PresetTree {
 }
 
 export class PresetStorage {
-  static async getTree(type, { externalCompendiums = true, virtualDirectory = true, setFormVisibility = false } = {}) {
-    this.workingPack = DEFAULT_PACK; // temp assign it correct working pack
-
-    const compendium = game.packs.get(this.workingPack);
-    if (!compendium.tree.meTree) {
-      const index = await this._loadIndex(compendium);
-      this._assignPresetsToTree(index, compendium.tree);
-      compendium.tree.meTree = true;
-    }
-
-    return compendium.tree;
-  }
-
-  static _assignPresetsToTree(index, tree) {
-    if (tree.folder) tree.folder.presets = tree.entries.map((entry) => index.get(entry._id));
-    else tree.presets = tree.entries.map((entry) => index.get(entry._id));
-    for (const child of tree.children) {
-      this._assignPresetsToTree(index, child);
-    }
-  }
-
   /**
    * Construct a collection of presets representing the index of the passed in compendium
    * @param {Collection} pack
@@ -1182,13 +1159,34 @@ export class PresetStorage {
     return presets;
   }
 
+  static _assignPresetsToTree(index, tree) {
+    if (tree.folder) tree.folder.presets = tree.entries.map((entry) => index.get(entry._id));
+    else tree.presets = tree.entries.map((entry) => index.get(entry._id));
+    for (const child of tree.children) {
+      this._assignPresetsToTree(index, child);
+    }
+  }
+
   // Initialize hooks to manage update, deletion, and creation of preset JournalEntry's,
   // hiding of managed compendiums
   static _init() {
+    CompendiumCollection.prototype.presetTree = async function () {
+      console.log(this);
+      const tree = this.tree;
+      if (!tree.meTree) {
+        const index = await PresetStorage._loadIndex(this);
+        PresetStorage._assignPresetsToTree(index, tree);
+        tree.meTree = true;
+      }
+      return tree;
+    };
+
+    Object.assign(CompendiumCollection.prototype, {});
+
     // Hooks.on(`preUpdate${documentType}`, this._preUpdate.bind(this));
     // Hooks.on(`update${documentType}`, this._update.bind(this));
     // Hooks.on(`delete${documentType}`, this._delete.bind(this));
-    Hooks.on(`preCreate${documentType}`, this._preCreate.bind(this));
+    Hooks.on(`preCreateJournalEntry`, this._preCreate.bind(this));
     // Hooks.on(`create${documentType}`, this._create.bind(this));
     Hooks.on('updateCompendium', this._updateCompendium.bind(this));
 
@@ -1204,14 +1202,45 @@ export class PresetStorage {
 
   static _updateCompendium(compendium, documents, operation, userId) {
     console.log('updateCompendium', { compendium, documents, operation, userId });
-    if (!document.collection.index?.get(META_INDEX_ID)) return;
+    if (!compendium.index?.get(META_INDEX_ID)) return;
 
-    if (operation.action === 'create') return this._updateCompendiumCreate(compendium, documents, operation, userId);
-    else if (operation === 'update') return this._updateCompendiumUpdate(compendium, documents, operation, userId);
-    else if (operation === 'delete') return this._updateCompendiumDelete(compendium, documents, operation, userId);
+    const action = operation.action;
+    if (action === 'create') return this._updateCompendiumCreate(compendium, documents, operation, userId);
+    else if (action === 'update') return this._updateCompendiumUpdate(compendium, documents, operation, userId);
+    else if (action === 'delete') return this._updateCompendiumDelete(compendium, documents, operation, userId);
   }
 
-  static _updateCompendiumCreate(compendium, documents, operation, userId) {}
+  static _updateCompendiumCreate(compendium, documents, operation, userId) {
+    if (compendium._meIndex) {
+      for (const data of operation.data) {
+        compendium._meIndex.set(
+          data._id,
+          new Preset({
+            id: data._id,
+            uuid: compendium.getUuid(data._id),
+            ...(foundry.utils.getProperty(data, `flags.${MODULE_ID}.preset`) ?? {}),
+          })
+        );
+      }
+    }
+
+    if (game.user.id === userId) {
+      const indexUpdate = {};
+      for (const data of operation.data) {
+        const preset = foundry.utils.getProperty(data, `flags.${MODULE_ID}.preset`) ?? {};
+        const index = { id: data._id };
+        META_INDEX_FIELDS.forEach((k) => {
+          if (k in preset) index[k] = preset[k];
+        });
+
+        foundry.utils.setProperty(indexUpdate, `flags.${MODULE_ID}.index.${data._id}`, index);
+      }
+
+      compendium.getDocument(META_INDEX_ID).then((metaDocument) => {
+        metaDocument.update(indexUpdate);
+      });
+    }
+  }
 
   // Sync document update with index
   static _updateCompendiumUpdate(compendium, documents, operation, userId) {

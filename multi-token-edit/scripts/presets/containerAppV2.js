@@ -825,7 +825,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
     game.folders._expanded[folder.uuid] = false;
   }
 
-  async _renderContent({ callback = false, presets, folders, createEnabled = false, extFolders } = {}) {
+  async _renderContent({ callback = false, presets, folders, createEnabled = false, externalFolders } = {}) {
     const content = await foundry.applications.handlebars.renderTemplate(
       `modules/${MODULE_ID}/templates/preset/container/partials/presetsContent.hbs`,
       {
@@ -833,7 +833,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
         presets,
         folders,
         createEnabled,
-        extFolders,
+        externalFolders,
       }
     );
     $(this.form).find('.item-list').html(content);

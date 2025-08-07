@@ -142,8 +142,55 @@ export class PresetBrowser extends PresetContainerV2 {
     return title;
   }
 
+  static async buildTree(
+    type,
+    { externalCompendiums = true, virtualDirectory = true, setFormVisibility = false } = {}
+  ) {
+    const workingTree = await game.packs.get(PresetStorage.workingPack).presetTree();
+
+    const externalFolders = [];
+    if (externalCompendiums) {
+      for (const pack of game.packs) {
+        if (pack.collection !== PresetStorage.workingPack && pack.index?.get(META_INDEX_ID)) {
+          const tree = await pack.presetTree();
+          externalFolders.push(new PresetPackFolder(tree, pack, await pack.getDocument(META_INDEX_ID)));
+        }
+      }
+    }
+
+    // if (externalCompendiums) {
+    //   for (const p of game.packs) {
+    //     if (p.collection !== this.workingPack && p.index.get(META_INDEX_ID)) {
+    //       const tree = await PresetTree.init(p, type, { setFormVisibility });
+    //       if (setFormVisibility && !tree.hasVisible) continue;
+
+    //       const topFolder = new PresetPackFolder({ pack: p, tree });
+    //       extFolders.push(topFolder);
+
+    //       // Collate all folders with the main tree
+    //       mainTree.allFolders.set(topFolder.uuid, topFolder);
+    //       for (const [uuid, folder] of tree.allFolders) {
+    //         mainTree.allFolders.set(uuid, folder);
+    //       }
+    //     }
+    //   }
+    // }
+
+    return { workingTree, externalFolders };
+  }
+
+  static async getTree(compendium) {
+    const tree = compendium.tree;
+    if (!tree.meTree) {
+      const index = await PresetStorage._loadIndex(compendium);
+      this._assignPresetsToTree(index, tree);
+      tree.meTree = true;
+    }
+    return tree;
+  }
+
   async _refreshTree() {
-    this.tree = await PresetStorage.getTree(this.documentName, {
+    this.tree = await PresetBrowser.buildTree(this.documentName, {
       externalCompendiums: PresetBrowser.CONFIG.externalCompendiums,
       virtualDirectory: PresetBrowser.CONFIG.virtualDirectory,
       setFormVisibility: true,
@@ -155,8 +202,9 @@ export class PresetBrowser extends PresetContainerV2 {
     const context = await super._prepareContext(options);
 
     await this._refreshTree();
-    context.presets = this.tree.presets;
-    context.folders = this.tree.children.map((ch) => ch.folder);
+    console.log(this.tree);
+    context.presets = this.tree.workingTree.presets;
+    context.folders = this.tree.workingTree.children.map((ch) => ch.folder);
 
     this._tagSelector?.render(true);
 
@@ -165,9 +213,7 @@ export class PresetBrowser extends PresetContainerV2 {
       context.lastSearch = this.lastSearch;
     } else context.lastSearch = '';
 
-    context.presets = this.tree.presets;
-    // context.folders = this.tree.folders;
-    //context.extFolders = this.tree.extFolders.length ? this.tree.extFolders : null;
+    context.externalFolders = this.tree.externalFolders.length ? this.tree.externalFolders : null;
 
     context.createEnabled = Boolean(this.configApp);
     context.isPlaceable = SUPPORTED_PLACEABLES.includes(this.documentName) || this.documentName === 'ALL';
@@ -180,7 +226,8 @@ export class PresetBrowser extends PresetContainerV2 {
     context.sortMode = SORT_MODES[PresetBrowser.CONFIG.sortMode];
     context.searchMode = SEARCH_MODES[PresetBrowser.CONFIG.searchMode];
     context.displayDragDropMessage =
-      context.allowDocumentSwap && !(this.tree.children.length || this.tree.entries.length || context.extTree);
+      context.allowDocumentSwap &&
+      !(context.presets.length || context.folders.length || context.externalFolders?.length);
 
     context.docs = [];
     context.docsDropdown = PresetBrowser.CONFIG.dropdownDocuments.length ? [] : null;
