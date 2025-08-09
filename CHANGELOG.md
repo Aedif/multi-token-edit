@@ -1,3 +1,7 @@
+# 2.1.1
+
+- Fixed `File Indexer` not generating an index
+
 # 2.1.0
 
 **Drag/Drop Upload**

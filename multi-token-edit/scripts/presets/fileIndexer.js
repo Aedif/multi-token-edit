@@ -544,7 +544,7 @@ export class FileIndexer {
     if (source === 'forge-bazaar' || source === 'forgevtt') {
       return this._fauxForgeBrowser?.get(dir) ?? { dirs: [], files: [] };
     } else {
-      return await foundry.applications.apps.FilePicker.implementation.FilePicker.browse(source, dir, options);
+      return await foundry.applications.apps.FilePicker.implementation.browse(source, dir, options);
     }
   }
 
@@ -569,7 +569,9 @@ export class FileIndexer {
     if (source === 'forgevtt' || !['modules', 'systems', 'worlds', 'assets'].includes(dir.replaceAll(/[\/\\]/g, ''))) {
       paths = [dir];
     } else {
-      const contents = await foundry.applications.apps.FilePicker.browse(source, dir, { recursive: false });
+      const contents = await foundry.applications.apps.FilePicker.implementation.browse(source, dir, {
+        recursive: false,
+      });
       paths = contents.dirs;
     }
 
@@ -589,7 +591,9 @@ export class FileIndexer {
     };
 
     for (const path of paths) {
-      const contents = await foundry.applications.apps.FilePicker.browse(source, path, { recursive: true });
+      const contents = await foundry.applications.apps.FilePicker.implementation.browse(source, path, {
+        recursive: true,
+      });
       for (const file of contents.files) {
         const pathname = new URL(file).pathname;
         const components = pathname.split('/');
