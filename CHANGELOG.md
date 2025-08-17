@@ -1,3 +1,7 @@
+# 2.1.2
+
+- Fixed compatibility issues with `Multiple Document Selection` module
+
 # 2.1.1
 
 - Fixed `File Indexer` not generating an index

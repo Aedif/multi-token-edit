@@ -1,5 +1,10 @@
 import { Brush } from '../scripts/brush.js';
-import { MODULE_ID, SUPPORTED_COLLECTIONS, SUPPORTED_PLACEABLES } from '../scripts/constants.js';
+import {
+  MODULE_ID,
+  SUPPORTED_COLLECTIONS,
+  SUPPORTED_PLACEABLES,
+  SUPPORTED_SHEET_CONFIGS,
+} from '../scripts/constants.js';
 import { injectVisibility } from '../scripts/fieldInjector.js';
 import { PresetBrowser } from '../scripts/presets/browser/browserApp.js';
 import { Preset } from '../scripts/presets/preset.js';
@@ -30,7 +35,7 @@ export const WithBaseMassEditForm = (cls) => {
 
       BaseMassEditForm._setMEActions(options);
 
-      if (SUPPORTED_PLACEABLES.includes(documentName) || documentName === 'Scene') {
+      if (SUPPORTED_SHEET_CONFIGS.includes(documentName) && documentName !== 'Actor') {
         options.document = doc;
         super(options);
       } else {

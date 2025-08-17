@@ -66,7 +66,7 @@ function getSelectedDocuments(placeableSelect) {
       if (doc.name === 'Playlist') {
         d = game.collections.get(doc.name).get(this.dataset.playlistId)?.sounds.get(this.dataset.soundId);
       } else {
-        d = game.collections.get(doc.name).get(this.dataset.documentId);
+        d = game.collections.get(doc.name).get(this.dataset.entryId);
       }
 
       if (d) {
@@ -174,12 +174,7 @@ export async function showMassEdit(found = null, documentName, options = {}) {
   // Display modified config window
   if (!documentName) documentName = getDocumentName(target);
   options = { ...options, massEdit: true, documentName };
-  if (SUPPORTED_SHEET_CONFIGS.includes(documentName)) {
-    if (documentName === 'Actor') {
-      target = target.prototypeToken;
-      selected = selected.map((s) => s.prototypeToken);
-      options.documentName = 'Token';
-    }
+  if (SUPPORTED_SHEET_CONFIGS.includes(documentName) && documentName !== 'Actor') {
     const MassConfig = WithMassConfig(options.documentName);
     return new MassConfig(target, selected, options).render(true, {});
   } else {

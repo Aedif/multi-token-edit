@@ -1,18 +1,17 @@
 class PlaylistSoundDataAdapter {
   static formToData(obj, formData) {
-    if ('lvolume' in formData) {
-      formData['volume'] = AudioHelper.inputToVolume(formData['lvolume']);
-      delete formData['lvolume'];
+    if ('volume' in formData) {
+      formData['volume'] = foundry.audio.AudioHelper.inputToVolume(formData.volume);
     }
   }
 
   static dataToForm(note, data) {
-    data['lvolume'] = (note.document ?? note).volume;
+    data['lvolume'] = foundry.audio.AudioHelper.volumeToInput((note.document ?? note).volume);
   }
 
   static updateToForm(update) {
     if ('volume' in update) {
-      update['lvolume'] = AudioHelper.volumeToInput(update['volume']);
+      update['lvolume'] = foundry.audio.AudioHelper.volumeToInput(update['volume']);
       delete update.volume;
     }
   }
