@@ -5,7 +5,7 @@ import { FileIndexer } from './fileIndexer.js';
 import { PresetBrowser } from './browser/browserApp.js';
 import { Preset, VirtualFilePreset } from './preset.js';
 import { Spawner } from './spawner.js';
-import { FolderState, decodeURIComponentSafely, matchPreset, parseSearchQuery, placeableToData } from './utils.js';
+import { decodeURIComponentSafely, matchPreset, parseSearchQuery, placeableToData } from './utils.js';
 
 const DEFAULT_PACK = 'world.mass-edit-presets-main';
 export const META_INDEX_ID = 'MassEditMetaData';
@@ -804,11 +804,8 @@ export class PresetFolder {
     color = '#000000',
     sort = 0,
     children = [],
-    presets = [],
     draggable = true,
     folder = null,
-    visible = true,
-    render = true,
     types = [],
   } = {}) {
     this.id = id;
@@ -821,13 +818,16 @@ export class PresetFolder {
     this.children.forEach((c) => {
       c.folder = this.id;
     });
-    this.presets = presets;
+
     this.draggable = draggable;
     this.folder = folder;
-    this.visible = visible;
-    this.render = render;
-    this.expanded = FolderState.expanded(this.uuid);
     this.types = types;
+    this.flags = { [MODULE_ID]: { types } };
+
+    if (!CONFIG['ME-Folder']) {
+      CONFIG['ME-Folder'] = { collection: { instance: new Collection() } };
+    }
+    CONFIG['ME-Folder'].collection.instance.set(this.id, this);
   }
 
   async update(data) {
@@ -836,6 +836,10 @@ export class PresetFolder {
       foundry.utils.mergeObject(this, data);
       await doc.update(data);
     }
+  }
+
+  get expanded() {
+    return Boolean(game.folders._expanded[this.uuid]);
   }
 }
 
@@ -864,23 +868,20 @@ export class VirtualFileFolder extends PresetVirtualFolder {
 }
 
 export class PresetPackFolder extends PresetVirtualFolder {
-  constructor(tree, compendium, metaDoc) {
+  constructor(compendium, metaDoc, types) {
     const packFolderData = metaDoc.getFlag(MODULE_ID, 'folder') ?? {};
-    const uuid = compendium.collection;
+    const id = SeededRandom.randomID(compendium.collection);
+    const uuid = `ME-Folder.${id}`;
     super({
+      id,
       uuid,
-      id: SeededRandom.randomID(uuid),
       name: packFolderData.name ?? compendium.title,
-      children: tree.children,
-      presets: tree.presets,
       draggable: false,
       color: packFolderData.color ?? '#000000',
+      types,
     });
     this.group = packFolderData.group;
-  }
-
-  get pack() {
-    return this.uuid;
+    this.pack = compendium.collection;
   }
 
   async update(data = {}) {
@@ -1180,8 +1181,6 @@ export class PresetStorage {
       }
       return tree;
     };
-
-    Object.assign(CompendiumCollection.prototype, {});
 
     // Hooks.on(`preUpdate${documentType}`, this._preUpdate.bind(this));
     // Hooks.on(`update${documentType}`, this._update.bind(this));

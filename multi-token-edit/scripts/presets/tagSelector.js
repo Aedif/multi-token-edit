@@ -58,9 +58,8 @@ export class TagSelector extends FormApplication {
   getTagsOfRendered() {
     const tags = new Map();
 
-    this.presetsApp.tree.folders.forEach((f) => this._getFolderTags(f, tags));
-    this.presetsApp.tree.extFolders.forEach((f) => this._getFolderTags(f, tags));
-    this.presetsApp.tree.presets.forEach((p) => this._getPresetTags(p, tags));
+    this._getNodeTags(this.presetsApp.tree.workingTree, tags);
+    this.presetsApp.tree.externalTrees.forEach((tree) => this._getNodeTags(tree, tags));
 
     return tags;
   }
@@ -74,15 +73,11 @@ export class TagSelector extends FormApplication {
     return tags;
   }
 
-  _getFolderTags(folder, tags) {
-    if (!folder.render) return;
+  _getNodeTags(node, tags) {
+    if (!node.folder._meMatch) return;
 
-    for (const f of folder.children) {
-      this._getFolderTags(f, tags);
-    }
-
-    for (const p of folder.presets) {
-      this._getPresetTags(p, tags);
+    for (const preset of node.folder.presets) {
+      this._getPresetTags(preset, tags);
     }
   }
 

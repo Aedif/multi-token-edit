@@ -172,7 +172,6 @@ export function registerSettings() {
     default: {
       dropdownDocuments: [],
       persistentSearch: true,
-      searchMode: 'pf', // p = preset only | pf = preset & folder
       sortMode: 'manual', // manual | alphabetical
       autoScale: true,
       virtualDirectory: true,

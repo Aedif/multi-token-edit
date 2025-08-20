@@ -7,13 +7,14 @@ import { DragHoverOverlay, localFormat, localize, spawnSceneAsPreset } from '../
 import { META_INDEX_ID, PresetAPI, PresetCollection, PresetPackFolder, PresetStorage } from '../collection.js';
 import { LinkerAPI } from '../../linker/linker.js';
 import { DOC_ICONS, Preset } from '../preset.js';
-import { exportPresets, FolderState, matchPreset, parseSearchQuery, placeableToData } from '../utils.js';
+import { exportPresets, parseSearchQuery, placeableToData } from '../utils.js';
 import { MODULE_ID, SUPPORTED_PLACEABLES, UI_DOCS } from '../../constants.js';
 import { TagSelector } from '../tagSelector.js';
 import PresetBrowserSettings from './settingsApp.js';
 import { PresetConfig } from '../editApp.js';
 import { PresetContainerV2 } from '../containerAppV2.js';
 import { uploadFiles } from '../../auxilaryFeatures/utils.js';
+import { getPresetPackTrees, searchNode } from './tree.js';
 
 const SEARCH_MIN_CHAR = 2;
 
@@ -29,21 +30,6 @@ const SORT_MODES = {
       return localize('SIDEBAR.SortModeAlpha', false);
     },
     icon: '<i class="fa-solid fa-arrow-down-a-z"></i>',
-  },
-};
-
-const SEARCH_MODES = {
-  p: {
-    get tooltip() {
-      return localize('presets.search-presets');
-    },
-    icon: '<i class="fas fa-search"></i>',
-  },
-  pf: {
-    get tooltip() {
-      return localize('presets.search-presets-folders');
-    },
-    icon: '<i class="fa-solid fa-folder-magnifying-glass"></i>',
   },
 };
 
@@ -89,6 +75,7 @@ export class PresetBrowser extends PresetContainerV2 {
     }
 
     this.lastSearch = PresetBrowser.CONFIG.persistentSearch ? PresetBrowser.lastSearch : '';
+    PresetBrowser._type = this.documentName;
   }
 
   static DEFAULT_OPTIONS = {
@@ -114,7 +101,6 @@ export class PresetBrowser extends PresetContainerV2 {
       toggleSetting: PresetBrowser._onToggleSetting,
       toggleLock: PresetBrowser._onToggleLock,
       toggleTagSelector: PresetBrowser._onToggleTagSelector,
-      toggleSearchMode: PresetBrowser._onToggleSearchMode,
       toggleSortMode: PresetBrowser._onToggleSortMode,
       createFolder: PresetBrowser._onCreateFolder,
       createPreset: PresetBrowser._onCreatePreset,
@@ -146,17 +132,22 @@ export class PresetBrowser extends PresetContainerV2 {
     type,
     { externalCompendiums = true, virtualDirectory = true, setFormVisibility = false } = {}
   ) {
-    const workingTree = await game.packs.get(PresetStorage.workingPack).presetTree();
+    const { workingTree, externalTrees } = await getPresetPackTrees({ type, virtualDirectory, externalCompendiums });
+    return { workingTree, externalTrees };
+    // const workingTree = await game.packs.get(PresetStorage.workingPack).presetTree();
 
-    const externalFolders = [];
-    if (externalCompendiums) {
-      for (const pack of game.packs) {
-        if (pack.collection !== PresetStorage.workingPack && pack.index?.get(META_INDEX_ID)) {
-          const tree = await pack.presetTree();
-          externalFolders.push(new PresetPackFolder(tree, pack, await pack.getDocument(META_INDEX_ID)));
-        }
-      }
-    }
+    // const externalFolders = [];
+    // this._folders = new Map();
+    // if (externalCompendiums) {
+    //   for (const pack of game.packs) {
+    //     if (pack.collection !== PresetStorage.workingPack && pack.index?.get(META_INDEX_ID)) {
+    //       const tree = await pack.presetTree();
+    //       const virtualFolder = new PresetPackFolder(tree, pack, await pack.getDocument(META_INDEX_ID));
+    //       externalFolders.push(virtualFolder);
+    //       this._folders.set(virtualFolder.uuid, virtualFolder);
+    //     }
+    //   }
+    // }
 
     // if (externalCompendiums) {
     //   for (const p of game.packs) {
@@ -177,6 +168,18 @@ export class PresetBrowser extends PresetContainerV2 {
     // }
 
     return { workingTree, externalFolders };
+  }
+
+  static async _presetTreeFromPack(pack, type) {
+    const tree = pack.tree;
+    if (tree._meType === type) return pack._meTree;
+    const index = await PresetStorage._loadIndex(pack);
+  }
+
+  static _filterTreeByType(tree, type) {
+    if (tree.folder && (tree.folder.flags[MODULE_ID]?.types ?? ['ALL']).includes(type)) return null;
+    const node = {};
+    // node.presets = tree.presets.filter(ch. )
   }
 
   static async getTree(compendium) {
@@ -203,8 +206,9 @@ export class PresetBrowser extends PresetContainerV2 {
 
     await this._refreshTree();
     console.log(this.tree);
-    context.presets = this.tree.workingTree.presets;
-    context.folders = this.tree.workingTree.children.map((ch) => ch.folder);
+
+    context.workingTree = this.tree.workingTree;
+    context.externalTrees = this.tree.externalTrees;
 
     this._tagSelector?.render(true);
 
@@ -212,8 +216,6 @@ export class PresetBrowser extends PresetContainerV2 {
       this._onSearch(this.lastSearch, { render: false });
       context.lastSearch = this.lastSearch;
     } else context.lastSearch = '';
-
-    context.externalFolders = this.tree.externalFolders.length ? this.tree.externalFolders : null;
 
     context.createEnabled = Boolean(this.configApp);
     context.isPlaceable = SUPPORTED_PLACEABLES.includes(this.documentName) || this.documentName === 'ALL';
@@ -224,10 +226,13 @@ export class PresetBrowser extends PresetContainerV2 {
     context.externalCompendiums = PresetBrowser.CONFIG.externalCompendiums;
     context.virtualDirectory = PresetBrowser.CONFIG.virtualDirectory;
     context.sortMode = SORT_MODES[PresetBrowser.CONFIG.sortMode];
-    context.searchMode = SEARCH_MODES[PresetBrowser.CONFIG.searchMode];
     context.displayDragDropMessage =
       context.allowDocumentSwap &&
-      !(context.presets.length || context.folders.length || context.externalFolders?.length);
+      !(
+        context.workingTree.folder.presets.length ||
+        context.workingTree.children.length ||
+        context.externalTrees?.length
+      );
 
     context.docs = [];
     context.docsDropdown = PresetBrowser.CONFIG.dropdownDocuments.length ? [] : null;
@@ -242,7 +247,6 @@ export class PresetBrowser extends PresetContainerV2 {
 
     context.callback = Boolean(this.callback);
 
-    console.log(context);
     return context;
   }
 
@@ -477,9 +481,8 @@ export class PresetBrowser extends PresetContainerV2 {
   }
 
   async _onFolderEdit(header) {
-    header = $(header);
-    const uuid = $(header).closest('.folder').data('uuid');
-    const pFolder = this.tree.allFolders.get(uuid);
+    const uuid = header.closest('.folder').dataset.uuid;
+    const pFolder = fromUuidSync(uuid);
 
     let folder;
     if (pFolder instanceof PresetPackFolder) {
@@ -495,12 +498,12 @@ export class PresetBrowser extends PresetContainerV2 {
         { pack: pFolder.uuid }
       );
     } else {
-      folder = await fromUuid(header.closest('.folder').data('uuid'));
+      folder = fromUuidSync(uuid);
     }
 
     new Promise((resolve) => {
-      const options = { resolve, ...header.offset(), folder: pFolder, document: folder };
-      options.top += header.height();
+      const options = { resolve, ...$(header).offset(), folder: pFolder, document: folder };
+      options.top += $(header).height();
       new PresetFolderConfig(options).render(true);
     }).then(() => this.render(true));
   }
@@ -562,7 +565,8 @@ export class PresetBrowser extends PresetContainerV2 {
 
     if (previousSearch.length >= SEARCH_MIN_CHAR && query.length < SEARCH_MIN_CHAR) {
       if (event) $(event.target).removeClass('active');
-      this._resetSearchState();
+      this._collapseFolders(this.tree.workingTree);
+      this.tree.externalTrees.forEach((tree) => this._collapseFolders(tree));
       if (render) this._renderContent();
       return;
     }
@@ -574,93 +578,21 @@ export class PresetBrowser extends PresetContainerV2 {
 
     if (event) $(event.target).addClass('active');
 
-    this._searchFoundPresets = [];
-    this.tree.folders.forEach((f) => this._searchFolder(f, search, negativeSearch));
-    this.tree.presets.forEach((p) => this._searchPreset(p, search, negativeSearch));
-    this.tree.extFolders.forEach((f) => this._searchFolder(f, search, negativeSearch));
+    searchNode(this.tree.workingTree, search, negativeSearch);
+    this.tree.externalTrees.forEach((f) => searchNode(f, search, negativeSearch));
 
-    if (render) this._renderContent();
+    if (render) this._renderContent(true);
   }
 
-  _searchFolder(folder, search, negativeSearch, forceRender = false) {
-    const folderName = folder.name.toLowerCase();
-    let match = false;
-    if (search) match = !search.tags && search.terms?.every((t) => folderName.includes(t));
-
-    let childFolderMatch = false;
-    for (const f of folder.children) {
-      if (this._searchFolder(f, search, negativeSearch, match || forceRender)) childFolderMatch = true;
-    }
-
-    let presetMatch = false;
-    for (const p of folder.presets) {
-      if (this._searchPreset(p, search, negativeSearch, match || forceRender)) presetMatch = true;
-    }
-
-    const containsMatch = match || childFolderMatch || presetMatch;
-    folder.expanded = childFolderMatch || presetMatch;
-    folder.render = containsMatch || forceRender;
-
-    return containsMatch;
-  }
-
-  _searchPreset(preset, search, negativeSearch, forceRender = false) {
-    if (!preset._visible) return false;
-
-    let matched = true;
-
-    if (this._searchFoundPresets.length > PresetBrowser.CONFIG.searchLimit) matched = false;
-    else matched = matchPreset(preset, search, negativeSearch);
-
-    if (matched) {
-      preset._render = true;
-      this._searchFoundPresets.push(preset);
-      return preset._render;
-    } else {
-      preset._render = false || forceRender;
-      return false;
-    }
-  }
-
-  _resetSearchState() {
-    this._searchFoundPresets = [];
-    this.tree.folders.forEach((f) => this._resetSearchStateFolder(f));
-    this.tree.extFolders.forEach((f) => this._resetSearchStateFolder(f));
-    this.tree.presets.forEach((p) => this._resetSearchStatePreset(p));
-  }
-
-  _resetSearchStateFolder(folder) {
-    folder.expanded = FolderState.expanded(folder.uuid);
-    folder.render = true;
-    folder.children.forEach((f) => this._resetSearchStateFolder(f));
-    folder.presets.forEach((p) => this._resetSearchStatePreset(p));
-  }
-
-  _resetSearchStatePreset(preset) {
-    preset._render = true;
-  }
-
-  async _renderContent() {
-    let data;
-    if (PresetBrowser.CONFIG.searchMode === 'p') {
-      data = {
-        callback: Boolean(this.callback),
-        presets: this._searchFoundPresets,
-        folders: [],
-        createEnabled: Boolean(this.configApp),
-        extFolders: null,
-      };
-    } else {
-      data = {
-        callback: Boolean(this.callback),
-        presets: this.tree.presets,
-        folders: this.tree.folders,
-        createEnabled: Boolean(this.configApp),
-        extFolders: this.tree.extFolders.length ? this.tree.extFolders : null,
-      };
-    }
-
-    await super._renderContent(data);
+  async _renderContent(search = false) {
+    await super._renderContent({
+      callback: Boolean(this.callback),
+      presets: this.tree.workingTree.folder.presets,
+      nodes: this.tree.workingTree.children,
+      createEnabled: Boolean(this.configApp),
+      externalTrees: this.tree.externalTrees.length ? this.tree.externalTrees : null,
+      search,
+    });
     this._tagSelector?.render(true);
   }
 
@@ -751,19 +683,6 @@ export class PresetBrowser extends PresetContainerV2 {
     this.render(true);
   }
 
-  static async _onToggleSearchMode(event, target) {
-    const searchControl = $(target);
-
-    const currentMode = PresetBrowser.CONFIG.searchMode;
-    const newMode = currentMode === 'p' ? 'pf' : 'p';
-    await PresetBrowser.setSetting('searchMode', newMode);
-
-    const mode = SEARCH_MODES[newMode];
-    searchControl.attr('data-tooltip', mode.tooltip).html(mode.icon);
-
-    if (this.lastSearch) searchControl.closest('.header-search').find('input').trigger('input');
-  }
-
   static _onToggleLock(event, target) {
     const lockControl = $(target);
 
@@ -791,6 +710,7 @@ export class PresetBrowser extends PresetContainerV2 {
   static _onDocumentChange(event, target) {
     if (target.dataset.name != this.documentName) {
       this.documentName = target.dataset.name;
+      PresetBrowser._type = this.documentName;
 
       if (PresetBrowser.CONFIG.switchLayer)
         canvas.getLayerByEmbeddedName(this.documentName === 'Actor' ? 'Token' : this.documentName)?.activate();
@@ -819,6 +739,10 @@ export class PresetBrowser extends PresetContainerV2 {
   async close(options = {}) {
     PresetBrowser.objectHover = false;
     this._tagSelector?.close();
+
+    this._collapseFolders(this.tree.workingTree);
+    this.tree.externalTrees.forEach((tree) => this._collapseFolders(tree));
+
     return super.close(options);
   }
 

@@ -4,19 +4,6 @@ import { PresetAPI, PresetCollection } from './collection.js';
 import { Preset } from './preset.js';
 
 /**
- * Tracking of folder open/close state
- */
-export class FolderState {
-  static expanded(uuid) {
-    return game.folders._expanded[uuid];
-  }
-
-  static setExpanded(uuid, state) {
-    game.folders._expanded[uuid] = state;
-  }
-}
-
-/**
  * Convert provided placeable into an object usable as Preset data
  * @param {Placeable} placeable
  * @returns

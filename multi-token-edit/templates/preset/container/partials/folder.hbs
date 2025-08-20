@@ -5,19 +5,17 @@
     </header>
     {{#if folder.expanded}}
     <ol class="folder-items">
-        {{#each folder.children as |child|}}
-            {{#if child.folder.visible}}
-            {{!-- {{#if child.render}} --}}
-                 {{>me-preset-folder folder=child.folder createEnabled=../createEnabled callback=../callback sortable=../sortable}}
-            {{!-- {{/if}} --}}
-            {{/if}}
+        {{#each node.children as |node|}}
+        {{#if (meRender this context=../context)}}
+            {{>me-preset-folder node=node folder=node.folder createEnabled=../createEnabled callback=../callback sortable=../sortable}}
+        {{/if}}
         {{/each}}
     </ol>
     <ol class="preset-items">
         {{#each folder.presets as |preset|}}
-            {{#if preset.visible}}
-                {{>me-preset preset=preset createEnabled=../createEnabled callback=../callback sortable=../sortable}}
-            {{/if}}
+        {{#if (meRender this context=../context)}}
+            {{>me-preset preset=preset createEnabled=../createEnabled callback=../callback sortable=../sortable}}
+        {{/if}}
         {{/each}}
     </ol>
     {{/if}}

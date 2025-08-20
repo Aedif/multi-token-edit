@@ -1,30 +1,26 @@
 <ol class="folder-items top-level-folder-items">
-    {{#each folders as |folder|}}
-        {{#if folder.visible}}
-        {{!-- {{#if folder.render}} --}}
-            {{>me-preset-folder folder=folder createEnabled=../createEnabled callback=../callback sortable=true}}
-        {{!-- {{/if}} --}}
+    {{#each nodes as |node|}}
+        {{#if (meRender node.folder context=../context)}}
+            {{>me-preset-folder folder=node.folder createEnabled=../createEnabled callback=../callback sortable=true}}
         {{/if}}
     {{/each}}
 </ol>
 
 <ol class="preset-items top-level-preset-items">
     {{#each presets as |preset|}}
-    {{#if preset.visible}}
+    {{#if (meRender this context=../context)}}
         {{>me-preset preset=preset createEnabled=../createEnabled callback=../callback sortable=true}}
     {{/if}}
     {{/each}}
 </ol>
 
-{{#if externalFolders}}
+{{#if externalTrees}}
 <label class="static-label">EXTERNAL</label>
 <ol class="folder-items static">
-    {{#each externalFolders as |folder|}}
-        {{#if folder.visible}}
-        {{!-- {{#if folder.render}} --}}
-            {{>me-preset-folder folder=folder createEnabled=../createEnabled callback=../callback}}
-        {{!-- {{/if}} --}}
-        {{/if}}
+    {{#each externalTrees as |node|}}
+    {{#if (meRender this context=../context)}}
+        {{>me-preset-folder node=node folder=node.folder createEnabled=../createEnabled callback=../callback}}
+    {{/if}}
     {{/each}}
 </ol>
 {{/if}}

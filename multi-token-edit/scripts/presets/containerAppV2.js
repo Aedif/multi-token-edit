@@ -7,7 +7,7 @@ import { PresetAPI, PresetCollection, PresetFolder, PresetPackFolder, VirtualFil
 import { PresetBrowser } from './browser/browserApp.js';
 import { Preset } from './preset.js';
 import { Spawner } from './spawner.js';
-import { exportPresets, FolderState, isVideo, sceneNotFoundError } from './utils.js';
+import { exportPresets, isVideo, sceneNotFoundError } from './utils.js';
 import { FileIndexer, IndexerForm } from './fileIndexer.js';
 import { PresetConfig } from './editApp.js';
 
@@ -28,6 +28,11 @@ export async function registerPresetHandlebarPartials() {
     `modules/${MODULE_ID}/templates/preset/container/partials/presetsTopList.hbs`,
     'me-preset-list'
   );
+
+  Handlebars.registerHelper('meRender', function (item, ctx) {
+    if (ctx.data.root.search) return item._meMatch;
+    return true;
+  });
 }
 
 export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplicationMixin(
@@ -538,7 +543,8 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
         name: 'Edit',
         icon: '<i class="fas fa-edit"></i>',
         condition: (header) => {
-          const folder = this.tree.allFolders.get($(header).closest('.folder').data('uuid'));
+          const uuid = header.closest('.folder').dataset.uuid;
+          const folder = fromUuidSync(uuid);
           return !folder.virtual || folder instanceof PresetPackFolder;
         },
         callback: (header) => this._onFolderEdit(header),
@@ -546,7 +552,11 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
       {
         name: 'Save Index',
         icon: '<i class="fas fa-file-search"></i>',
-        condition: (header) => this.tree.allFolders.get($(header).closest('.folder').data('uuid'))?.indexable,
+        condition: (header) => {
+          const uuid = header.closest('.folder').dataset.uuid;
+          const folder = fromUuidSync(uuid);
+          return folder.indexable;
+        },
         callback: (header) => {
           FileIndexer.saveFolderToCache(this.tree.allFolders.get($(header).closest('.folder').data('uuid')));
         },
@@ -554,11 +564,11 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
       {
         name: 'Auto-Save Index',
         icon: '<i class="fas fa-file-search"></i>',
-        condition: (header) =>
-          this.tree.allFolders.get($(header).closest('.folder').data('uuid'))?.indexable &&
-          !game.settings
-            .get(MODULE_ID, 'presetBrowser')
-            .autoSaveFolders?.includes($(header).closest('.folder').data('uuid')),
+        condition: (header) => {
+          const uuid = header.closest('.folder').dataset.uuid;
+          const folder = fromUuidSync(uuid);
+          return folder.indexable && !game.settings.get(MODULE_ID, 'presetBrowser').autoSaveFolders?.includes(uuid);
+        },
         callback: (header) => {
           const settings = game.settings.get(MODULE_ID, 'presetBrowser');
           settings.autoSaveFolders = [...(settings.autoSaveFolders ?? []), $(header).closest('.folder').data('uuid')];
@@ -568,11 +578,16 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
       {
         name: 'Disable Auto-Save Index',
         icon: '<i class="fas fa-file-search"></i>',
-        condition: (header) =>
-          this.tree.allFolders.get($(header).closest('.folder').data('uuid'))?.indexable &&
-          game.settings
-            .get(MODULE_ID, 'presetBrowser')
-            .autoSaveFolders?.includes($(header).closest('.folder').data('uuid')),
+        condition: (header) => {
+          const uuid = header.closest('.folder').dataset.uuid;
+          const folder = fromUuidSync(uuid);
+          return (
+            folder.indexable &&
+            game.settings
+              .get(MODULE_ID, 'presetBrowser')
+              .autoSaveFolders?.includes($(header).closest('.folder').data('uuid'))
+          );
+        },
         callback: (header) => {
           const settings = game.settings.get(MODULE_ID, 'presetBrowser');
           const uuid = $(header).closest('.folder').data('uuid');
@@ -584,7 +599,8 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
         name: 'Export to Compendium',
         icon: '<i class="fas fa-file-export fa-fw"></i>',
         condition: (header) => {
-          const folder = this.tree.allFolders.get($(header).closest('.folder').data('uuid'));
+          const uuid = header.closest('.folder').dataset.uuid;
+          const folder = fromUuidSync(uuid);
           return !(folder instanceof VirtualFileFolder);
         },
         callback: (header) => {
@@ -825,15 +841,23 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
     game.folders._expanded[folder.uuid] = false;
   }
 
-  async _renderContent({ callback = false, presets, folders, createEnabled = false, externalFolders } = {}) {
+  async _renderContent({
+    callback = false,
+    presets,
+    nodes,
+    createEnabled = false,
+    externalTrees,
+    search = false,
+  } = {}) {
     const content = await foundry.applications.handlebars.renderTemplate(
       `modules/${MODULE_ID}/templates/preset/container/partials/presetsContent.hbs`,
       {
         callback,
         presets,
-        folders,
+        nodes,
         createEnabled,
-        externalFolders,
+        externalTrees,
+        search,
       }
     );
     $(this.form).find('.item-list').html(content);
