@@ -1,6 +1,6 @@
 import { MODULE_ID, SUPPORTED_PLACEABLES } from '../constants.js';
 import { Scenescape } from '../scenescape/scenescape.js';
-import { is3DModel, isAudio, loadImageVideoDimensions } from '../utils.js';
+import { is3DModel, isAudio, loadImageVideoDimensions, SeededRandom } from '../utils.js';
 import { PresetBrowser } from './browser/browserApp.js';
 import { META_INDEX_FIELDS, META_INDEX_ID, PresetTree } from './collection.js';
 import { FileIndexer } from './fileIndexer.js';

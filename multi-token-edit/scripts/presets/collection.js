@@ -798,7 +798,6 @@ export class PresetFolder {
 
   constructor({
     id,
-    uuid,
     name,
     sorting = 'm',
     color = '#000000',
@@ -809,24 +808,19 @@ export class PresetFolder {
     types = [],
   } = {}) {
     this.id = id;
-    this.uuid = uuid;
+    this.uuid = `ME-Folder.${this.id}`;
     this.name = name;
     this.sorting = sorting;
     this.color = color;
     this.sort = sort;
     this.children = children;
-    this.children.forEach((c) => {
-      c.folder = this.id;
-    });
 
     this.draggable = draggable;
     this.folder = folder;
     this.types = types;
     this.flags = { [MODULE_ID]: { types } };
 
-    if (!CONFIG['ME-Folder']) {
-      CONFIG['ME-Folder'] = { collection: { instance: new Collection() } };
-    }
+    if (!CONFIG['ME-Folder']) CONFIG['ME-Folder'] = { collection: { instance: new Collection() } };
     CONFIG['ME-Folder'].collection.instance.set(this.id, this);
   }
 
@@ -855,21 +849,22 @@ export class PresetVirtualFolder extends PresetFolder {
 
 export class VirtualFileFolder extends PresetVirtualFolder {
   constructor(options) {
+    options.id = SeededRandom.randomID(options.path);
     super(options);
-    this.id = foundry.utils.randomID();
     if (!options.types) this.types = ['ALL'];
     this.bucket = options.bucket;
     this.source = options.source;
     this.name = decodeURIComponentSafely(this.name);
     this.icon = options.icon;
     this.subtext = options.subtext;
+    this.path = options.path;
     if (options.source && ['data', 'forgevtt'].includes(options.source)) this.indexable = true;
   }
 }
 
 export class PresetPackFolder extends PresetVirtualFolder {
   constructor(compendium, metaDoc, types) {
-    const packFolderData = metaDoc.getFlag(MODULE_ID, 'folder') ?? {};
+    const packFolderData = metaDoc.flags[MODULE_ID]?.folder ?? {};
     const id = SeededRandom.randomID(compendium.collection);
     const uuid = `ME-Folder.${id}`;
     super({
@@ -886,7 +881,8 @@ export class PresetPackFolder extends PresetVirtualFolder {
 
   async update(data = {}) {
     const pack = game.packs.get(this.pack);
-    if (pack.locked) return;
+
+    if (!pack || pack.locked) return;
     if (data.hasOwnProperty('name') && data.name === pack.title) delete data.name;
     if (foundry.utils.isEmpty(data)) return;
 

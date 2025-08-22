@@ -5,7 +5,7 @@
     </header>
     {{#if folder.expanded}}
     <ol class="folder-items">
-        {{#each node.children as |node|}}
+        {{#each folder.children as |node|}}
         {{#if (meRender this context=../context)}}
             {{>me-preset-folder node=node folder=node.folder createEnabled=../createEnabled callback=../callback sortable=../sortable}}
         {{/if}}

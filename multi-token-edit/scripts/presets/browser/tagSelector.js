@@ -1,5 +1,5 @@
-import { MODULE_ID } from '../constants.js';
-import { PresetBrowser } from './browser/browserApp.js';
+import { MODULE_ID } from '../../constants.js';
+import { PresetBrowser } from './browserApp.js';
 
 export class TagSelector extends FormApplication {
   constructor(presetsApp) {

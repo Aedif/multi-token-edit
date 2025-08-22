@@ -30,7 +30,7 @@ export async function registerPresetHandlebarPartials() {
   );
 
   Handlebars.registerHelper('meRender', function (item, ctx) {
-    if (ctx.data.root.search) return item._meMatch;
+    if (ctx.data.root.browser) return item._meMatch;
     return true;
   });
 }
@@ -558,7 +558,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
           return folder.indexable;
         },
         callback: (header) => {
-          FileIndexer.saveFolderToCache(this.tree.allFolders.get($(header).closest('.folder').data('uuid')));
+          FileIndexer.saveFolderToCache(fromUuidSync($(header).closest('.folder').data('uuid')));
         },
       },
       {
@@ -811,6 +811,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
     const uuid = folderElement.data('uuid');
 
     const folder = fromUuidSync(uuid);
+    console.log('CLICKED FOLDER', folder);
     if (folder.expanded) this._folderCollapse(folderElement, folder);
     else this._folderExpand(folderElement, folder);
   }
@@ -847,7 +848,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
     nodes,
     createEnabled = false,
     externalTrees,
-    search = false,
+    browser = false,
   } = {}) {
     const content = await foundry.applications.handlebars.renderTemplate(
       `modules/${MODULE_ID}/templates/preset/container/partials/presetsContent.hbs`,
@@ -857,7 +858,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
         nodes,
         createEnabled,
         externalTrees,
-        search,
+        browser,
       }
     );
     $(this.form).find('.item-list').html(content);

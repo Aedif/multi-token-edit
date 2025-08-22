@@ -9,12 +9,12 @@ import { LinkerAPI } from '../../linker/linker.js';
 import { DOC_ICONS, Preset } from '../preset.js';
 import { exportPresets, parseSearchQuery, placeableToData } from '../utils.js';
 import { MODULE_ID, SUPPORTED_PLACEABLES, UI_DOCS } from '../../constants.js';
-import { TagSelector } from '../tagSelector.js';
+import { TagSelector } from './tagSelector.js';
 import PresetBrowserSettings from './settingsApp.js';
 import { PresetConfig } from '../editApp.js';
 import { PresetContainerV2 } from '../containerAppV2.js';
 import { uploadFiles } from '../../auxilaryFeatures/utils.js';
-import { getPresetPackTrees, searchNode } from './tree.js';
+import { collapseFolders, getPresetPackTrees, searchNode } from './tree.js';
 
 const SEARCH_MIN_CHAR = 2;
 
@@ -133,63 +133,9 @@ export class PresetBrowser extends PresetContainerV2 {
     { externalCompendiums = true, virtualDirectory = true, setFormVisibility = false } = {}
   ) {
     const { workingTree, externalTrees } = await getPresetPackTrees({ type, virtualDirectory, externalCompendiums });
+    searchNode(workingTree, null, null, false, type, false);
+    externalTrees.forEach((tree) => searchNode(tree, null, null, false, type, false));
     return { workingTree, externalTrees };
-    // const workingTree = await game.packs.get(PresetStorage.workingPack).presetTree();
-
-    // const externalFolders = [];
-    // this._folders = new Map();
-    // if (externalCompendiums) {
-    //   for (const pack of game.packs) {
-    //     if (pack.collection !== PresetStorage.workingPack && pack.index?.get(META_INDEX_ID)) {
-    //       const tree = await pack.presetTree();
-    //       const virtualFolder = new PresetPackFolder(tree, pack, await pack.getDocument(META_INDEX_ID));
-    //       externalFolders.push(virtualFolder);
-    //       this._folders.set(virtualFolder.uuid, virtualFolder);
-    //     }
-    //   }
-    // }
-
-    // if (externalCompendiums) {
-    //   for (const p of game.packs) {
-    //     if (p.collection !== this.workingPack && p.index.get(META_INDEX_ID)) {
-    //       const tree = await PresetTree.init(p, type, { setFormVisibility });
-    //       if (setFormVisibility && !tree.hasVisible) continue;
-
-    //       const topFolder = new PresetPackFolder({ pack: p, tree });
-    //       extFolders.push(topFolder);
-
-    //       // Collate all folders with the main tree
-    //       mainTree.allFolders.set(topFolder.uuid, topFolder);
-    //       for (const [uuid, folder] of tree.allFolders) {
-    //         mainTree.allFolders.set(uuid, folder);
-    //       }
-    //     }
-    //   }
-    // }
-
-    return { workingTree, externalFolders };
-  }
-
-  static async _presetTreeFromPack(pack, type) {
-    const tree = pack.tree;
-    if (tree._meType === type) return pack._meTree;
-    const index = await PresetStorage._loadIndex(pack);
-  }
-
-  static _filterTreeByType(tree, type) {
-    if (tree.folder && (tree.folder.flags[MODULE_ID]?.types ?? ['ALL']).includes(type)) return null;
-    const node = {};
-    // node.presets = tree.presets.filter(ch. )
-  }
-
-  static async getTree(compendium) {
-    const tree = compendium.tree;
-    if (!tree.meTree) {
-      const index = await PresetStorage._loadIndex(compendium);
-      this._assignPresetsToTree(index, tree);
-      tree.meTree = true;
-    }
-    return tree;
   }
 
   async _refreshTree() {
@@ -207,6 +153,7 @@ export class PresetBrowser extends PresetContainerV2 {
     await this._refreshTree();
     console.log(this.tree);
 
+    context.browser = true;
     context.workingTree = this.tree.workingTree;
     context.externalTrees = this.tree.externalTrees;
 
@@ -565,8 +512,8 @@ export class PresetBrowser extends PresetContainerV2 {
 
     if (previousSearch.length >= SEARCH_MIN_CHAR && query.length < SEARCH_MIN_CHAR) {
       if (event) $(event.target).removeClass('active');
-      this._collapseFolders(this.tree.workingTree);
-      this.tree.externalTrees.forEach((tree) => this._collapseFolders(tree));
+      collapseFolders(this.tree.workingTree);
+      this.tree.externalTrees.forEach((tree) => collapseFolders(tree));
       if (render) this._renderContent();
       return;
     }
@@ -578,8 +525,8 @@ export class PresetBrowser extends PresetContainerV2 {
 
     if (event) $(event.target).addClass('active');
 
-    searchNode(this.tree.workingTree, search, negativeSearch);
-    this.tree.externalTrees.forEach((f) => searchNode(f, search, negativeSearch));
+    searchNode(this.tree.workingTree, search, negativeSearch, false, this.documentName, true);
+    this.tree.externalTrees.forEach((f) => searchNode(f, search, negativeSearch, false, this.documentName, true));
 
     if (render) this._renderContent(true);
   }
@@ -591,18 +538,18 @@ export class PresetBrowser extends PresetContainerV2 {
       nodes: this.tree.workingTree.children,
       createEnabled: Boolean(this.configApp),
       externalTrees: this.tree.externalTrees.length ? this.tree.externalTrees : null,
-      search,
+      browser: true,
     });
     this._tagSelector?.render(true);
   }
 
   async _onFolderSort(sourceUuid, targetUuid, { inside = true, folderUuid = null } = {}) {
-    let source = this.tree.allFolders.get(sourceUuid);
-    let target = this.tree.allFolders.get(targetUuid);
+    let source = fromUuidSync(sourceUuid);
+    let target = fromUuidSync(targetUuid);
 
     let folders;
-    if (folderUuid) folders = this.tree.allFolders.get(folderUuid).children;
-    else folders = this.tree.folders;
+    if (folderUuid) folders = fromUuidSync(folderUuid).children.map((ch) => ch.folder);
+    else folders = this.tree.workingTree.children.map((ch) => ch.folder);
 
     const siblings = [];
     for (const folder of folders) {
@@ -740,8 +687,8 @@ export class PresetBrowser extends PresetContainerV2 {
     PresetBrowser.objectHover = false;
     this._tagSelector?.close();
 
-    this._collapseFolders(this.tree.workingTree);
-    this.tree.externalTrees.forEach((tree) => this._collapseFolders(tree));
+    collapseFolders(this.tree.workingTree);
+    this.tree.externalTrees.forEach((tree) => collapseFolders(tree));
 
     return super.close(options);
   }
