@@ -451,7 +451,7 @@ export class FileIndexer {
     node.children = cache.dirs?.map((dir) => this._indexToNode(dir, fullPath, options)) ?? [];
     node.children.sort((c1, c2) => c1.folder.name.localeCompare(c2.folder.name));
 
-    const types = new Set();
+    const types = new Set(['ALL']);
     node.entries = [];
     if (cache.files) {
       for (const file of cache.files) {

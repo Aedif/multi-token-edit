@@ -57,22 +57,11 @@ async function collectionToTree(collection, type) {
  * @returns
  */
 function collectionTreeToPresetTree(tree, type, index) {
-  console.log(tree, tree.folder);
-  if (tree.folder && !tree.folder.flags[MODULE_ID]?.types.includes(type)) return null;
-
-  const presets = tree.entries
-    .map((entry) => index.get(entry._id))
-    .filter((p) => p && (type === 'ALL' ? SUPPORTED_PLACEABLES.includes(p.documentName) : p.documentName === type));
-
-  const node = {
+  tree.folder.presets = tree.entries.map((entry) => index.get(entry._id)).filter(Boolean);
+  return {
     folder: tree.folder,
     children: tree.children.map((ch) => collectionTreeToPresetTree(ch, type, index)).filter(Boolean),
   };
-
-  if (!node.folder) node.presets = presets;
-  else node.folder.presets = presets;
-
-  return node;
 }
 
 // Search related logic
@@ -87,13 +76,11 @@ export function searchNode(node, search, negativeSearch, forceRender = false, ty
   const folder = node.folder;
   const folderName = folder.name.toLowerCase();
 
-  if (folderName && !node.folder.flags[MODULE_ID].types.some((t) => t === type)) {
-    folder._meMatch = false;
-    return false;
-  }
-
   let match = false;
-  if (search && folderName) match = !search.tags && search.terms?.every((t) => folderName.includes(t));
+  if (!folder.flags[MODULE_ID].types.some((t) => t === type) && !folder.typeless) {
+    folder._meMatch = false;
+    return;
+  } else if (search && folderName) match = !search.tags && search.terms?.every((t) => folderName.includes(t));
 
   let childFolderMatch = false;
   for (const f of node.children) {

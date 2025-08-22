@@ -18,7 +18,7 @@
 <label class="static-label">EXTERNAL</label>
 <ol class="folder-items static">
     {{#each externalTrees as |node|}}
-    {{#if (meRender this context=../context)}}
+    {{#if (meRender node.folder context=../context)}}
         {{>me-preset-folder node=node folder=node.folder createEnabled=../createEnabled callback=../callback}}
     {{/if}}
     {{/each}}

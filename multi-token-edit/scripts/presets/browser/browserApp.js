@@ -514,6 +514,9 @@ export class PresetBrowser extends PresetContainerV2 {
       if (event) $(event.target).removeClass('active');
       collapseFolders(this.tree.workingTree);
       this.tree.externalTrees.forEach((tree) => collapseFolders(tree));
+      searchNode(this.tree.workingTree, null, null, false, this.documentName, false);
+      this.tree.externalTrees.forEach((tree) => searchNode(tree, null, null, false, this.documentName, false));
+
       if (render) this._renderContent();
       return;
     }

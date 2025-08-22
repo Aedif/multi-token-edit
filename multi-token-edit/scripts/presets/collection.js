@@ -891,6 +891,14 @@ export class PresetPackFolder extends PresetVirtualFolder {
 
     foundry.utils.mergeObject(this, data);
   }
+
+  get _meMatch() {
+    return this.children.some((ch) => ch.folder._meMatch) || this.presets.some((p) => p._meMatch);
+  }
+
+  set _meMatch(val) {}
+
+  typeless = true;
 }
 
 export class PresetTree {
