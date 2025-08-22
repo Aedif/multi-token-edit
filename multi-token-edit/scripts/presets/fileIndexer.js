@@ -112,95 +112,6 @@ export class FileIndexer {
     return this._collection;
   }
 
-  // static async getVirtualDirectoryTree(type, { setFormVisibility = false } = {}) {
-  //   if (CONFIG.debug.MassEdit) console.time('Virtual File Directory');
-
-  //   // If we already have a loaded index, re-use it
-  //   if (this._loadedTree) {
-  //     if (CONFIG.debug.MassEdit) console.timeEnd('Virtual File Directory');
-  //     if (setFormVisibility) this._loadedTree.setVisibility(type);
-  //     return this._loadedTree;
-  //   }
-
-  //   // Load and convert an index cache to a virtual folder
-  //   const topLevelFolders = [];
-
-  //   const cache = (await this.loadMainIndexCache()) ?? [];
-
-  //   // Always load cache files registered via other modules
-  //   if (this._registeredCacheFiles.length) {
-  //     for (const cacheFile of this._registeredCacheFiles) {
-  //       const extCache = await this.loadIndexCache(cacheFile);
-  //       if (extCache) this.mergeCaches(cache, extCache);
-  //     }
-  //   }
-
-  //   if (!cache.length) {
-  //     if (CONFIG.debug.MassEdit) console.timeEnd('Virtual File Directory');
-  //     return null;
-  //   }
-
-  //   for (const source of cache) {
-  //     let prePend = '';
-  //     if (source.source === 'forge-bazaar') {
-  //       prePend = `https://assets.forge-vtt.com/bazaar/`;
-  //     } else if (source.source === 'forgevtt') {
-  //       if (typeof ForgeVTT === 'undefined' || !ForgeVTT.usingTheForge) continue;
-  //       const userId = await ForgeAPI.getUserId();
-  //       if (!userId) continue;
-  //       prePend = `https://assets.forge-vtt.com/${userId}/`;
-  //     } else if (source.source === 's3') {
-  //       const s3 = game.data.files.s3;
-  //       if (!s3 || !s3.buckets.includes(source.bucket)) continue;
-  //       prePend = `https://${source.bucket}.${s3.endpoint.host}`;
-  //     } else if (source.source === 'sqyre') {
-  //       if (typeof Sqyre === 'undefined' || !Sqyre.CLOUD_STORAGE_PREFIX) continue;
-  //       prePend = `${Sqyre.CLOUD_STORAGE_PREFIX}/`;
-  //     }
-
-  //     const folders = source.index.map((f) =>
-  //       this._indexToNode(f, '', {
-  //         prePend,
-  //         source: source.source,
-  //         bucket: source.bucket,
-  //       })
-  //     );
-
-  //     if (folders?.length) {
-  //       const sFolder = new VirtualFileFolder({
-  //         uuid: 'virtual@source@' + source.source,
-  //         name: source.source,
-  //         children: folders,
-  //         types: ['ALL'],
-  //         bucket: source.bucket,
-  //       });
-  //       if (folders.some((f) => f.types.includes('Tile'))) sFolder.types.push('Tile');
-  //       if (folders.some((f) => f.types.includes('AmbientSound'))) sFolder.types.push('AmbientSound');
-  //       folders.forEach((f) => {
-  //         f.folder = sFolder.id;
-  //       });
-  //       topLevelFolders.push(sFolder);
-  //     }
-  //   }
-
-  //   let tree;
-  //   if (topLevelFolders.length) {
-  //     tree = new PresetTree({
-  //       folders: topLevelFolders,
-  //       presets: [],
-  //       metaDoc: null,
-  //       pack: null,
-  //     });
-
-  //     if (setFormVisibility) tree.setVisibility(type);
-  //   }
-
-  //   this._loadedTree = tree;
-
-  //   if (CONFIG.debug.MassEdit) console.timeEnd('Virtual File Directory');
-  //   return tree;
-  // }
-
   /**
    * Build the directory index using the user defined paths to be scanned.
    * Index structure: [{ dir: 'modules', files: [{ name: 'box.webp', tags: [] }], dirs: [] }];
@@ -262,7 +173,7 @@ export class FileIndexer {
       }
 
       if (scannedSources.length) await this._writeIndexToCache(scannedSources);
-      this._loadedTree = null;
+      this._collection = null;
 
       ui.notifications.info(`MassEdit Index build finished.`);
     } catch (e) {
@@ -333,7 +244,7 @@ export class FileIndexer {
   }
 
   static async saveIndexToCache({
-    folders = this._loadedTree?.folders,
+    folders = this._collection?.tree.children.map((ch) => ch.folder),
     path = CACHE_PATH,
     notify = true,
     source = 'data',
@@ -344,7 +255,7 @@ export class FileIndexer {
       for (const sourceFolder of folders) {
         const sourceCache = {
           source: sourceFolder.name,
-          index: sourceFolder.children.map((f) => this._cacheFolder(f)),
+          index: sourceFolder.children.map((ch) => this._cacheFolder(ch.folder)),
         };
         if (sourceFolder.bucket) sourceCache.bucket = sourceFolder.bucket;
         cache.push(sourceCache);
@@ -353,7 +264,7 @@ export class FileIndexer {
       this._writeIndexToCache(cache, { path, notify, source });
     }
 
-    if (processAutoSave && this._loadedTree) {
+    if (processAutoSave && this._collection) {
       const folderUuids = game.settings.get(MODULE_ID, 'presetBrowser').autoSaveFolders ?? [];
       if (!folderUuids.length) return;
 
@@ -374,36 +285,16 @@ export class FileIndexer {
   }
 
   static async saveFolderToCache(folder, notify = true) {
-    if (!this._loadedTree) {
+    if (!this._collection) {
       ui.notifications.warn('Index was recently refreshed. Reload the browser before attempting to save the index.');
       return;
     }
 
     if (!(folder.indexable || folder.source)) return;
-    const allFolders = this._loadedTree.allFolders;
-
-    let wFolder = folder;
-    while (wFolder.folder) {
-      let pFolder;
-      for (const [uuid, folder] of allFolders) {
-        if (folder.id === wFolder.folder) {
-          pFolder = folder;
-          break;
-        }
-      }
-      if (!pFolder) return;
-
-      pFolder = new VirtualFileFolder({
-        name: pFolder.name,
-        folder: pFolder.folder,
-      });
-      if (wFolder) pFolder.children = [wFolder];
-      wFolder = pFolder;
-    }
 
     this.saveIndexToCache({
-      folders: [wFolder],
-      path: folder.uuid.replace('virtual@', ''),
+      folders: [folder],
+      path: folder.path,
       source: folder.source,
       notify,
     });
@@ -412,7 +303,7 @@ export class FileIndexer {
   static _cacheFolder(folder) {
     const fDic = { dir: encodeURIComponentSafely(folder.name) };
     if (folder.presets.length) fDic.files = folder.presets.map((p) => this._cachePreset(p));
-    if (folder.children.length) fDic.dirs = folder.children.map((c) => this._cacheFolder(c));
+    if (folder.children.length) fDic.dirs = folder.children.map((ch) => this._cacheFolder(ch.folder));
     return fDic;
   }
 

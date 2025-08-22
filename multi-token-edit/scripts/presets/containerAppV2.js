@@ -545,7 +545,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
         condition: (header) => {
           const uuid = header.closest('.folder').dataset.uuid;
           const folder = fromUuidSync(uuid);
-          return !folder.virtual || folder instanceof PresetPackFolder;
+          return !(folder instanceof PresetPackFolder || folder instanceof VirtualFileFolder);
         },
         callback: (header) => this._onFolderEdit(header),
       },
@@ -601,7 +601,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
         condition: (header) => {
           const uuid = header.closest('.folder').dataset.uuid;
           const folder = fromUuidSync(uuid);
-          return !(folder instanceof VirtualFileFolder);
+          return !(folder instanceof VirtualFileFolder || folder instanceof PresetPackFolder);
         },
         callback: (header) => {
           this._onExportFolder($(header).closest('.folder').data('uuid'));
@@ -610,13 +610,25 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
       {
         name: localize('FOLDER.Remove', false),
         icon: '<i class="fas fa-trash fa-fw"></i>',
-        condition: (header) => PresetFolder.isEditable($(header).closest('.folder').data('uuid')),
+        condition: (header) => {
+          const uuid = header.closest('.folder').dataset.uuid;
+          const folder = fromUuidSync(uuid);
+          return (
+            !(folder instanceof VirtualFileFolder || folder instanceof PresetPackFolder) && !folder.collection.locked
+          );
+        },
         callback: (header) => this._onFolderDelete($(header).closest('.folder').data('uuid')),
       },
       {
         name: localize('FOLDER.Delete', false),
         icon: '<i class="fas fa-dumpster"></i>',
-        condition: (header) => PresetFolder.isEditable($(header).closest('.folder').data('uuid')),
+        condition: (header) => {
+          const uuid = header.closest('.folder').dataset.uuid;
+          const folder = fromUuidSync(uuid);
+          return (
+            !(folder instanceof VirtualFileFolder || folder instanceof PresetPackFolder) && !folder.collection.locked
+          );
+        },
         callback: (header) =>
           this._onFolderDelete($(header).closest('.folder').data('uuid'), {
             deleteAll: true,

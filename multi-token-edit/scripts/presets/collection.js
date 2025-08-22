@@ -791,11 +791,6 @@ export class PresetAPI {
 }
 
 export class PresetFolder {
-  static isEditable(uuid) {
-    const { collection } = foundry.utils.parseUuid(uuid);
-    return collection && !collection.locked;
-  }
-
   constructor({
     id,
     name,
