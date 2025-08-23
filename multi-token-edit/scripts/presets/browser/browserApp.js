@@ -672,7 +672,7 @@ export class PresetBrowser extends PresetContainerV2 {
   static async _onApplyPreset(event) {
     if (this.callback) {
       const uuid = $(event.target).closest('.item').data('uuid');
-      this.callback(await PresetStorage.retrieveSingle({ uuid }));
+      this.callback(await PresetStorage.retrieveSingle({ uuid, load: true }));
     }
   }
 
@@ -697,7 +697,7 @@ export class PresetBrowser extends PresetContainerV2 {
   }
 
   static async _onPresetUpdate(event) {
-    const preset = await PresetStorage.retrieveSingle({ uuid: event.target.closest('.item').dataset.uuid });
+    const preset = await PresetStorage.retrieveSingle({ uuid: event.target.closest('.item').dataset.uuid, load: true });
     if (!preset) return;
 
     const selectedFields = this.configApp.getSelectedFields();
@@ -895,9 +895,11 @@ export class PresetBrowser extends PresetContainerV2 {
    */
   static async _onExportPresets() {
     const pack = game.packs.get(PresetStorage.workingPack);
-    await pack.getDocuments();
-    const tree = await PresetCollection.getTree(null, { externalCompendiums: false, virtualDirectory: false });
-    exportPresets(tree.allPresets);
+
+    if (!pack._meIndex) await PresetStorage._loadIndex(pack._meIndex);
+    const presets = pack._meIndex.contents;
+    PresetStorage._batchLoadPresets(presets);
+    exportPresets(presets);
   }
 
   static async _onImportPresets() {

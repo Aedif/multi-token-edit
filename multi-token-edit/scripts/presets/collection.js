@@ -12,130 +12,6 @@ export const META_INDEX_ID = 'MassEditMetaData';
 export const META_INDEX_FIELDS = ['id', 'img', 'documentName', 'tags'];
 
 export class PresetCollection {
-  static presets;
-
-  static workingPack;
-
-  static async getTree(type, { externalCompendiums = true, virtualDirectory = true, setFormVisibility = false } = {}) {
-    if (CONFIG.debug.MassEdit) console.time('getTree');
-
-    let pack;
-    let mainTree;
-    try {
-      pack = await this._initCompendium(this.workingPack);
-      if (!pack) throw Error('Unable to retrieve working compendium.');
-      mainTree = await PresetTree.init(pack, type, { forceLoad: true, setFormVisibility });
-    } catch (e) {
-      // Fail-safe. Return back to DEFAULT_PACK
-      console.log(e);
-      console.log(`FAILED TO LOAD WORKING COMPENDIUM {${this.workingPack}}`);
-      console.log('RETURNING TO DEFAULT');
-      await game.settings.set(MODULE_ID, 'workingPack', DEFAULT_PACK);
-      this.workingPack = DEFAULT_PACK;
-      pack = await this._initCompendium(this.workingPack);
-      mainTree = await PresetTree.init(pack, type, { forceLoad: true, setFormVisibility });
-    }
-
-    return pack.tree;
-
-    // const extFolders = [];
-
-    // if (externalCompendiums) {
-    //   for (const p of game.packs) {
-    //     if (p.collection !== this.workingPack && p.index.get(META_INDEX_ID)) {
-    //       const tree = await PresetTree.init(p, type, { setFormVisibility });
-    //       if (setFormVisibility && !tree.hasVisible) continue;
-
-    //       const topFolder = new PresetPackFolder({ pack: p, tree });
-    //       extFolders.push(topFolder);
-
-    //       // Collate all folders with the main tree
-    //       mainTree.allFolders.set(topFolder.uuid, topFolder);
-    //       for (const [uuid, folder] of tree.allFolders) {
-    //         mainTree.allFolders.set(uuid, folder);
-    //       }
-    //     }
-    //   }
-    // }
-
-    // // Read File Index
-    // if (virtualDirectory) {
-    //   const vTree = await FileIndexer.getVirtualDirectoryTree(type, { setFormVisibility });
-    //   if (vTree && (vTree.hasVisible || !setFormVisibility)) {
-    //     const topFolder = new VirtualFileFolder({
-    //       name: 'VIRTUAL DIRECTORY',
-    //       children: vTree.folders,
-    //       uuid: 'virtual_directory',
-    //       color: '#00739f',
-    //     });
-    //     extFolders.push(topFolder);
-
-    //     // Collate all folders with the main tree
-    //     mainTree.allFolders.set(topFolder.uuid, topFolder);
-    //     for (const [uuid, folder] of vTree.allFolders) {
-    //       mainTree.allFolders.set(uuid, folder);
-    //     }
-    //   }
-    // }
-
-    //mainTree.extFolders = this._groupExtFolders(extFolders, mainTree.allFolders);
-
-    if (CONFIG.debug.MassEdit) console.timeEnd('getTree');
-    return mainTree;
-  }
-
-  static _groupExtFolders(folders, allFolders) {
-    folders = folders.sort((f1, f2) => f1.name.localeCompare(f2.name));
-
-    const groups = {};
-    const groupless = [];
-    folders.forEach((f) => {
-      if (f.group) {
-        if (!(f.group in groups)) groups[f.group] = [];
-        groups[f.group].push(f);
-      } else {
-        groupless.push(f);
-      }
-    });
-
-    const newExtFolders = [];
-    for (const [group, folders] of Object.entries(groups)) {
-      const id = SeededRandom.randomID(group); // For export operation a real ID is needed. Lets keep it consistent by seeding
-      const uuid = 'virtual@' + group; // faux uuid
-
-      const groupFolder = new PresetVirtualFolder({
-        id,
-        uuid,
-        name: group,
-        children: folders,
-        draggable: false,
-      });
-
-      allFolders.set(uuid, groupFolder);
-      newExtFolders.push(groupFolder);
-    }
-
-    return newExtFolders.concat(groupless).sort((f1, f2) => f1.name.localeCompare(f2.name));
-  }
-
-  // Fixing meta index by removing loose indexes
-  // 06/03/2024
-  static async _cleanIndex(pack, metaDoc, metaIndex) {
-    if (pack.locked || !metaDoc || foundry.utils.isEmpty(metaIndex)) return;
-    const index = pack.index;
-
-    const update = {};
-    for (const idx of Object.keys(metaIndex)) {
-      if (!index.has(idx)) update['-=' + idx] = null;
-    }
-
-    if (!foundry.utils.isEmpty(update)) {
-      if (CONFIG.debug.MassEdit) console.log('Mass Edit - Index Cleanup', update);
-      metaDoc.setFlag(MODULE_ID, 'index', update);
-      delete PresetTree._packTrees[pack.metadata.id];
-    }
-  }
-
   static _sortFolders(folders, sorting = 'a') {
     for (const folder of folders) {
       folder.children = this._sortFolders(folder.children, folder.sorting);
@@ -467,6 +343,7 @@ export class PresetCollection {
   }
 
   /**
+   * TODO: remove dependency to getTree(...)
    * Build preset index for 'Spotlight Omnisearch' module
    * @param {Array[CONFIG.SpotlightOmnisearch.SearchTerm]} soIndex
    */
@@ -554,133 +431,6 @@ export class PresetCollection {
 
 export class PresetAPI {
   static name = 'PresetAPI';
-
-  /**
-   * Retrieve preset
-   * @param {object} [options={}]
-   * @param {String} [options.uuid]                      Preset UUID
-   * @param {String} [options.name]                      Preset name
-   * @param {Array[String]} [options.types]              Preset types ("Token", "Tile", etc)
-   * @param {String} [options.query]                     Search query to be ran. Format: "blue #castle @AmbientLight"
-   *                                                     Terms: blue, Tags: castle, Type: AmbientLight
-   *                                                     None, or all component of the query can be provided or excluded
-   * @param {String|Array[String]|Object} [options.tags] Tags to match a preset against. Can be provided as an object containing 'tags' array and 'matchAny' flag.
-   *                                                     Comma separated string, or a list of strings. In the latter 2 cases 'matchAny' is assumed true
-   * @param {String} [options.folder]                    Folder name
-   * @param {Boolean} [options.random]                   If multiple presets are found a random one will be chosen
-   * @returns {Preset}
-   */
-  static async getPreset({
-    uuid,
-    name,
-    types,
-    folder,
-    tags,
-    query,
-    matchAny = true,
-    random = false,
-    virtualDirectory = true,
-    externalCompendiums = true,
-    full = true,
-  } = {}) {
-    if (uuid) return await PresetCollection.get(uuid, { full });
-    else if (!name && !types && !folder && !tags && !query)
-      throw Error('UUID, Name, Types, Folder, and/or Query required to retrieve a Preset.');
-    else if (query && (types || folder || tags || name))
-      throw console.warn(`When 'query' is provided 'types', 'folder', 'tags', and 'name' arguments are ignored.`);
-
-    let search, negativeSearch;
-    if (query) {
-      ({ search, negativeSearch } = parseSearchQuery(query, { matchAny }));
-    } else {
-      if (tags) {
-        if (Array.isArray(tags)) tags = { tags, matchAny };
-        else if (typeof tags === 'string') tags = { tags: tags.split(','), matchAny };
-      }
-
-      search = { name, types, folder, tags };
-    }
-    if (!search && !negativeSearch) return null;
-
-    const tree = await PresetCollection.getTree(null, { externalCompendiums, virtualDirectory });
-    const presets = PresetCollection._searchPresetTree(tree, search, negativeSearch);
-
-    let preset = random ? presets[Math.floor(Math.random() * presets.length)] : presets[0];
-    if (preset) {
-      preset = preset.clone();
-      if (full) await preset.load();
-    }
-    return preset;
-  }
-
-  /**
-   * Retrieve presets
-   * @param {object} [options={}]
-   * @param {String|Array[String]} [options.uuid]        Preset UUID/s
-   * @param {String} [options.name]                      Preset name
-   * @param {Array[String]} [options.types]              Preset types ("Token", "Tile", etc)
-   * @param {String} [options.query]                     See PresetAPI.getPreset
-   * @param {String} [options.folder]                    Folder name
-   * @param {String|Array[String]|Object} [options.tags] See PresetAPI.getPreset
-   * @returns {Array[Preset]|Array[String]|Array[Object]}
-   */
-  static async getPresets({
-    uuid,
-    name,
-    types,
-    query,
-    matchAny = true,
-    folder,
-    tags,
-    virtualDirectory = true,
-    externalCompendiums = true,
-    full = true,
-    presets,
-  } = {}) {
-    if (uuid) {
-      const uuids = Array.isArray(uuid) ? uuid : [uuid];
-      presets = await PresetCollection.getBatch(uuids, { full });
-    } else if (!name && !types && !folder && !tags && !query)
-      throw Error('UUID, Name, Type, Folder, Tags, and/or Query required to retrieve Presets.');
-    else if (query && (types || folder || tags || name))
-      throw console.warn(`When 'query' is provided 'types', 'folder', 'tags', and 'name' arguments are ignored.`);
-    else {
-      let search, negativeSearch;
-      if (query) {
-        ({ search, negativeSearch } = parseSearchQuery(query, { matchAny }));
-      } else {
-        if (tags) {
-          if (Array.isArray(tags)) tags = { tags, matchAny };
-          else if (typeof tags === 'string') tags = { tags: tags.split(','), matchAny };
-        }
-
-        search = { name, types, folder, tags };
-      }
-      if (!search && !negativeSearch) return [];
-
-      if (presets) {
-        presets = PresetCollection._searchPresets(presets, search, negativeSearch);
-      } else {
-        presets = PresetCollection._searchPresetTree(
-          await PresetCollection.getTree(null, { externalCompendiums, virtualDirectory }),
-          search,
-          negativeSearch
-        );
-      }
-    }
-
-    // Incase these presets are to be rendered, we set the _render and _visible flags to true
-    // as we might be re-using presets that have been utilized by other forms and had these flags
-    // toggled
-    presets.forEach((p) => {
-      p._render = true;
-      p._visible = true;
-    });
-
-    if (full) await PresetCollection.batchLoadPresets(presets);
-
-    return presets;
-  }
 
   /**
    * Create a Token preset from the provided Actor
@@ -782,9 +532,10 @@ export class PresetAPI {
       foundry.utils.mergeObject(defPreset, options, { inplace: true });
 
       const preset = new Preset(defPreset);
-      await PresetCollection.set(preset);
       presets.push(preset);
     }
+
+    await PresetStorage.createDocuments(presets);
 
     return presets;
   }
@@ -1126,8 +877,8 @@ export class PresetStorage {
   }
 
   /**
-   * Creates a JournalEntry document representing the passed in preset
-   * @param {Preset|Array[Preset]} preset
+   * Creates a JournalEntry document representing the passed in preset/s
+   * @param {Preset|Array[Preset]} presets
    */
   static async createDocuments(presets, pack = this.workingPack) {
     if (!Array.isArray(presets)) presets = [presets];
@@ -1345,14 +1096,18 @@ export class PresetStorage {
   // Preset retrieval API
 
   /**
-   * Retrieve presets
+   * Retrieve preset
    * @param {object} [options={}]
-   * @param {String|Array[String]} [options.uuid]        Preset UUID/s
+   * @param {String} [options.uuid]                      Preset UUID
    * @param {String} [options.name]                      Preset name
    * @param {Array[String]} [options.types]              Preset types ("Token", "Tile", etc)
-   * @param {String} [options.query]                     See PresetAPI.getPreset
+   * @param {String} [options.query]                     Search query to be ran. Format: "blue #castle @AmbientLight"
+   *                                                     Terms: blue, Tags: castle, Type: AmbientLight
+   *                                                     None, or all component of the query can be provided or excluded
+   * @param {String|Array[String]|Object} [options.tags] Tags to match a preset against. Can be provided as an object containing 'tags' array and 'matchAny' flag.
+   *                                                     Comma separated string, or a list of strings. In the latter 2 cases 'matchAny' is assumed true
    * @param {String} [options.folder]                    Folder name
-   * @param {String|Array[String]|Object} [options.tags] See PresetAPI.getPreset
+   * @param {Boolean} [options.random]                   If multiple presets are found a random one will be chosen
    * @returns {Array[Preset]|Array[String]|Array[Object]}
    */
   static async retrieve({
@@ -1361,11 +1116,10 @@ export class PresetStorage {
     types,
     query,
     matchAny = true,
-    folder,
     tags,
     virtualDirectory = true,
     externalCompendiums = true,
-    full = true, // deprecated
+    full = undefined, // deprecated
     load = false,
     presets,
   } = {}) {
@@ -1374,10 +1128,10 @@ export class PresetStorage {
     if (uuid) {
       const uuids = Array.isArray(uuid) ? uuid : [uuid];
       presets = await this.getPresetsFromUUID(uuids, { load });
-    } else if (!name && !types && !folder && !tags && !query)
+    } else if (!name && !types && !tags && !query)
       throw Error('UUID, Name, Type, Folder, Tags, and/or Query required to retrieve Presets.');
-    else if (query && (types || folder || tags || name))
-      throw console.warn(`When 'query' is provided 'types', 'folder', 'tags', and 'name' arguments are ignored.`);
+    else if (query && (types || tags || name))
+      throw console.warn(`When 'query' is provided 'types', 'tags', and 'name' arguments are ignored.`);
     else {
       let search, negativeSearch;
       if (query) {
@@ -1388,7 +1142,7 @@ export class PresetStorage {
           else if (typeof tags === 'string') tags = { tags: tags.split(','), matchAny };
         }
 
-        search = { name, types, folder, tags };
+        search = { name, types, tags };
       }
       if (!search && !negativeSearch) return [];
 
@@ -1411,7 +1165,7 @@ export class PresetStorage {
 
   /**
    * Retrieve a single preset that matches the provided criteria
-   * See getPresets(...)
+   * See retrieve(...)
    * @returns {Preset}
    */
   static async retrieveSingle(options = {}) {

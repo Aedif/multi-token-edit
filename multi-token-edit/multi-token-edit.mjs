@@ -30,8 +30,8 @@ globalThis.MassEdit = {
   performMassUpdate,
   performMassSearch,
   showMassEdit,
-  getPreset: PresetAPI.getPreset,
-  getPresets: PresetAPI.getPresets,
+  getPreset: PresetStorage.retrieveSingle,
+  getPresets: PresetStorage.retrieve,
   createPreset: PresetAPI.createPreset,
   spawnPreset: Spawner.spawnPreset,
   activateBrush: activateBrush,
@@ -209,21 +209,21 @@ Hooks.once('init', () => {
   });
 
   // 'Spotlight Omnisearch' support
-  Hooks.on('spotlightOmnisearch.indexBuilt', (INDEX, promises) => {
-    if (!game.user.isGM) return;
-    // First turn-off preset compendium from being included in omnisearch indexing
-    const old = game.settings.get('spotlight-omnisearch', 'compendiumConfig');
-    game.packs
-      .filter((p) => p.documentName === 'JournalEntry' && p.index.get(META_INDEX_ID))
-      .forEach((p) => (old[p.collection] = false));
-    game.settings.set('spotlight-omnisearch', 'compendiumConfig', old);
+  // Hooks.on('spotlightOmnisearch.indexBuilt', (INDEX, promises) => {
+  //   if (!game.user.isGM) return;
+  //   // First turn-off preset compendium from being included in omnisearch indexing
+  //   const old = game.settings.get('spotlight-omnisearch', 'compendiumConfig');
+  //   game.packs
+  //     .filter((p) => p.documentName === 'JournalEntry' && p.index.get(META_INDEX_ID))
+  //     .forEach((p) => (old[p.collection] = false));
+  //   game.settings.set('spotlight-omnisearch', 'compendiumConfig', old);
 
-    // Insert preset index
-    if (!game.settings.get(MODULE_ID, 'disableOmniSearchIndex')) {
-      const promise = PresetCollection.buildSpotlightOmnisearchIndex(INDEX);
-      promises.push(promise);
-    }
-  });
+  //   // Insert preset index
+  //   if (!game.settings.get(MODULE_ID, 'disableOmniSearchIndex')) {
+  //     const promise = PresetCollection.buildSpotlightOmnisearchIndex(INDEX);
+  //     promises.push(promise);
+  //   }
+  // });
 });
 
 // Deactivate brush/picker on scene change

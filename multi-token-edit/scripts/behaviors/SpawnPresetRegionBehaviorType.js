@@ -1,5 +1,5 @@
 import { MODULE_ID, PIVOTS, SUPPORTED_PLACEABLES } from '../constants.js';
-import { PresetAPI } from '../presets/collection.js';
+import { PresetStorage } from '../presets/collection.js';
 import { Spawner } from '../presets/spawner.js';
 import { getDataBounds } from '../presets/utils.js';
 import { PresetField } from './fields.js';
@@ -104,7 +104,7 @@ export class SpawnPresetBehaviorType extends foundry.data.regionBehaviors.Region
     const uuids = Array.from(this.presetUuids);
     const presetUuid = uuids[Math.floor(Math.random() * uuids.length)];
 
-    const preset = await PresetAPI.getPreset({ uuid: presetUuid });
+    const preset = await PresetStorage.retrieveSingle({ uuid: presetUuid });
     if (!preset) {
       console.error(`UUID (${this.presetUuid}) Name (${this.presetName}) does not exist`);
       return;

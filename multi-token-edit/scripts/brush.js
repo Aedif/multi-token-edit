@@ -1,7 +1,7 @@
 import { pasteDataUpdate } from '../applications/formUtils.js';
 import { MODULE_ID, PIVOTS } from './constants.js';
 import { Mouse3D } from './mouse3d.js';
-import { PresetAPI, PresetCollection } from './presets/collection.js';
+import { PresetStorage } from './presets/collection.js';
 import { Preset } from './presets/preset.js';
 import { Spawner } from './presets/spawner.js';
 import { applyRandomization } from './randomizer/randomizerUtils.js';
@@ -1019,7 +1019,7 @@ export class BrushMenu extends FormApplication {
  * @param {String} mode update|spawn
  */
 export async function activateBrush(options, mode = 'spawner') {
-  const preset = await PresetAPI.getPreset(options);
+  const preset = await PresetStorage.retrieveSingle(options);
   if (preset) {
     Brush.activate({ preset, spawner: mode === 'spawner' });
   }
@@ -1044,14 +1044,14 @@ export async function openBrushMenu(options, settings = {}) {
 
   if (Array.isArray(options)) {
     for (const opts of options) {
-      let preset = await PresetAPI.getPreset(opts);
+      let preset = await PresetStorage.retrieveSingle(opts);
       if (preset) presets.push(preset);
     }
   } else {
-    presets = await PresetAPI.getPresets(options);
+    presets = await PresetStorage.retrieve(options);
   }
 
   if (!presets?.length) return;
-  await PresetCollection.batchLoadPresets(presets);
+  await PresetStorage._batchLoadPresets(presets);
   BrushMenu.render(presets, settings);
 }

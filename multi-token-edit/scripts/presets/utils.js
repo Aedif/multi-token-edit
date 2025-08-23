@@ -1,6 +1,6 @@
 import { MODULE_ID, PIVOTS } from '../constants.js';
 import { applyRandomization } from '../randomizer/randomizerUtils.js';
-import { PresetAPI, PresetCollection } from './collection.js';
+import { PresetAPI, PresetCollection, PresetStorage } from './collection.js';
 import { Preset } from './preset.js';
 
 /**
@@ -446,7 +446,7 @@ export function registerSideBarPresetDropListener() {
       if (!data) return;
       data = JSON.parse(data);
 
-      let presets = (await PresetAPI.getPresets({ uuid: data.uuids, full: false })).filter(
+      let presets = (await PresetStorage.retrieve({ uuid: data.uuids })).filter(
         (p) => p.documentName === 'AmbientSound'
       );
 
@@ -671,7 +671,7 @@ export async function importSceneCompendium(scenePack, presetPack) {
     }
   }
 
-  await PresetCollection.set(presets, presetPack);
+  await PresetStorage.createDocuments(presets, presetPack);
 
   ui.notifications.info(`Imported scenes: ${presets.length}/${alreadyImportedCount + presets.length}`);
   if (nameUpdatedCount) {
@@ -685,7 +685,7 @@ export async function sceneNotFoundError(preset) {
 
   for (const message of MassEdit.sceneNotFoundMessages) {
     if (!(message.query && message.content)) continue;
-    let p = await PresetAPI.getPresets({ presets: [preset], query: message.query });
+    let p = await PresetStorage.retrieve({ presets: [preset], query: message.query });
     if (p.length) {
       const content = message.content.replace('{{name}}', preset.name);
       dialog = new Dialog(

@@ -1,7 +1,7 @@
 import { MODULE_ID } from '../constants.js';
 import { localize } from '../utils.js';
 import { PresetBrowser } from './browser/browserApp.js';
-import { PresetAPI } from './collection.js';
+import { PresetStorage } from './collection.js';
 import { PresetContainerV2 } from './containerAppV2.js';
 
 /**
@@ -371,12 +371,11 @@ class CategoryBrowserApplication extends PresetContainerV2 {
    * @returns {Array[Presets]|null}       Query results
    */
   async _runQuery(query, matchAny = false, presets) {
-    return PresetAPI.getPresets({
+    return PresetStorage.retrieve({
       query,
       matchAny,
       virtualDirectory: PresetBrowser.CONFIG.virtualDirectory,
       externalCompendiums: PresetBrowser.CONFIG.externalCompendiums,
-      full: false,
       presets,
     });
   }
