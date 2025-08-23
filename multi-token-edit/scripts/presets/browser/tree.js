@@ -9,10 +9,15 @@ import { matchPreset } from '../utils.js';
  * @returns
  */
 export async function getPresetPackTrees({ type = 'ALL', externalCompendiums = true, virtualDirectory = true } = {}) {
-  const workingTree = await collectionToTree(game.packs.get(PresetStorage.workingPack), type);
+  const workingPack = game.packs.get(PresetStorage.workingPack);
+  if (!workingPack.index?.get(META_INDEX_ID)) {
+    await PresetStorage._initCompendium(PresetStorage.workingPack);
+  }
+
+  const workingTree = await collectionToTree(workingPack, type);
   workingTree.folder.name = ''; // Giving a blank name here so that it does not match anything during searches
 
-  const externalTrees = [];
+  let externalTrees = [];
   if (externalCompendiums) {
     for (const pack of game.packs) {
       if (pack.collection !== PresetStorage.workingPack && pack.index?.get(META_INDEX_ID)) {
@@ -20,6 +25,7 @@ export async function getPresetPackTrees({ type = 'ALL', externalCompendiums = t
         externalTrees.push(tree);
       }
     }
+    externalTrees = _groupExternalTrees(externalTrees);
   }
 
   if (virtualDirectory) {
@@ -30,19 +36,46 @@ export async function getPresetPackTrees({ type = 'ALL', externalCompendiums = t
   return { workingTree, externalTrees };
 }
 
+// Group packs using their 'group' flag
+function _groupExternalTrees(trees) {
+  trees = trees.sort((t1, t2) => t1.folder.name.localeCompare(t2.folder.name));
+
+  const groups = {};
+  const groupless = [];
+  trees.forEach((t) => {
+    if (t.folder.group) {
+      if (!(t.folder.group in groups)) groups[t.folder.group] = [];
+      groups[t.folder.group].push(t);
+    } else {
+      groupless.push(t);
+    }
+  });
+
+  const newExternalTrees = [];
+
+  for (const [group, trees] of Object.entries(groups)) {
+    newExternalTrees.push({
+      presets: [],
+      children: trees,
+      folder: new PresetPackFolder({ collection: group, title: group, editDisabled: true }, { flags: {} }, trees),
+    });
+  }
+
+  return newExternalTrees.concat(groupless).sort((t1, t2) => t1.folder.name.localeCompare(t2.folder.name));
+}
+
 /**
  * Return collection as tree of presets
  * @param {*} collection
  * @param {*} type
  * @returns
  */
-async function collectionToTree(collection, type) {
+async function collectionToTree(collection) {
   const tree = collection.tree;
   if (tree._meTree) return tree._meTree;
 
-  tree.folder = new PresetPackFolder(collection, await collection.getDocument(META_INDEX_ID), [type]);
-  tree.folder.children = tree.children; // TODO, confirm this as a fix
-  tree._meTree = collectionTreeToPresetTree(tree, type, await PresetStorage._loadIndex(collection));
+  tree.folder = new PresetPackFolder(collection, await collection.getDocument(META_INDEX_ID), tree.children);
+  tree._meTree = collectionTreeToPresetTree(tree, await PresetStorage._loadIndex(collection));
 
   tree.folder = undefined;
 
@@ -52,15 +85,14 @@ async function collectionToTree(collection, type) {
 /**
  * Converts standard collection tree, to a preset tree
  * @param {*} tree
- * @param {*} type
  * @param {*} index
  * @returns
  */
-function collectionTreeToPresetTree(tree, type, index) {
+function collectionTreeToPresetTree(tree, index) {
   tree.folder.presets = tree.entries.map((entry) => index.get(entry._id)).filter(Boolean);
   return {
     folder: tree.folder,
-    children: tree.children.map((ch) => collectionTreeToPresetTree(ch, type, index)).filter(Boolean),
+    children: tree.children.map((ch) => collectionTreeToPresetTree(ch, index)).filter(Boolean),
   };
 }
 

@@ -798,6 +798,7 @@ export class PresetFolder {
     color = '#000000',
     sort = 0,
     children = [],
+    presets = [],
     draggable = true,
     folder = null,
     types = [],
@@ -809,6 +810,7 @@ export class PresetFolder {
     this.color = color;
     this.sort = sort;
     this.children = children;
+    this.presets = presets;
 
     this.draggable = draggable;
     this.folder = folder;
@@ -858,7 +860,7 @@ export class VirtualFileFolder extends PresetVirtualFolder {
 }
 
 export class PresetPackFolder extends PresetVirtualFolder {
-  constructor(compendium, metaDoc, types) {
+  constructor(compendium, metaDoc, children = []) {
     const packFolderData = metaDoc.flags[MODULE_ID]?.folder ?? {};
     const id = SeededRandom.randomID(compendium.collection);
     const uuid = `ME-Folder.${id}`;
@@ -868,10 +870,12 @@ export class PresetPackFolder extends PresetVirtualFolder {
       name: packFolderData.name ?? compendium.title,
       draggable: false,
       color: packFolderData.color ?? '#000000',
-      types,
+      children,
     });
     this.group = packFolderData.group;
     this.pack = compendium.collection;
+    this.editDisabled = compendium.editDisabled;
+    this.typeless = true;
   }
 
   async update(data = {}) {
@@ -892,8 +896,6 @@ export class PresetPackFolder extends PresetVirtualFolder {
   }
 
   set _meMatch(val) {}
-
-  typeless = true;
 }
 
 export class PresetTree {

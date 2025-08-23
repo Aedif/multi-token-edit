@@ -3,7 +3,7 @@ import { BrushMenu } from '../brush.js';
 import { MODULE_ID, PIVOTS, SUPPORTED_PLACEABLES } from '../constants.js';
 import { Scenescape } from '../scenescape/scenescape.js';
 import { applyPresetToScene, isAudio, localFormat, localize, spawnSceneAsPreset } from '../utils.js';
-import { PresetAPI, PresetCollection, PresetFolder, PresetPackFolder, VirtualFileFolder } from './collection.js';
+import { PresetAPI, PresetCollection, PresetPackFolder, VirtualFileFolder } from './collection.js';
 import { PresetBrowser } from './browser/browserApp.js';
 import { Preset } from './preset.js';
 import { Spawner } from './spawner.js';
@@ -545,7 +545,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
         condition: (header) => {
           const uuid = header.closest('.folder').dataset.uuid;
           const folder = fromUuidSync(uuid);
-          return !(folder instanceof PresetPackFolder || folder instanceof VirtualFileFolder);
+          return !(folder instanceof VirtualFileFolder) && !folder.editDisabled;
         },
         callback: (header) => this._onFolderEdit(header),
       },

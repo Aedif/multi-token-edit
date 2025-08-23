@@ -1,5 +1,5 @@
 import { FILE_EXTENSIONS, IMAGE_EXTENSIONS, MODEL_EXTENSIONS, MODULE_ID } from '../constants.js';
-import { META_INDEX_ID, PresetTree, VirtualFileFolder } from './collection.js';
+import { META_INDEX_ID, VirtualFileFolder } from './collection.js';
 import { VirtualFilePreset } from './preset.js';
 import { encodeURIComponentSafely, readJSONFile } from './utils.js';
 
@@ -11,6 +11,7 @@ const CACHE_NAME = 'mass_edit_cache.json';
  */
 class FileIndexerCollection extends Collection {
   collection = 'VIRTUAL_DIRECTORY';
+  editDisabled = true;
   _tree;
 
   getDocument(id) {

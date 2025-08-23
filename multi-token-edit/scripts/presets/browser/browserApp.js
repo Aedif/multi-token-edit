@@ -442,7 +442,7 @@ export class PresetBrowser extends PresetContainerV2 {
           color: pFolder.color,
           sorting: pFolder.sorting,
         },
-        { pack: pFolder.uuid }
+        { pack: pFolder.pack }
       );
     } else {
       folder = fromUuidSync(uuid);
@@ -865,8 +865,13 @@ export class PresetBrowser extends PresetContainerV2 {
   static async _onWorkingPackChange() {
     let { pack } = await getCompendiumDialog();
     if (pack && pack !== PresetStorage.workingPack) {
-      await game.settings.set(MODULE_ID, 'workingPack', pack);
-      this.render(true);
+      const { metadataDocument } = await PresetStorage._initCompendium(pack);
+      if (metadataDocument) {
+        await game.settings.set(MODULE_ID, 'workingPack', pack);
+        this.render(true);
+      } else {
+        ui.notifications.wan(`Unable to establish ${pack} as Mass Edit Preset compendium.`);
+      }
     }
   }
 
@@ -1036,6 +1041,8 @@ class PresetFolderConfig extends foundry.applications.sheets.FolderConfig {
       // This is a virtual folder used to store Compendium contents,
       // update using the provided interface
       let update = {};
+      submitData.group = $(form).find('[name="group"]').val();
+
       ['name', 'color', 'group'].forEach((k) => {
         if (!submitData[k]?.trim()) update['-=' + k] = null;
         else update[k] = submitData[k].trim();
