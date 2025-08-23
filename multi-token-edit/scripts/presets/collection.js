@@ -259,14 +259,9 @@ export class PresetStorage {
     let compendium = game.packs.get(packId);
     if (!compendium && packId === DEFAULT_PACK) {
       if (!this._creatingDefaultCompendium)
-        this._creatingDefaultCompendium = CompendiumCollection.createCompendium({
+        this._creatingDefaultCompendium = foundry.documents.collections.CompendiumCollection.createCompendium({
           label: 'Mass Edit: Presets (MAIN)',
           type: 'JournalEntry',
-          ownership: {
-            GAMEMASTER: 'NONE',
-            PLAYER: 'NONE',
-            ASSISTANT: 'NONE',
-          },
           packageType: 'world',
         });
 
@@ -372,21 +367,21 @@ export class PresetStorage {
   // Initialize hooks to manage update, deletion, and creation of preset JournalEntry's,
   // hiding of managed compendiums
   static _init() {
-    // Hooks.on(`preUpdate${documentType}`, this._preUpdate.bind(this));
-    // Hooks.on(`update${documentType}`, this._update.bind(this));
-    // Hooks.on(`delete${documentType}`, this._delete.bind(this));
+    Hooks.on(`preUpdateJournalEntry`, this._preUpdate.bind(this));
     Hooks.on(`preCreateJournalEntry`, this._preCreate.bind(this));
-    // Hooks.on(`create${documentType}`, this._create.bind(this));
     Hooks.on('updateCompendium', this._updateCompendium.bind(this));
 
-    // Hooks.on('activateCompendiumDirectory', (directory) => {
-    //   //if (game.settings.get(MODULE_ID, 'hideManagedPacks'))
-    //   game.packs
-    //     .filter((p) => p.index.get(META_INDEX_ID))
-    //     .forEach((pack) => {
-    //       directory.element.querySelector(`[data-pack="${pack.collection}"]`)?.setAttribute('hidden', true);
-    //     });
-    // });
+    // Hide managed compendiums
+    Hooks.on('activateCompendiumDirectory', (directory) => {
+      const hide = Boolean(game.settings.get(MODULE_ID, 'hideManagedPacks'));
+      game.packs
+        .filter((p) => p.index.get(META_INDEX_ID))
+        .forEach((pack) => {
+          const el = directory.element.querySelector(`[data-pack="${pack.collection}"]`);
+          if (hide) el?.setAttribute('hidden', true);
+          else el?.removeAttribute('hidden');
+        });
+    });
   }
 
   static _updateCompendium(compendium, documents, operation, userId) {
@@ -404,15 +399,16 @@ export class PresetStorage {
 
     if (compendium._meIndex) {
       for (const data of operation.data) {
-        const i = compendium.index.get(data._id);
+        const { _id, folder, name, sort, uuid } = compendium.index.get(data._id);
         compendium._meIndex.set(
           data._id,
           new Preset({
-            id: data._id,
-            uuid: compendium.getUuid(data._id),
             ...(foundry.utils.getProperty(data, `flags.${MODULE_ID}.preset`) ?? {}),
-            folder: i.folder,
-            sort: i.sort,
+            _id,
+            folder,
+            name,
+            sort,
+            uuid,
           })
         );
       }
@@ -487,7 +483,7 @@ export class PresetStorage {
       operation.ids.forEach((id) => {
         update[`flags.${MODULE_ID}.index.-=${id}`] = null;
       });
-      document.collection.getDocument(META_INDEX_ID).then((metaDocument) => {
+      compendium.getDocument(META_INDEX_ID).then((metaDocument) => {
         metaDocument.update(update).then(PresetBrowser.renderActiveBrowser());
       });
     }
@@ -519,23 +515,23 @@ export class PresetStorage {
     }
   }
 
-  // /**
-  //  * Sync Document and index names
-  //  * @param {Document} document
-  //  * @param {object} change
-  //  * @param {object} options
-  //  * @param {string} userId
-  //  */
-  // static _preUpdate(document, change, options, userId) {
-  //   if (
-  //     document.collection.index?.get(META_INDEX_ID) &&
-  //     document.id !== META_INDEX_ID &&
-  //     ('name' in change || foundry.utils.getProperty(change, `flags.${MODULE_ID}.index.name`) != null)
-  //   ) {
-  //     if ('name' in change) foundry.utils.setProperty(change, `flags.${MODULE_ID}.preset.name`, change.name);
-  //     else change.name = change.flags[MODULE_ID].index.name;
-  //   }
-  // }
+  /**
+   * Sync Document and index names
+   * @param {Document} document
+   * @param {object} change
+   * @param {object} options
+   * @param {string} userId
+   */
+  static _preUpdate(document, change, options, userId) {
+    if (
+      document.collection.index?.get(META_INDEX_ID) &&
+      document.id !== META_INDEX_ID &&
+      ('name' in change || foundry.utils.getProperty(change, `flags.${MODULE_ID}.index.name`) != null)
+    ) {
+      if ('name' in change) foundry.utils.setProperty(change, `flags.${MODULE_ID}.preset.name`, change.name);
+      else change.name = change.flags[MODULE_ID].index.name;
+    }
+  }
 
   /**
    * If a Document has been created within a managed compendium without the use of MassEdit API default preset data will be inserted here.
@@ -554,27 +550,6 @@ export class PresetStorage {
         `flags.${MODULE_ID}.preset`,
         new Preset({ name: document.name, data: [{}] }).toJSON()
       );
-    }
-  }
-
-  /**
-   * Newly created documents within managed compendiums automatically update metadata document index
-   * @param {Document} document
-   * @param {object} options
-   * @param {string} userId
-   * @returns
-   */
-  static _create(document, options, userId) {
-    if (game.user.id === userId && document.collection.index?.get(META_INDEX_ID)) {
-      document.collection.getDocument(META_INDEX_ID).then((metaDocument) => {
-        const preset = document.getFlag(MODULE_ID, 'preset');
-        const index = {};
-        META_INDEX_FIELDS.forEach((k) => {
-          if (k in preset) index[k] = preset[k];
-        });
-
-        metaDocument.setFlag(MODULE_ID, 'index', { [document.id]: index });
-      });
     }
   }
 

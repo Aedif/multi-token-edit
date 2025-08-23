@@ -303,6 +303,15 @@ export function registerSettings() {
     type: String,
     default: '',
   });
+
+  game.settings.register(MODULE_ID, 'hideManagedPacks', {
+    name: `Hide Preset Compendiums`,
+    hint: 'When enabled preset compendiums will not be shown in the sidebar.',
+    scope: 'world',
+    config: true,
+    type: Boolean,
+    default: true,
+  });
 }
 
 export function registerKeybinds() {

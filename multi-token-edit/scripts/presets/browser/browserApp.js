@@ -911,6 +911,7 @@ export class PresetBrowser extends PresetContainerV2 {
       }
 
       await PresetStorage.createDocuments(presets);
+      this.render(true);
     }
 
     ui.notifications.info(`Mass Edit: ${localFormat('presets.imported', { count: importCount })}`);
