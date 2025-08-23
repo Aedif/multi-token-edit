@@ -151,7 +151,6 @@ export class PresetBrowser extends PresetContainerV2 {
     const context = await super._prepareContext(options);
 
     await this._refreshTree();
-    console.log(this.tree);
 
     context.browser = true;
     context.workingTree = this.tree.workingTree;

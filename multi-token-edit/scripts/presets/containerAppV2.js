@@ -326,7 +326,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
     const uuid = target.dataset.uuid;
     if (!uuid) return;
 
-    let preset = await PresetAPI.getPreset({ uuid });
+    let preset = await PresetStorage.retrieveSingle({ uuid, load: true });
     if (!preset) return;
 
     BrushMenu.close();
@@ -524,14 +524,14 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
   }
 
   async _onImportFauxScene(item) {
-    const preset = await PresetAPI.getPreset({ uuid: item.dataset.uuid });
+    const preset = await PresetStorage.retrieveSingle({ uuid: item.dataset.uuid, load: true });
     const scene = await fromUuid(preset.data[0].uuid);
     if (scene) game.scenes.importFromCompendium(scene.compendium, scene.id, {}, { renderSheet: true });
     else sceneNotFoundError(preset);
   }
 
   async _onSpawnScene(item) {
-    const preset = await PresetAPI.getPreset({ uuid: item.dataset.uuid });
+    const preset = await PresetStorage.retrieveSingle({ uuid: item.dataset.uuid, load: true });
     const scene = await fromUuid(preset.data[0].uuid);
     if (scene) return spawnSceneAsPreset(scene);
     else sceneNotFoundError(preset);
@@ -823,7 +823,6 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
     const uuid = folderElement.data('uuid');
 
     const folder = fromUuidSync(uuid);
-    console.log('CLICKED FOLDER', folder);
     if (folder.expanded) this._folderCollapse(folderElement, folder);
     else this._folderExpand(folderElement, folder);
   }

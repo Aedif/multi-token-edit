@@ -819,7 +819,7 @@ export class PresetStorage {
 
     const index = new Collection();
     for (const [id, content] of Object.entries(rawIndex)) {
-      index.set(id, new Preset({ id, uuid: pack.getUuid(id), ...content }));
+      if (id !== META_INDEX_ID) index.set(id, new Preset({ id, uuid: pack.getUuid(id), ...content }));
     }
 
     pack._meIndex = index;
@@ -912,28 +912,9 @@ export class PresetStorage {
     return presets;
   }
 
-  static _assignPresetsToTree(index, tree) {
-    if (tree.folder) tree.folder.presets = tree.entries.map((entry) => index.get(entry._id));
-    else tree.presets = tree.entries.map((entry) => index.get(entry._id));
-    for (const child of tree.children) {
-      this._assignPresetsToTree(index, child);
-    }
-  }
-
   // Initialize hooks to manage update, deletion, and creation of preset JournalEntry's,
   // hiding of managed compendiums
   static _init() {
-    CompendiumCollection.prototype.presetTree = async function () {
-      console.log(this);
-      const tree = this.tree;
-      if (!tree.meTree) {
-        const index = await PresetStorage._loadIndex(this);
-        PresetStorage._assignPresetsToTree(index, tree);
-        tree.meTree = true;
-      }
-      return tree;
-    };
-
     // Hooks.on(`preUpdate${documentType}`, this._preUpdate.bind(this));
     // Hooks.on(`update${documentType}`, this._update.bind(this));
     // Hooks.on(`delete${documentType}`, this._delete.bind(this));
