@@ -390,7 +390,7 @@ export class PresetBrowser extends PresetContainerV2 {
 
   async _onExportSelectedPresetsToComp() {
     let { pack, keepId } = await getCompendiumDialog({ exportTo: true, keepIdSelect: true });
-    if (pack) this._onCopySelectedPresets(pack, { keepId });
+    if (pack) this._onCopySelectedPresets({ pack, keepId });
   }
 
   async _onCopyPresetToClipboard() {

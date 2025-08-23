@@ -238,9 +238,11 @@ export class FileIndexer {
     }
   }
 
-  static async getPreset(uuid) {
-    if (!this._collection) await this.collection();
-    if (!this._collection) return null;
+  static async retrieve(uuid) {
+    if (!this._collection) {
+      await this.collection();
+      if (!this._collection) return null;
+    }
     return this._collection._meIndex.get(uuid);
   }
 

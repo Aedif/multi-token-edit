@@ -455,7 +455,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
           Preset.isEditable(item.dataset.uuid) &&
           !item.classList.contains('virtual'),
         callback: (item) =>
-          this._onCopySelectedPresets(null, {
+          this._onCopySelectedPresets({
             keepFolder: true,
             keepId: false,
           }),
@@ -648,7 +648,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
     }
   }
 
-  async _onCopySelectedPresets(pack, { keepFolder = false, keepId = true } = {}) {
+  async _onCopySelectedPresets({ pack, keepFolder = false, keepId = true } = {}) {
     const [selected, _] = await this._getSelectedPresets();
 
     const presets = selected.map((s) => {

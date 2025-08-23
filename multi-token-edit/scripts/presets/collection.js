@@ -613,7 +613,7 @@ export class PresetStorage {
 
     if (uuid) {
       const uuids = Array.isArray(uuid) ? uuid : [uuid];
-      presets = await this.getPresetsFromUUID(uuids, { load });
+      presets = await this.retrieveFromUUID(uuids, { load });
     } else if (!name && !types && !tags && !query)
       throw Error('UUID, Name, Type, Folder, Tags, and/or Query required to retrieve Presets.');
     else if (query && (types || tags || name))
@@ -727,13 +727,16 @@ export class PresetStorage {
    * @param {boolean} [options.load] Should the associated entry documents be immediately loaded?
    * @returns {Array[Entry]}
    */
-  static async getPresetsFromUUID(uuids, { load = true }) {
+  static async retrieveFromUUID(uuids, { load = true }) {
     if (!Array.isArray(uuids)) uuids = [uuids];
     const presets = [];
 
     for (const uuid of uuids) {
       if (uuid.startsWith('virtual@')) {
-        presets.push(await this._constructVirtualFilePreset(uuid));
+        let preset = await FileIndexer.retrieve(uuid);
+        if (!preset) preset = new VirtualFilePreset({ src: uuid.substring(8) });
+
+        presets.push(preset);
         continue;
       }
 
@@ -754,12 +757,6 @@ export class PresetStorage {
     return presets;
   }
 
-  static async _constructVirtualFilePreset(uuid) {
-    let preset = await FileIndexer.getPreset(uuid);
-    if (!preset) preset = new VirtualFilePreset({ src: uuid.substring(8) });
-    return preset;
-  }
-
   /**
    * Batch load preset documents using pack.getDocuments({ _id__in: ids }) query.
    * @param {Array[Preset]} presets to be loaded with their document
@@ -776,14 +773,15 @@ export class PresetStorage {
 
       if (!preset.document) {
         const { collection, documentId } = foundry.utils.parseUuid(preset.uuid);
-        if (!packToPreset[collection]) packToPreset[collection] = {};
-        packToPreset[collection][documentId] = preset;
+        const pack = collection.collection;
+        if (!packToPreset[pack]) packToPreset[pack] = {};
+        packToPreset[pack][documentId] = preset;
       }
     }
 
     // Load documents from each pack and assign them to entries
     for (const [pack, idToPresets] of Object.entries(packToPreset)) {
-      const documents = await pack.getDocuments({ _id__in: Object.keys(idToPresets) });
+      const documents = await game.packs.get(pack).getDocuments({ _id__in: Object.keys(idToPresets) });
       for (const document of documents) {
         idToPresets[document.id].load(false, document);
       }

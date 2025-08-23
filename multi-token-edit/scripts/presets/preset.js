@@ -340,7 +340,7 @@ export class VirtualFilePreset extends Preset {
   }
 
   async load(force = false) {
-    const p = await FileIndexer.getPreset(this.uuid);
+    const p = await FileIndexer.retrieve(this.uuid);
     if (p) this.tags = p.tags;
     this._storedReference = p;
 
