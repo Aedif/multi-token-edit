@@ -236,7 +236,7 @@ export class PresetBrowser extends PresetContainerV2 {
    * @returns
    */
   _foundryDrop(event) {
-    const data = TextEditor.getDragEventData(event.originalEvent);
+    const data = foundry.applications.ux.TextEditor.implementation.getDragEventData(event.originalEvent);
     if (!foundry.utils.isEmpty(data)) {
       if (data.type === 'Folder') {
         const folder = fromUuidSync(data.uuid);
@@ -493,6 +493,7 @@ export class PresetBrowser extends PresetContainerV2 {
       }
 
       if (confirm) await folder.delete({ deleteSubfolders: deleteAll, deleteContents: deleteAll });
+      this.render(true);
     }
   }
 
@@ -582,7 +583,7 @@ export class PresetBrowser extends PresetContainerV2 {
     const sourceUuidsSet = new Set(sourceUuids);
     const sources = await PresetStorage.retrieve({ uuid: Array.from(sourceUuidsSet) });
 
-    let target = await PresetStorage.retrieveSingle({ uuid: targetUuid });
+    let target = targetUuid ? await PresetStorage.retrieveSingle({ uuid: targetUuid }) : null;
 
     // Determine siblings based on folder
     let presets;
@@ -602,23 +603,16 @@ export class PresetBrowser extends PresetContainerV2 {
 
     if (result.length) {
       const updates = [];
+      const folderId = fromUuidSync(folderUuid)?.id ?? null;
       result.forEach((ctrl) => {
         const update = ctrl.update;
         update._id = ctrl.target.id;
-        update.folder = fromUuidSync(folderUuid)?.id ?? null;
+        update.folder = folderId;
         updates.push(update);
-
-        // update preset object itself
-        // TODO: improve, this is done so that preset/pack does not need to get reloaded
-        const p = presets.find((p) => p.id === update._id);
-        if (p) {
-          p.folder = update.folder;
-          p.sort = update.sort;
-        }
-
         ctrl.target.sort = update.sort;
       });
-      await PresetCollection.updatePresets(updates);
+
+      await PresetStorage.updatePresets(updates);
     }
 
     this.render(true);
@@ -1278,5 +1272,15 @@ export function registerPresetBrowserHooks() {
       return wrapped(...args);
     },
     'MIXED'
+  );
+
+  libWrapper.register(
+    MODULE_ID,
+    'foundry.documents.collections.CompendiumCollection.prototype.maxFolderDepth',
+    function (wrapped) {
+      const depth = wrapped();
+      return this.index.get(META_INDEX_ID) ? 100 : depth;
+    },
+    'WRAPPER'
   );
 }

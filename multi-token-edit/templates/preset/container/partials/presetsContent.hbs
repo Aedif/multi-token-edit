@@ -1,7 +1,7 @@
 <ol class="folder-items top-level-folder-items">
     {{#each nodes as |node|}}
         {{#if (meRender node.folder context=../context)}}
-            {{>me-preset-folder folder=node.folder createEnabled=../createEnabled callback=../callback sortable=true}}
+            {{>me-preset-folder folder=node.folder createEnabled=../createEnabled callback=../callback sortable=true draggable=true}}
         {{/if}}
     {{/each}}
 </ol>

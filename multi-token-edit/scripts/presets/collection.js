@@ -67,15 +67,6 @@ export class PresetCollection {
   }
 
   /**
-   * Update multiple presets at the same time
-   * @param {*} updates
-   */
-  static async updatePresets(updates, pack = this.workingPack) {
-    // TODO update meta and preset itself
-    await JournalEntry.updateDocuments(updates, { pack });
-  }
-
-  /**
    * Create presets within a pack
    * @param {Preset|Array[Preset]} presets
    * @param {String} pack
@@ -550,7 +541,6 @@ export class PresetFolder {
     sort = 0,
     children = [],
     presets = [],
-    draggable = true,
     folder = null,
     types = [],
   } = {}) {
@@ -563,7 +553,6 @@ export class PresetFolder {
     this.children = children;
     this.presets = presets;
 
-    this.draggable = draggable;
     this.folder = folder;
     this.types = types;
     this.flags = { [MODULE_ID]: { types } };
@@ -589,7 +578,7 @@ export class PresetVirtualFolder extends PresetFolder {
   constructor(options) {
     super(options);
     this.virtual = true;
-    this.draggable = false;
+    this.static = true;
   }
 
   async update(data) {}
@@ -619,7 +608,6 @@ export class PresetPackFolder extends PresetVirtualFolder {
       id,
       uuid,
       name: packFolderData.name ?? compendium.title,
-      draggable: false,
       color: packFolderData.color ?? '#000000',
       children,
     });
@@ -819,7 +807,9 @@ export class PresetStorage {
 
     const index = new Collection();
     for (const [id, content] of Object.entries(rawIndex)) {
-      if (id !== META_INDEX_ID) index.set(id, new Preset({ id, uuid: pack.getUuid(id), ...content }));
+      const i = pack.index.get(id);
+      if (i && id !== META_INDEX_ID)
+        index.set(id, new Preset({ id, uuid: pack.getUuid(id), folder: i.folder, ...content }));
     }
 
     pack._meIndex = index;
@@ -874,6 +864,14 @@ export class PresetStorage {
     }
 
     return { compendium, metadataDocument };
+  }
+
+  /**
+   * Update multiple presets at the same time
+   * @param {Array[]} updates
+   */
+  static async updatePresets(updates, pack = this.workingPack) {
+    return game.packs.get(pack).documentClass.updateDocuments(updates, { pack });
   }
 
   /**
@@ -943,16 +941,19 @@ export class PresetStorage {
   }
 
   static _updateCompendiumCreate(compendium, documents, operation, userId) {
-    if (!documents.length) return; // Folder creation
+    if (documents[0] instanceof Folder) return;
 
     if (compendium._meIndex) {
       for (const data of operation.data) {
+        const i = compendium.index.get(data._id);
         compendium._meIndex.set(
           data._id,
           new Preset({
             id: data._id,
             uuid: compendium.getUuid(data._id),
             ...(foundry.utils.getProperty(data, `flags.${MODULE_ID}.preset`) ?? {}),
+            folder: i.folder,
+            sort: i.sort,
           })
         );
       }
@@ -986,7 +987,7 @@ export class PresetStorage {
 
   // Sync document update with index
   static _updateCompendiumUpdate(compendium, documents, operation, userId) {
-    if (!compendium.index.get(operation.update[0]._id)) return; // Folder update
+    if (!compendium.index.get(operation.updates[0]._id)) return; // Folder update
 
     const indexUpdate = {};
     for (const update of operation.updates) {
@@ -999,7 +1000,12 @@ export class PresetStorage {
           if (k in preset) indexChanges[k] = preset[k];
         });
         if ('name' in update) indexChanges.name = update.name;
-        if (compendium._meIndex) Object.assign(compendium._meIndex.get(update._id), indexChanges);
+        if (compendium._meIndex) {
+          const preset = compendium._meIndex.get(update._id);
+          Object.assign(preset, indexChanges);
+          if ('folder' in update) preset.folder = update.folder;
+          if ('sort' in update) preset.sort = update.sort;
+        }
         if (!foundry.utils.isEmpty(indexChanges))
           foundry.utils.setProperty(indexUpdate, `flags.${MODULE_ID}.index.${update._id}`, indexChanges);
       }
@@ -1014,6 +1020,7 @@ export class PresetStorage {
 
   // Document deletion within managed collection automatically remove it from the metadata document index
   static _updateCompendiumDelete(compendium, documents, operation, userId) {
+    if (documents[0] instanceof Folder) return;
     if (compendium._meIndex) operation.ids.forEach((id) => compendium._meIndex.delete(id));
 
     if (game.user.id === userId) {

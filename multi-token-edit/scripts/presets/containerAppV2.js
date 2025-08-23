@@ -292,22 +292,9 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
 
         const dragData = foundry.applications.ux.TextEditor.implementation.getDragEventData(event.originalEvent);
         if (dragData.type === 'folder') {
-          // Move HTML Elements
-          const target = html.find('.top-level-folder-items');
-          const folder = html.find(`.folder[data-uuid="${dragData.uuids[0]}"]`);
-          target.append(folder);
-
           this._onFolderSort(dragData.uuids[0], null);
-        } else if (dragData.type === 'item' && dragData.sortable) {
+        } else if (dragData.type === 'preset' && dragData.sortable) {
           const uuids = dragData.uuids;
-
-          // Move HTML Elements
-          const target = html.find('.top-level-preset-items');
-          uuids?.forEach((uuid) => {
-            const item = html.find(`.item[data-uuid="${uuid}"]`);
-            if (item.length) target.append(item);
-          });
-
           this._onItemSort(uuids, null);
         }
       });
@@ -833,7 +820,12 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
           folder,
           createEnabled: Boolean(this.configApp),
           callback: Boolean(this.callback),
-          sortable: !folder.uuid.startsWith('virtual@') && folder.pack === PresetCollection.workingPack,
+          sortable: !(
+            folder instanceof VirtualFileFolder ||
+            folder instanceof PresetPackFolder ||
+            folder.pack !== PresetStorage.workingPack
+          ),
+          draggable: folder.pack === PresetStorage.workingPack,
         }
       );
       folderElement.replaceWith(content);
