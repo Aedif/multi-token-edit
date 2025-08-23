@@ -115,8 +115,8 @@ export function searchNode(node, search, negativeSearch, forceRender = false, ty
   } else if (search && folderName) match = !search.tags && search.terms?.every((t) => folderName.includes(t));
 
   let childFolderMatch = false;
-  for (const f of node.children) {
-    if (searchNode(f, search, negativeSearch, match || forceRender, type, expandFolders)) childFolderMatch = true;
+  for (const n of node.children) {
+    if (searchNode(n, search, negativeSearch, match || forceRender, type, expandFolders)) childFolderMatch = true;
   }
 
   let presetMatch = false;
@@ -126,7 +126,7 @@ export function searchNode(node, search, negativeSearch, forceRender = false, ty
 
   const containsMatch = match || childFolderMatch || presetMatch;
   if (expandFolders) game.folders._expanded[folder.uuid] = childFolderMatch || presetMatch;
-  folder._meMatch = containsMatch || forceRender;
+  folder._meMatch = containsMatch || forceRender || !expandFolders;
 
   return containsMatch;
 }

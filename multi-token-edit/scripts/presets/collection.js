@@ -943,6 +943,8 @@ export class PresetStorage {
   }
 
   static _updateCompendiumCreate(compendium, documents, operation, userId) {
+    if (!documents.length) return; // Folder creation
+
     if (compendium._meIndex) {
       for (const data of operation.data) {
         compendium._meIndex.set(
@@ -959,11 +961,19 @@ export class PresetStorage {
     if (game.user.id === userId) {
       const indexUpdate = {};
       for (const data of operation.data) {
+        if (data._id === META_INDEX_ID) {
+          // If a METADATA file has been created and there are existing documents within the compendium
+          // we will attempt to reconstruct the index assuming that the documents present are Preset containers
+          if (compendium.index.size > 1) this._recoverIndex(compendium);
+          continue;
+        }
+
         const preset = foundry.utils.getProperty(data, `flags.${MODULE_ID}.preset`) ?? {};
         const index = { id: data._id };
         META_INDEX_FIELDS.forEach((k) => {
           if (k in preset) index[k] = preset[k];
         });
+        if ('name' in data) index.name = data.name;
 
         foundry.utils.setProperty(indexUpdate, `flags.${MODULE_ID}.index.${data._id}`, index);
       }
@@ -976,10 +986,13 @@ export class PresetStorage {
 
   // Sync document update with index
   static _updateCompendiumUpdate(compendium, documents, operation, userId) {
+    if (!compendium.index.get(operation.update[0]._id)) return; // Folder update
+
     const indexUpdate = {};
     for (const update of operation.updates) {
       if (update._id === META_INDEX_ID) continue;
-      const preset = foundry.utils.getProperty(change, `flags.${MODULE_ID}.preset`);
+
+      const preset = foundry.utils.getProperty(update, `flags.${MODULE_ID}.preset`);
       if (preset) {
         const indexChanges = {};
         META_INDEX_FIELDS.forEach((k) => {
@@ -992,12 +1005,11 @@ export class PresetStorage {
       }
     }
 
-    if (game.user.id !== userId) return;
-
-    if (!foundry.utils.isEmpty(indexUpdate))
-      document.collection.getDocument(META_INDEX_ID).then((metaDocument) => {
+    if (game.user.id === userId && !foundry.utils.isEmpty(indexUpdate)) {
+      compendium.getDocument(META_INDEX_ID).then((metaDocument) => {
         metaDocument.update(indexUpdate);
       });
+    }
   }
 
   // Document deletion within managed collection automatically remove it from the metadata document index
@@ -1014,6 +1026,33 @@ export class PresetStorage {
       });
     }
   }
+
+  // Re-construct preset index. This is called when a metadata document is created within a compendium
+  // with other existing documents. It's possible that the metsdata document has been deleted and the compendium
+  // is now being attempted to be used as a Preset compendium again.
+  static async _recoverIndex(compendium) {
+    const indexUpdate = {};
+    const documents = await compendium.getDocuments();
+    for (const document of documents) {
+      if (document.id === META_INDEX_ID) continue;
+
+      const preset = document.getFlag(MODULE_ID, 'preset');
+      if (preset) {
+        const update = {};
+        META_INDEX_FIELDS.forEach((k) => {
+          if (k in preset) update[k] = preset[k];
+        });
+        update.name = document.name;
+
+        foundry.utils.setProperty(indexUpdate, `flags.${MODULE_ID}.index.${document.id}`, update);
+      }
+    }
+
+    if (!foundry.utils.isEmpty(indexUpdate)) {
+      compendium.getDocument(META_INDEX_ID).then((metaDocument) => metaDocument.update(indexUpdate));
+    }
+  }
+
   // /**
   //  * Sync Document and index names
   //  * @param {Document} document

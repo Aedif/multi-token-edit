@@ -333,11 +333,11 @@ export class PresetBrowser extends PresetContainerV2 {
     let { pack, keepId } = await getCompendiumDialog({ exportTo: true, keepIdSelect: true });
 
     if (pack && !this._importTracker?.active) {
-      const folder = this.tree.allFolders.get(uuid);
+      const folder = fromUuidSync(uuid);
       if (folder) {
         this._importTracker = await trackProgress({
           title: 'Exporting Folder',
-          total: countFolderItems(this.tree.allFolders.get(uuid)),
+          total: countFolderItems(fromUuidSync(uuid)),
         });
         await this._onCopyFolder(uuid, null, pack, true, keepId);
         this._importTracker?.stop();
@@ -348,13 +348,10 @@ export class PresetBrowser extends PresetContainerV2 {
   async _onCopyFolder(uuid, parentId = null, pack, render = true, keepId = true) {
     if (!pack) pack = PresetStorage.workingPack;
 
-    const folder = this.tree.allFolders.get(uuid);
-    const folderDoc = await fromUuid(uuid);
+    const folder = fromUuidSync(uuid);
 
     if (folder) {
-      let types;
-      if (folderDoc) types = folderDoc.flags[MODULE_ID]?.types ?? ['ALL'];
-      else types = ['ALL'];
+      let types = folder.flags[MODULE_ID]?.types ?? ['ALL'];
 
       const data = {
         _id: keepId ? folder.id : null,
@@ -384,7 +381,7 @@ export class PresetBrowser extends PresetContainerV2 {
 
       for (const child of folder.children) {
         if (!this._importTracker?.active) break;
-        await this._onCopyFolder(child.uuid, nFolder.id, pack, false, keepId);
+        await this._onCopyFolder(child.folder.uuid, nFolder.id, pack, false, keepId);
       }
 
       if (render) this.render(true);
@@ -455,7 +452,7 @@ export class PresetBrowser extends PresetContainerV2 {
   }
 
   async _onFolderDelete(uuid, { deleteAll = false } = {}) {
-    const folder = this.tree.allFolders.get(uuid);
+    const folder = fromUuidSync(uuid);
     if (folder) {
       let confirm;
 
@@ -463,7 +460,7 @@ export class PresetBrowser extends PresetContainerV2 {
         // Construct warning count of what is about to be removed
         const count = { Folder: 0 };
         const traverseFolder = function (folder) {
-          count['Folder'] += 1;
+          count.Folder += 1;
           folder.presets?.forEach((p) => {
             count[p.documentName] = (count[p.documentName] ?? 0) + 1;
           });
@@ -569,7 +566,7 @@ export class PresetBrowser extends PresetContainerV2 {
       result.forEach((ctrl) => {
         const update = ctrl.update;
         update._id = ctrl.target.id;
-        update.folder = this.tree.allFolders.get(folderUuid)?.id ?? null;
+        update.folder = fromUuidSync(folderUuid)?.id ?? null;
         updates.push(update);
 
         ctrl.target.sort = update.sort;
@@ -583,14 +580,14 @@ export class PresetBrowser extends PresetContainerV2 {
 
   async _onItemSort(sourceUuids, targetUuid, { before = true, folderUuid = null } = {}) {
     const sourceUuidsSet = new Set(sourceUuids);
-    const sources = this.tree.allPresets.filter((p) => sourceUuidsSet.has(p.uuid));
+    const sources = await PresetStorage.retrieve({ uuid: Array.from(sourceUuidsSet) });
 
-    let target = this.tree.allPresets.find((p) => p.uuid === targetUuid);
+    let target = await PresetStorage.retrieveSingle({ uuid: targetUuid });
 
     // Determine siblings based on folder
     let presets;
-    if (folderUuid) presets = this.tree.allFolders.get(folderUuid).presets;
-    else presets = this.tree.presets;
+    if (folderUuid) presets = fromUuidSync(folderUuid).presets;
+    else presets = this.tree.workingTree.folder.presets;
 
     const siblings = [];
     for (const preset of presets) {
@@ -608,7 +605,7 @@ export class PresetBrowser extends PresetContainerV2 {
       result.forEach((ctrl) => {
         const update = ctrl.update;
         update._id = ctrl.target.id;
-        update.folder = this.tree.allFolders.get(folderUuid)?.id ?? null;
+        update.folder = fromUuidSync(folderUuid)?.id ?? null;
         updates.push(update);
 
         // update preset object itself
@@ -688,9 +685,6 @@ export class PresetBrowser extends PresetContainerV2 {
   async close(options = {}) {
     PresetBrowser.objectHover = false;
     this._tagSelector?.close();
-
-    collapseFolders(this.tree.workingTree);
-    this.tree.externalTrees.forEach((tree) => collapseFolders(tree));
 
     return super.close(options);
   }

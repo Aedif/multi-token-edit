@@ -634,13 +634,6 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
             deleteAll: true,
           }),
       },
-      {
-        name: 'Randomize Child Folder Colors',
-        icon: '<i class="fas fa-dice"></i>',
-        condition: () => game.settings.get(MODULE_ID, 'debug'),
-        callback: (header) =>
-          randomizeChildrenFolderColors($(header).closest('.folder').data('uuid'), this.tree, () => this.render(true)),
-      },
     ];
   }
 
