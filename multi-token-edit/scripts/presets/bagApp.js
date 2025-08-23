@@ -185,7 +185,7 @@ class BagApplication extends PresetContainerV2 {
   async _onDeleteSelectedPresets(item) {
     const [selected, _] = await this._getSelectedPresets({
       editableOnly: false,
-      full: false,
+      load: false,
     });
 
     if (selected.length) {

@@ -4,7 +4,7 @@ import { countFolderItems, trackProgress } from '../../../applications/progressD
 import { importPresetFromJSONDialog } from '../../dialogs.js';
 import { SortingHelpersFixed } from '../../fixedSort.js';
 import { DragHoverOverlay, localFormat, localize, spawnSceneAsPreset } from '../../utils.js';
-import { META_INDEX_ID, PresetAPI, PresetCollection, PresetPackFolder, PresetStorage } from '../collection.js';
+import { META_INDEX_ID, PresetAPI, PresetPackFolder, PresetStorage } from '../collection.js';
 import { LinkerAPI } from '../../linker/linker.js';
 import { DOC_ICONS, Preset } from '../preset.js';
 import { exportPresets, parseSearchQuery, placeableToData } from '../utils.js';
@@ -364,7 +364,7 @@ export class PresetBrowser extends PresetContainerV2 {
       };
       const nFolder = await Folder.create(data, { pack, keepId });
 
-      const presets = await PresetStorage._batchLoadPresets(folder.presets);
+      const presets = await PresetStorage.batchLoad(folder.presets);
 
       const toCreate = [];
 
@@ -885,7 +885,7 @@ export class PresetBrowser extends PresetContainerV2 {
 
     if (!pack._meIndex) await PresetStorage._loadIndex(pack._meIndex);
     const presets = pack._meIndex.contents;
-    PresetStorage._batchLoadPresets(presets);
+    PresetStorage.batchLoad(presets);
     exportPresets(presets);
   }
 

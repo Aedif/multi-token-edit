@@ -3,7 +3,7 @@ import { BrushMenu } from '../brush.js';
 import { MODULE_ID, PIVOTS, SUPPORTED_PLACEABLES } from '../constants.js';
 import { Scenescape } from '../scenescape/scenescape.js';
 import { applyPresetToScene, isAudio, localFormat, localize, spawnSceneAsPreset } from '../utils.js';
-import { PresetAPI, PresetCollection, PresetPackFolder, PresetStorage, VirtualFileFolder } from './collection.js';
+import { PresetPackFolder, PresetStorage, VirtualFileFolder } from './collection.js';
 import { PresetBrowser } from './browser/browserApp.js';
 import { Preset } from './preset.js';
 import { Spawner } from './spawner.js';
@@ -706,7 +706,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
    * @param {Boolean} full load preset data before returning
    * @returns {Array[Array[Preset], Array[Jquery]}
    */
-  async _getSelectedPresets({ editableOnly = false, virtualOnly = false, full = true } = {}) {
+  async _getSelectedPresets({ editableOnly = false, virtualOnly = false, load = true } = {}) {
     const uuids = [];
     let selector = '.item.selected';
     if (virtualOnly) selector += '.virtual';
@@ -722,7 +722,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
       uuids.push(uuid);
     });
 
-    const selected = await PresetCollection.getBatch(uuids, { full });
+    const selected = await PresetStorage.retrieve({ uuid: uuids, load });
     return [selected, items];
   }
 
@@ -766,7 +766,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
       }
     };
 
-    const preset = await PresetCollection.get(uuid, { full: false });
+    const preset = await PresetStorage.retrieveSingle({ uuid });
     if (preset.documentName === 'AmbientSound') {
       const src = isAudio(preset.img) ? preset.img : (await preset.load()).data[0]?.path;
       if (!src) return;
@@ -891,7 +891,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
   async _onDeleteSelectedPresets(item) {
     const [selected, items] = await this._getSelectedPresets({
       editableOnly: true,
-      full: false,
+      load: false,
     });
 
     if (selected.length) {
@@ -906,7 +906,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
             });
 
       if (confirm) {
-        await PresetCollection.delete(selected);
+        await PresetStorage.delete(selected);
         items.remove();
       }
     }

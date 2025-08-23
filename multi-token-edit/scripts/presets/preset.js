@@ -2,7 +2,6 @@ import { MODULE_ID, SUPPORTED_PLACEABLES } from '../constants.js';
 import { Scenescape } from '../scenescape/scenescape.js';
 import { is3DModel, isAudio, loadImageVideoDimensions, SeededRandom } from '../utils.js';
 import { PresetBrowser } from './browser/browserApp.js';
-import { META_INDEX_FIELDS, META_INDEX_ID, PresetTree } from './collection.js';
 import { FileIndexer } from './fileIndexer.js';
 import { decodeURIComponentSafely, isVideo, placeableToData } from './utils.js';
 
@@ -174,6 +173,15 @@ export class Preset {
     return this;
   }
 
+  /**
+   * Delete the preset along with the underlying document
+   * @returns
+   */
+  async delete() {
+    if (this.document) return this.document.delete();
+    return (await fromUuid(this.uuid))?.delete();
+  }
+
   async openJournal() {
     if (!this.document) await this.load();
     if (this.document) this.document.sheet.render(true);
@@ -278,30 +286,8 @@ export class Preset {
         if (batch) Preset.batchUpdate(this.document, docUpdate);
         else await this.document.update(docUpdate);
       }
-      await this._updateIndex(flagUpdate, batch);
     } else {
-      console.warn('Updating preset without document', this.id, this.uuid, this.name);
-    }
-  }
-
-  async _updateIndex(data, batch = false) {
-    const update = {};
-
-    META_INDEX_FIELDS.forEach((field) => {
-      if (field in data) update[field] = data[field];
-    });
-
-    if (!foundry.utils.isEmpty(update)) {
-      const pack = game.packs.get(this.document.pack);
-      const metaDoc = await pack.getDocument(META_INDEX_ID);
-      if (metaDoc) {
-        if (batch) Preset.batchUpdate(metaDoc, { flags: { [MODULE_ID]: { index: { [this.id]: update } } } });
-        else await metaDoc.setFlag(MODULE_ID, 'index', { [this.id]: update });
-        delete PresetTree._packTrees[pack.metadata.id];
-      } else {
-        console.warn(`META INDEX missing in ${this.document.pack}`);
-        return;
-      }
+      console.warn('FAILED UPDATE: Updating preset without document', this.id, this.uuid, this.name);
     }
   }
 

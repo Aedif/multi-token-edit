@@ -128,7 +128,7 @@ export class DragUploadSettingsApp extends PresetContainerV2 {
   async _onDeleteSelectedPresets(item) {
     const [selected, _] = await this._getSelectedPresets({
       editableOnly: false,
-      full: false,
+      load: false,
     });
     selected.forEach((p) => (this._settings.presets[p.documentName] = null));
     this.render(true);

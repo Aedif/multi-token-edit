@@ -1052,6 +1052,6 @@ export async function openBrushMenu(options, settings = {}) {
   }
 
   if (!presets?.length) return;
-  await PresetStorage._batchLoadPresets(presets);
+  await PresetStorage.batchLoad(presets);
   BrushMenu.render(presets, settings);
 }

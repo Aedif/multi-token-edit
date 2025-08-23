@@ -1,6 +1,5 @@
 import { MODULE_ID, PIVOTS } from '../constants.js';
-import { applyRandomization } from '../randomizer/randomizerUtils.js';
-import { PresetAPI, PresetCollection, PresetStorage } from './collection.js';
+import { PresetStorage } from './collection.js';
 import { Preset } from './preset.js';
 
 /**
@@ -387,7 +386,7 @@ export function registerSideBarPresetDropListener() {
         (p) => p.documentName === 'AmbientSound'
       );
 
-      await PresetCollection.batchLoadPresets(presets);
+      await PresetStorage.batchLoad(presets);
 
       const updates = [];
 
@@ -470,7 +469,7 @@ export function getDataPivotPoint(documentName, data, pivot) {
 export async function exportPresets(presets, fileName) {
   if (!presets.length) return;
 
-  await PresetCollection.batchLoadPresets(presets);
+  await PresetStorage.batchLoad(presets);
 
   presets = presets.map((p) => {
     const preset = p.clone();
@@ -597,7 +596,7 @@ export async function importSceneCompendium(scenePack, presetPack) {
       });
       presets.push(preset);
     } else if (jIndex.name !== i.name) {
-      const preset = await PresetCollection.get(jIndex.uuid, { full: true });
+      const preset = await PresetStorage.retrieveSingle({ uuid: jIndex.uuid, load: true });
       if (preset) {
         console.log(preset.name, ' -> ', i.name);
         preset.update({ name: i.name }, true);
