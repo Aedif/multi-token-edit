@@ -155,6 +155,7 @@ export class PresetBrowser extends PresetContainerV2 {
     context.browser = true;
     context.workingTree = this.tree.workingTree;
     context.externalTrees = this.tree.externalTrees;
+    context.sortable = true;
 
     this._tagSelector?.render(true);
 
@@ -394,7 +395,7 @@ export class PresetBrowser extends PresetContainerV2 {
   }
 
   async _onCopyPresetToClipboard() {
-    const [selected, _] = await this._getSelectedPresets();
+    const { selected } = await this._getSelectedPresets();
     if (selected.length) copyToClipboard(selected[0]);
   }
 
@@ -581,9 +582,9 @@ export class PresetBrowser extends PresetContainerV2 {
 
   async _onItemSort(sourceUuids, targetUuid, { before = true, folderUuid = null } = {}) {
     const sourceUuidsSet = new Set(sourceUuids);
-    const sources = await PresetStorage.retrieve({ uuid: Array.from(sourceUuidsSet) });
+    const sources = await this._retrievePresets(Array.from(sourceUuidsSet));
 
-    let target = targetUuid ? await PresetStorage.retrieveSingle({ uuid: targetUuid }) : null;
+    let target = targetUuid ? await this._retrieveSinglePreset(targetUuid) : null;
 
     // Determine siblings based on folder
     let presets;
@@ -662,7 +663,7 @@ export class PresetBrowser extends PresetContainerV2 {
   static async _onApplyPreset(event) {
     if (this.callback) {
       const uuid = $(event.target).closest('.item').data('uuid');
-      this.callback(await PresetStorage.retrieveSingle({ uuid, load: true }));
+      this.callback(await this._retrieveSinglePreset(uuid, true));
     }
   }
 
@@ -684,7 +685,7 @@ export class PresetBrowser extends PresetContainerV2 {
   }
 
   static async _onPresetUpdate(event) {
-    const preset = await PresetStorage.retrieveSingle({ uuid: event.target.closest('.item').dataset.uuid, load: true });
+    const preset = await this._retrieveSinglePreset(event.target.closest('.item').dataset.uuid, true);
     if (!preset) return;
 
     const selectedFields = this.configApp.getSelectedFields();
@@ -923,7 +924,7 @@ export class PresetBrowser extends PresetContainerV2 {
    */
   async _updateObject(event, formData) {
     if (this.callback) {
-      this.callback(await PresetStorage.retrieveSingle({ uuid: event.submitter.data.id }));
+      this.callback(await this._retrieveSinglePreset(event.submitter.data.id));
     }
   }
 }

@@ -1,7 +1,6 @@
-import { MODULE_ID, SUPPORTED_PLACEABLES } from '../constants.js';
+import { MODULE_ID } from '../constants.js';
 import { Scenescape } from '../scenescape/scenescape.js';
-import { is3DModel, isAudio, loadImageVideoDimensions, SeededRandom } from '../utils.js';
-import { PresetBrowser } from './browser/browserApp.js';
+import { is3DModel, isAudio, loadImageVideoDimensions } from '../utils.js';
 import { FileIndexer } from './fileIndexer.js';
 import { decodeURIComponentSafely, isVideo, placeableToData } from './utils.js';
 
@@ -48,6 +47,7 @@ export const DOC_ICONS = {
 
 export class Preset {
   static isEditable(uuid) {
+    if (!uuid) return false;
     if (uuid.startsWith('virtual@')) return true;
     let { collection } = foundry.utils.parseUuid(uuid);
     if (!collection) return false;
@@ -79,14 +79,6 @@ export class Preset {
     this.attached = data.attached;
     this.spawnRandom = data.spawnRandom;
     this.preserveLinks = data.preserveLinks;
-    this._visible = true;
-    this._render = true;
-  }
-
-  get visible() {
-    return PresetBrowser._type === 'ALL'
-      ? SUPPORTED_PLACEABLES.includes(this.documentName)
-      : this.documentName === PresetBrowser._type;
   }
 
   get icon() {
@@ -114,14 +106,6 @@ export class Preset {
 
   get data() {
     return this._data;
-  }
-
-  get isPlaceable() {
-    return SUPPORTED_PLACEABLES.includes(this.documentName);
-  }
-
-  get isEmpty() {
-    return foundry.utils.isEmpty(this.data[0]);
   }
 
   addPostSpawnHook(hook) {
@@ -314,25 +298,29 @@ export class Preset {
 }
 
 export class VirtualFilePreset extends Preset {
-  constructor(data) {
-    if (!data.name) data.name = data.src.split('/').pop();
-    data.name = decodeURIComponentSafely(data.name);
+  /**
+   * Constructs a VirtualFilePreset using the provided src/path of some media file
+   * @param {string} src path to file
+   * @param {string} forceType force preset into a specific document type (for now only forced to Token)
+   * @returns
+   */
+  static fromSrc(src, forceType) {
+    const documentName = forceType ?? (isAudio(src) ? 'AmbientSound' : 'Tile');
 
-    data.uuid = 'virtual@' + data.src;
-    data.documentName = isAudio(data.src) ? 'AmbientSound' : 'Tile';
+    let data;
 
-    if (!data.data) {
-      if (data.documentName === 'Tile') {
-        data.data = [{ texture: { src: data.src, scaleY: 1, scaleX: 1 }, x: 0, y: 0, rotation: 0 }];
-      } else {
-        data.data = [{ path: data.src, radius: 20, x: 0, y: 0 }];
-      }
-      data.img = data.thumb ?? data.src;
-    }
-    data.gridSize = 150;
-    super(data);
-    this._src = data.src;
-    if (data.thumb) this._thumb = data.thumb.split('/').pop();
+    if (documentName === 'Tile' || documentName === 'Token')
+      data = [{ texture: { src, scaleY: 1, scaleX: 1 }, x: 0, y: 0, rotation: 0 }];
+    else data = [{ path: src, radius: 20, x: 0, y: 0 }];
+
+    return new VirtualFilePreset({
+      name: decodeURIComponentSafely(src.split('/').pop()),
+      uuid: 'virtual@' + src,
+      documentName,
+      data,
+      gridSize: 150,
+      img: src,
+    });
   }
 
   get virtual() {
@@ -340,9 +328,8 @@ export class VirtualFilePreset extends Preset {
   }
 
   async load(force = false) {
-    const p = await FileIndexer.retrieve(this.uuid);
-    if (p) this.tags = p.tags;
-    this._storedReference = p;
+    if (this._loaded) return;
+    this._loaded = true;
 
     // Ambient Sound, no further processing required
     if (this.data[0].path) return this;
@@ -398,20 +385,17 @@ export class VirtualFilePreset extends Preset {
   async update(update) {
     if (!update.hasOwnProperty('tags')) return;
 
-    if (this._storedReference) {
-      this._storedReference.tags = update.tags;
-      clearTimeout(VirtualFilePreset._updateTimeout);
-      VirtualFilePreset._updateTimeout = setTimeout(
-        () => FileIndexer.saveIndexToCache({ processAutoSave: true }),
-        3000
-      );
-    }
+    this.tags = update.tags;
+
+    clearTimeout(VirtualFilePreset._updateTimeout);
+    VirtualFilePreset._updateTimeout = setTimeout(() => FileIndexer.saveIndexToCache({ processAutoSave: true }), 3000);
   }
 
   clone() {
     const data = this.toJSON();
-    data.src = this._src;
     const clone = new VirtualFilePreset(data);
+    clone._loaded = this._loaded;
+    clone._thumb = this._thumb;
     clone._postSpawnHooks = this._postSpawnHooks;
     return clone;
   }

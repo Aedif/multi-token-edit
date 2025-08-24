@@ -2,6 +2,7 @@ import { MODULE_ID, SUPPORTED_PLACEABLES } from '../../constants.js';
 import { META_INDEX_ID, PresetPackFolder, PresetStorage } from '../collection.js';
 import { FileIndexer } from '../fileIndexer.js';
 import { matchPreset } from '../utils.js';
+import { PresetBrowser } from './browserApp.js';
 
 /**
  * Returns tree representation of Preset packs and Virtual Directory
@@ -90,6 +91,10 @@ async function collectionToTree(collection) {
  */
 function collectionTreeToPresetTree(tree, index) {
   tree.folder.presets = tree.entries.map((entry) => index.get(entry._id)).filter(Boolean);
+  if (PresetBrowser.CONFIG.sortMode === 'alphabetical')
+    tree.folder.presets.sort((p1, p2) => p1.name.localeCompare(p2.name));
+  else tree.folder.presets.sort((p1, p2) => p1.sort - p2.sort);
+
   return {
     folder: tree.folder,
     children: tree.children.map((ch) => collectionTreeToPresetTree(ch, index)).filter(Boolean),

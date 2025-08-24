@@ -126,7 +126,7 @@ export class DragUploadSettingsApp extends PresetContainerV2 {
 
   /** @override */
   async _onDeleteSelectedPresets(item) {
-    const [selected, _] = await this._getSelectedPresets({
+    const { selected } = await this._getSelectedPresets({
       editableOnly: false,
       load: false,
     });

@@ -14,7 +14,7 @@ import { MODULE_ID, PIVOTS } from './scripts/constants.js';
 import { registerScenescapeHooks, Scenescape } from './scripts/scenescape/scenescape.js';
 import { Spawner } from './scripts/presets/spawner.js';
 import { registerBehaviors } from './scripts/behaviors/behaviors.js';
-import { openBag } from './scripts/presets/bagApp.js';
+import { openBag } from './scripts/presets/browser/bag/bagApp.js';
 import { openCategoryBrowser } from './scripts/presets/categoryBrowserApp.js';
 import { registerPresetDragDropHooks, registerPresetHandlebarPartials } from './scripts/presets/containerAppV2.js';
 import { FileIndexerAPI } from './scripts/presets/fileIndexer.js';

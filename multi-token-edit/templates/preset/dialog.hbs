@@ -1,0 +1,7 @@
+<div class="preset-browser">
+    <div class="item-list folder-items" data-tooltip-direction="RIGHT" data-tooltip-class="preset-tooltip">
+    {{#if presets}}
+        {{>me-presets-content createEnabled=False callback=../callback presets=presets}}
+    {{/if}}
+    </div>
+</div>

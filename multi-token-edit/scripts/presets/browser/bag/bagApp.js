@@ -1,9 +1,9 @@
-import { BrushMenu } from '../brush.js';
-import { MODULE_ID } from '../constants.js';
-import { localize } from '../utils.js';
-import { PresetStorage } from './collection.js';
-import { PresetContainerV2 } from './containerAppV2.js';
-import { Preset } from './preset.js';
+import { BrushMenu } from '../../../brush.js';
+import { MODULE_ID } from '../../../constants.js';
+import { localize } from '../../../utils.js';
+import { PresetStorage } from '../../collection.js';
+import { PresetContainerV2 } from '../../containerAppV2.js';
+import { Preset } from '../../preset.js';
 
 export async function openBag(uuid) {
   let journal = fromUuidSync(uuid);
@@ -183,7 +183,7 @@ class BagApplication extends PresetContainerV2 {
 
   /** @override */
   async _onDeleteSelectedPresets(item) {
-    const [selected, _] = await this._getSelectedPresets({
+    const { selected } = await this._getSelectedPresets({
       editableOnly: false,
       load: false,
     });
@@ -321,7 +321,7 @@ class BagApplication extends PresetContainerV2 {
   async _onActivateBrush(item) {
     const flags = this.preset.data[0].flags;
     if (flags) {
-      const [selected, _] = await this._getSelectedPresets({
+      const { selected } = await this._getSelectedPresets({
         editableOnly: false,
       });
 

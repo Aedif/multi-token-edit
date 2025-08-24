@@ -1,7 +1,7 @@
 <ol class="folder-items top-level-folder-items">
     {{#each nodes as |node|}}
         {{#if (meRender node.folder context=../context)}}
-            {{>me-preset-folder folder=node.folder createEnabled=../createEnabled callback=../callback sortable=true draggable=true}}
+            {{>me-preset-folder folder=node.folder createEnabled=../createEnabled callback=../callback sortable=../sortable draggable=true}}
         {{/if}}
     {{/each}}
 </ol>
@@ -9,7 +9,7 @@
 <ol class="preset-items top-level-preset-items">
     {{#each presets as |preset|}}
     {{#if (meRender this context=../context)}}
-        {{>me-preset preset=preset createEnabled=../createEnabled callback=../callback sortable=true}}
+        {{>me-preset preset=preset createEnabled=../createEnabled callback=../callback sortable=../sortable}}
     {{/if}}
     {{/each}}
 </ol>

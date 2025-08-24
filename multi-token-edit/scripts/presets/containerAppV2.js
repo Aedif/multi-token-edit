@@ -313,7 +313,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
     const uuid = target.dataset.uuid;
     if (!uuid) return;
 
-    let preset = await PresetStorage.retrieveSingle({ uuid, load: true });
+    let preset = await this._retrieveSinglePreset(uuid, true);
     if (!preset) return;
 
     BrushMenu.close();
@@ -395,6 +395,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
   _getItemContextOptions() {
     return [
       {
+        id: 'openBag',
         name: 'Open Bag',
         icon: '<i class="fas fa-edit"></i>',
         condition: (item) => item.dataset.docName === 'Bag',
@@ -402,6 +403,15 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
         sort: 0,
       },
       {
+        id: 'expand',
+        name: 'Expand',
+        icon: '<i class="fa fa-arrows-alt"></i>',
+        condition: (item) => true,
+        callback: (item) => this._onExpand(item.dataset.uuid),
+        sort: 0,
+      },
+      {
+        id: 'importScene',
         name: 'Import Scene',
         icon: '<i class="fas fa-download fa-fw"></i>',
         condition: (item) => item.dataset.docName === 'FauxScene',
@@ -409,6 +419,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
         sort: 50,
       },
       {
+        id: 'spawnScene',
         name: 'Spawn Scene',
         icon: '<i class="fa-solid fa-books"></i>',
         condition: (item) => item.dataset.docName === 'FauxScene',
@@ -416,6 +427,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
         sort: 51,
       },
       {
+        id: 'edit',
         name: localize('CONTROLS.CommonEdit', false),
         icon: '<i class="fas fa-edit"></i>',
         condition: (item) => game.user.isGM && Preset.isEditable(item.dataset.uuid),
@@ -423,6 +435,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
         sort: 100,
       },
       {
+        id: 'brush',
         name: 'Brush',
         icon: '<i class="fa-solid fa-paintbrush"></i>',
         condition: (item) => game.user.isGM && SUPPORTED_PLACEABLES.includes(item.dataset.docName),
@@ -430,6 +443,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
         sort: 200,
       },
       {
+        id: 'openJournal',
         name: localize('presets.open-journal'),
         icon: '<i class="fas fa-book-open"></i>',
         condition: (item) => !item.classList.contains('virtual'),
@@ -437,6 +451,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
         sort: 300,
       },
       {
+        id: 'applyToSelected',
         name: localize('presets.apply-to-selected'),
         icon: '<i class="fas fa-arrow-circle-right"></i>',
         condition: (item) =>
@@ -447,6 +462,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
         sort: 400,
       },
       {
+        id: 'duplicate',
         name: localize('Duplicate', false),
         icon: '<i class="fa-solid fa-copy"></i>',
         condition: (item) =>
@@ -462,13 +478,15 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
         sort: 500,
       },
       {
+        id: 'copySourceToClipboard',
         name: localize('presets.copy-source-to-clipboard'),
         icon: '<i class="fa-solid fa-copy"></i>',
-        condition: (item) => item.dataset.uuid.startsWith('virtual@'),
+        condition: (item) => item.dataset.uuid?.startsWith('virtual@'),
         callback: (item) => game.clipboard.copyPlainText(item.dataset.uuid.substring(8)),
         sort: 600,
       },
       {
+        id: 'copyToClipboard',
         name: localize('presets.copy-to-clipboard'),
         icon: '<i class="fa-solid fa-copy"></i>',
         condition: (item) => game.user.isGM && $(this.form).find('.item-list').find('.item.selected').length === 1,
@@ -476,13 +494,15 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
         sort: 700,
       },
       {
+        id: 'copyUUID',
         name: 'Copy UUID',
         icon: '<i class="fa-solid fa-passport"></i>',
-        condition: () => game.user.isGM,
+        condition: (item) => game.user.isGM,
         callback: (item) => this._onCopyUUID(item),
         sort: 800,
       },
       {
+        id: 'exportAsJson',
         name: localize('presets.export-as-json'),
         icon: '<i class="fas fa-file-export fa-fw"></i>',
         condition: () => game.user.isGM,
@@ -490,6 +510,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
         sort: 900,
       },
       {
+        id: 'exportToCompendium',
         name: localize('presets.export-to-compendium'),
         icon: '<i class="fas fa-file-export fa-fw"></i>',
         condition: () => game.user.isGM && this.presetsDuplicatable,
@@ -497,6 +518,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
         sort: 1000,
       },
       {
+        id: 'delete',
         name: localize('CONTROLS.CommonDelete', false),
         icon: '<i class="fas fa-trash fa-fw"></i>',
         condition: (item) =>
@@ -511,14 +533,14 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
   }
 
   async _onImportFauxScene(item) {
-    const preset = await PresetStorage.retrieveSingle({ uuid: item.dataset.uuid, load: true });
+    const preset = await this._retrieveSinglePreset(item.dataset.uuid, true);
     const scene = await fromUuid(preset.data[0].uuid);
     if (scene) game.scenes.importFromCompendium(scene.compendium, scene.id, {}, { renderSheet: true });
     else sceneNotFoundError(preset);
   }
 
   async _onSpawnScene(item) {
-    const preset = await PresetStorage.retrieveSingle({ uuid: item.dataset.uuid, load: true });
+    const preset = await this._retrieveSinglePreset(item.dataset.uuid, true);
     const scene = await fromUuid(preset.data[0].uuid);
     if (scene) return spawnSceneAsPreset(scene);
     else sceneNotFoundError(preset);
@@ -625,7 +647,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
   }
 
   async _onApplyToSelected(item) {
-    const [selected, _] = await this._getSelectedPresets({
+    const { selected } = await this._getSelectedPresets({
       editableOnly: false,
     });
     if (!selected.length) return;
@@ -649,7 +671,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
   }
 
   async _onCopySelectedPresets({ pack, keepFolder = false, keepId = true } = {}) {
-    const [selected, _] = await this._getSelectedPresets();
+    const { selected } = await this._getSelectedPresets();
 
     const presets = selected.map((s) => {
       const p = s.clone();
@@ -664,7 +686,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
   }
 
   async _onActivateBrush(item) {
-    const [selected, _] = await this._getSelectedPresets({
+    const { selected } = await this._getSelectedPresets({
       editableOnly: false,
     });
     BrushMenu.addPresets(selected);
@@ -674,7 +696,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
    * Open journals of selected presets.
    */
   async _onOpenJournal() {
-    const [selected, _] = await this._getSelectedPresets({
+    const { selected } = await this._getSelectedPresets({
       editableOnly: false,
     });
     selected.forEach((p) => p.openJournal());
@@ -685,7 +707,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
    * @param {HTMLElement} item
    */
   async _onEditSelectedPresets(item) {
-    const [selected, _] = await this._getSelectedPresets({
+    const { selected } = await this._getSelectedPresets({
       virtualOnly: item.classList.contains('virtual'),
       editableOnly: true,
     });
@@ -714,16 +736,16 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
     let items = $(this.form).find('.item-list').find(selector);
     if (editableOnly)
       items = items.filter(function () {
-        return Preset.isEditable($(this).data('uuid'));
+        return Preset.isEditable(this.dataset.uuid);
       });
 
     items.each(function () {
-      const uuid = $(this).data('uuid');
-      uuids.push(uuid);
+      const uuid = this.dataset.uuid;
+      if (uuid) uuids.push(uuid);
     });
 
-    const selected = await PresetStorage.retrieve({ uuid: uuids, load });
-    return [selected, items];
+    const selected = await this._retrievePresets(uuids, load);
+    return { selected, items };
   }
 
   _editPresets(presets, options = {}, event) {
@@ -734,6 +756,24 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
     }
 
     new PresetConfig(presets, options).render(true);
+  }
+
+  /**
+   * Function use by the app to request presets via UUID/s
+   * Can be overridden to support custom preset handling
+   * @param {string|Array[string]} uuid
+   */
+  async _retrievePresets(uuid, load = false) {
+    return await PresetStorage.retrieve({ uuid: Array.isArray(uuid) ? uuid : [uuid], load });
+  }
+
+  /**
+   * Function use by the app to request a preset via UUID
+   * Can be overridden to support custom preset handling
+   * @param {string} uuid
+   */
+  async _retrieveSinglePreset(uuid, load = false) {
+    return (await this._retrievePresets(uuid, load))?.[0];
   }
 
   async _playPreview(event) {
@@ -754,7 +794,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
 
   async _renderPlayPreview(event) {
     await this._endPreview();
-    const uuid = $(event.currentTarget).data('uuid');
+    const uuid = event.currentTarget.dataset.uuid;
     if (!uuid) return;
 
     const addClearPreviewElement = () => {
@@ -766,7 +806,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
       }
     };
 
-    const preset = await PresetStorage.retrieveSingle({ uuid });
+    const preset = await this._retrieveSinglePreset(uuid);
     if (preset.documentName === 'AmbientSound') {
       const src = isAudio(preset.img) ? preset.img : (await preset.load()).data[0]?.path;
       if (!src) return;
@@ -880,7 +920,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
   }
 
   async _onExportSelectedPresets() {
-    const [selected, _] = await this._getSelectedPresets();
+    const { selected } = await this._getSelectedPresets();
     exportPresets(selected);
   }
 
@@ -889,7 +929,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
   }
 
   async _onDeleteSelectedPresets(item) {
-    const [selected, items] = await this._getSelectedPresets({
+    const { selected, items } = await this._getSelectedPresets({
       editableOnly: true,
       load: false,
     });
@@ -914,18 +954,35 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
 
   async _onOpenBag(uuid) {
     if (!uuid) {
-      let [selected, _] = await this._getSelectedPresets({
+      const { selected } = await this._getSelectedPresets({
         editableOnly: false,
       });
 
       if (selected.length) {
-        const module = await import('./bagApp.js');
+        const module = await import('./browser/bag/bagApp.js');
         selected.filter((p) => p.documentName === 'Bag').forEach((p) => module.openBag(p.uuid));
       }
     } else {
-      const module = await import('./bagApp.js');
+      const module = await import('./browser/bag/bagApp.js');
       module.openBag(uuid);
     }
+  }
+
+  async _onExpand(uuid) {
+    let presets = [];
+    if (uuid) {
+      const preset = await this._retrieveSinglePreset(uuid, true);
+      if (preset) presets.push(preset);
+    } else {
+      const { selected } = await this._getSelectedPresets({
+        editableOnly: false,
+      });
+      presets = selected;
+    }
+
+    // TODO check if selected are expandable
+
+    (await import('./browser/dialog/expandApp.js')).openExpandPresets(presets);
   }
 }
 

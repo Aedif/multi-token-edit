@@ -239,9 +239,10 @@ export class PresetStorage {
 
     const index = new Collection();
     for (const [id, content] of Object.entries(rawIndex)) {
-      const i = pack.index.get(id);
-      if (i && id !== META_INDEX_ID)
-        index.set(id, new Preset({ id, uuid: pack.getUuid(id), folder: i.folder, ...content }));
+      if (id !== META_INDEX_ID) {
+        const i = pack.index.get(id);
+        if (i) index.set(id, new Preset({ ...i, ...content }));
+      }
     }
 
     pack._meIndex = index;
@@ -615,14 +616,6 @@ export class PresetStorage {
       else presets = await this._search(search, negativeSearch, { virtualDirectory, externalCompendiums });
     }
 
-    // Incase these presets are to be rendered, we set the _render and _visible flags to true
-    // as we might be re-using presets that have been utilized by other forms and had these flags
-    // toggled
-    presets.forEach((p) => {
-      p._render = true;
-      p._visible = true;
-    });
-
     if (load) await this.batchLoad(presets);
 
     return presets;
@@ -725,10 +718,7 @@ export class PresetStorage {
 
     for (const uuid of uuids) {
       if (uuid.startsWith('virtual@')) {
-        let preset = await FileIndexer.retrieve(uuid);
-        if (!preset) preset = new VirtualFilePreset({ src: uuid.substring(8) });
-
-        presets.push(preset);
+        presets.push(await FileIndexer.retrieve(uuid));
         continue;
       }
 
@@ -763,7 +753,7 @@ export class PresetStorage {
         continue;
       }
 
-      if (!preset.document) {
+      if (!preset.document && preset.uuid) {
         const { collection, documentId } = foundry.utils.parseUuid(preset.uuid);
         const pack = collection.collection;
         if (!packToPreset[pack]) packToPreset[pack] = {};
@@ -775,7 +765,7 @@ export class PresetStorage {
     for (const [pack, idToPresets] of Object.entries(packToPreset)) {
       const documents = await game.packs.get(pack).getDocuments({ _id__in: Object.keys(idToPresets) });
       for (const document of documents) {
-        idToPresets[document.id].load(false, document);
+        await idToPresets[document.id].load(false, document);
       }
     }
 

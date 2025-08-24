@@ -62,7 +62,8 @@ export class FileIndexer {
 
     if (!cache.length) {
       if (CONFIG.debug.MassEdit) console.timeEnd('Virtual File Directory');
-      return null;
+      this._collection._tree = { folder: undefined, children: [], entries: [] };
+      return this._collection;
     }
 
     for (const source of cache) {
@@ -243,7 +244,13 @@ export class FileIndexer {
       await this.collection();
       if (!this._collection) return null;
     }
-    return this._collection._meIndex.get(uuid);
+    let preset = this._collection._meIndex.get(uuid);
+    if (preset) return preset;
+
+    // If a preset of such UUID didn't exist lets create it and store it within the collection
+    preset = VirtualFilePreset.fromSrc(uuid.substring(8));
+    this._collection._meIndex.set(uuid, preset);
+    return preset;
   }
 
   static async saveIndexToCache({
@@ -349,13 +356,13 @@ export class FileIndexer {
     node.entries = [];
     if (cache.files) {
       for (const file of cache.files) {
-        const preset = new VirtualFilePreset({
-          name: file.name,
-          src: options.prePend + fullPath + '/' + file.name,
-          tags: file.tags,
-          //folder: f.id, //confirm if this matters...
-          thumb: file.thumb ? options.prePend + fullPath + '/' + file.thumb : null,
-        });
+        const preset = VirtualFilePreset.fromSrc(options.prePend + fullPath + '/' + file.name);
+        if (file.tags) preset.tags = file.tags;
+        if (file.thumb) {
+          preset.img = options.prePend + fullPath + '/' + file.thumb;
+          preset._thumb = file.thumb;
+        }
+
         this._collection._meIndex.set(preset.uuid, preset);
         node.entries.push({ _id: preset.uuid });
         types.add(preset.documentName);
@@ -392,6 +399,7 @@ export class FileIndexer {
     try {
       content = await this._browse(source, dir, { bucket });
     } catch (e) {
+      console.log(e);
       return null;
     }
 
@@ -522,7 +530,7 @@ export class FileIndexer {
     if (source === 'forge-bazaar' || source === 'forgevtt') {
       return this._fauxForgeBrowser?.get(dir) ?? { dirs: [], files: [] };
     } else {
-      return await foundry.applications.apps.FilePicker.implementation.FilePicker.browse(source, dir, options);
+      return await foundry.applications.apps.FilePicker.implementation.browse(source, dir, options);
     }
   }
 

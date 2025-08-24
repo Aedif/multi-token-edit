@@ -384,6 +384,8 @@
   left: 2px;
   color: var(--color-text-primary);
   bottom: 2px;
+  display: flex;
+  gap: 2px;
 }
 
 .preset-browser .item .item-name {
