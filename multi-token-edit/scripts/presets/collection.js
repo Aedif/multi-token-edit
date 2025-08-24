@@ -645,17 +645,30 @@ export class PresetStorage {
    * @returns
    */
   static async _search(search, negativeSearch, { virtualDirectory, externalCompendiums } = {}) {
+    const packs = [];
+
+    if (externalCompendiums) {
+      for (const pack of game.packs) {
+        if (pack.index.get(META_INDEX_ID)) packs.push(pack);
+      }
+    } else {
+      const workingPack = game.packs.find((pack) => pack.collection === this.workingPack);
+      if (workingPack) packs.push(workingPack);
+    }
+
+    if (virtualDirectory) {
+      const virtualPack = await FileIndexer.collection();
+      if (virtualPack) packs.push(virtualPack);
+    }
+
     const results = [];
-    for (const pack of game.packs) {
-      if (!pack.index.get(META_INDEX_ID)) continue;
+    for (const pack of packs) {
       if (!pack._meIndex) await this._loadIndex(pack);
 
       for (const entry of pack._meIndex) {
         if (this._matchPreset(entry, search, negativeSearch)) results.push(entry);
       }
     }
-
-    // TODO: virtualDirectory, externalCompendiums
 
     return results;
   }
