@@ -385,13 +385,17 @@ export class PresetStorage {
   }
 
   static _updateCompendium(compendium, documents, operation, userId) {
-    console.log('updateCompendium', { compendium, documents, operation, userId });
+    // console.log('updateCompendium', {
+    //   compendium,
+    //   documents: foundry.utils.deepClone(documents),
+    //   operation: foundry.utils.deepClone(operation),
+    //   userId,
+    // });
     if (!compendium.index?.get(META_INDEX_ID)) return;
 
-    const action = operation.action;
-    if (action === 'create') return this._updateCompendiumCreate(compendium, documents, operation, userId);
-    else if (action === 'update') return this._updateCompendiumUpdate(compendium, documents, operation, userId);
-    else if (action === 'delete') return this._updateCompendiumDelete(compendium, documents, operation, userId);
+    if (operation.data) return this._updateCompendiumCreate(compendium, documents, operation, userId);
+    else if (operation.updates) return this._updateCompendiumUpdate(compendium, documents, operation, userId);
+    else if (operation.ids) return this._updateCompendiumDelete(compendium, documents, operation, userId);
   }
 
   static _updateCompendiumCreate(compendium, documents, operation, userId) {

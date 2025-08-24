@@ -330,7 +330,7 @@ export class PresetBrowser extends PresetContainerV2 {
   }
 
   async _onExportFolder(uuid) {
-    let { pack, keepId } = await getCompendiumDialog({ exportTo: true, keepIdSelect: true });
+    let { pack, keepId } = await getCompendiumDialog({ exportTo: true, keepIdSelect: true, presetCompOnly: true });
 
     if (pack && !this._importTracker?.active) {
       const folder = fromUuidSync(uuid);
@@ -389,7 +389,7 @@ export class PresetBrowser extends PresetContainerV2 {
   }
 
   async _onExportSelectedPresetsToComp() {
-    let { pack, keepId } = await getCompendiumDialog({ exportTo: true, keepIdSelect: true });
+    let { pack, keepId } = await getCompendiumDialog({ exportTo: true, keepIdSelect: true, presetCompOnly: true });
     if (pack) this._onCopySelectedPresets({ pack, keepId });
   }
 
@@ -464,7 +464,7 @@ export class PresetBrowser extends PresetContainerV2 {
           folder.presets?.forEach((p) => {
             count[p.documentName] = (count[p.documentName] ?? 0) + 1;
           });
-          folder.children?.forEach((c) => traverseFolder(c));
+          folder.children?.forEach((ch) => traverseFolder(ch.folder));
         };
         traverseFolder(folder);
 
@@ -1053,12 +1053,17 @@ class PresetFolderConfig extends foundry.applications.sheets.FolderConfig {
   }
 }
 
-async function getCompendiumDialog({ excludePack, exportTo = false, keepIdSelect = false } = {}) {
+async function getCompendiumDialog({
+  excludePack,
+  exportTo = false,
+  keepIdSelect = false,
+  presetCompOnly = false,
+} = {}) {
   let config;
   if (exportTo) {
     config = {
       title: localize('presets.select-compendium'),
-      message: localize('presets.export-directory-message'),
+      message: '',
       buttonLabel: localize('FOLDER.Export', false),
     };
   } else {
@@ -1073,6 +1078,7 @@ async function getCompendiumDialog({ excludePack, exportTo = false, keepIdSelect
   for (const p of game.packs) {
     if (!p.locked && p.documentName === 'JournalEntry') {
       if (p.collection === excludePack) continue;
+      if (presetCompOnly && !p.index.get(META_INDEX_ID)) continue;
       const workingPack = p.collection === PresetStorage.workingPack;
       options += `<option value="${p.collection}" ${workingPack ? 'selected="selected"' : ''}>${p.title}</option>`;
     }

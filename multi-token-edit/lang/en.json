@@ -138,7 +138,6 @@
       "import": "Import Presets",
       "assign": "Assigned {count} {document}s to preset.",
       "select-compendium": "Select Compendium",
-      "export-directory-message": "This operation will make the destination into a Mass Edit preset compendium if it isn't one. Make sure it does not contain Journals that are not presets to avoid unexpected problems.",
       "working-directory-message": "Change the compendium the module will store and edit presets within. Make sure it does not contain Journals that are not presets to avoid unexpected problems.",
       "update-preset": "Update Preset",
       "delete-fields": "Delete Fields",

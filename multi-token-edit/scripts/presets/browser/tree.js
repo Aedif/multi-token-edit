@@ -15,7 +15,7 @@ export async function getPresetPackTrees({ type = 'ALL', externalCompendiums = t
   }
 
   const workingTree = await collectionToTree(workingPack, type);
-  workingTree.folder.name = ''; // Giving a blank name here so that it does not match anything during searches
+  workingTree.folder._noSearch = true; // Setting a special flag here to not match it during searches
 
   let externalTrees = [];
   if (externalCompendiums) {
@@ -112,7 +112,8 @@ export function searchNode(node, search, negativeSearch, forceRender = false, ty
   if (!folder.flags[MODULE_ID].types.some((t) => t === type) && !folder.typeless) {
     folder._meMatch = false;
     return;
-  } else if (search && folderName) match = !search.tags && search.terms?.every((t) => folderName.includes(t));
+  } else if (search && folderName && !folder._noSearch)
+    match = !search.tags && search.terms?.every((t) => folderName.includes(t));
 
   let childFolderMatch = false;
   for (const n of node.children) {
