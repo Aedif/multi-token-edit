@@ -212,6 +212,7 @@
 .preset-browser .preset-header .header-search > *,
 .preset-browser .preset-header .header-select > * {
   flex: 0 0 24px;
+  font-size: medium;
 }
 
 .preset-browser .preset-header .header-search input {
@@ -388,6 +389,10 @@
   gap: 2px;
 }
 
+.preset-browser .item .icon > *:nth-child(n+4) {
+  opacity: 0;
+}
+
 .preset-browser .item .item-name {
   margin: 0 0 0 8px;
   display: flex;
@@ -558,6 +563,10 @@ input.me-subtract {
 
   .preset-browser .item img {
     flex: none;
+  }
+
+  .preset-browser .item .icon > *:nth-child(n+4) {
+    opacity: 1;
   }
 }
 

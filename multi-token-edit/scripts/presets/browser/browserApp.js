@@ -41,6 +41,7 @@ export class PresetBrowser extends PresetContainerV2 {
   static objectHover = false;
   static lastSearch;
   static CONFIG;
+  static _matches = 0;
 
   static async setSetting(setting, value) {
     return await game.settings.set(MODULE_ID, 'presetBrowser', { ...PresetBrowser.CONFIG, [setting]: value });
@@ -526,6 +527,7 @@ export class PresetBrowser extends PresetContainerV2 {
 
     if (event) $(event.target).addClass('active');
 
+    PresetBrowser._matches = 0;
     searchNode(this.tree.workingTree, search, negativeSearch, false, this.documentName, true);
     this.tree.externalTrees.forEach((f) => searchNode(f, search, negativeSearch, false, this.documentName, true));
 

@@ -19,9 +19,9 @@
     <div class="form-group">
         <label>Dropdown Categories</label>
         <div class="form-fields">
-            <div style="display: inline-flex; gap: 12px;">
+            <div style="display: inline-flex; gap: 5px; font-size: medium;">
                 {{#each dropdownDocuments as |doc|}}
-                <a class="document-select {{#if doc.active}}active{{/if}}" title="{{doc.name}}" data-name="{{doc.name}}"><i class="{{doc.icon}} fa-lg"></i></a>
+                <a class="document-select {{#if doc.active}}active{{/if}}" title="{{doc.name}}" data-name="{{doc.name}}">{{{doc.icon}}}</i></a>
                 {{/each}}
             </div>
         </div>

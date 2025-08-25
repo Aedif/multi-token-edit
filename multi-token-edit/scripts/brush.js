@@ -973,19 +973,6 @@ export class BrushMenu extends FormApplication {
       genMacro(command);
     };
 
-    const genNames = function () {
-      const opts = this.presets.map((p) => {
-        return { name: p.name, type: p.documentName };
-      });
-
-      const command = `MassEdit.openBrushMenu(
-    ${JSON.stringify(opts, null, 4)}
-  ,
-  ${JSON.stringify(this._settings, null, 2)}
-  );`;
-      genMacro(command);
-    };
-
     let dialog = new Dialog({
       title: `Generate Macro`,
       content: ``,
@@ -993,10 +980,6 @@ export class BrushMenu extends FormApplication {
         uuids: {
           label: 'UUIDs',
           callback: genUUIDS.bind(this),
-        },
-        name: {
-          label: 'Names',
-          callback: genNames.bind(this),
         },
       },
     });
@@ -1036,8 +1019,9 @@ export function deactivateBush() {
  * Open Brush Menu using the provided presets
  * @param {Object} options See MassEdit.getPresets(...)
  * @param {Object} settings Brush Menu control settings
+ * @param {Array[Object]} presetJson Array of presets as JSON exports
  */
-export async function openBrushMenu(options, settings = {}) {
+export async function openBrushMenu(options, settings = {}, presetJson) {
   if (BrushMenu.isActive()) return BrushMenu.close();
 
   let presets = [];
@@ -1050,6 +1034,10 @@ export async function openBrushMenu(options, settings = {}) {
   } else {
     presets = await PresetStorage.retrieve(options);
   }
+
+  presetJson?.forEach((json) => {
+    presets.push(new Preset(json));
+  });
 
   if (!presets?.length) return;
   await PresetStorage.batchLoad(presets);

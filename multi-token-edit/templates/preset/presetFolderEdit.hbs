@@ -29,9 +29,9 @@
     <div class="form-group">
         <label>Visible in:</label>
         <div class="form-fields">
-            <div class="flexrow">
+            <div class="flexrow" style="font-size: medium;">
                 {{#each docs as |doc|}}
-                <a class="document-select {{#if doc.active}}active{{/if}}" title="{{doc.name}}" data-name="{{doc.name}}"><i class="{{doc.icon}} fa-lg"></i></a>
+                <a class="document-select {{#if doc.active}}active{{/if}}" title="{{doc.name}}" data-name="{{doc.name}}">{{{doc.icon}}}</a>
                 {{/each}}
             </div>
         </div>

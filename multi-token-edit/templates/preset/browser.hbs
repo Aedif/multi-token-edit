@@ -4,14 +4,14 @@
         {{#if allowDocumentSwap}}
         <div class="header-select flexrow">
             {{#each docs as |doc|}}
-            <a class="document-select {{#if (eq doc.name ../currentDocument)}}active{{/if}}" data-action="documentChange" data-tooltip="{{doc.tooltip}}" data-name="{{doc.name}}"><i class="{{doc.icon}} fa-lg"></i></a>
+            <a class="document-select {{#if (eq doc.name ../currentDocument)}}active{{/if}}" data-action="documentChange" data-tooltip="{{doc.tooltip}}" data-name="{{doc.name}}">{{{doc.icon}}}</a>
             {{/each}}
             {{#if docsDropdown}}
             <div class="dropdown">
                 <a class="dropicon" style="color:tan;"><i class="fa-solid fa-square-chevron-down"></i></a>
                 <div class="dropdown-content">
                     {{#each docsDropdown as |doc|}}
-                    <a class="document-select {{#if (eq doc.name ../currentDocument)}}active{{/if}}" data-action="documentChange" data-tooltip="{{doc.tooltip}}" data-name="{{doc.name}}"><i class="{{doc.icon}} fa-lg"></i></a>
+                    <a class="document-select {{#if (eq doc.name ../currentDocument)}}active{{/if}}" data-action="documentChange" data-tooltip="{{doc.tooltip}}" data-name="{{doc.name}}">{{{doc.icon}}}</a>
                     {{/each}}
                 </div>
             </div>

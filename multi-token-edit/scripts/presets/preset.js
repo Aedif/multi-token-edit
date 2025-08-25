@@ -4,7 +4,7 @@ import { is3DModel, isAudio, loadImageVideoDimensions } from '../utils.js';
 import { FileIndexer } from './fileIndexer.js';
 import { decodeURIComponentSafely, isVideo, placeableToData } from './utils.js';
 
-const DOCUMENT_FIELDS = ['id', 'name', 'sort', 'folder'];
+export const DOCUMENT_FIELDS = ['id', 'name', 'sort', 'folder'];
 
 export const PRESET_FIELDS = [
   'id',
@@ -12,7 +12,6 @@ export const PRESET_FIELDS = [
   'data',
   'sort',
   'folder',
-  'uuid',
   'documentName',
   'addSubtract',
   'randomize',
@@ -28,24 +27,31 @@ export const PRESET_FIELDS = [
 ];
 
 export const DOC_ICONS = {
-  ALL: 'fas fa-globe',
-  Bag: 'fa-solid fa-sack',
-  Token: 'fas fa-user-circle',
-  MeasuredTemplate: 'fas fa-ruler-combined',
-  Tile: 'fa-solid fa-cubes',
-  Drawing: 'fa-solid fa-pencil-alt',
-  Wall: 'fa-solid fa-block-brick',
-  AmbientLight: 'fa-regular fa-lightbulb',
-  AmbientSound: 'fa-solid fa-music',
-  Note: 'fa-solid fa-bookmark',
-  Region: 'fa-regular fa-game-board',
-  Actor: 'fas fa-user-alt',
-  Scene: 'fas fa-map',
-  FauxScene: 'fas fa-map',
-  DEFAULT: 'fa-solid fa-question',
+  ALL: '<i class="fas fa-globe"></i>',
+  Bag: '<i class="fa-solid fa-sack"></i>',
+  Token: '<i class="fas fa-user-circle"></i>',
+  MeasuredTemplate: '<i class="fas fa-ruler-combined"></i>',
+  Tile: '<i class="fa-solid fa-cubes"></i>',
+  Drawing: '<i class="fa-solid fa-pencil-alt"></i>',
+  Wall: '<i class="fa-solid fa-block-brick"></i>',
+  AmbientLight: '<i class="fa-regular fa-lightbulb"></i>',
+  AmbientSound: '<i class="fa-solid fa-music"></i>',
+  Note: '<i class="fa-solid fa-bookmark"></i>',
+  Region: '<i class="fa-regular fa-game-board"></i>',
+  Actor: '<i class="fas fa-user-alt"></i>',
+  Scene: '<i class="fas fa-map"></i>',
+  FauxScene: '<i class="fas fa-map"></i>',
+  DEFAULT: '<i class="fa-solid fa-question"></i>',
 };
 
 export class Preset {
+  // Tag to HTML string mappings used to render icons on Presets
+  static _tagIcons = {};
+
+  static registerTagIcons(tagToIcon) {
+    Object.assign(Preset._tagIcons, tagToIcon);
+  }
+
   static isEditable(uuid) {
     if (!uuid) return false;
     if (uuid.startsWith('virtual@')) return true;
@@ -81,8 +87,13 @@ export class Preset {
     this.preserveLinks = data.preserveLinks;
   }
 
-  get icon() {
-    return DOC_ICONS[this.documentName] ?? DOC_ICONS.DEFAULT;
+  get icons() {
+    const icons = [DOC_ICONS[this.documentName] ?? DOC_ICONS.DEFAULT];
+    this.tags.forEach((t) => {
+      if (Preset._tagIcons[t]) icons.push(Preset._tagIcons[t]);
+    });
+
+    return icons;
   }
 
   get thumbnail() {
@@ -261,12 +272,6 @@ export class Preset {
 
       if (!foundry.utils.isEmpty(flagUpdate)) {
         const docUpdate = { flags: { [MODULE_ID]: { preset: flagUpdate } } };
-        DOCUMENT_FIELDS.forEach((field) => {
-          if (field in flagUpdate && this.document[field] !== flagUpdate[field]) {
-            docUpdate[field] = flagUpdate[field];
-          }
-        });
-
         if (batch) Preset.batchUpdate(this.document, docUpdate);
         else await this.document.update(docUpdate);
       }

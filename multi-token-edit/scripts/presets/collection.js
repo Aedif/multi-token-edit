@@ -2,12 +2,12 @@ import { MODULE_ID } from '../constants.js';
 import { SeededRandom, localize } from '../utils.js';
 import { FileIndexer } from './fileIndexer.js';
 import { PresetBrowser } from './browser/browserApp.js';
-import { Preset, VirtualFilePreset } from './preset.js';
+import { DOCUMENT_FIELDS, Preset, VirtualFilePreset } from './preset.js';
 import { decodeURIComponentSafely, parseSearchQuery, placeableToData } from './utils.js';
 
 const DEFAULT_PACK = 'world.mass-edit-presets-main';
 export const META_INDEX_ID = 'MassEditMetaData';
-export const META_INDEX_FIELDS = ['id', 'img', 'documentName', 'tags'];
+export const META_INDEX_FIELDS = ['img', 'documentName', 'tags'];
 
 export class PresetAPI {
   static name = 'PresetAPI';
@@ -241,7 +241,7 @@ export class PresetStorage {
     for (const [id, content] of Object.entries(rawIndex)) {
       if (id !== META_INDEX_ID) {
         const i = pack.index.get(id);
-        if (i) index.set(id, new Preset({ ...i, ...content }));
+        if (i) index.set(id, new Preset({ ...content, ...i }));
       }
     }
 
@@ -404,37 +404,30 @@ export class PresetStorage {
 
     if (compendium._meIndex) {
       for (const data of operation.data) {
-        const { _id, folder, name, sort, uuid } = compendium.index.get(data._id);
-        compendium._meIndex.set(
-          data._id,
-          new Preset({
-            ...(foundry.utils.getProperty(data, `flags.${MODULE_ID}.preset`) ?? {}),
-            _id,
-            folder,
-            name,
-            sort,
-            uuid,
-          })
-        );
+        const index_fields = { ...compendium.index.get(data._id) };
+        const presetData = foundry.utils.getProperty(data, `flags.${MODULE_ID}.preset`) ?? {};
+        META_INDEX_FIELDS.forEach((f) => {
+          if (f in presetData) index_fields[f] = presetData[f];
+        });
+        compendium._meIndex.set(data._id, new Preset(index_fields));
       }
     }
 
     if (game.user.id === userId) {
       const indexUpdate = {};
       for (const data of operation.data) {
-        if (data._id === META_INDEX_ID) {
-          // If a METADATA file has been created and there are existing documents within the compendium
-          // we will attempt to reconstruct the index assuming that the documents present are Preset containers
-          if (compendium.index.size > 1) this._recoverIndex(compendium);
-          continue;
-        }
+        // if (data._id === META_INDEX_ID) {
+        //   // If a METADATA file has been created and there are existing documents within the compendium
+        //   // we will attempt to reconstruct the index assuming that the documents present are Preset containers
+        //   if (compendium.index.size > 1) this._recoverIndex(compendium);
+        //   continue;
+        // }
 
         const preset = foundry.utils.getProperty(data, `flags.${MODULE_ID}.preset`) ?? {};
-        const index = { id: data._id };
+        const index = {};
         META_INDEX_FIELDS.forEach((k) => {
           if (k in preset) index[k] = preset[k];
         });
-        if ('name' in data) index.name = data.name;
 
         foundry.utils.setProperty(indexUpdate, `flags.${MODULE_ID}.index.${data._id}`, index);
       }
@@ -459,12 +452,12 @@ export class PresetStorage {
         META_INDEX_FIELDS.forEach((k) => {
           if (k in preset) indexChanges[k] = preset[k];
         });
-        if ('name' in update) indexChanges.name = update.name;
         if (compendium._meIndex) {
           const preset = compendium._meIndex.get(update._id);
           Object.assign(preset, indexChanges);
-          if ('folder' in update) preset.folder = update.folder;
-          if ('sort' in update) preset.sort = update.sort;
+          DOCUMENT_FIELDS.forEach((f) => {
+            if (f in update) preset[f] = update[f];
+          });
         }
         if (!foundry.utils.isEmpty(indexChanges))
           foundry.utils.setProperty(indexUpdate, `flags.${MODULE_ID}.index.${update._id}`, indexChanges);
@@ -495,7 +488,7 @@ export class PresetStorage {
   }
 
   // Re-construct preset index. This is called when a metadata document is created within a compendium
-  // with other existing documents. It's possible that the metsdata document has been deleted and the compendium
+  // with other existing documents. It's possible that the metadata document has been deleted and the compendium
   // is now being attempted to be used as a Preset compendium again.
   static async _recoverIndex(compendium) {
     const indexUpdate = {};
@@ -509,7 +502,6 @@ export class PresetStorage {
         META_INDEX_FIELDS.forEach((k) => {
           if (k in preset) update[k] = preset[k];
         });
-        update.name = document.name;
 
         foundry.utils.setProperty(indexUpdate, `flags.${MODULE_ID}.index.${document.id}`, update);
       }
@@ -521,20 +513,19 @@ export class PresetStorage {
   }
 
   /**
-   * Sync Document and index names
+   * Sync DOCUMENT_FIELDS updates with preset flag and document itself
    * @param {Document} document
    * @param {object} change
    * @param {object} options
    * @param {string} userId
    */
   static _preUpdate(document, change, options, userId) {
-    if (
-      document.collection.index?.get(META_INDEX_ID) &&
-      document.id !== META_INDEX_ID &&
-      ('name' in change || foundry.utils.getProperty(change, `flags.${MODULE_ID}.index.name`) != null)
-    ) {
-      if ('name' in change) foundry.utils.setProperty(change, `flags.${MODULE_ID}.preset.name`, change.name);
-      else change.name = change.flags[MODULE_ID].index.name;
+    if (document.collection.index?.get(META_INDEX_ID) && document.id !== META_INDEX_ID) {
+      const preset = foundry.utils.getProperty(change, `flags.${MODULE_ID}.preset`) ?? {};
+      DOCUMENT_FIELDS.forEach((f) => {
+        if (f in change) foundry.utils.setProperty(change, `flags.${MODULE_ID}.preset.${f}`, change[f]);
+        else if (f in preset) change[f] = preset[f];
+      });
     }
   }
 

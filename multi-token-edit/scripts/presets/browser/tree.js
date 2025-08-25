@@ -127,7 +127,7 @@ export function searchNode(node, search, negativeSearch, forceRender = false, ty
 
   let presetMatch = false;
   for (const p of folder.presets) {
-    if (_searchPreset(p, search, negativeSearch, match || forceRender, type)) presetMatch = true;
+    if (_searchPreset(p, search, negativeSearch, match || forceRender, type, expandFolders)) presetMatch = true;
   }
 
   const containsMatch = match || childFolderMatch || presetMatch;
@@ -137,7 +137,12 @@ export function searchNode(node, search, negativeSearch, forceRender = false, ty
   return containsMatch;
 }
 
-function _searchPreset(preset, search, negativeSearch, forceRender = false, type) {
+function _searchPreset(preset, search, negativeSearch, forceRender, type, limit) {
+  if (limit && PresetBrowser._matches > PresetBrowser.CONFIG.searchLimit) {
+    preset._meMatch = false;
+    return false;
+  }
+
   if (!(type === 'ALL' ? SUPPORTED_PLACEABLES.includes(preset.documentName) : type === preset.documentName)) {
     preset._meMatch = false;
     return false;
@@ -145,8 +150,10 @@ function _searchPreset(preset, search, negativeSearch, forceRender = false, type
 
   const matched = matchPreset(preset, search, negativeSearch);
 
-  if (matched) preset._meMatch = true;
-  else preset._meMatch = false || forceRender;
+  if (matched) {
+    PresetBrowser._matches++;
+    preset._meMatch = true;
+  } else preset._meMatch = false || forceRender;
 
   return matched;
 }

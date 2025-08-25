@@ -18,6 +18,8 @@
     {{/if}}
   </div>
   <div class="icon">
-    <i class="{{preset.icon}}"></i>
+    {{#each preset.icons}}
+    {{{this}}}
+    {{/each}}
   </div>
 </li>
