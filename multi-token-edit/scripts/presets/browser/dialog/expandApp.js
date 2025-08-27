@@ -10,6 +10,8 @@ export async function openExpandPresets(presets) {
     const img = documentName === 'Token' || documentName === 'Tile' ? data.texture?.src : undefined;
     const preset = new Preset({ img, documentName, data: [data], uuid: incrementalUUID });
     preset.document = { pages: { size: 0 } }; // TODO: this is a hack to prevent preset from loading and throwing an error
+    preset._temp = true;
+    preset._loaded = true;
     expanded.push(preset);
     incrementalUUID++;
   };
@@ -37,6 +39,7 @@ class ExpandDialog extends PresetDialog {
   _retrievePresets(uuid) {
     return (Array.isArray(uuid) ? uuid : [uuid]).map((uuid) => this.presets[uuid]);
   }
+
   /** @override */
   _getItemContextOptions() {
     const options = super._getItemContextOptions();
@@ -51,5 +54,13 @@ class ExpandDialog extends PresetDialog {
     };
 
     return options.filter((opt) => allowedOptions[opt.id]);
+  }
+
+  /** @override */
+  _onSetDragDropData(data) {
+    // Presets handled by ExpandDialog do not have a global UUID
+    // So Drag/Drop needs to be handled by passing the references to presets directly
+    data.transient = true;
+    MassEdit._transientPresets = data.uuids.map((i) => this.presets[i]);
   }
 }

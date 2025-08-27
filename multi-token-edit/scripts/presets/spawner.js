@@ -11,6 +11,7 @@ import { PresetAPI, PresetStorage } from './collection.js';
 import { Preset } from './preset.js';
 import {
   applyTaggerTagRules,
+  callAsyncHook,
   getPivotOffset,
   getPivotPoint,
   getPresetDataBounds,
@@ -77,7 +78,8 @@ export class Spawner {
     // Lets clone the preset so that any modifications made to it will not affect the original
     preset = preset.clone();
 
-    if (!Hooks.call('MassEdit.spawnPreset', preset)) return [];
+    // Give an opportunity for other modules to modify the preset
+    if (!(await callAsyncHook('MassEdit.spawnPreset', preset))) return;
 
     let presetData = preset.data;
 

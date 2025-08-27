@@ -22,6 +22,7 @@ import { TransformBus, MassTransformer } from './scripts/transformer.js';
 import { registerBlackBarHooks } from './scripts/auxilaryFeatures/blackbars.js';
 import { registerSceneConfigHooks } from './scripts/auxilaryFeatures/sceneConfig.js';
 import { registerDragUploadHooks } from './scripts/auxilaryFeatures/dragUpload.js';
+import { Preset } from './scripts/presets/preset.js';
 
 globalThis.MassTransformer = MassTransformer;
 
@@ -47,6 +48,7 @@ globalThis.MassEdit = {
   openPresetBrowser,
   FileIndexer: FileIndexerAPI,
   sceneNotFoundMessages: [],
+  registerPresetTagIcons: Preset.registerTagIcons,
 };
 
 // Initialize module

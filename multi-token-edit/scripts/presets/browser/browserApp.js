@@ -120,7 +120,7 @@ export class PresetBrowser extends PresetContainerV2 {
   /** @override */
   static PARTS = {
     overlay: { template: `modules/${MODULE_ID}/templates/drag-hover-overlay.hbs` },
-    main: { template: `modules/${MODULE_ID}/templates/preset/browser.hbs` },
+    main: { template: `modules/${MODULE_ID}/templates/preset/browser.hbs`, scrollable: ['.item-list'] },
   };
 
   get title() {

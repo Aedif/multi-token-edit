@@ -863,7 +863,7 @@ export class BrushMenu extends FormApplication {
 
   addPresets(presets = []) {
     for (const preset of presets) {
-      if (!this.presets.find((p) => p.uuid === preset.uuid)) this.presets.push(preset);
+      if (!this.presets.find((p) => p === preset)) this.presets.push(preset);
     }
     this._createIndex();
     this.render(true);
@@ -950,41 +950,38 @@ export class BrushMenu extends FormApplication {
   }
 
   async _generateBrushMacro() {
-    const genMacro = async function (command) {
-      const macro = await Macro.create({
-        name: 'Brush Macro',
-        type: 'script',
-        scope: 'global',
-        command,
-        img: `modules/${MODULE_ID}/images/brush_icon.png`,
-      });
-      macro.sheet.render(true);
-    };
+    const confirm = await foundry.applications.api.DialogV2.confirm({
+      id: 'brush-macro-confirm',
+      modal: true,
+      window: { title: 'Generate Macro' },
+      position: { width: 400 },
+      content: `<p>Would you like to save the current Brush configuration as a macro?</p>`,
+    });
+    if (!confirm) return;
 
-    const genUUIDS = function () {
-      const uuids = this.presets.map((p) => p.uuid).filter(Boolean);
-      if (!uuids.length) return;
+    let uuids = [];
+    let tempPresets = [];
 
-      const command = `MassEdit.openBrushMenu({ 
-    uuid: ${JSON.stringify(uuids, null, 4)}
-  },
-  ${JSON.stringify(this._settings, null, 2)}
-  );`;
-      genMacro(command);
-    };
-
-    let dialog = new Dialog({
-      title: `Generate Macro`,
-      content: ``,
-      buttons: {
-        uuids: {
-          label: 'UUIDs',
-          callback: genUUIDS.bind(this),
-        },
-      },
+    this.presets.forEach((p) => {
+      if (p._temp) tempPresets.push(p.toJSON());
+      else if (p.uuid) uuids.push(p.uuid);
     });
 
-    dialog.render(true);
+    if (!(uuids.length || tempPresets.length)) return;
+
+    const command = `MassEdit.openBrushMenu({ uuid: ${JSON.stringify(uuids, null, 4)}},\n${JSON.stringify(
+      this._settings,
+      null,
+      2
+    )},\n${JSON.stringify(tempPresets)});`;
+    const macro = await Macro.create({
+      name: 'Brush Macro',
+      type: 'script',
+      scope: 'global',
+      command,
+      img: `modules/${MODULE_ID}/images/brush_icon.png`,
+    });
+    macro.sheet.render(true);
   }
 
   async close(options = {}) {
@@ -1035,11 +1032,15 @@ export async function openBrushMenu(options, settings = {}, presetJson) {
     presets = await PresetStorage.retrieve(options);
   }
 
+  if (presets.length) await PresetStorage.batchLoad(presets);
+
   presetJson?.forEach((json) => {
-    presets.push(new Preset(json));
+    const preset = new Preset(json);
+    preset._temp = true;
+    preset._loaded = true;
+    presets.push(preset);
   });
 
   if (!presets?.length) return;
-  await PresetStorage.batchLoad(presets);
   BrushMenu.render(presets, settings);
 }

@@ -332,7 +332,7 @@ export class PresetStorage {
     for (const preset of presets) {
       const document = documents.find((d) => d.id === preset.id);
       preset.uuid = document.uuid;
-      await preset.load(false, document);
+      await preset.load(document);
     }
 
     return presets;
@@ -756,7 +756,7 @@ export class PresetStorage {
     for (const [pack, idToPresets] of Object.entries(packToPreset)) {
       const documents = await game.packs.get(pack).getDocuments({ _id__in: Object.keys(idToPresets) });
       for (const document of documents) {
-        await idToPresets[document.id].load(false, document);
+        await idToPresets[document.id].load(document);
       }
     }
 

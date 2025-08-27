@@ -144,11 +144,11 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
         uuids.push($(this).data('uuid'));
       });
 
+      const dragDropData = { uuids, sortable: itemList.find('.item.selected').hasClass('sortable'), type: 'preset' };
+      this._onSetDragDropData(dragDropData); // Give an opportunity for child classes to modify the drag drop data
+
       event.originalEvent.dataTransfer.clearData();
-      event.originalEvent.dataTransfer.setData(
-        'text/plain',
-        JSON.stringify({ uuids, sortable: itemList.find('.item.selected').hasClass('sortable'), type: 'preset' })
-      );
+      event.originalEvent.dataTransfer.setData('text/plain', JSON.stringify(dragDropData));
     });
 
     if (this.presetsSortable) {
@@ -304,6 +304,14 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
   }
 
   /**
+   * Called during creation of Preset drag/drop data
+   * @param {object} data
+   */
+  _onSetDragDropData(data) {
+    // To be overridden by child classes
+  }
+
+  /**
    * Handle mouse double-click on a preset
    * @param {PointerEvent} event
    * @param {HTMLElement} target
@@ -403,14 +411,6 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
         sort: 0,
       },
       {
-        id: 'expand',
-        name: 'Expand',
-        icon: '<i class="fa fa-arrows-alt"></i>',
-        condition: (item) => true,
-        callback: (item) => this._onExpand(item.dataset.uuid),
-        sort: 0,
-      },
-      {
         id: 'importScene',
         name: 'Import Scene',
         icon: '<i class="fas fa-download fa-fw"></i>',
@@ -441,6 +441,14 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
         condition: (item) => game.user.isGM && SUPPORTED_PLACEABLES.includes(item.dataset.docName),
         callback: (item) => this._onActivateBrush(item),
         sort: 200,
+      },
+      {
+        id: 'expand',
+        name: 'Expand',
+        icon: '<i class="fa fa-arrows-alt"></i>',
+        condition: (item) => true,
+        callback: (item) => this._onExpand(item.dataset.uuid),
+        sort: 250,
       },
       {
         id: 'openJournal',
@@ -866,6 +874,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
             folder.pack !== PresetStorage.workingPack
           ),
           draggable: folder.pack === PresetStorage.workingPack,
+          browser: true,
         }
       );
       folderElement.replaceWith(content);
@@ -1072,7 +1081,11 @@ export function registerPresetDragDropHooks() {
     const dragData = foundry.applications.ux.TextEditor.implementation.getDragEventData(event);
     if (dragData.type !== 'preset') return;
 
-    const preset = await MassEdit.getPreset({ uuid: dragData.uuids[0] });
+    const preset = dragData.transient
+      ? MassEdit._transientPresets?.[0]
+      : await MassEdit.getPreset({ uuid: dragData.uuids[0] });
+    if (!preset) return;
+
     if (preset.documentName === 'Scene') {
       applyPresetToScene(preset);
     } else if (SUPPORTED_PLACEABLES.includes(preset.documentName)) {
