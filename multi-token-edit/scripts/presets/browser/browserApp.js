@@ -284,9 +284,8 @@ export class PresetBrowser extends PresetContainerV2 {
       });
     }
 
-    const presets = await uploadFiles(files, 'presets', !multiPreset);
-    PresetStorage.createDocuments(presets);
-    await this._refreshTree();
+    const presets = await uploadFiles(files, 'presets', !multiPreset, event.shiftKey);
+    await PresetStorage.createDocuments(presets);
 
     return { type: 'preset', uuids: presets.map((p) => p.uuid), sortable: true };
   }

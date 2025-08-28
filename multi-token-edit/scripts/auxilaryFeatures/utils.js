@@ -2,7 +2,7 @@ import { MODULE_ID } from '../constants.js';
 import { Preset } from '../presets/preset.js';
 import { isAudio, isImage, isVideo, loadImageVideoDimensions } from '../utils.js';
 
-export async function uploadFiles(files, subDirectory = 'canvas', singlePreset = false) {
+export async function uploadFiles(files, subDirectory = 'canvas', singlePreset = false, shiftKey = false) {
   let { source, bucket, target } = game.settings.get(MODULE_ID, 'dragUpload');
   target += '/' + subDirectory + '/';
 
@@ -41,7 +41,7 @@ export async function uploadFiles(files, subDirectory = 'canvas', singlePreset =
     else console.warn('Failed to upload: ' + file.name, result);
   }
 
-  return filesToPresets(uploadedFiles, singlePreset);
+  return filesToPresets(uploadedFiles, singlePreset, shiftKey);
 }
 
 /**
@@ -67,7 +67,7 @@ async function checkCreateUploadFolder(target, source, bucket) {
   await foundry.applications.apps.FilePicker.browse(source, target, source === 's3' ? { bucket } : {});
 }
 
-async function filesToPresets(files, singlePreset = false) {
+async function filesToPresets(files, singlePreset = false, shiftKey = false) {
   const settings = game.settings.get(MODULE_ID, 'dragUpload');
   const presets = [];
 
@@ -86,11 +86,7 @@ async function filesToPresets(files, singlePreset = false) {
 
   for (const src of files) {
     if (isImage(src) || isVideo(src)) {
-      const template = await getTemplatePreset(
-        game.keyboard.isModifierActive(foundry.helpers.interaction.KeyboardManager.MODIFIER_KEYS.SHIFT)
-          ? 'Token'
-          : 'Tile'
-      );
+      const template = await getTemplatePreset(shiftKey ? 'Token' : 'Tile');
       const data = template.data[0];
 
       foundry.utils.setProperty(data, 'texture.src', src);

@@ -10,7 +10,7 @@ export function registerDragUploadHooks() {
       !foundry.utils.isEmpty(foundry.applications.ux.TextEditor.implementation.getDragEventData(event))
     )
       return;
-    const presets = await uploadFiles(event.dataTransfer.files, 'canvas');
+    const presets = await uploadFiles(event.dataTransfer.files, 'canvas', false, event.shiftKey);
     for (const preset of presets) {
       MassEdit.spawnPreset({ preset, x: point.x, y: point.y, pivot: MassEdit.PIVOTS.CENTER, layerSwitch: true });
     }
