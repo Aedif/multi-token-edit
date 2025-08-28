@@ -384,8 +384,6 @@ export class PresetBrowser extends PresetContainerV2 {
         if (!this._importTracker?.active) break;
         await this._onCopyFolder(child.folder.uuid, nFolder.id, pack, false, keepId);
       }
-
-      if (render) this.render(true);
     }
   }
 
@@ -417,11 +415,7 @@ export class PresetBrowser extends PresetContainerV2 {
       { pack: PresetStorage.workingPack }
     );
 
-    await new Promise((resolve) => {
-      new PresetFolderConfig({ resolve, document: folder }).render(true);
-    });
-
-    this.render(true);
+    new PresetFolderConfig({ document: folder }).render(true);
   }
 
   async _onFolderEdit(header) {
@@ -445,11 +439,9 @@ export class PresetBrowser extends PresetContainerV2 {
       folder = fromUuidSync(uuid);
     }
 
-    new Promise((resolve) => {
-      const options = { resolve, ...$(header).offset(), folder: pFolder, document: folder };
-      options.top += $(header).height();
-      new PresetFolderConfig(options).render(true);
-    }).then(() => this.render(true));
+    const options = { ...$(header).offset(), folder: pFolder, document: folder };
+    options.top += $(header).height();
+    new PresetFolderConfig(options).render(true);
   }
 
   async _onFolderDelete(uuid, { deleteAll = false } = {}) {
@@ -494,7 +486,6 @@ export class PresetBrowser extends PresetContainerV2 {
       }
 
       if (confirm) await folder.delete({ deleteSubfolders: deleteAll, deleteContents: deleteAll });
-      this.render(true);
     }
   }
 
@@ -578,7 +569,6 @@ export class PresetBrowser extends PresetContainerV2 {
         pack: PresetStorage.workingPack,
       });
     }
-    this.render(true);
   }
 
   async _onItemSort(sourceUuids, targetUuid, { before = true, folderUuid = null } = {}) {
@@ -616,8 +606,6 @@ export class PresetBrowser extends PresetContainerV2 {
 
       await PresetStorage.updatePresets(updates);
     }
-
-    this.render(true);
   }
 
   static async _onToggleSortMode() {
@@ -794,7 +782,6 @@ export class PresetBrowser extends PresetContainerV2 {
     }
 
     this._editPresets(presets, options, event);
-    this.render(true);
   }
 
   async actorToPreset(actor) {
@@ -913,7 +900,6 @@ export class PresetBrowser extends PresetContainerV2 {
       }
 
       await PresetStorage.createDocuments(presets);
-      this.render(true);
     }
 
     ui.notifications.info(`Mass Edit: ${localFormat('presets.imported', { count: importCount })}`);
@@ -965,14 +951,6 @@ class PresetFolderConfig extends foundry.applications.sheets.FolderConfig {
 
   _onDocumentChange(event) {
     $(event.target).closest('.document-select').toggleClass('active');
-  }
-
-  /* -------------------------------------------- */
-
-  /** @inheritdoc */
-  async close(options = {}) {
-    if (!this.options.submitOnClose) this.options.resolve?.(null);
-    return super.close(options);
   }
 
   /* -------------------------------------------- */

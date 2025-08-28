@@ -103,6 +103,7 @@ export class FileIndexer {
           types: Array.from(types),
           bucket: source.bucket,
         });
+        sFolder.children.forEach((ch) => (ch.folder.parent = sFolder));
 
         topLevelNodes.push({ folder: sFolder, children: nodes, entries: [] });
       }
@@ -302,8 +303,18 @@ export class FileIndexer {
 
     if (!(folder.indexable || folder.source)) return;
 
+    let wFolder = folder;
+    while (wFolder.parent) {
+      wFolder = {
+        name: wFolder.parent.name,
+        presets: [],
+        children: [{ folder: wFolder }],
+        parent: wFolder.parent.parent,
+      };
+    }
+
     this.saveIndexToCache({
-      folders: [folder],
+      folders: [wFolder],
       path: folder.path,
       source: folder.source,
       notify,
@@ -383,6 +394,7 @@ export class FileIndexer {
       types: Array.from(types),
       children: node.children,
     });
+    node.children.forEach((ch) => (ch.folder.parent = node.folder));
 
     return node;
   }

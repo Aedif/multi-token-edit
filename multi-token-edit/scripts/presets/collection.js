@@ -394,9 +394,12 @@ export class PresetStorage {
     // });
     if (!compendium.index?.get(META_INDEX_ID)) return;
 
-    if (operation.data) return this._updateCompendiumCreate(compendium, documents, operation, userId);
-    else if (operation.updates) return this._updateCompendiumUpdate(compendium, documents, operation, userId);
-    else if (operation.ids) return this._updateCompendiumDelete(compendium, documents, operation, userId);
+    if (operation.data) this._updateCompendiumCreate(compendium, documents, operation, userId);
+    else if (operation.updates) this._updateCompendiumUpdate(compendium, documents, operation, userId);
+    else if (operation.ids) this._updateCompendiumDelete(compendium, documents, operation, userId);
+
+    // Re-render the Preset Browser if it's open to reflect the new changes
+    foundry.applications.instances.get(PresetBrowser.DEFAULT_OPTIONS.id)?.render(true);
   }
 
   static _updateCompendiumCreate(compendium, documents, operation, userId) {
