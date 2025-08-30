@@ -447,7 +447,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
         name: 'Expand',
         icon: '<i class="fa fa-arrows-alt"></i>',
         condition: (item) => true,
-        callback: (item) => this._onExpand(item.dataset.uuid),
+        callback: (item) => this._onExpand(),
         sort: 250,
       },
       {
