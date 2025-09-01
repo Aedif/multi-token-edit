@@ -1,4 +1,5 @@
 import { FILE_EXTENSIONS, IMAGE_EXTENSIONS, MODEL_EXTENSIONS, MODULE_ID } from '../constants.js';
+import { PresetBrowser } from './browser/browserApp.js';
 import { META_INDEX_ID, VirtualFileFolder } from './collection.js';
 import { VirtualFilePreset } from './preset.js';
 import { encodeURIComponentSafely, readJSONFile } from './utils.js';
@@ -179,6 +180,8 @@ export class FileIndexer {
       this._collection = null;
 
       ui.notifications.info(`MassEdit Index build finished.`);
+
+      foundry.applications.instances.get(PresetBrowser.DEFAULT_OPTIONS.id)?.render(true);
     } catch (e) {
       console.log(e);
     }
