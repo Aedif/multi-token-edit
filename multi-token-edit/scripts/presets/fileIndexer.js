@@ -1,30 +1,55 @@
 import { FILE_EXTENSIONS, IMAGE_EXTENSIONS, MODEL_EXTENSIONS, MODULE_ID } from '../constants.js';
-import { PresetTree, VirtualFileFolder } from './collection.js';
+import { PresetBrowser } from './browser/browserApp.js';
+import { META_INDEX_ID, VirtualFileFolder } from './collection.js';
 import { VirtualFilePreset } from './preset.js';
 import { encodeURIComponentSafely, readJSONFile } from './utils.js';
 
 const CACHE_PATH = '';
 const CACHE_NAME = 'mass_edit_cache.json';
 
+/**
+ * Faux collection to allow for processing of the file index as a compendium collection
+ */
+class FileIndexerCollection extends Collection {
+  collection = 'VIRTUAL_DIRECTORY';
+  editDisabled = true;
+  _tree;
+
+  getDocument(id) {
+    if (id !== META_INDEX_ID) throw Error('This collection does not handle document retrieval.');
+    return {
+      flags: {
+        [MODULE_ID]: { folder: { name: 'VIRTUAL DIRECTORY', color: '#00739f' } },
+      },
+    };
+  }
+
+  get tree() {
+    return this._tree;
+  }
+}
+
 export class FileIndexer {
+  static _collection;
   static _loadedTree;
   static _buildingIndex = false;
   static _registeredCacheFiles = [];
 
-  static async getVirtualDirectoryTree(type, { setFormVisibility = false } = {}) {
+  static async collection() {
+    // Add preset collection to CONFIG, will allows retrieval via fromUuid
+
     if (CONFIG.debug.MassEdit) console.time('Virtual File Directory');
 
-    // If we already have a loaded index, re-use it
-    if (this._loadedTree) {
+    if (this._collection) {
       if (CONFIG.debug.MassEdit) console.timeEnd('Virtual File Directory');
-      if (setFormVisibility) this._loadedTree.setVisibility(type);
-      return this._loadedTree;
+      return this._collection;
     }
 
+    this._collection = new FileIndexerCollection();
+    this._collection._meIndex = new Collection();
+
     // Load and convert an index cache to a virtual folder
-    const allFolders = new Map();
-    const allPresets = [];
-    const topLevelFolders = [];
+    const topLevelNodes = [];
 
     const cache = (await this.loadMainIndexCache()) ?? [];
 
@@ -38,7 +63,8 @@ export class FileIndexer {
 
     if (!cache.length) {
       if (CONFIG.debug.MassEdit) console.timeEnd('Virtual File Directory');
-      return null;
+      this._collection._tree = { folder: undefined, children: [], entries: [] };
+      return this._collection;
     }
 
     for (const source of cache) {
@@ -59,51 +85,35 @@ export class FileIndexer {
         prePend = `${Sqyre.CLOUD_STORAGE_PREFIX}/`;
       }
 
-      const folders = source.index.map((f) =>
-        this._indexToVirtualFolder(f, '', allFolders, allPresets, {
+      const nodes = source.index.map((f) =>
+        this._indexToNode(f, '', {
           prePend,
           source: source.source,
           bucket: source.bucket,
         })
       );
 
-      if (folders?.length) {
+      if (nodes?.length) {
+        const types = new Set(['ALL']);
+        nodes.forEach((n) => n.folder.flags[MODULE_ID].types.forEach((t) => types.add(t)));
+
         const sFolder = new VirtualFileFolder({
-          uuid: 'virtual@source@' + source.source,
+          path: 'virtual@source@' + source.source,
           name: source.source,
-          children: folders,
-          types: ['ALL'],
+          children: nodes,
+          types: Array.from(types),
           bucket: source.bucket,
         });
-        if (folders.some((f) => f.types.includes('Tile'))) sFolder.types.push('Tile');
-        if (folders.some((f) => f.types.includes('AmbientSound'))) sFolder.types.push('AmbientSound');
-        folders.forEach((f) => {
-          f.folder = sFolder.id;
-        });
-        allFolders.set(sFolder.uuid, sFolder);
-        topLevelFolders.push(sFolder);
+        sFolder.children.forEach((ch) => (ch.folder.parent = sFolder));
+
+        topLevelNodes.push({ folder: sFolder, children: nodes, entries: [] });
       }
     }
 
-    let tree;
-    if (topLevelFolders.length) {
-      tree = new PresetTree({
-        folders: topLevelFolders,
-        presets: [],
-        allPresets,
-        allFolders,
-        hasVisible: allPresets.some((p) => p._visible),
-        metaDoc: null,
-        pack: null,
-      });
-
-      if (setFormVisibility) tree.setVisibility(type);
-    }
-
-    this._loadedTree = tree;
+    this._collection._tree = { folder: undefined, children: topLevelNodes, entries: [] };
 
     if (CONFIG.debug.MassEdit) console.timeEnd('Virtual File Directory');
-    return tree;
+    return this._collection;
   }
 
   /**
@@ -167,9 +177,11 @@ export class FileIndexer {
       }
 
       if (scannedSources.length) await this._writeIndexToCache(scannedSources);
-      this._loadedTree = null;
+      this._collection = null;
 
       ui.notifications.info(`MassEdit Index build finished.`);
+
+      foundry.applications.instances.get(PresetBrowser.DEFAULT_OPTIONS.id)?.render(true);
     } catch (e) {
       console.log(e);
     }
@@ -231,14 +243,22 @@ export class FileIndexer {
     }
   }
 
-  static async getPreset(uuid) {
-    if (!this._loadedTree) await FileIndexer.getVirtualDirectoryTree();
-    if (!this._loadedTree) return null;
-    return this._loadedTree.allPresets.find((p) => p.uuid === uuid);
+  static async retrieve(uuid) {
+    if (!this._collection) {
+      await this.collection();
+      if (!this._collection) return null;
+    }
+    let preset = this._collection._meIndex.get(uuid);
+    if (preset) return preset;
+
+    // If a preset of such UUID didn't exist lets create it and store it within the collection
+    preset = VirtualFilePreset.fromSrc(uuid.substring(8));
+    this._collection._meIndex.set(uuid, preset);
+    return preset;
   }
 
   static async saveIndexToCache({
-    folders = this._loadedTree?.folders,
+    folders = this._collection?.tree.children.map((ch) => ch.folder),
     path = CACHE_PATH,
     notify = true,
     source = 'data',
@@ -249,7 +269,7 @@ export class FileIndexer {
       for (const sourceFolder of folders) {
         const sourceCache = {
           source: sourceFolder.name,
-          index: sourceFolder.children.map((f) => this._cacheFolder(f)),
+          index: sourceFolder.children.map((ch) => this._cacheFolder(ch.folder)),
         };
         if (sourceFolder.bucket) sourceCache.bucket = sourceFolder.bucket;
         cache.push(sourceCache);
@@ -258,11 +278,11 @@ export class FileIndexer {
       this._writeIndexToCache(cache, { path, notify, source });
     }
 
-    if (processAutoSave && this._loadedTree) {
+    if (processAutoSave && this._collection) {
       const folderUuids = game.settings.get(MODULE_ID, 'presetBrowser').autoSaveFolders ?? [];
       if (!folderUuids.length) return;
 
-      const folders = folderUuids.map((uuid) => this._loadedTree.allFolders.get(uuid)).filter(Boolean);
+      const folders = folderUuids.map((uuid) => fromUuidSync(uuid)).filter(Boolean);
       if (!folders.length) return;
 
       for (const folder of folders) {
@@ -279,36 +299,26 @@ export class FileIndexer {
   }
 
   static async saveFolderToCache(folder, notify = true) {
-    if (!this._loadedTree) {
+    if (!this._collection) {
       ui.notifications.warn('Index was recently refreshed. Reload the browser before attempting to save the index.');
       return;
     }
 
     if (!(folder.indexable || folder.source)) return;
-    const allFolders = this._loadedTree.allFolders;
 
     let wFolder = folder;
-    while (wFolder.folder) {
-      let pFolder;
-      for (const [uuid, folder] of allFolders) {
-        if (folder.id === wFolder.folder) {
-          pFolder = folder;
-          break;
-        }
-      }
-      if (!pFolder) return;
-
-      pFolder = new VirtualFileFolder({
-        name: pFolder.name,
-        folder: pFolder.folder,
-      });
-      if (wFolder) pFolder.children = [wFolder];
-      wFolder = pFolder;
+    while (wFolder.parent) {
+      wFolder = {
+        name: wFolder.parent.name,
+        presets: [],
+        children: [{ folder: wFolder }],
+        parent: wFolder.parent.parent,
+      };
     }
 
     this.saveIndexToCache({
       folders: [wFolder],
-      path: folder.uuid.replace('virtual@', ''),
+      path: folder.path,
       source: folder.source,
       notify,
     });
@@ -317,7 +327,7 @@ export class FileIndexer {
   static _cacheFolder(folder) {
     const fDic = { dir: encodeURIComponentSafely(folder.name) };
     if (folder.presets.length) fDic.files = folder.presets.map((p) => this._cachePreset(p));
-    if (folder.children.length) fDic.dirs = folder.children.map((c) => this._cacheFolder(c));
+    if (folder.children.length) fDic.dirs = folder.children.map((ch) => this._cacheFolder(ch.folder));
     return fDic;
   }
 
@@ -349,57 +359,47 @@ export class FileIndexer {
     return await this.loadIndexCache(path);
   }
 
-  static _indexToVirtualFolder(cache, parentDirPath, allFolders, allPresets, options) {
+  static _indexToNode(cache, parentDirPath, options) {
     const fullPath = parentDirPath + '/' + cache.dir;
-    const uuid = 'virtual@' + options.prePend + fullPath;
-    const fileFolder = new VirtualFileFolder({
-      uuid,
+
+    const node = {};
+    node.children = cache.dirs?.map((dir) => this._indexToNode(dir, fullPath, options)) ?? [];
+    node.children.sort((c1, c2) => c1.folder.name.localeCompare(c2.folder.name));
+
+    const types = new Set(['ALL']);
+    node.entries = [];
+    if (cache.files) {
+      for (const file of cache.files) {
+        const preset = VirtualFilePreset.fromSrc(options.prePend + fullPath + '/' + file.name);
+        if (file.tags) preset.tags = file.tags;
+        if (file.thumb) {
+          preset.img = options.prePend + fullPath + '/' + file.thumb;
+          preset._thumb = file.thumb;
+        }
+
+        this._collection._meIndex.set(preset.uuid, preset);
+        node.entries.push({ _id: preset.uuid });
+        types.add(preset.documentName);
+      }
+    }
+
+    // Assign folder to categories based on whether it's child folders contain presets of those types
+    node.children.forEach((ch) => ch.folder.flags[MODULE_ID].types.forEach((t) => types.add(t)));
+
+    node.folder = new VirtualFileFolder({
+      path: options.prePend + fullPath,
       name: cache.dir,
       subtext: cache.subtext,
       icon: cache.icon,
       color: cache.color,
       source: options.source,
       bucket: options.bucket,
+      types: Array.from(types),
+      children: node.children,
     });
+    node.children.forEach((ch) => (ch.folder.parent = node.folder));
 
-    if (cache.dirs) {
-      for (const dir of cache.dirs) {
-        const childFolder = this._indexToVirtualFolder(dir, fullPath, allFolders, allPresets, options);
-        if (childFolder) {
-          childFolder.folder = fileFolder.id;
-          fileFolder.children.push(childFolder);
-        }
-      }
-      fileFolder.children.sort((f1, f2) => f1.name.localeCompare(f2.name));
-    }
-
-    if (cache.files) {
-      for (const file of cache.files) {
-        const preset = new VirtualFilePreset({
-          name: file.name,
-          src: options.prePend + fullPath + '/' + file.name,
-          tags: file.tags,
-          folder: fileFolder.id,
-          thumb: file.thumb ? options.prePend + fullPath + '/' + file.thumb : null,
-        });
-        allPresets.push(preset);
-        fileFolder.presets.push(preset);
-      }
-    }
-
-    // Assign folder to categories based on whether the folder itself or
-    // it's child folders contain presets of those types
-    ['Tile', 'AmbientSound'].forEach((type) => {
-      if (
-        fileFolder.presets.some((p) => p.documentName === type) ||
-        fileFolder.children.some((c) => c.types.includes(type))
-      ) {
-        fileFolder.types.push(type);
-      }
-    });
-
-    allFolders.set(uuid, fileFolder);
-    return fileFolder;
+    return node;
   }
 
   static async generateIndex(dir, foundCaches = [], source = 'data', bucket = null, settings, options = {}, tags = []) {
@@ -414,6 +414,7 @@ export class FileIndexer {
     try {
       content = await this._browse(source, dir, { bucket });
     } catch (e) {
+      console.log(e);
       return null;
     }
 

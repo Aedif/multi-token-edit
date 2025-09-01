@@ -1,19 +1,18 @@
-import { MODULE_ID, SUPPORTED_PLACEABLES } from '../constants.js';
+import { MODULE_ID } from '../constants.js';
 import { Scenescape } from '../scenescape/scenescape.js';
 import { is3DModel, isAudio, loadImageVideoDimensions } from '../utils.js';
-import { META_INDEX_FIELDS, META_INDEX_ID, PresetTree } from './collection.js';
 import { FileIndexer } from './fileIndexer.js';
 import { decodeURIComponentSafely, isVideo, placeableToData } from './utils.js';
 
-const DOCUMENT_FIELDS = ['id', 'name', 'sort', 'folder'];
+export const DOCUMENT_FIELDS = ['id', 'name', 'sort', 'folder'];
 
 export const PRESET_FIELDS = [
   'id',
+  'uuid',
   'name',
   'data',
   'sort',
   'folder',
-  'uuid',
   'documentName',
   'addSubtract',
   'randomize',
@@ -29,25 +28,33 @@ export const PRESET_FIELDS = [
 ];
 
 export const DOC_ICONS = {
-  ALL: 'fas fa-globe',
-  Bag: 'fa-solid fa-sack',
-  Token: 'fas fa-user-circle',
-  MeasuredTemplate: 'fas fa-ruler-combined',
-  Tile: 'fa-solid fa-cubes',
-  Drawing: 'fa-solid fa-pencil-alt',
-  Wall: 'fa-solid fa-block-brick',
-  AmbientLight: 'fa-regular fa-lightbulb',
-  AmbientSound: 'fa-solid fa-music',
-  Note: 'fa-solid fa-bookmark',
-  Region: 'fa-regular fa-game-board',
-  Actor: 'fas fa-user-alt',
-  Scene: 'fas fa-map',
-  FauxScene: 'fas fa-map',
-  DEFAULT: 'fa-solid fa-question',
+  ALL: '<i class="fas fa-globe"></i>',
+  Bag: '<i class="fa-solid fa-sack"></i>',
+  Token: '<i class="fas fa-user-circle"></i>',
+  MeasuredTemplate: '<i class="fas fa-ruler-combined"></i>',
+  Tile: '<i class="fa-solid fa-cubes"></i>',
+  Drawing: '<i class="fa-solid fa-pencil-alt"></i>',
+  Wall: '<i class="fa-solid fa-block-brick"></i>',
+  AmbientLight: '<i class="fa-regular fa-lightbulb"></i>',
+  AmbientSound: '<i class="fa-solid fa-music"></i>',
+  Note: '<i class="fa-solid fa-bookmark"></i>',
+  Region: '<i class="fa-regular fa-game-board"></i>',
+  Actor: '<i class="fas fa-user-alt"></i>',
+  Scene: '<i class="fas fa-map"></i>',
+  FauxScene: '<i class="fas fa-map"></i>',
+  DEFAULT: '<i class="fa-solid fa-question"></i>',
 };
 
 export class Preset {
+  // Tag to HTML string mappings used to render icons on Presets
+  static _tagIcons = {};
+
+  static registerTagIcons(tagToIcon) {
+    Object.assign(Preset._tagIcons, tagToIcon);
+  }
+
   static isEditable(uuid) {
+    if (!uuid) return false;
     if (uuid.startsWith('virtual@')) return true;
     let { collection } = foundry.utils.parseUuid(uuid);
     if (!collection) return false;
@@ -79,16 +86,15 @@ export class Preset {
     this.attached = data.attached;
     this.spawnRandom = data.spawnRandom;
     this.preserveLinks = data.preserveLinks;
-    this._visible = true;
-    this._render = true;
   }
 
-  get visible() {
-    return this._visible && this._render;
-  }
+  get icons() {
+    const icons = [DOC_ICONS[this.documentName] ?? DOC_ICONS.DEFAULT];
+    this.tags.forEach((t) => {
+      if (Preset._tagIcons[t]) icons.push(Preset._tagIcons[t]);
+    });
 
-  get icon() {
-    return DOC_ICONS[this.documentName] ?? DOC_ICONS.DEFAULT;
+    return icons;
   }
 
   get thumbnail() {
@@ -114,14 +120,6 @@ export class Preset {
     return this._data;
   }
 
-  get isPlaceable() {
-    return SUPPORTED_PLACEABLES.includes(this.documentName);
-  }
-
-  get isEmpty() {
-    return foundry.utils.isEmpty(this.data[0]);
-  }
-
   addPostSpawnHook(hook) {
     if (!this._postSpawnHooks) this._postSpawnHooks = [];
     this._postSpawnHooks.push(hook);
@@ -139,8 +137,9 @@ export class Preset {
    * Loads underlying JournalEntry document from the compendium
    * @returns this
    */
-  async load(force = false, document) {
-    if (this.document && !force) return this;
+  async load(document) {
+    if (this._loaded) return this;
+
     if (!this.document && this.uuid) {
       this.document = document ?? (await fromUuid(this.uuid));
     }
@@ -168,7 +167,17 @@ export class Preset {
       this.tags = preset.tags ?? [];
     }
 
+    this._loaded = true;
     return this;
+  }
+
+  /**
+   * Delete the preset along with the underlying document
+   * @returns
+   */
+  async delete() {
+    if (this.document) return this.document.delete();
+    return (await fromUuid(this.uuid))?.delete();
   }
 
   async openJournal() {
@@ -266,39 +275,11 @@ export class Preset {
 
       if (!foundry.utils.isEmpty(flagUpdate)) {
         const docUpdate = { flags: { [MODULE_ID]: { preset: flagUpdate } } };
-        DOCUMENT_FIELDS.forEach((field) => {
-          if (field in flagUpdate && this.document[field] !== flagUpdate[field]) {
-            docUpdate[field] = flagUpdate[field];
-          }
-        });
-
         if (batch) Preset.batchUpdate(this.document, docUpdate);
         else await this.document.update(docUpdate);
       }
-      await this._updateIndex(flagUpdate, batch);
     } else {
-      console.warn('Updating preset without document', this.id, this.uuid, this.name);
-    }
-  }
-
-  async _updateIndex(data, batch = false) {
-    const update = {};
-
-    META_INDEX_FIELDS.forEach((field) => {
-      if (field in data) update[field] = data[field];
-    });
-
-    if (!foundry.utils.isEmpty(update)) {
-      const pack = game.packs.get(this.document.pack);
-      const metaDoc = await pack.getDocument(META_INDEX_ID);
-      if (metaDoc) {
-        if (batch) Preset.batchUpdate(metaDoc, { flags: { [MODULE_ID]: { index: { [this.id]: update } } } });
-        else await metaDoc.setFlag(MODULE_ID, 'index', { [this.id]: update });
-        delete PresetTree._packTrees[pack.metadata.id];
-      } else {
-        console.warn(`META INDEX missing in ${this.document.pack}`);
-        return;
-      }
+      console.warn('FAILED UPDATE: Updating preset without document', this.id, this.uuid, this.name);
     }
   }
 
@@ -320,30 +301,35 @@ export class Preset {
     const clone = new Preset(this.toJSON());
     clone.document = this.document;
     clone._postSpawnHooks = this._postSpawnHooks;
+    clone._loaded = this._loaded;
     return clone;
   }
 }
 
 export class VirtualFilePreset extends Preset {
-  constructor(data) {
-    if (!data.name) data.name = data.src.split('/').pop();
-    data.name = decodeURIComponentSafely(data.name);
+  /**
+   * Constructs a VirtualFilePreset using the provided src/path of some media file
+   * @param {string} src path to file
+   * @param {string} forceType force preset into a specific document type (for now only forced to Token)
+   * @returns
+   */
+  static fromSrc(src, forceType) {
+    const documentName = forceType ?? (isAudio(src) ? 'AmbientSound' : 'Tile');
 
-    data.uuid = 'virtual@' + data.src;
-    data.documentName = isAudio(data.src) ? 'AmbientSound' : 'Tile';
+    let data;
 
-    if (!data.data) {
-      if (data.documentName === 'Tile') {
-        data.data = [{ texture: { src: data.src, scaleY: 1, scaleX: 1 }, x: 0, y: 0, rotation: 0 }];
-      } else {
-        data.data = [{ path: data.src, radius: 20, x: 0, y: 0 }];
-      }
-      data.img = data.thumb ?? data.src;
-    }
-    data.gridSize = 150;
-    super(data);
-    this._src = data.src;
-    if (data.thumb) this._thumb = data.thumb.split('/').pop();
+    if (documentName === 'Tile' || documentName === 'Token')
+      data = [{ texture: { src, scaleY: 1, scaleX: 1 }, x: 0, y: 0, rotation: 0 }];
+    else data = [{ path: src, radius: 20, x: 0, y: 0 }];
+
+    return new VirtualFilePreset({
+      name: decodeURIComponentSafely(src.split('/').pop()),
+      uuid: 'virtual@' + src,
+      documentName,
+      data,
+      gridSize: 150,
+      img: src,
+    });
   }
 
   get virtual() {
@@ -351,9 +337,8 @@ export class VirtualFilePreset extends Preset {
   }
 
   async load(force = false) {
-    const p = await FileIndexer.getPreset(this.uuid);
-    if (p) this.tags = p.tags;
-    this._storedReference = p;
+    if (this._loaded) return this;
+    this._loaded = true;
 
     // Ambient Sound, no further processing required
     if (this.data[0].path) return this;
@@ -409,20 +394,17 @@ export class VirtualFilePreset extends Preset {
   async update(update) {
     if (!update.hasOwnProperty('tags')) return;
 
-    if (this._storedReference) {
-      this._storedReference.tags = update.tags;
-      clearTimeout(VirtualFilePreset._updateTimeout);
-      VirtualFilePreset._updateTimeout = setTimeout(
-        () => FileIndexer.saveIndexToCache({ processAutoSave: true }),
-        3000
-      );
-    }
+    this.tags = update.tags;
+
+    clearTimeout(VirtualFilePreset._updateTimeout);
+    VirtualFilePreset._updateTimeout = setTimeout(() => FileIndexer.saveIndexToCache({ processAutoSave: true }), 3000);
   }
 
   clone() {
     const data = this.toJSON();
-    data.src = this._src;
     const clone = new VirtualFilePreset(data);
+    clone._loaded = this._loaded;
+    clone._thumb = this._thumb;
     clone._postSpawnHooks = this._postSpawnHooks;
     return clone;
   }

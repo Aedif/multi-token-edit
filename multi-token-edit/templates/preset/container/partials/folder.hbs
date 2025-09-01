@@ -1,23 +1,21 @@
 <li class="folder {{#unless folder.expanded}}collapsed{{/unless}} {{#if sortable}}sortable{{/if}}" data-id="{{folder.id}}" data-uuid="{{folder.uuid}}" data-name="{{folder.name}}" style="border-color: {{folder.color}};">
-    <header class="handle flexrow" style="background-color: {{folder.color}};" data-action="folderClick" {{#if folder.draggable}}draggable="true"{{/if}}>
+    <header class="handle flexrow" style="background-color: {{folder.color}};" data-action="folderClick" {{#if draggable}}draggable="true"{{/if}}>
         <h3><i class="folder-icon fas fa-folder-{{#if folder.expanded}}open{{else}}closed{{/if}} fa-fw"></i>{{folder.name}}{{#if folder.subtext}} <span class="subtext">{{folder.subtext}}</span>{{/if}}</h3>
         {{#if folder.icon}}<img class="branding" src="{{folder.icon}}">{{/if}}
     </header>
     {{#if folder.expanded}}
     <ol class="folder-items">
-        {{#each folder.children as |child|}}
-            {{#if child.visible}}
-            {{#if child.render}}
-                 {{>me-preset-folder folder=child createEnabled=../createEnabled callback=../callback sortable=../sortable}}
-            {{/if}}
-            {{/if}}
+        {{#each folder.children as |node|}}
+        {{#if (meRender node.folder context=../context)}}
+            {{>me-preset-folder node=node folder=node.folder createEnabled=../createEnabled callback=../callback sortable=../sortable draggable=../draggable}}
+        {{/if}}
         {{/each}}
     </ol>
     <ol class="preset-items">
         {{#each folder.presets as |preset|}}
-            {{#if preset.visible}}
-                {{>me-preset preset=preset createEnabled=../createEnabled callback=../callback sortable=../sortable}}
-            {{/if}}
+        {{#if (meRender this context=../context)}}
+            {{>me-preset preset=preset createEnabled=../createEnabled callback=../callback sortable=../sortable}}
+        {{/if}}
         {{/each}}
     </ol>
     {{/if}}

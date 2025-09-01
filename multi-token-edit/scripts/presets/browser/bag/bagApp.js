@@ -1,9 +1,9 @@
-import { BrushMenu } from '../brush.js';
-import { MODULE_ID } from '../constants.js';
-import { localize } from '../utils.js';
-import { PresetAPI } from './collection.js';
-import { PresetContainerV2 } from './containerAppV2.js';
-import { Preset } from './preset.js';
+import { BrushMenu } from '../../../brush.js';
+import { MODULE_ID } from '../../../constants.js';
+import { localize } from '../../../utils.js';
+import { PresetStorage } from '../../collection.js';
+import { PresetContainerV2 } from '../../containerAppV2.js';
+import { Preset } from '../../preset.js';
 
 export async function openBag(uuid) {
   let journal = fromUuidSync(uuid);
@@ -12,7 +12,7 @@ export async function openBag(uuid) {
   // This is to support the conversion of the old bag system to the new preset based bag system
   // 11/12/24
   if (!journal) {
-    journal = await PresetAPI.getPreset({ tags: [`id-${uuid.slugify({ strict: true })}`] });
+    journal = await PresetStorage.retrieveSingle({ tags: [`id-${uuid.slugify({ strict: true })}`] });
 
     if (!journal) {
       ui.notifications.warn(`Bag not found: ` + uuid);
@@ -30,7 +30,7 @@ export async function openBag(uuid) {
     return;
   }
 
-  const preset = await PresetAPI.getPreset({ uuid });
+  const preset = await PresetStorage.retrieveSingle({ uuid, load: true });
 
   new BagApplication({ preset, id }).render(true);
 }
@@ -92,9 +92,9 @@ class BagApplication extends PresetContainerV2 {
     const bag = this.preset.data[0];
 
     let uuids = bag.uuids.map((i) => i.uuid);
-    const containedPresets = uuids.length ? await PresetAPI.getPresets({ uuid: uuids, full: false }) : null;
+    const containedPresets = uuids.length ? await PresetStorage.retrieve({ uuid: uuids }) : null;
     const searchedPresets = bag.completedSearch?.length
-      ? await PresetAPI.getPresets({ uuid: bag.completedSearch, full: false })
+      ? await PresetStorage.retrieve({ uuid: bag.completedSearch })
       : null;
 
     return Object.assign(context, {
@@ -183,9 +183,9 @@ class BagApplication extends PresetContainerV2 {
 
   /** @override */
   async _onDeleteSelectedPresets(item) {
-    const [selected, _] = await this._getSelectedPresets({
+    const { selected } = await this._getSelectedPresets({
       editableOnly: false,
-      full: false,
+      load: false,
     });
 
     if (selected.length) {
@@ -270,11 +270,10 @@ class BagApplication extends PresetContainerV2 {
 
     for (const search of searches.inclusive) {
       (
-        await PresetAPI.getPresets({
+        await PresetStorage.retrieve({
           query: search.terms,
           matchAny: !search.matchAll,
           virtualDirectory,
-          full: false,
         })
       ).forEach((p) => uuids.add(p.uuid));
     }
@@ -283,11 +282,10 @@ class BagApplication extends PresetContainerV2 {
       for (const search of searches.exclusive) {
         if (tags) tags = { tags, matchAny: !search.matchAll };
         (
-          await PresetAPI.getPresets({
+          await PresetStorage.retrieve({
             query: search.terms,
             matchAny: !search.matchAll,
             virtualDirectory,
-            full: false,
           })
         ).forEach((p) => uuids.delete(p.uuid));
       }
@@ -323,7 +321,7 @@ class BagApplication extends PresetContainerV2 {
   async _onActivateBrush(item) {
     const flags = this.preset.data[0].flags;
     if (flags) {
-      const [selected, _] = await this._getSelectedPresets({
+      const { selected } = await this._getSelectedPresets({
         editableOnly: false,
       });
 

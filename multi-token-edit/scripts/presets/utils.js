@@ -1,20 +1,6 @@
 import { MODULE_ID, PIVOTS } from '../constants.js';
-import { applyRandomization } from '../randomizer/randomizerUtils.js';
-import { PresetAPI, PresetCollection } from './collection.js';
+import { PresetStorage } from './collection.js';
 import { Preset } from './preset.js';
-
-/**
- * Tracking of folder open/close state
- */
-export class FolderState {
-  static expanded(uuid) {
-    return game.folders._expanded[uuid];
-  }
-
-  static setExpanded(uuid, state) {
-    game.folders._expanded[uuid] = state;
-  }
-}
 
 /**
  * Convert provided placeable into an object usable as Preset data
@@ -209,69 +195,6 @@ export function mergePresetDataToDefaultDoc(preset, presetData) {
   return foundry.utils.mergeObject(data, presetData);
 }
 
-export async function randomizeChildrenFolderColors(uuid, tree, callback) {
-  const folder = tree.allFolders.get(uuid);
-
-  const children = folder.children;
-  if (!children.length) return;
-
-  const colorTemp = await foundry.applications.handlebars.renderTemplate(
-    `modules/${MODULE_ID}/templates/randomizer/color.html`,
-    {
-      method: 'interpolateReverse',
-      space: 'srgb',
-      hue: 'longer',
-    }
-  );
-
-  let colorSlider;
-
-  const applyColors = async function (method, space, hue) {
-    const updates = children.map((c) => {
-      return {
-        color: '#000000',
-      };
-    });
-    const randObj = { color: { type: 'color', method, space, hue, colors: colorSlider.getColors() } };
-
-    await applyRandomization(updates, children, randObj);
-
-    for (let i = 0; i < children.length; i++) {
-      await children[i].update(updates[i]);
-    }
-
-    callback?.();
-  };
-
-  let dialog = new Dialog({
-    title: `Pick Range`,
-    content: `<form>${colorTemp}</form>`,
-    buttons: {
-      save: {
-        label: 'Apply',
-        callback: async (html) => {
-          applyColors(
-            html.find('[name="method"]').val(),
-            html.find('[name="space"]').val(),
-            html.find('[name="hue"]').val()
-          );
-        },
-      },
-    },
-    render: (html) => {
-      import('../randomizer/slider.js').then((module) => {
-        colorSlider = new module.ColorSlider(html, [
-          { hex: '#663600', offset: 0 },
-          { hex: '#944f00', offset: 100 },
-        ]);
-        setTimeout(() => dialog.setPosition({ height: 'auto' }), 100);
-      });
-    },
-  });
-
-  dialog.render(true);
-}
-
 /**
  * Returns a transform that return first element to x:0, y:0 (z: 0)
  * @param {Map<String, Array[Object]>} docToData
@@ -459,11 +382,11 @@ export function registerSideBarPresetDropListener() {
       if (!data) return;
       data = JSON.parse(data);
 
-      let presets = (await PresetAPI.getPresets({ uuid: data.uuids, full: false })).filter(
+      let presets = (await PresetStorage.retrieve({ uuid: data.uuids })).filter(
         (p) => p.documentName === 'AmbientSound'
       );
 
-      await PresetCollection.batchLoadPresets(presets);
+      await PresetStorage.batchLoad(presets);
 
       const updates = [];
 
@@ -546,7 +469,7 @@ export function getDataPivotPoint(documentName, data, pivot) {
 export async function exportPresets(presets, fileName) {
   if (!presets.length) return;
 
-  await PresetCollection.batchLoadPresets(presets);
+  await PresetStorage.batchLoad(presets);
 
   presets = presets.map((p) => {
     const preset = p.clone();
@@ -570,6 +493,8 @@ export async function exportPresets(presets, fileName) {
 export function parseSearchQuery(query, { matchAny = true, noTags = false } = {}) {
   let search = { terms: [], tags: [], types: [] };
   let negativeSearch = { terms: [], tags: [], types: [] };
+
+  if (!query) return { search, negativeSearch };
 
   query
     .trim()
@@ -671,7 +596,7 @@ export async function importSceneCompendium(scenePack, presetPack) {
       });
       presets.push(preset);
     } else if (jIndex.name !== i.name) {
-      const preset = await PresetCollection.get(jIndex.uuid, { full: true });
+      const preset = await PresetStorage.retrieveSingle({ uuid: jIndex.uuid, load: true });
       if (preset) {
         console.log(preset.name, ' -> ', i.name);
         preset.update({ name: i.name }, true);
@@ -682,7 +607,7 @@ export async function importSceneCompendium(scenePack, presetPack) {
     }
   }
 
-  await PresetCollection.set(presets, presetPack);
+  await PresetStorage.createDocuments(presets, presetPack);
 
   ui.notifications.info(`Imported scenes: ${presets.length}/${alreadyImportedCount + presets.length}`);
   if (nameUpdatedCount) {
@@ -696,7 +621,7 @@ export async function sceneNotFoundError(preset) {
 
   for (const message of MassEdit.sceneNotFoundMessages) {
     if (!(message.query && message.content)) continue;
-    let p = await PresetAPI.getPresets({ presets: [preset], query: message.query });
+    let p = await PresetStorage.retrieve({ presets: [preset], query: message.query });
     if (p.length) {
       const content = message.content.replace('{{name}}', preset.name);
       dialog = new Dialog(
@@ -714,4 +639,34 @@ export async function sceneNotFoundError(preset) {
   }
 
   if (!dialog) ui.notifications.warn('Unable to load scene: ' + preset.name);
+}
+
+/**
+ * Modified Foundry's Hooks.call(...) function to support calling and awaiting of asynchronous hooks
+ * @param {string} hook
+ * @param  {...any} args
+ * @returns
+ */
+export async function callAsyncHook(hook, ...args) {
+  if (CONFIG.debug.hooks) {
+    console.log(`DEBUG | Calling async ${hook} hook with args:`);
+    console.log(args);
+  }
+
+  if (!(hook in Hooks.events)) return true;
+
+  for (const entry of Array.from(Hooks.events[hook])) {
+    const { hook, id, fn, once } = entry;
+    if (once) Hooks.off(hook, id);
+    try {
+      const result = await entry.fn(...args);
+      if (result === false) return false;
+    } catch (err) {
+      const msg = `Error thrown in hooked function '${fn?.name}' for hook '${hook}'`;
+      console.warn(`${CONST.vtt} | ${msg}`);
+      if (hook !== 'error') Hooks.onError('Hooks.callAsyncHook', err, { msg, hook, fn, log: 'error' });
+    }
+  }
+
+  return true;
 }

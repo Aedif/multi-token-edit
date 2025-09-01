@@ -1031,10 +1031,23 @@ export const WithMassEditFormApplicationV2 = (cls) => {
       return this.document;
     }
 
+    /** @override */
     _getSubmitData() {
       const form = this.element;
       const formData = new foundry.applications.ux.FormDataExtended(form);
       const submitData = this._prepareSubmitData(null, form, formData);
+      return submitData;
+    }
+
+    // Same internals as the original function, but with validation set to strict = false, to not throw errors
+    /** @override */
+    _prepareSubmitData(event, form, formData, updateData) {
+      const submitData = this._processFormData(event, form, formData);
+      if (updateData) {
+        foundry.utils.mergeObject(submitData, updateData, { performDeletions: true });
+        foundry.utils.mergeObject(submitData, updateData, { performDeletions: false });
+      }
+      this.document.validate({ changes: submitData, clean: true, fallback: false, strict: false });
       return submitData;
     }
 

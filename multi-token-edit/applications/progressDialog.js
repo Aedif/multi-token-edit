@@ -56,15 +56,8 @@ export function countFolderItems(folder) {
   if (folder.presets) {
     return (
       folder.presets.length +
-      folder.children.reduce(function (sum, c) {
-        return sum + countFolderItems(c);
-      }, 0)
-    );
-  } else {
-    return (
-      folder.contents.length +
-      folder.children.reduce(function (sum, c) {
-        return sum + countFolderItems(c.folder);
+      folder.children.reduce(function (sum, ch) {
+        return sum + countFolderItems(ch.folder);
       }, 0)
     );
   }

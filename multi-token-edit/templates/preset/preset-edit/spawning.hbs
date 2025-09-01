@@ -8,7 +8,7 @@
             {{#if attached}}
             <div style="max-height: 40px; overflow-y: auto;">
                 {{#each attached}}
-                <a class="attached" data-index="{{@index}}" data-action="attachedRemove"><i class="{{icon}}" data-tooltip="{{tooltip}}"></i></a>
+                <a class="attached" data-index="{{@index}}" data-action="attachedRemove" data-tooltip="{{tooltip}}">{{{icon}}}</a>
                 {{/each}}
             </div>
             {{else}}

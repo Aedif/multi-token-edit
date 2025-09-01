@@ -1,7 +1,7 @@
 import { pasteDataUpdate } from '../applications/formUtils.js';
 import { MODULE_ID, PIVOTS } from './constants.js';
 import { Mouse3D } from './mouse3d.js';
-import { PresetAPI, PresetCollection } from './presets/collection.js';
+import { PresetStorage } from './presets/collection.js';
 import { Preset } from './presets/preset.js';
 import { Spawner } from './presets/spawner.js';
 import { applyRandomization } from './randomizer/randomizerUtils.js';
@@ -863,7 +863,7 @@ export class BrushMenu extends FormApplication {
 
   addPresets(presets = []) {
     for (const preset of presets) {
-      if (!this.presets.find((p) => p.uuid === preset.uuid)) this.presets.push(preset);
+      if (!this.presets.find((p) => p === preset)) this.presets.push(preset);
     }
     this._createIndex();
     this.render(true);
@@ -950,58 +950,38 @@ export class BrushMenu extends FormApplication {
   }
 
   async _generateBrushMacro() {
-    const genMacro = async function (command) {
-      const macro = await Macro.create({
-        name: 'Brush Macro',
-        type: 'script',
-        scope: 'global',
-        command,
-        img: `modules/${MODULE_ID}/images/brush_icon.png`,
-      });
-      macro.sheet.render(true);
-    };
+    const confirm = await foundry.applications.api.DialogV2.confirm({
+      id: 'brush-macro-confirm',
+      modal: true,
+      window: { title: 'Generate Macro' },
+      position: { width: 400 },
+      content: `<p>Would you like to save the current Brush configuration as a macro?</p>`,
+    });
+    if (!confirm) return;
 
-    const genUUIDS = function () {
-      const uuids = this.presets.map((p) => p.uuid).filter(Boolean);
-      if (!uuids.length) return;
+    let uuids = [];
+    let tempPresets = [];
 
-      const command = `MassEdit.openBrushMenu({ 
-    uuid: ${JSON.stringify(uuids, null, 4)}
-  },
-  ${JSON.stringify(this._settings, null, 2)}
-  );`;
-      genMacro(command);
-    };
-
-    const genNames = function () {
-      const opts = this.presets.map((p) => {
-        return { name: p.name, type: p.documentName };
-      });
-
-      const command = `MassEdit.openBrushMenu(
-    ${JSON.stringify(opts, null, 4)}
-  ,
-  ${JSON.stringify(this._settings, null, 2)}
-  );`;
-      genMacro(command);
-    };
-
-    let dialog = new Dialog({
-      title: `Generate Macro`,
-      content: ``,
-      buttons: {
-        uuids: {
-          label: 'UUIDs',
-          callback: genUUIDS.bind(this),
-        },
-        name: {
-          label: 'Names',
-          callback: genNames.bind(this),
-        },
-      },
+    this.presets.forEach((p) => {
+      if (p._temp) tempPresets.push(p.toJSON());
+      else if (p.uuid) uuids.push(p.uuid);
     });
 
-    dialog.render(true);
+    if (!(uuids.length || tempPresets.length)) return;
+
+    const command = `MassEdit.openBrushMenu({ uuid: ${JSON.stringify(uuids, null, 4)}},\n${JSON.stringify(
+      this._settings,
+      null,
+      2
+    )},\n${JSON.stringify(tempPresets)});`;
+    const macro = await Macro.create({
+      name: 'Brush Macro',
+      type: 'script',
+      scope: 'global',
+      command,
+      img: `modules/${MODULE_ID}/images/brush_icon.png`,
+    });
+    macro.sheet.render(true);
   }
 
   async close(options = {}) {
@@ -1019,7 +999,7 @@ export class BrushMenu extends FormApplication {
  * @param {String} mode update|spawn
  */
 export async function activateBrush(options, mode = 'spawner') {
-  const preset = await PresetAPI.getPreset(options);
+  const preset = await PresetStorage.retrieveSingle(options);
   if (preset) {
     Brush.activate({ preset, spawner: mode === 'spawner' });
   }
@@ -1036,22 +1016,31 @@ export function deactivateBush() {
  * Open Brush Menu using the provided presets
  * @param {Object} options See MassEdit.getPresets(...)
  * @param {Object} settings Brush Menu control settings
+ * @param {Array[Object]} presetJson Array of presets as JSON exports
  */
-export async function openBrushMenu(options, settings = {}) {
+export async function openBrushMenu(options, settings = {}, presetJson) {
   if (BrushMenu.isActive()) return BrushMenu.close();
 
   let presets = [];
 
   if (Array.isArray(options)) {
     for (const opts of options) {
-      let preset = await PresetAPI.getPreset(opts);
+      let preset = await PresetStorage.retrieveSingle(opts);
       if (preset) presets.push(preset);
     }
   } else {
-    presets = await PresetAPI.getPresets(options);
+    presets = await PresetStorage.retrieve(options);
   }
 
+  if (presets.length) await PresetStorage.batchLoad(presets);
+
+  presetJson?.forEach((json) => {
+    const preset = new Preset(json);
+    preset._temp = true;
+    preset._loaded = true;
+    presets.push(preset);
+  });
+
   if (!presets?.length) return;
-  await PresetCollection.batchLoadPresets(presets);
   BrushMenu.render(presets, settings);
 }

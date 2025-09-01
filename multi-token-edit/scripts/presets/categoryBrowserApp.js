@@ -1,7 +1,7 @@
 import { MODULE_ID } from '../constants.js';
 import { localize } from '../utils.js';
 import { PresetBrowser } from './browser/browserApp.js';
-import { PresetAPI } from './collection.js';
+import { PresetStorage } from './collection.js';
 import { PresetContainerV2 } from './containerAppV2.js';
 
 /**
@@ -341,6 +341,10 @@ class CategoryBrowserApplication extends PresetContainerV2 {
     if (this._queryRunTime !== runTime) return;
     this._presetResults = results;
 
+    if (PresetBrowser.CONFIG.sortMode === 'alphabetical') {
+      this._presetResults?.sort((p1, p2) => p1.name.localeCompare(p2.name));
+    }
+
     if (!resultsOnly) return this._renderContent();
   }
 
@@ -371,12 +375,11 @@ class CategoryBrowserApplication extends PresetContainerV2 {
    * @returns {Array[Presets]|null}       Query results
    */
   async _runQuery(query, matchAny = false, presets) {
-    return PresetAPI.getPresets({
+    return PresetStorage.retrieve({
       query,
       matchAny,
       virtualDirectory: PresetBrowser.CONFIG.virtualDirectory,
       externalCompendiums: PresetBrowser.CONFIG.externalCompendiums,
-      full: false,
       presets,
     });
   }
@@ -397,9 +400,16 @@ class CategoryBrowserApplication extends PresetContainerV2 {
   static async _onToggleSetting(event, target) {
     const setting = target.dataset.setting;
     if (!setting) return;
-    await PresetBrowser.setSetting(setting, !PresetBrowser.CONFIG[setting]);
-    $(target).css('color', PresetBrowser.CONFIG[setting] ? 'darkorange' : '');
-    if (setting === 'virtualDirectory' || setting === 'externalCompendiums') return this._runQueryTree();
+
+    let value;
+    if (setting === 'sortMode') value = PresetBrowser.CONFIG[setting] === 'alphabetical' ? 'manual' : 'alphabetical';
+    else value = !PresetBrowser.CONFIG[setting];
+
+    await PresetBrowser.setSetting(setting, value);
+
+    const active = setting === 'sortMode' ? value === 'alphabetical' : value;
+    $(target).css('color', active ? 'darkorange' : '');
+    if (['virtualDirectory', 'externalCompendiums', 'sortMode'].includes(setting)) return this._runQueryTree();
   }
 
   _getHeaderButtons() {
@@ -442,6 +452,14 @@ class CategoryBrowserApplication extends PresetContainerV2 {
         action: 'toggleSetting',
         setting: 'switchLayer',
         active: () => PresetBrowser.CONFIG.switchLayer,
+      });
+
+      buttons.unshift({
+        icon: 'fa-solid fa-arrow-down-a-z',
+        tooltip: localize('SIDEBAR.SortModeAlpha', false),
+        action: 'toggleSetting',
+        setting: 'sortMode',
+        active: () => PresetBrowser.CONFIG.sortMode === 'alphabetical',
       });
 
       if (this.options.editEnabled) {

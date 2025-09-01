@@ -1,5 +1,5 @@
 import { MODULE_ID } from '../constants.js';
-import { META_INDEX_FIELDS, META_INDEX_ID, PresetCollection, PresetTree } from './collection.js';
+import { META_INDEX_FIELDS, META_INDEX_ID, PresetStorage } from './collection.js';
 import { PresetBrowser } from './browser/browserApp.js';
 import { PRESET_FIELDS } from './preset.js';
 
@@ -33,7 +33,7 @@ export class V12Migrator {
   }
 
   static async migratePack({
-    pack = PresetCollection.workingPack,
+    pack = PresetStorage.workingPack,
     migrateFunc = null,
     transformFunc = null,
     coreMigration = false,
@@ -69,7 +69,6 @@ export class V12Migrator {
 
     const updates = [];
     const documents = await pack.getDocuments();
-    const metaIndexUpdate = {};
 
     if (migrateFunc || coreMigration) {
       for (const document of documents) {
@@ -120,13 +119,6 @@ export class V12Migrator {
 
           foundry.utils.setProperty(update, `flags.${MODULE_ID}.preset`, diff);
           updates.push(update);
-
-          const indexUpdate = {};
-          META_INDEX_FIELDS.forEach((field) => {
-            if (field in diff) indexUpdate[field] = diff[field];
-          });
-
-          if (!foundry.utils.isEmpty(indexUpdate)) metaIndexUpdate[document.id] = indexUpdate;
         }
       }
     }
@@ -135,17 +127,7 @@ export class V12Migrator {
       ui.notifications.info('Mass Edit - No data to migrate: ' + pack.metadata.label);
     } else {
       await JournalEntry.updateDocuments(updates, { pack: pack.collection });
-      if (!foundry.utils.isEmpty(metaIndexUpdate)) {
-        const index = await pack.getDocument(META_INDEX_ID);
-        if (index) index.setFlag(MODULE_ID, 'index', metaIndexUpdate);
-      }
-
       ui.notifications.notify('Mass Edit - Migrated ' + updates.length + ' presets within "' + pack.metadata.label);
-
-      setTimeout(() => {
-        delete PresetTree._packTrees[pack.metadata.id];
-        foundry.applications.instances.get(PresetBrowser.DEFAULT_OPTIONS.id)?.render(true);
-      }, 500);
     }
 
     return pack;

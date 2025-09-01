@@ -2,7 +2,7 @@ import { showMassEdit, showGenericForm } from './applications/multiConfig.js';
 import { createDocuments, isResponsibleGM, resolveCreateDocumentRequest, TagInput } from './scripts/utils.js';
 import { libWrapper } from './scripts/libs/shim/shim.js';
 import { enableUniversalSelectTool } from './scripts/tools/selectTool.js';
-import { META_INDEX_ID, PresetAPI, PresetCollection } from './scripts/presets/collection.js';
+import { PresetAPI, PresetStorage } from './scripts/presets/collection.js';
 import { openPresetBrowser, registerPresetBrowserHooks } from './scripts/presets/browser/browserApp.js';
 import { registerKeybinds, registerSettings } from './scripts/settings.js';
 import { BrushMenu, activateBrush, deactivateBush, openBrushMenu } from './scripts/brush.js';
@@ -14,7 +14,7 @@ import { MODULE_ID, PIVOTS } from './scripts/constants.js';
 import { registerScenescapeHooks, Scenescape } from './scripts/scenescape/scenescape.js';
 import { Spawner } from './scripts/presets/spawner.js';
 import { registerBehaviors } from './scripts/behaviors/behaviors.js';
-import { openBag } from './scripts/presets/bagApp.js';
+import { openBag } from './scripts/presets/browser/bag/bagApp.js';
 import { openCategoryBrowser } from './scripts/presets/categoryBrowserApp.js';
 import { registerPresetDragDropHooks, registerPresetHandlebarPartials } from './scripts/presets/containerAppV2.js';
 import { FileIndexerAPI } from './scripts/presets/fileIndexer.js';
@@ -22,6 +22,7 @@ import { TransformBus, MassTransformer } from './scripts/transformer.js';
 import { registerBlackBarHooks } from './scripts/auxilaryFeatures/blackbars.js';
 import { registerSceneConfigHooks } from './scripts/auxilaryFeatures/sceneConfig.js';
 import { registerDragUploadHooks } from './scripts/auxilaryFeatures/dragUpload.js';
+import { Preset } from './scripts/presets/preset.js';
 
 globalThis.MassTransformer = MassTransformer;
 
@@ -30,8 +31,8 @@ globalThis.MassEdit = {
   performMassUpdate,
   performMassSearch,
   showMassEdit,
-  getPreset: PresetAPI.getPreset,
-  getPresets: PresetAPI.getPresets,
+  getPreset: PresetStorage.retrieveSingle.bind(PresetStorage),
+  getPresets: PresetStorage.retrieve.bind(PresetStorage),
   createPreset: PresetAPI.createPreset,
   spawnPreset: Spawner.spawnPreset,
   activateBrush: activateBrush,
@@ -47,6 +48,7 @@ globalThis.MassEdit = {
   openPresetBrowser,
   FileIndexer: FileIndexerAPI,
   sceneNotFoundMessages: [],
+  registerPresetTagIcons: Preset.registerTagIcons,
 };
 
 // Initialize module
@@ -84,6 +86,8 @@ Hooks.once('init', () => {
 
   // Drag Upload
   registerDragUploadHooks();
+
+  PresetStorage._init();
 
   // Register mouse wheel listener by inserting it just before the Foundry's MouseManager
   // If we're in some kind of placeable preview we want to handle preview transformations and
@@ -207,21 +211,21 @@ Hooks.once('init', () => {
   });
 
   // 'Spotlight Omnisearch' support
-  Hooks.on('spotlightOmnisearch.indexBuilt', (INDEX, promises) => {
-    if (!game.user.isGM) return;
-    // First turn-off preset compendium from being included in omnisearch indexing
-    const old = game.settings.get('spotlight-omnisearch', 'compendiumConfig');
-    game.packs
-      .filter((p) => p.documentName === 'JournalEntry' && p.index.get(META_INDEX_ID))
-      .forEach((p) => (old[p.collection] = false));
-    game.settings.set('spotlight-omnisearch', 'compendiumConfig', old);
+  // Hooks.on('spotlightOmnisearch.indexBuilt', (INDEX, promises) => {
+  //   if (!game.user.isGM) return;
+  //   // First turn-off preset compendium from being included in omnisearch indexing
+  //   const old = game.settings.get('spotlight-omnisearch', 'compendiumConfig');
+  //   game.packs
+  //     .filter((p) => p.documentName === 'JournalEntry' && p.index.get(META_INDEX_ID))
+  //     .forEach((p) => (old[p.collection] = false));
+  //   game.settings.set('spotlight-omnisearch', 'compendiumConfig', old);
 
-    // Insert preset index
-    if (!game.settings.get(MODULE_ID, 'disableOmniSearchIndex')) {
-      const promise = PresetCollection.buildSpotlightOmnisearchIndex(INDEX);
-      promises.push(promise);
-    }
-  });
+  //   // Insert preset index
+  //   if (!game.settings.get(MODULE_ID, 'disableOmniSearchIndex')) {
+  //     const promise = buildSpotlightOmnisearchIndex(INDEX);
+  //     promises.push(promise);
+  //   }
+  // });
 });
 
 // Deactivate brush/picker on scene change

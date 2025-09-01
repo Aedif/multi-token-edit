@@ -11,7 +11,7 @@ import {
 } from '../applications/multiConfig.js';
 import { MODULE_ID, SUPPORTED_COLLECTIONS, SUPPORTED_PLACEABLES, THRESHOLDS } from './constants.js';
 import { LinkerAPI } from './linker/linker.js';
-import { PresetCollection } from './presets/collection.js';
+import { PresetStorage } from './presets/collection.js';
 import { openPresetBrowser, PresetBrowser } from './presets/browser/browserApp.js';
 import { Preset } from './presets/preset.js';
 import { Scenescape } from './scenescape/scenescape.js';
@@ -148,10 +148,10 @@ export function registerSettings() {
     type: String,
     default: 'world.mass-edit-presets-main',
     onChange: (val) => {
-      PresetCollection.workingPack = val;
+      PresetStorage.workingPack = val;
     },
   });
-  PresetCollection.workingPack = game.settings.get(MODULE_ID, 'workingPack');
+  PresetStorage.workingPack = game.settings.get(MODULE_ID, 'workingPack');
 
   game.settings.register(MODULE_ID, 'presetSceneControl', {
     name: 'Scene Controls: Preset Button',
@@ -172,7 +172,6 @@ export function registerSettings() {
     default: {
       dropdownDocuments: [],
       persistentSearch: true,
-      searchMode: 'pf', // p = preset only | pf = preset & folder
       sortMode: 'manual', // manual | alphabetical
       autoScale: true,
       virtualDirectory: true,
@@ -303,6 +302,15 @@ export function registerSettings() {
     config: true,
     type: String,
     default: '',
+  });
+
+  game.settings.register(MODULE_ID, 'hideManagedPacks', {
+    name: `Hide Preset Compendiums`,
+    hint: 'When enabled preset compendiums will not be shown in the sidebar.',
+    scope: 'world',
+    config: true,
+    type: Boolean,
+    default: true,
   });
 }
 

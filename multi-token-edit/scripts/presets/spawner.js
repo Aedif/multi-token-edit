@@ -7,10 +7,11 @@ import { applyRandomization } from '../randomizer/randomizerUtils.js';
 import { Scenescape } from '../scenescape/scenescape.js';
 import { MassTransformer } from '../transformer.js';
 import { createDocuments, executeScript } from '../utils.js';
-import { PresetAPI } from './collection.js';
+import { PresetAPI, PresetStorage } from './collection.js';
 import { Preset } from './preset.js';
 import {
   applyTaggerTagRules,
+  callAsyncHook,
   getPivotOffset,
   getPivotPoint,
   getPresetDataBounds,
@@ -27,7 +28,7 @@ export class Spawner {
    * @param {String} [options.uuid]                      Preset UUID
    * @param {String} [options.name]                      Preset name
    * @param {String} [options.type]                      Preset type ("Token", "Tile", etc)
-   * @param {String|Array[String]|Object} [options.tags] Preset tags, See PresetAPI.getPreset
+   * @param {String|Array[String]|Object} [options.tags] Preset tags, See PresetStorage.retrieve
    * @param {Boolean} [options.random]                   If a unique preset could not be found, a random one will be chosen from the matched list
    * @param {Number} [options.x]                         Spawn canvas x coordinate (mouse position used if x or y are null)
    * @param {Number} [options.y]                         Spawn canvas y coordinate (mouse position used if x or y are null)
@@ -71,13 +72,14 @@ export class Spawner {
       throw Error('Need both X and Y coordinates to spawn a preset.');
 
     if (preset) await preset.load();
-    preset = preset ?? (await PresetAPI.getPreset({ uuid, name, type, folder, tags, random }));
+    preset = preset ?? (await PresetStorage.retrieveSingle({ uuid, name, type, folder, tags, random, load: true }));
     if (!preset) throw Error(`No preset could be found matching: { uuid: "${uuid}", name: "${name}", type: "${type}"}`);
 
     // Lets clone the preset so that any modifications made to it will not affect the original
     preset = preset.clone();
 
-    if (!Hooks.call('MassEdit.spawnPreset', preset)) return [];
+    // Give an opportunity for other modules to modify the preset
+    if (!(await callAsyncHook('MassEdit.spawnPreset', preset))) return;
 
     let presetData = preset.data;
 
