@@ -1,3 +1,7 @@
+# 2.2.1
+
+- Fixed `Auto-flip` settings not being inserted into Token Configuration forms while on Scenescapes
+
 # 2.2.0
 
 - Preset handling system rework

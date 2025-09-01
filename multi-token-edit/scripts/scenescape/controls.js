@@ -66,8 +66,8 @@ export class ScenescapeControls {
       const formGroup = await foundry.applications.handlebars.renderTemplate(
         `modules/${MODULE_ID}/templates/scenescapes/autoFlipFormGroup.html`,
         {
-          autoFlipX: app.object.getFlag(MODULE_ID, 'autoFlipX'),
-          autoFlipY: app.object.getFlag(MODULE_ID, 'autoFlipY'),
+          autoFlipX: app.document.getFlag(MODULE_ID, 'autoFlipX'),
+          autoFlipY: app.document.getFlag(MODULE_ID, 'autoFlipY'),
         }
       );
       $(html).find('[name="mirrorX"]').closest('.form-group').after(formGroup);
