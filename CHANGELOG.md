@@ -1,3 +1,22 @@
+# 2.2.0
+
+- Preset handling system rework
+  - Code refactoring/simplification
+  - Improved preset retrieval speed
+  - Better synchronization between the Preset Browser and the underlying Preset compendiums
+- New setting: `Hide Preset Compendiums`
+  - When enabled compendiums managed by Mass Edit will not appear within the sidebar _Compendium Packs_ tab
+- New Preset context menu option: `Expand`
+  - Opens up a new window allowing selection of each individual placeable contained within the Preset
+- New toggle added to Preset Category Browser: `Sort Alphabetically`
+- New hook: `MassEdit.spawnPreset`
+  - Called before a preset is spawned, providing an opportunity to modify it
+  - Registered `async` functions will be awaited
+  - Preset spawning will be cancelled upon `false` being returned
+- Fixed wildcard search not working in Mass Edit forms
+- Fixed Shift-key modifier not being recognised when performing file drag/drop upload
+- Fixed Preset Browser not immediately rendering drag/dropped files
+
 # 2.1.2
 
 - Fixed compatibility issues with `Multiple Document Selection` module
