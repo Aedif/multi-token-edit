@@ -10,9 +10,10 @@ import { PresetBrowser } from './browserApp.js';
  * @returns
  */
 export async function getPresetPackTrees({ type = 'ALL', externalCompendiums = true, virtualDirectory = true } = {}) {
-  const workingPack = game.packs.get(PresetStorage.workingPack);
-  if (!workingPack.index?.get(META_INDEX_ID)) {
-    await PresetStorage._initCompendium(PresetStorage.workingPack);
+  let workingPack = game.packs.get(PresetStorage.workingPack);
+  if (!workingPack?.index?.get(META_INDEX_ID)) {
+    let { compendium } = await PresetStorage._initCompendium(PresetStorage.workingPack);
+    workingPack = compendium;
   }
 
   const workingTree = await collectionToTree(workingPack, type);

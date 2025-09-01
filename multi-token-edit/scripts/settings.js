@@ -261,10 +261,7 @@ export function registerSettings() {
     config: true,
     type: Boolean,
     default: false,
-    onChange: () => {
-      ui.controls.controls = ui.controls._getControlButtons();
-      ui.controls.render(true);
-    },
+    requiresReload: true,
   });
 
   if (game.modules.get('spotlight-omnisearch')?.active) {

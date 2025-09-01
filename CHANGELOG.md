@@ -1,3 +1,8 @@
+# 2.2.2
+
+- Fixed working pack creation/initialization
+- Fixed error thrown during setting save
+
 # 2.2.1
 
 - Fixed `Auto-flip` settings not being inserted into Token Configuration forms while on Scenescapes
