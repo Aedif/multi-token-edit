@@ -1,3 +1,7 @@
+# 2.2.4
+
+- Fixed `Import Scene` and `Spawn Scene` context menu options
+
 # 2.2.3
 
 - Fixed preset type search

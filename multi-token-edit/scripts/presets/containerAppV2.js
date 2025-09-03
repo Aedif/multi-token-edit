@@ -415,7 +415,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
         name: 'Import Scene',
         icon: '<i class="fas fa-download fa-fw"></i>',
         condition: (item) => item.dataset.docName === 'FauxScene',
-        callback: this._onImportFauxScene,
+        callback: this._onImportFauxScene.bind(this),
         sort: 50,
       },
       {
@@ -423,7 +423,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
         name: 'Spawn Scene',
         icon: '<i class="fa-solid fa-books"></i>',
         condition: (item) => item.dataset.docName === 'FauxScene',
-        callback: this._onSpawnScene,
+        callback: this._onSpawnScene.bind(this),
         sort: 51,
       },
       {
