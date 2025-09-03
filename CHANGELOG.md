@@ -1,3 +1,7 @@
+# 2.2.3
+
+- Fixed preset type search
+
 # 2.2.2
 
 - Fixed working pack creation/initialization

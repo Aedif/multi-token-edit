@@ -676,7 +676,7 @@ export class PresetStorage {
     if (search) {
       const { name, terms, types, tags } = search;
       if (name && name !== entry.name) match = false;
-      else if (types && !types.includes(entry.type)) match = false;
+      else if (types && !types.includes(entry.documentName)) match = false;
       else if (terms && !terms.every((t) => entry.name.toLowerCase().includes(t))) match = false;
       else if (tags) {
         if (tags.noTags) match = !entry.tags.length;
@@ -687,7 +687,7 @@ export class PresetStorage {
     if (match && negativeSearch) {
       const { name, terms, types, tags } = negativeSearch;
       if (name && name === entry.name) match = false;
-      else if (types && types.includes(entry.type)) match = false;
+      else if (types && types.includes(entry.documentName)) match = false;
       else if (terms && !terms.every((t) => !entry.name.toLowerCase().includes(t))) match = false;
       else if (tags) {
         if (tags.noTags) match = !!entry.tags.length;
