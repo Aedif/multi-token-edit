@@ -1,10 +1,11 @@
-<li class="item item-s flexrow {{#if sortable}}sortable{{/if}} {{#if preset.virtual}}virtual{{/if}}" data-uuid="{{preset.uuid}}" name="{{preset.name}}" draggable="true" data-doc-name="{{preset.documentName}}" data-action="itemClick" 
-  data-tooltip="{{preset.name}} {{#if preset.tags.length}}<div class='mass-edit-tags tags'>{{#each tags}}<span>{{this}}</span>{{/each}}</div>{{/if}}">
+{{#mePreset preset=preset sortable=sortable createEnabled=createEnabled callback=callback}}
+<li class="item item-s flexrow{{#if sortable}} sortable{{/if}}{{#if preset.virtual}} virtual{{/if}}" data-uuid="{{preset.uuid}}" name="{{preset.name}}" draggable="true" data-doc-name="{{preset.documentName}}" data-action="itemClick" 
+  data-tooltip="{{preset.name}} {{#if preset.tags.length}}<div class='mass-edit-tags tags'>{{#each preset.tags}}<span>{{this}}</span>{{/each}}</div>{{/if}}">
     
     <img loading="lazy" class="thumbnail" src="{{preset.thumbnail}}">
 
   <div class="item-name flexrow">
-    <label title="{{preset.title}}" name="{{preset.name}}">{{preset.name}} </label>
+    <label name="{{preset.name}}">{{preset.name}} </label>
   </div>
 
   <div class="item-controls flexrow">
@@ -23,3 +24,4 @@
     {{/each}}
   </div>
 </li>
+{{/mePreset}}

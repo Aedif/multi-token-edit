@@ -1150,38 +1150,46 @@ export function registerPresetBrowserHooks() {
     if (!game.user.isGM) return;
     if (!game.settings.get(MODULE_ID, 'presetSceneControl')) return;
 
-    if ($(html).find('.mass-edit-scene-control').length) return;
+    if ($(html).find('.mass-edit-scene-control-macro').length) return;
 
-    const presetControl = $(
-      `<li>
-       <button type="button" class="control ui-control layer icon mass-edit-scene-control fa-solid fa-books" role="tab"  data-control="me-presets" data-tooltip="" aria-pressed="false" aria-label="Mass Edit: Presets" aria-controls="scene-controls-tools"></button>
-   </li>`
-    );
-
-    presetControl.on('click', () => {
+    const displayPresetBrowser = function () {
       let documentName = canvas.activeLayer.constructor.documentName;
       if (!SUPPORTED_PLACEABLES.includes(documentName)) documentName = 'ALL';
-
       const presetForm = foundry.applications.instances.get('mass-edit-presets');
       if (presetForm) {
         presetForm.close();
         return;
       }
+      new PresetBrowser(null, null, documentName).render(true);
+    };
 
-      new PresetBrowser(null, null, documentName, {
-        left: presetControl.position().left + presetControl.width() + 40,
-      }).render(true);
-    });
+    foundry.applications.handlebars
+      .renderTemplate(`modules/${MODULE_ID}/templates/preset/sceneControlMacro.hbs`, {
+        macros: MassEdit.registers._sceneControlMacros.length
+          ? [
+              { uuid: 'browser', label: 'Preset Browser', icon: 'fa-solid fa-book-atlas' },
+              ...MassEdit.registers._sceneControlMacros,
+            ]
+          : [],
+      })
+      .then((controls) => {
+        const jControls = $(controls);
+        $(html).find('#scene-controls-layers').append(jControls);
 
-    presetControl.on('contextmenu', async () => {
-      const macroUuid =
-        game.settings.get(MODULE_ID, 'browserContextMacroUuid') ||
-        'Compendium.baileywiki-nuts-and-bolts.macros.Macro.gjVoFJiIoKerEcB2';
-      const macro = await fromUuid(macroUuid);
-      macro?.execute();
-    });
+        const macros = jControls.find('.macros');
 
-    $(html).find('#scene-controls-layers').append(presetControl);
+        jControls.on('click', '.browser', (event) => {
+          if (MassEdit.registers._sceneControlMacros.length) macros.toggleClass('active');
+          else displayPresetBrowser();
+        });
+
+        macros.on('click', '.macro', (event) => {
+          const uuid = event.target.dataset.uuid;
+          if (uuid === 'browser') {
+            displayPresetBrowser();
+          } else fromUuid(uuid)?.then((macro) => macro?.execute());
+        });
+      });
   });
 
   // Change default behavior of JournalEntry click and context menu within the CompendiumDirectory

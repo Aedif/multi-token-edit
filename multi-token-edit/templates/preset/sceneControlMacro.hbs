@@ -1,0 +1,12 @@
+<li class="mass-edit-scene-control-macro" >
+    <button type="button" class="control ui-control layer icon fa-solid fa-books browser" role="tab"  data-control="me-presets" data-tooltip="" aria-pressed="false" aria-label="Mass Edit: Presets" aria-controls="scene-controls-tools"></button>
+    <div class="macros flexcol">
+        {{#each macros as |macro|}}
+            <button type="button" class="control ui-control layer icon macro{{#if macro.icon}} {{macro.icon}}{{/if}}" data-uuid="{{macro.uuid}}" role="tab"  data-control="me-presets" data-tooltip="" aria-pressed="false" aria-label="{{macro.label}}">
+            {{#if macro.img}}
+            <img src="{{macro.img}}">
+            {{/if}}
+            </button>
+        {{/each}}
+    </div>
+</li>

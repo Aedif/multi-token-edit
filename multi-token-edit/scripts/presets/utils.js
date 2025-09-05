@@ -619,14 +619,14 @@ export async function importSceneCompendium(scenePack, presetPack) {
 export async function sceneNotFoundError(preset) {
   let dialog = null;
 
-  for (const message of MassEdit.sceneNotFoundMessages) {
+  for (const message of MassEdit.registers._sceneNotFoundMessages) {
     if (!(message.query && message.content)) continue;
     let p = await PresetStorage.retrieve({ presets: [preset], query: message.query });
     if (p.length) {
       const content = message.content.replace('{{name}}', preset.name);
       dialog = new Dialog(
         {
-          title: message.title ?? `Scene Import Warning`,
+          title: message.title,
           content,
           buttons: {},
         },

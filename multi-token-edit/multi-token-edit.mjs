@@ -22,7 +22,7 @@ import { TransformBus, MassTransformer } from './scripts/transformer.js';
 import { registerBlackBarHooks } from './scripts/auxilaryFeatures/blackbars.js';
 import { registerSceneConfigHooks } from './scripts/auxilaryFeatures/sceneConfig.js';
 import { registerDragUploadHooks } from './scripts/auxilaryFeatures/dragUpload.js';
-import { Preset } from './scripts/presets/preset.js';
+import { initRegisters } from './scripts/auxilaryFeatures/registers.js';
 
 globalThis.MassTransformer = MassTransformer;
 
@@ -47,8 +47,6 @@ globalThis.MassEdit = {
   importSceneCompendium,
   openPresetBrowser,
   FileIndexer: FileIndexerAPI,
-  sceneNotFoundMessages: [],
-  registerPresetTagIcons: Preset.registerTagIcons,
 };
 
 // Initialize module
@@ -57,36 +55,30 @@ Hooks.once('init', () => {
     ...globalThis.MassEdit,
   };
 
+  // Initialize functions which can be used by other modules to register some kind of extension to MassEdit functionality
+  initRegisters();
   //Register region behaviors
   registerBehaviors();
-
   // Allow users to drop AmbientSound presets onto playlists
   registerSideBarPresetDropListener();
-
   // Handle preset drag drop onto canvas
   registerPresetDragDropHooks();
-
   // Linker related hooks
   registerLinkerHooks();
-
+  // TODO: Replace with Foundry native Tag input field implementation
   TagInput.registerHandlebarsHelper();
-
   // Partials used for Preset rendering
   registerPresetHandlebarPartials();
-
   // Enable select tool for all layers
   enableUniversalSelectTool();
-
   // Settings/Keybindings
   registerSettings();
   registerKeybinds();
-
   // Scenescapes
   registerScenescapeHooks();
-
   // Drag Upload
   registerDragUploadHooks();
-
+  // Preset compendiums
   PresetStorage._init();
 
   // Register mouse wheel listener by inserting it just before the Foundry's MouseManager
@@ -226,6 +218,8 @@ Hooks.once('init', () => {
   //     promises.push(promise);
   //   }
   // });
+
+  Hooks.callAll('MassEdit.ready');
 });
 
 // Deactivate brush/picker on scene change

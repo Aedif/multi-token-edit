@@ -494,9 +494,34 @@
   flex-wrap: wrap;
 }
 
-.mass-edit-scene-control {
+.mass-edit-scene-control-macro {
+  position: relative;
+}
+
+.mass-edit-scene-control-macro .browser {
   color: cornflowerblue !important;
 }
+
+.mass-edit-scene-control-macro .macros {
+  position: absolute;
+  top: 0;
+  left: 40px;
+  gap: 4px;
+  display: none;
+}
+
+.mass-edit-scene-control-macro .macros.active {
+  display: flex;
+}
+
+.mass-edit-scene-control-macro .macros button {
+  background-color: lightslategray;
+}
+
+.mass-edit-scene-control-macro .macros button img {
+  max-width: 200%;
+}
+
 
 input.me-add {
   background-color: greenyellow !important;

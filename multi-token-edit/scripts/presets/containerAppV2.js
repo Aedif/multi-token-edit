@@ -29,9 +29,28 @@ export async function registerPresetHandlebarPartials() {
     'me-preset-list'
   );
 
+  // Conditional rendering helper
   Handlebars.registerHelper('meRender', function (item, ctx) {
     if (ctx.data.root.browser) return item._meMatch;
     return true;
+  });
+
+  // Preset rendering wrapper
+  // Calls a hook to provide opportunity for other modules to modify rendering behavior
+  Handlebars.registerHelper('mePreset', function (context) {
+    const preset = context.hash.preset;
+    const contextualPreset = {
+      name: preset.name,
+      uuid: preset.uuid,
+      virtual: preset.virtual,
+      documentName: preset.documentName,
+      tags: preset.tags,
+      thumbnail: preset.thumbnail,
+      icons: preset.icons,
+    };
+    Hooks.call('MassEdit.renderPreset', contextualPreset);
+
+    return context.fn({ ...context.hash, preset: contextualPreset }); // render the block with given context
   });
 }
 
