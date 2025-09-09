@@ -232,8 +232,8 @@ export class PresetStorage {
    * @param {Collection} pack
    * @returns
    */
-  static async _loadIndex(pack) {
-    if (pack._meIndex) return pack._meIndex;
+  static async _loadIndex(pack, force = false) {
+    if (pack._meIndex && !force) return pack._meIndex;
     const metadataDocument = await pack.getDocument(META_INDEX_ID);
     const rawIndex = metadataDocument.getFlag(MODULE_ID, 'index');
 
@@ -241,7 +241,10 @@ export class PresetStorage {
     for (const [id, content] of Object.entries(rawIndex)) {
       if (id !== META_INDEX_ID) {
         const i = pack.index.get(id);
-        if (i) index.set(id, new Preset({ ...content, ...i }));
+        if (i) {
+          const { folder, name, sort, uuid, _id } = i;
+          index.set(id, new Preset({ ...content, folder, name, sort, uuid, _id }));
+        }
       }
     }
 
@@ -493,7 +496,10 @@ export class PresetStorage {
   // Re-construct preset index. This is called when a metadata document is created within a compendium
   // with other existing documents. It's possible that the metadata document has been deleted and the compendium
   // is now being attempted to be used as a Preset compendium again.
-  static async _recoverIndex(compendium) {
+  static async _recoverIndex(packId) {
+    const { compendium, metadataDocument } = await this._initCompendium(packId);
+    if (!compendium) return;
+
     const indexUpdate = {};
     const documents = await compendium.getDocuments();
     for (const document of documents) {
@@ -511,7 +517,9 @@ export class PresetStorage {
     }
 
     if (!foundry.utils.isEmpty(indexUpdate)) {
-      compendium.getDocument(META_INDEX_ID).then((metaDocument) => metaDocument.update(indexUpdate));
+      await metadataDocument.update(indexUpdate);
+      await this._loadIndex(compendium, true);
+      compendium.initializeTree?.();
     }
   }
 

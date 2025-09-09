@@ -360,7 +360,7 @@ export class FileIndexer {
   }
 
   static _indexToNode(cache, parentDirPath, options) {
-    const fullPath = parentDirPath + '/' + cache.dir;
+    const fullPath = parentDirPath + (parentDirPath ? '/' : '') + cache.dir;
 
     const node = {};
     node.children = cache.dirs?.map((dir) => this._indexToNode(dir, fullPath, options)) ?? [];

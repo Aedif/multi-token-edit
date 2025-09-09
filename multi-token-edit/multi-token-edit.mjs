@@ -47,6 +47,7 @@ globalThis.MassEdit = {
   importSceneCompendium,
   openPresetBrowser,
   FileIndexer: FileIndexerAPI,
+  recoverPresetIndex: PresetStorage._recoverIndex.bind(PresetStorage),
 };
 
 // Initialize module

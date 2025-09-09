@@ -1,3 +1,14 @@
+# 2.3.0
+
+- New hook: `MassEdit.renderPreset`
+  - Called before a preset is rendered within the browser
+- New hook: `MassEdit.ready`
+  - Called when the module has finished setup and is ready to be interacted with
+- New API: `MassEdit.registers.registerSceneControlMacro({ icon, img, label, uuid })`
+  - Allows registering of macro buttons to be displayed when clicking the Mass Edit scene control button
+- New API: `MassEdit.recoverPresetIndex(_packId_)`
+  - Recovers missing preset index entries for the provided compendium
+
 # 2.2.4
 
 - Fixed `Import Scene` and `Spawn Scene` context menu options
