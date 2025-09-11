@@ -107,7 +107,18 @@ export function enableUniversalSelectTool() {
     setTimeout(() => _placeableRefresh(note), 10);
   });
 
-  if (foundry.utils.isNewerVersion(game.version, 12)) registerRegionWrappers();
+  // AmbientLight _canDragLeftStart has a special check to fail if a preview already exists
+  // lets step over it.
+  libWrapper.register(
+    MODULE_ID,
+    'foundry.canvas.placeables.AmbientLight.prototype._canDragLeftStart',
+    function (user, event) {
+      return foundry.canvas.placeables.PlaceableObject.prototype._canDragLeftStart.call(this, user, event);
+    },
+    'OVERRIDE'
+  );
+
+  registerRegionWrappers();
 }
 
 /**

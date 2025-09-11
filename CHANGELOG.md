@@ -1,3 +1,8 @@
+# 2.3.1
+
+- Fixed `AmbientLight` multi-drag errors
+- Fixed FileIndexer generating bad links for S3 buckets
+
 # 2.3.0
 
 - New hook: `MassEdit.renderPreset`
