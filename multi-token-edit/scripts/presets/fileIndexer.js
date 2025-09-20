@@ -279,14 +279,52 @@ export class FileIndexer {
     }
 
     if (processAutoSave && this._collection) {
-      const folderUuids = game.settings.get(MODULE_ID, 'presetBrowser').autoSaveFolders ?? [];
-      if (!folderUuids.length) return;
+      const autoSaveVirtualFolders = game.settings.get(MODULE_ID, 'presetBrowser').autoSaveVirtualFolders;
+      if (!autoSaveVirtualFolders) return;
 
-      const folders = folderUuids.map((uuid) => fromUuidSync(uuid)).filter(Boolean);
-      if (!folders.length) return;
+      // Lets group folders by target save location
+      const locationsToFolders = [];
+      for (const [uuid, location] of Object.entries(autoSaveVirtualFolders)) {
+        const folder = fromUuidSync(uuid);
+        if (!folder || !folder.indexable || !folder.source) continue;
 
-      for (const folder of folders) {
-        this.saveFolderToCache(folder, false);
+        const lf = locationsToFolders.find(
+          (l) => l.source === location.source && l.target === location.target && l.bucket === location.bucket
+        );
+        if (lf) lf.folders.push(folder);
+        else
+          locationsToFolders.push({
+            source: location.source,
+            target: location.target,
+            bucket: location.bucket,
+            folders: [folder],
+          });
+      }
+
+      // Save folders at each location by individually constructing an index for each folder and merging it into one single index
+      for (const location of locationsToFolders) {
+        let index = [];
+
+        for (const folder of location.folders) {
+          let wFolder = folder;
+          while (wFolder.parent) {
+            wFolder = {
+              name: wFolder.parent.name,
+              presets: [],
+              children: [{ folder: wFolder }],
+              parent: wFolder.parent.parent,
+            };
+          }
+
+          const sourceCache = {
+            source: wFolder.name,
+            index: wFolder.children.map((ch) => this._cacheFolder(ch.folder)),
+          };
+
+          this.mergeCaches(index, [sourceCache]);
+        }
+
+        this._writeIndexToCache(index, { path: location.target, notify: false, source: location.source });
       }
     }
   }

@@ -179,7 +179,7 @@ export function registerSettings() {
       switchLayer: true,
       documentLock: '',
       dropdownDocuments: ['MeasuredTemplate', 'Note', 'Region'],
-      autoSaveFolders: [],
+      autoSaveVirtualFolders: {},
       searchLimit: 1001,
     },
     onChange: (val) => {

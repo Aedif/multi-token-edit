@@ -603,12 +603,35 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
         condition: (header) => {
           const uuid = header.closest('.folder').dataset.uuid;
           const folder = fromUuidSync(uuid);
-          return folder.indexable && !game.settings.get(MODULE_ID, 'presetBrowser').autoSaveFolders?.includes(uuid);
+          return folder.indexable && !game.settings.get(MODULE_ID, 'presetBrowser').autoSaveVirtualFolders?.[uuid];
         },
         callback: (header) => {
           const settings = game.settings.get(MODULE_ID, 'presetBrowser');
-          settings.autoSaveFolders = [...(settings.autoSaveFolders ?? []), $(header).closest('.folder').data('uuid')];
-          game.settings.set(MODULE_ID, 'presetBrowser', settings);
+          const uuid = $(header).closest('.folder').data('uuid');
+
+          const fp = new foundry.applications.apps.FilePicker.implementation({
+            type: 'folder',
+            allowUpload: true,
+            callback: (target, fp) => {
+              settings.autoSaveVirtualFolders = settings.autoSaveVirtualFolders ?? {};
+              settings.autoSaveVirtualFolders[uuid] = { source: fp.activeSource, target, bucket: fp.source.bucket };
+              game.settings.set(MODULE_ID, 'presetBrowser', settings);
+            },
+          });
+
+          const savedLocation = settings.autoSaveVirtualFolders?.[uuid];
+          if (savedLocation) {
+            const { source, bucket, target } = savedLocation;
+            fp.source.target = target;
+            fp.source.bucket = bucket;
+            fp.activeSource = source;
+          } else {
+            const { source, bucket, path } = fromUuidSync(uuid);
+            fp.source.target = path;
+            fp.source.bucket = bucket;
+            fp.activeSource = source;
+          }
+          fp.browse();
         },
       },
       {
@@ -617,17 +640,11 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
         condition: (header) => {
           const uuid = header.closest('.folder').dataset.uuid;
           const folder = fromUuidSync(uuid);
-          return (
-            folder.indexable &&
-            game.settings
-              .get(MODULE_ID, 'presetBrowser')
-              .autoSaveFolders?.includes($(header).closest('.folder').data('uuid'))
-          );
+          return folder.indexable && game.settings.get(MODULE_ID, 'presetBrowser').autoSaveVirtualFolders?.[uuid];
         },
         callback: (header) => {
           const settings = game.settings.get(MODULE_ID, 'presetBrowser');
-          const uuid = $(header).closest('.folder').data('uuid');
-          settings.autoSaveFolders = (settings.autoSaveFolders ?? []).filter((i) => i !== uuid);
+          settings.autoSaveVirtualFolders[$(header).closest('.folder').data('uuid')] = null;
           game.settings.set(MODULE_ID, 'presetBrowser', settings);
         },
       },
