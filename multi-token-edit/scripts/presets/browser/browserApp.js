@@ -92,6 +92,7 @@ export class PresetBrowser extends PresetContainerV2 {
       contentClasses: ['standard-form'],
       resizable: true,
       minimizable: true,
+      icon: 'fa-solid fa-books',
     },
     position: {
       width: 377,

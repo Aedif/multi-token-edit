@@ -1,6 +1,6 @@
-<form>
+<div>
     <fieldset>
-        <legend>Directories to Index <a class="addDirectory"><i class="fas fa-plus"></i></a></legend>
+        <legend>Directories to Index <a data-action="add"><i class="fas fa-plus"></i></a></legend>
 
         <div class="indexDirectories">
             {{#each indexDirs as |dir|}}
@@ -8,7 +8,7 @@
                 <input class="source" type="text" name="indexDirs.{{@index}}.source" value="{{dir.source}}" readonly>
                 <input class="bucket" type="text" name="indexDirs.{{@index}}.bucket" value="{{dir.bucket}}" {{#unless dir.bucket}}hidden{{/unless}} readonly>
                 <input class="target" type="text" name="indexDirs.{{@index}}.target" value="{{dir.target}}" readonly>
-                <a class="deleteDirectory"><i class="fas fa-trash"></i></a>
+                <a data-action="delete"><i class="fas fa-trash"></i></a>
             </div>
             {{/each}}
         </div>
@@ -19,14 +19,16 @@
     <div class="form-group">
         <label>File Keyword Filter</label>
         <input name="fileFilters" type="text" value="{{fileFilters}}"></input>
-        <p class="notes">Files containing these keywords in their name will not be included in the index. Use comma "," to separate keywords.</p>
+        <p class="hint">Files containing these keywords in their name will not be included in the index. Use comma "," to separate keywords.</p>
     </div>
 
     <div class="form-group">
         <label>Folder Keyword Filter</label>
         <input name="folderFilters" type="text" value="{{folderFilters}}"></input>
-        <p class="notes">Folders containing these keywords in their name will not be included in the index. Use comma "," to separate keywords.</p>
+        <p class="hint">Folders containing these keywords in their name will not be included in the index. Use comma "," to separate keywords.</p>
     </div>
+
+    <br>
 
     <fieldset>
         <legend>External Indexes (ADVANCED)</legend>
@@ -34,18 +36,20 @@
         <div class="form-group">
             <label>Ignore External Indexes</label>
             <input name="ignoreExternal" type="checkbox" {{checked ignoreExternal}}/>
-            <p class="notes">When enabled external indexes will not be read and directories processed as normal.</p>
+            <p class="hint">When enabled external indexes will not be read and directories processed as normal.</p>
         </div>
 
         <div class="form-group">
             <label>Override Tags</label>
             <input name="overrideTags" type="checkbox" {{checked overrideTags}}/>
-            <p class="notes">When enabled user tags set through the Preset Browser will be overridden during re-indexing.</p>
+            <p class="hint">When enabled user tags set through the Preset Browser will be overridden during re-indexing.</p>
         </div>
     
     </fieldset>
 
+    <br>
+
     <footer class="sheet-footer flexrow">
-        <button type="submit"><i class="far fa-gear"></i>Generate Index</button>
+        <button data-action="generate" type="button"><i class="far fa-gear"></i>Generate Index</button>
     </footer>
-</form>
+</div>

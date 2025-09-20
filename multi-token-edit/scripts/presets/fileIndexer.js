@@ -719,69 +719,54 @@ class StringCompress {
 /**
  * Form to help configure and execute index build.
  */
-export class IndexerForm extends FormApplication {
-  /** @inheritdoc */
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      classes: ['sheet', 'mass-edit-dark-window'],
-      template: `modules/${MODULE_ID}/templates/preset/indexer.html`,
+export class IndexerForm extends foundry.applications.api.HandlebarsApplicationMixin(
+  foundry.applications.api.ApplicationV2
+) {
+  /** @override */
+  static DEFAULT_OPTIONS = {
+    id: 'me-indexer',
+    tag: 'form',
+    form: {
+      handler: IndexerForm.onSubmit,
+      submitOnChange: true,
+      closeOnSubmit: false,
+    },
+    window: {
+      contentClasses: ['standard-form', 'mass-edit-dark-window'],
+      title: 'Directory Indexer',
+      resizable: false,
+      icon: 'fas fa-file-search',
+    },
+    position: {
       width: 500,
       height: 'auto',
+    },
+    actions: {
+      add: IndexerForm._onAddDirectory,
+      delete: IndexerForm._onDeleteDirectory,
+      generate: IndexerForm._onGenerateIndex,
+    },
+  };
+
+  /** @override */
+  static PARTS = {
+    main: { template: `modules/${MODULE_ID}/templates/preset/indexer.hbs` },
+  };
+
+  /** @override */
+  async _prepareContext(options) {
+    const context = await super._prepareContext(options);
+
+    const settings = foundry.utils.deepClone(game.settings.get(MODULE_ID, 'indexer'));
+
+    return Object.assign(context, {
+      ...settings,
+      fileFilters: settings.fileFilters.join(', '),
+      folderFilters: settings.folderFilters.join(', '),
     });
   }
 
-  get title() {
-    return 'Directory Indexer';
-  }
-
-  async getData(options = {}) {
-    const data = foundry.utils.deepClone(game.settings.get(MODULE_ID, 'indexer'));
-    data.fileFilters = data.fileFilters.join(', ');
-    data.folderFilters = data.folderFilters.join(', ');
-    return data;
-  }
-
-  activateListeners(html) {
-    super.activateListeners(html);
-
-    html.on('click', '.addDirectory', this._onAddDirectory.bind(this));
-    html.on('click', '.deleteDirectory', this._onDeleteDirectory.bind(this));
-    html.on('input', '[name="fileFilters"]', this._onFileFiltersChange.bind(this));
-    html.on('input', '[name="folderFilters"]', this._onFolderFiltersChange.bind(this));
-    html.find('input[type="checkbox"]').on('change', this._onToggleCheckbox.bind(this));
-  }
-
-  _onToggleCheckbox(event) {
-    const chkBox = $(event.currentTarget);
-    const name = chkBox.attr('name');
-    this._updateIndexerSettings({ [name]: chkBox.is(':checked') }, false);
-  }
-
-  _onFileFiltersChange(event) {
-    clearTimeout(this._onInputTimeOut);
-    this._onInputTimeOut = setTimeout(() => {
-      const fileFilters = $(event.currentTarget)
-        .val()
-        .split(',')
-        .map((f) => f.trim())
-        .filter(Boolean);
-      this._updateIndexerSettings({ fileFilters }, false);
-    }, 500);
-  }
-
-  _onFolderFiltersChange(event) {
-    clearTimeout(this._onInputTimeOut);
-    this._onInputTimeOut = setTimeout(() => {
-      const folderFilters = $(event.currentTarget)
-        .val()
-        .split(',')
-        .map((f) => f.trim())
-        .filter(Boolean);
-      this._updateIndexerSettings({ folderFilters }, false);
-    }, 500);
-  }
-
-  async _onAddDirectory() {
+  static async _onAddDirectory() {
     this.selectFolder(async (selection) => {
       if (!selection) return;
       if (!selection.bucket) delete selection.bucket;
@@ -806,7 +791,7 @@ export class IndexerForm extends FormApplication {
     });
   }
 
-  async _onDeleteDirectory(event) {
+  static async _onDeleteDirectory(event) {
     const directory = $(event.target).closest('.directory');
     const source = directory.find('.source').val();
     const target = directory.find('.target').val();
@@ -817,6 +802,11 @@ export class IndexerForm extends FormApplication {
       .indexDirs.filter((id) => !(id.source === source && id.target === target && id.bucket == bucket));
 
     this._updateIndexerSettings({ indexDirs });
+  }
+
+  static _onGenerateIndex() {
+    FileIndexer.buildIndex();
+    this.close(true);
   }
 
   async _updateIndexerSettings(update = {}, render = true) {
@@ -839,12 +829,22 @@ export class IndexerForm extends FormApplication {
     }).render(true);
   }
 
-  /**
-   * @param {Event} event
-   * @param {Object} formData
-   */
-  async _updateObject(event, formData) {
-    FileIndexer.buildIndex();
+  static async onSubmit(event, form, formData) {
+    const update = foundry.utils.expandObject(formData.object);
+
+    update.fileFilters = update.fileFilters
+      .split(',')
+      .map((f) => f.trim())
+      .filter(Boolean);
+    update.folderFilters = update.folderFilters
+      .split(',')
+      .map((f) => f.trim())
+      .filter(Boolean);
+    update.indexDirs = Object.values(update.indexDirs);
+
+    const settings = game.settings.get(MODULE_ID, 'indexer');
+    foundry.utils.mergeObject(settings, update);
+    await game.settings.set(MODULE_ID, 'indexer', settings);
   }
 }
 
