@@ -327,7 +327,7 @@ export class VirtualFilePreset extends Preset {
       uuid: 'virtual@' + src,
       documentName,
       data,
-      gridSize: 150,
+      gridSize: canvas.grid.size ?? 150,
       img: src,
     });
   }
@@ -352,6 +352,12 @@ export class VirtualFilePreset extends Preset {
     if (is3DModel(src) || foundry.utils.getProperty(this.data[0], 'flags.levels-3d-preview.model3d')) {
       await this._load3DModel(src, this.data[0]);
     } else {
+      if (this.documentName === 'Token') {
+        this.data[0].width = 1;
+        this.data[0].height = 1;
+        return this;
+      }
+
       let { width, height } = await loadImageVideoDimensions(src);
       this.data[0].width = width ?? 100;
       this.data[0].height = height ?? 100;
@@ -362,7 +368,8 @@ export class VirtualFilePreset extends Preset {
 
   async _load3DModel(src, data) {
     src = foundry.utils.getProperty(data, 'flags.levels-3d-preview.model3d') ?? src;
-    if (!game.Levels3DPreview) {
+
+    if (!game.Levels3DPreview || this.documentName === 'Token') {
       foundry.utils.setProperty(data, 'flags.levels-3d-preview.model3d', src);
       foundry.utils.setProperty(data, 'texture.src', 'modules/levels-3d-preview/assets/blank.webp');
       return;

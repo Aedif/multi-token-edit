@@ -8,7 +8,9 @@
                 <input class="source" type="text" name="indexDirs.{{@index}}.source" value="{{dir.source}}" readonly>
                 <input class="bucket" type="text" name="indexDirs.{{@index}}.bucket" value="{{dir.bucket}}" {{#unless dir.bucket}}hidden{{/unless}} readonly>
                 <input class="target" type="text" name="indexDirs.{{@index}}.target" value="{{dir.target}}" readonly>
-                <a data-action="delete"><i class="fas fa-trash"></i></a>
+                <a class="{{#if dir.tokenize}}active{{/if}}" data-action="tokenize" title="Tokenize"><i class="fas fa-user-circle"></i></a>
+                <input class="tokenize" name="indexDirs.{{@index}}.tokenize" type="checkbox" {{checked dir.tokenize}} hidden/>
+                <a data-action="delete" title="Delete"><i class="fas fa-trash"></i></a>
             </div>
             {{/each}}
         </div>

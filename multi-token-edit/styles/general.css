@@ -779,9 +779,13 @@ nav > a[data-tab='me-pinned'] {
 }
 
 .indexDirectories a {
-  flex: 0.1;
+  flex: 0;
   text-align: center;
   padding-top: 5px;
+}
+
+.indexDirectories a.active {
+  color: darkorange
 }
 
 

@@ -177,18 +177,6 @@ export class ScenescapeControls {
     );
     this._wrapperIds.push(id);
 
-    // Hide AmbientLight warning on drag
-    id = libWrapper.register(
-      MODULE_ID,
-      'foundry.canvas.placeables.AmbientLight.prototype._canDragLeftStart',
-      function (wrapped, ...args) {
-        if (this.layer?.preview?.children.length) return false;
-        return wrapped(...args);
-      },
-      'MIXED'
-    );
-    this._wrapperIds.push(id);
-
     id = libWrapper.register(
       MODULE_ID,
       'foundry.canvas.layers.TokenLayer.prototype.moveMany',

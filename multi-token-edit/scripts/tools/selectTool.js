@@ -83,8 +83,6 @@ export function enablePixelPerfectSelect(force = false) {
  * Enable 'Select' tool for layers that do not have it. (AmbientLight, AmbientSound, MeasuredTemplate, and Note)
  */
 export function enableUniversalSelectTool() {
-  if (game.modules.get('select-tool-everywhere')?.active) return;
-
   const missingLayers = ['AmbientLight', 'AmbientSound', 'MeasuredTemplate', 'Note'];
 
   missingLayers.forEach((layer) => {
