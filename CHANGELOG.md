@@ -1,3 +1,16 @@
+# 2.4.0
+
+**Directory Indexer**
+
+- Updated to Appv2
+- Added **Tokenize** option to directory paths
+  - Image files encountered within these paths will have a `token` tag automatically applied to them and be displayed as Tokens within the browser
+- `Auto-Save Index` option now prompts for the destination directory
+
+**Misc**
+
+- Fixed Scenescape error thrown due to v2.3.1 AmbientLight error fix
+
 # 2.3.1
 
 - Fixed `AmbientLight` multi-drag errors

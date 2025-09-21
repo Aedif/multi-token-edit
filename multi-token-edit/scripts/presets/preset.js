@@ -404,7 +404,10 @@ export class VirtualFilePreset extends Preset {
     this.tags = update.tags;
 
     clearTimeout(VirtualFilePreset._updateTimeout);
-    VirtualFilePreset._updateTimeout = setTimeout(() => FileIndexer.saveIndexToCache({ processAutoSave: true }), 3000);
+    VirtualFilePreset._updateTimeout = setTimeout(
+      () => FileIndexer.saveIndexToCache({ processAutoSave: true, notify: false }),
+      3000
+    );
   }
 
   clone() {
