@@ -2,13 +2,13 @@
     {{#if multiEdit}}
     <fieldset>
         <legend>Add Tags</legend>
-        <string-tags value="" name="addTags" slug="true"></string-tags>
+        <string-tags-multi value="" name="addTags" slug="true"></string-tags-multi>
     </fieldset>
     <fieldset>
         <legend>Remove Tags</legend>
-        <string-tags value="" name="removeTags" slug="true"></string-tags>
+        <string-tags-multi value="" name="removeTags" slug="true"></string-tags-multi>
     </fieldset>
     {{else}}
-    <string-tags value="{{preset.tags}}" name="tags" slug="true"></string-tags>
+    <string-tags-multi value="{{preset.tags}}" name="tags" slug="true"></string-tags-multi>
     {{/if}}
 </div>

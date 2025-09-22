@@ -954,3 +954,16 @@ nav > a[data-tab='me-pinned'] {
 .mass-edit-category-browser .category.active {
   border-color: darkorange;
 }
+
+/* Temp fix */
+string-tags-multi {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0;
+}
+
+string-tags-multi > input {
+  flex: 1;
+}

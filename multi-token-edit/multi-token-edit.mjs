@@ -23,6 +23,7 @@ import { registerBlackBarHooks } from './scripts/auxilaryFeatures/blackbars.js';
 import { registerSceneConfigHooks } from './scripts/auxilaryFeatures/sceneConfig.js';
 import { registerDragUploadHooks } from './scripts/auxilaryFeatures/dragUpload.js';
 import { initRegisters } from './scripts/auxilaryFeatures/registers.js';
+import { registerMultiTagElement } from './scripts/libs/foundry/tags.js';
 
 globalThis.MassTransformer = MassTransformer;
 
@@ -81,6 +82,9 @@ Hooks.once('init', () => {
   registerDragUploadHooks();
   // Preset compendiums
   PresetStorage._init();
+
+  // Temp fix until native support
+  registerMultiTagElement();
 
   // Register mouse wheel listener by inserting it just before the Foundry's MouseManager
   // If we're in some kind of placeable preview we want to handle preview transformations and
