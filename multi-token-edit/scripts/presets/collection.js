@@ -273,9 +273,9 @@ export class PresetStorage {
     }
 
     // Get/Create metadata document
-    let metadataDocument = await compendium?.getDocument(this.META_INDEX_ID);
+    let metadataDocument = await compendium?.getDocument(META_INDEX_ID);
     if (compendium && !metadataDocument) {
-      if (!compendium._creatingMetadataDocument)
+      if (!compendium._creatingMetadataDocument) {
         compendium._creatingMetadataDocument = compendium.documentClass.createDocuments(
           [
             {
@@ -289,6 +289,7 @@ export class PresetStorage {
             keepId: true,
           }
         );
+      }
 
       const documents = await compendium._creatingMetadataDocument;
       metadataDocument = documents[0];

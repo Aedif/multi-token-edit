@@ -1,6 +1,5 @@
 import { MODULE_ID } from '../constants.js';
-import { META_INDEX_FIELDS, META_INDEX_ID, PresetStorage } from './collection.js';
-import { PresetBrowser } from './browser/browserApp.js';
+import { META_INDEX_ID, PresetStorage } from './collection.js';
 import { PRESET_FIELDS } from './preset.js';
 
 export class V12Migrator {

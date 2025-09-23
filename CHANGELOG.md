@@ -1,3 +1,7 @@
+# 2.4.1
+
+- Fixed an issue causing metadata file index to reset
+
 # 2.4.0
 
 **Directory Indexer**
