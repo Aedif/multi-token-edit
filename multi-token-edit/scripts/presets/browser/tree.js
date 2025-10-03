@@ -115,7 +115,7 @@ export function searchNode(node, search, negativeSearch, forceRender = false, ty
   const folderName = folder.name.toLowerCase();
 
   let match = false;
-  if (!folder.flags[MODULE_ID].types.some((t) => t === type) && !folder.typeless) {
+  if (!folder.flags[MODULE_ID]?.types?.some((t) => t === type) && !folder.typeless) {
     folder._meMatch = false;
     return;
   } else if (search && folderName && !folder._noSearch)

@@ -49,6 +49,7 @@ globalThis.MassEdit = {
   openPresetBrowser,
   FileIndexer: FileIndexerAPI,
   recoverPresetIndex: PresetStorage._recoverIndex.bind(PresetStorage),
+  exportPresets: PresetStorage.exportPresets,
 };
 
 // Initialize module

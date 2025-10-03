@@ -262,7 +262,7 @@ export class PresetConfig extends foundry.applications.api.HandlebarsApplication
     if (this.presets.length === 1) {
       fileName = this.presets[0].name.replace(' ', '_').replace(/\W/g, '');
     }
-    exportPresets(this.presets, fileName);
+    exportPresets(this.presets, { fileName });
   }
 
   static async _onEditDocument() {

@@ -3,7 +3,7 @@ import { SeededRandom, localize } from '../utils.js';
 import { FileIndexer } from './fileIndexer.js';
 import { PresetBrowser } from './browser/browserApp.js';
 import { DOCUMENT_FIELDS, Preset, VirtualFilePreset } from './preset.js';
-import { decodeURIComponentSafely, parseSearchQuery, placeableToData } from './utils.js';
+import { decodeURIComponentSafely, exportPresets, parseSearchQuery, placeableToData } from './utils.js';
 
 const DEFAULT_PACK = 'world.mass-edit-presets-main';
 export const META_INDEX_ID = 'MassEditMetaData';
@@ -774,13 +774,52 @@ export class PresetStorage {
 
     return presets;
   }
+
+  /**
+   * Mass export presets
+   * @param {object} options
+   * @param {boolean} options.workingCompendium
+   * @param {boolean} options.externalCompendiums
+   * @param {boolean} options.virtualDirectory
+   * @param {boolean} options.json
+   * @returns
+   */
+  static async exportPresets({
+    workingCompendium = false,
+    externalCompendiums = false,
+    virtualDirectory = false,
+    json = false,
+  } = {}) {
+    let toExport = [];
+    let packs = [];
+
+    if (workingCompendium) {
+      const pack = game.packs.get(PresetStorage.workingPack);
+      if (pack) packs.push(pack);
+    }
+
+    if (externalCompendiums) {
+      for (const pack of game.packs) {
+        if (!pack.index.get(META_INDEX_ID)) continue;
+        if (externalCompendiums && pack.collection !== PresetStorage.workingPack) packs.push(pack);
+      }
+    }
+
+    for (const pack of packs) {
+      if (!pack._meIndex) await PresetStorage._loadIndex(pack);
+      toExport = toExport.concat(pack._meIndex.contents);
+    }
+
+    await PresetStorage.batchLoad(toExport);
+
+    if (virtualDirectory) {
+      const virtualPack = await FileIndexer.collection();
+      if (virtualPack) {
+        if (!virtualPack._meIndex) await PresetStorage._loadIndex(virtualPack);
+        toExport = toExport.concat(virtualPack._meIndex.contents);
+      }
+    }
+
+    if (toExport.length) return exportPresets(toExport, { load: false, json });
+  }
 }
-
-// TODO, re-use CompendiumCollection (pack) tree to do rendering and search
-// hook into 'updateCompendium' hook to update the _meIndex/Preset on changes
-// When searching the tree use the _id in the normal index to query the _meIndex for the additional fields
-
-// search:
-// search all presets and return via  _getVisibleTreeContents
-// simple wrap of DirectoryCollectionMixin, return only matched presets and Folders
-// let the DirectoryCollectionMixin to construct the tree to be rendered

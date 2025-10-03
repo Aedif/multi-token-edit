@@ -75,7 +75,11 @@ export class ScenescapeControls {
     this._hooks.push({ hook: 'renderTokenConfig', id });
 
     id = Hooks.on('preCreateToken', async (token, data, options, userId) => {
-      if (!options.spawnPreset && token.actor?.img) token.updateSource({ 'texture.src': token.actor.img });
+      if (!options.spawnPreset) {
+        const update = { ring: { enabled: false } };
+        if (token.actor?.img) update.texture = { src: token.actor.img };
+        token.updateSource(update);
+      }
     });
     this._hooks.push({ hook: 'preCreateToken', id });
 

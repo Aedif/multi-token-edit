@@ -7,7 +7,7 @@ import { DragHoverOverlay, localFormat, localize, spawnSceneAsPreset } from '../
 import { META_INDEX_ID, PresetAPI, PresetPackFolder, PresetStorage } from '../collection.js';
 import { LinkerAPI } from '../../linker/linker.js';
 import { DOC_ICONS, Preset } from '../preset.js';
-import { exportPresets, parseSearchQuery, placeableToData } from '../utils.js';
+import { parseSearchQuery, placeableToData } from '../utils.js';
 import { MODULE_ID, SUPPORTED_PLACEABLES, UI_DOCS } from '../../constants.js';
 import { TagSelector } from './tagSelector.js';
 import PresetBrowserSettings from './settingsApp.js';
@@ -870,13 +870,8 @@ export class PresetBrowser extends PresetContainerV2 {
   /**
    * Export all working pack presets as a JSON file
    */
-  static async _onExportPresets() {
-    const pack = game.packs.get(PresetStorage.workingPack);
-
-    if (!pack._meIndex) await PresetStorage._loadIndex(pack._meIndex);
-    const presets = pack._meIndex.contents;
-    PresetStorage.batchLoad(presets);
-    exportPresets(presets);
+  static _onExportPresets() {
+    PresetStorage.exportPresets({ workingCompendium: true });
   }
 
   static async _onImportPresets() {
@@ -891,6 +886,8 @@ export class PresetBrowser extends PresetContainerV2 {
       for (const p of json) {
         if (!('documentName' in p)) continue;
         if (!('data' in p) || foundry.utils.isEmpty(p.data)) continue;
+        p.uuid = null;
+        p.folder = null;
 
         const preset = new Preset(p);
         preset._pages = p.pages;

@@ -466,17 +466,16 @@ export function getDataPivotPoint(documentName, data, pivot) {
   return { x: bounds.x1 + offset.x, y: bounds.y1 + offset.y };
 }
 
-export async function exportPresets(presets, fileName) {
+export async function exportPresets(presets, { fileName, json = false, load = true } = {}) {
   if (!presets.length) return;
 
-  await PresetStorage.batchLoad(presets);
+  if (load) await PresetStorage.batchLoad(presets);
 
   presets = presets.map((p) => {
-    const preset = p.clone();
-    preset.folder = null;
-    preset.uuid = null;
-    return preset;
+    return p.toJSON();
   });
+
+  if (json) return presets;
 
   foundry.utils.saveDataToFile(
     JSON.stringify(presets, null, 2),

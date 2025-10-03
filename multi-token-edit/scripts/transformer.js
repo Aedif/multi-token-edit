@@ -379,12 +379,18 @@ export class MassTransformer {
           // Special position update conditions
           // - Region: We need to simulate doc update via `_onUpdate` call
           // - AmbientLight and AmbientSound sources need to be re-initialized to have their fields properly rendered
-          if (documentName === 'Region') {
-            preview.document._onUpdate({ shapes: null }, { preview: true });
-          } else if (documentName === 'AmbientLight') {
-            preview.initializeLightSource();
-          } else if (documentName === 'AmbientSound') {
-            preview.initializeSoundSource();
+          switch (documentName) {
+            case 'Region':
+              preview.document._onUpdate({ shapes: null }, { preview: true });
+              break;
+            case 'AmbientLight':
+              preview.initializeLightSource();
+              break;
+            case 'AmbientSound':
+              preview.initializeSoundSource();
+            case 'Wall':
+              preview.createDoorMeshes();
+              break;
           }
         }
         // End of Hacks
@@ -407,6 +413,13 @@ export class MassTransformer {
           if (game.Levels3DPreview?._active) {
             layer.preview.children.forEach((c) => {
               c._l3dPreview?.destroy();
+            });
+          }
+          if (name === 'Wall') {
+            // Door meshes for some reason are not cleared via clearPreviewContainer()
+            // lets do it manually ourselves
+            layer.preview.children.forEach((c) => {
+              c.destroyDoorMeshes();
             });
           }
           layer.clearPreviewContainer();

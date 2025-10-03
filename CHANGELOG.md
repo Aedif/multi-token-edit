@@ -1,3 +1,25 @@
+# 2.4.2
+
+**Preset Browser**
+
+- `Placeables` category will be locked onto by default
+- `Scene` category is now hidden behind the dropdown menu by default
+- Fixed wall textures not updating and persisting after preview mode is ended
+- Fixed a folder related error preventing opening of the browser
+
+**Scenescapes**
+
+- Disable token rings when dragging tokens onto scenescapes
+
+**API**
+
+- New API method: `MassEdit.exportPresets({...})`
+  - Accepts the following flags:
+    - `workingCompendium` set to true to export current working compendium
+    - `externalCompendium` set to true to export external compendiums
+    - `virtualDirectory` set to true to export virtual directory
+    - `json` set to true to return presets in JSON format without exporting
+
 # 2.4.1
 
 - Fixed an issue causing metadata file index to reset
