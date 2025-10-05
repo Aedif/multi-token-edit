@@ -336,7 +336,7 @@ export class PresetStorage {
     for (const preset of presets) {
       const document = documents.find((d) => d.id === preset.id);
       preset.uuid = document.uuid;
-      await preset.load(document);
+      await preset.load({ document });
     }
 
     return presets;
@@ -751,10 +751,7 @@ export class PresetStorage {
     // Organize presets according to their packs
     const packToPreset = {};
     for (const preset of presets) {
-      if (preset instanceof VirtualFilePreset) {
-        await preset.load();
-        continue;
-      }
+      if (preset instanceof VirtualFilePreset) continue;
 
       if (!preset.document && preset.uuid) {
         const { collection, documentId } = foundry.utils.parseUuid(preset.uuid);
@@ -768,7 +765,7 @@ export class PresetStorage {
     for (const [pack, idToPresets] of Object.entries(packToPreset)) {
       const documents = await game.packs.get(pack).getDocuments({ _id__in: Object.keys(idToPresets) });
       for (const document of documents) {
-        await idToPresets[document.id].load(document);
+        await idToPresets[document.id].load({ document });
       }
     }
 

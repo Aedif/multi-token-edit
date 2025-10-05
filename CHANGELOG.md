@@ -1,3 +1,15 @@
+# 2.4.3
+
+**Misc**
+
+- Fixed light preview rendering error
+- Improved VirtualPreset load time via the Brush
+
+**API**
+
+- New async hook: `MassEdit.loadPreset`
+  - Called when preset data is required during a non-spawn context, such as media preview
+
 # 2.4.2
 
 **Preset Browser**

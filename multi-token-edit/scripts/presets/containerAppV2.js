@@ -851,8 +851,11 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
     };
 
     const preset = await this._retrieveSinglePreset(uuid);
+
     if (preset.documentName === 'AmbientSound') {
-      const src = isAudio(preset.img) ? preset.img : (await preset.load()).data[0]?.path;
+      await preset.load({ force: true, callHook: true });
+
+      const src = preset.data[0]?.path;
       if (!src) return;
       const sound = await game.audio.play(src);
       sound._mePreview = true;
@@ -860,7 +863,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
       addClearPreviewElement();
       this._previewElement.append(`<img width="320" height="320" src='icons/svg/sound.svg'></img>`);
     } else if (preset.documentName === 'Tile' && preset.thumbnail === 'icons/svg/video.svg') {
-      await preset.load();
+      await preset.load({ force: true, callHook: true });
       const src = preset.data[0].texture?.src;
       if (src && isVideo(src)) {
         addClearPreviewElement();

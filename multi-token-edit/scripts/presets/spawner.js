@@ -7,7 +7,7 @@ import { applyRandomization } from '../randomizer/randomizerUtils.js';
 import { Scenescape } from '../scenescape/scenescape.js';
 import { MassTransformer } from '../transformer.js';
 import { createDocuments, executeScript } from '../utils.js';
-import { PresetAPI, PresetStorage } from './collection.js';
+import { PresetStorage } from './collection.js';
 import { Preset } from './preset.js';
 import {
   applyTaggerTagRules,
@@ -80,6 +80,9 @@ export class Spawner {
 
     // Give an opportunity for other modules to modify the preset
     if (!(await callAsyncHook('MassEdit.spawnPreset', preset))) return;
+
+    // Load virtual preset dimensions
+    if (preset.virtual) await preset.load({ force: true });
 
     let presetData = preset.data;
 

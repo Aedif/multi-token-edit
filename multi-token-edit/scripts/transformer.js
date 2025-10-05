@@ -388,6 +388,7 @@ export class MassTransformer {
               break;
             case 'AmbientSound':
               preview.initializeSoundSource();
+              break;
             case 'Wall':
               preview.createDoorMeshes();
               break;

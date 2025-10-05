@@ -2,7 +2,7 @@ import { MODULE_ID } from '../constants.js';
 import { Scenescape } from '../scenescape/scenescape.js';
 import { is3DModel, isAudio, loadImageVideoDimensions } from '../utils.js';
 import { FileIndexer } from './fileIndexer.js';
-import { decodeURIComponentSafely, isVideo, placeableToData } from './utils.js';
+import { callAsyncHook, decodeURIComponentSafely, isVideo, placeableToData } from './utils.js';
 
 export const DOCUMENT_FIELDS = ['id', 'name', 'sort', 'folder'];
 
@@ -137,7 +137,7 @@ export class Preset {
    * Loads underlying JournalEntry document from the compendium
    * @returns this
    */
-  async load(document) {
+  async load({ document, callHook = false } = {}) {
     if (this._loaded) return this;
 
     if (!this.document && this.uuid) {
@@ -167,6 +167,7 @@ export class Preset {
       this.tags = preset.tags ?? [];
     }
 
+    if (callHook) await callAsyncHook('MassEdit.loadPreset', this);
     this._loaded = true;
     return this;
   }
@@ -336,15 +337,17 @@ export class VirtualFilePreset extends Preset {
     return true;
   }
 
-  async load(force = false) {
-    if (this._loaded) return this;
+  async load({ force = false, callHook = false } = {}) {
+    if (!force || this._loaded) return this;
     this._loaded = true;
-
-    // Ambient Sound, no further processing required
-    if (this.data[0].path) return this;
 
     // Width already determined, no further processing required
     if (this.data[0].width) return this;
+
+    if (callHook) await callAsyncHook('MassEdit.loadPreset', this);
+
+    // Ambient Sound, no further processing required
+    if (this.data[0].path) return this;
 
     // Load image/video/3D Model metadata to retrieve dimensions
     const src = this.data[0].texture?.src;
