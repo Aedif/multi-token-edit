@@ -106,6 +106,7 @@ export function registerSettings() {
       cacheDir: { target: '', source: 'data' },
       overrideTags: false,
       ignoreExternal: false,
+      fresh: false,
       fileFilters: ['Thumb', '-thumb', 'Thumbnail', 'thumbnail'],
       folderFilters: ['Thumb', 'thumb'],
     },

@@ -771,7 +771,7 @@ nav > a[data-tab='me-pinned'] {
 
 .indexDirectories .source,
 .indexDirectories .bucket {
-  flex: 0.3;
+  flex: 0.2;
 }
 
 .indexDirectories .target {

@@ -1,5 +1,5 @@
 <div>
-    <fieldset>
+    <fieldset style="overflow-y: auto; max-height: 250px;">
         <legend>Directories to Index <a data-action="add"><i class="fas fa-plus"></i></a></legend>
 
         <div class="indexDirectories">
@@ -8,8 +8,10 @@
                 <input class="source" type="text" name="indexDirs.{{@index}}.source" value="{{dir.source}}" readonly>
                 <input class="bucket" type="text" name="indexDirs.{{@index}}.bucket" value="{{dir.bucket}}" {{#unless dir.bucket}}hidden{{/unless}} readonly>
                 <input class="target" type="text" name="indexDirs.{{@index}}.target" value="{{dir.target}}" readonly>
-                <a class="{{#if dir.tokenize}}active{{/if}}" data-action="tokenize" title="Tokenize"><i class="fas fa-user-circle"></i></a>
+                <a class="{{#if dir.tokenize}}active{{/if}}" data-action="toggle" data-setting="tokenize" title="Tokenize"><i class="fas fa-user-circle"></i></a>
                 <input class="tokenize" name="indexDirs.{{@index}}.tokenize" type="checkbox" {{checked dir.tokenize}} hidden/>
+                <a class="{{#if dir.index}}active{{/if}}" data-action="toggle" data-setting="index" title="Index"><i class="fas fa-file-search"></i></a>
+                <input class="index" name="indexDirs.{{@index}}.index" type="checkbox" {{checked dir.index}} hidden/>
                 <a data-action="delete" title="Delete"><i class="fas fa-trash"></i></a>
             </div>
             {{/each}}
@@ -32,8 +34,8 @@
 
     <br>
 
-    <fieldset>
-        <legend>External Indexes (ADVANCED)</legend>
+    <fieldset style="overflow-y: auto; max-height: 250px;">
+        <legend>Advanced Settings (USE WITH CAUTION)</legend>
 
         <div class="form-group">
             <label>Ignore External Indexes</label>
@@ -45,6 +47,12 @@
             <label>Override Tags</label>
             <input name="overrideTags" type="checkbox" {{checked overrideTags}}/>
             <p class="hint">When enabled user tags set through the Preset Browser will be overridden during re-indexing.</p>
+        </div>
+
+        <div class="form-group">
+            <label>Fresh Scan</label>
+            <input name="fresh" type="checkbox" {{checked fresh}}/>
+            <p class="hint">When enabled the current index will be fully overridden and a new one created using only the fresh results from the new scan. Tags and any directory not selected to be indexed will be lost.</p>
         </div>
     
     </fieldset>

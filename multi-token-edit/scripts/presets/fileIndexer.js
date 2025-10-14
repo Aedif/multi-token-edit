@@ -132,12 +132,19 @@ export class FileIndexer {
 
     const settings = game.settings.get(MODULE_ID, 'indexer');
 
+    // TODO Temp: to be removed
+    settings.indexDirs.forEach((dir) => {
+      if (dir.index == null) dir.index = true;
+    });
+
     try {
       const scannedSources = [];
       const foundCaches = [];
 
       // Traverse directories specified in settings.indexDirs
       for (const dir of settings.indexDirs) {
+        if (!dir.index) continue;
+
         if (dir.source === 'forge-bazaar' || dir.source === 'forgevtt') {
           await this._buildFauxForgeBrowser(dir.source, dir.target);
         }
@@ -176,15 +183,19 @@ export class FileIndexer {
       // User can specify if he wants the tags associated with images/video to be retained or not.
       // overrideNullTagsOnly - true - will essentially override user changes to pre-cached directories
       // overrideNullTagsOnly - false - pre-cached directory tags will be ignored, favoring user tags
-      const currentCache = await this.loadIndexCache(CACHE_PATH + '/' + CACHE_NAME);
-      if (currentCache) {
-        this.mergeCaches(scannedSources, currentCache, {
-          tagsOnly: true,
-          overrideNullTagsOnly: settings.overrideTags,
-        });
+      console.log(settings);
+      if (!settings.fresh) {
+        const currentCache = await this.loadIndexCache(CACHE_PATH + '/' + CACHE_NAME);
+        if (currentCache) {
+          this.mergeCaches(scannedSources, currentCache, {
+            tagsOnly: true,
+            overrideNullTagsOnly: settings.overrideTags,
+          });
+        }
       }
 
       if (scannedSources.length) await this._writeIndexToCache(scannedSources);
+      else if (settings.fresh) await this._writeIndexToCache([]);
       this._collection = null;
 
       ui.notifications.info(`MassEdit Index build finished.`);
@@ -768,7 +779,7 @@ export class IndexerForm extends foundry.applications.api.HandlebarsApplicationM
       add: IndexerForm._onAddDirectory,
       delete: IndexerForm._onDeleteDirectory,
       generate: IndexerForm._onGenerateIndex,
-      tokenize: IndexerForm._onTokenize,
+      toggle: IndexerForm._onToggleSetting,
     },
   };
 
@@ -782,6 +793,10 @@ export class IndexerForm extends foundry.applications.api.HandlebarsApplicationM
     const context = await super._prepareContext(options);
 
     const settings = foundry.utils.deepClone(game.settings.get(MODULE_ID, 'indexer'));
+    settings.indexDirs?.forEach((dir) => {
+      if (dir.tokenize == null) dir.tokenize = false;
+      if (dir.index == null) dir.index = true;
+    });
 
     return Object.assign(context, {
       ...settings,
@@ -834,13 +849,13 @@ export class IndexerForm extends foundry.applications.api.HandlebarsApplicationM
     this.close(true);
   }
 
-  static _onTokenize(event, target) {
+  static _onToggleSetting(event, target) {
     const active = target.classList.contains('active');
 
     if (active) target.classList.remove('active');
     else target.classList.add('active');
 
-    target.closest('.directory').querySelector('.tokenize').checked = !active;
+    target.closest('.directory').querySelector('.' + target.dataset.setting).checked = !active;
     this.submit();
   }
 
