@@ -131,6 +131,7 @@ function _getControlButtons(controls) {
       icon: 'fas fa-expand',
       active: true,
     };
+    controls[layer].activeTool = 'select';
   });
 
   if (!game.settings.get(MODULE_ID, 'disablePixelPerfectHoverButton')) {

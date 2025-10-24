@@ -863,7 +863,13 @@ export class BrushMenu extends FormApplication {
 
   addPresets(presets = []) {
     for (const preset of presets) {
-      if (!this.presets.find((p) => p === preset)) this.presets.push(preset);
+      if (!this.presets.find((p) => p === preset)) {
+        if (this.presets.length >= 100) {
+          ui.notifications.warn('Brush size exceeded, limiting number of presets to 100.');
+          return;
+        }
+        this.presets.push(preset);
+      }
     }
     this._createIndex();
     this.render(true);
