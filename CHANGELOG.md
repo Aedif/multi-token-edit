@@ -1,3 +1,17 @@
+# 2.5.0
+
+**Directory Indexer**
+
+- Added scrollbars
+- Individual directories can now be toggled on/off allowing to index a subsection of directories
+- New setting `Fresh Scan`
+  - When enabled the current index will be ignored allowing a fully fresh scan
+  - Any directory not selected for indexing will be lost/not included in the resultant index
+
+**Misc**
+
+- Select tools inserted for `Ambient Lights`, `AmbientSounds` and `Measured Templates` will now be active by default when selecting the layer for the first time
+
 # 2.4.3
 
 **Misc**
