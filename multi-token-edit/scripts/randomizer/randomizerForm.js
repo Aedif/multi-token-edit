@@ -258,22 +258,22 @@ export default class RandomizerForm extends FormApplication {
     if (this.configuration.textForm) {
       $(html).on('input', '[name="method"]', (e) => {
         if (e.target.value === 'findAndReplace' || e.target.value === 'findAndReplaceRegex') {
-          html.find('.string-list').hide();
-          html.find('.find-and-replace').show();
+          html.find('.string-list')[0].hidden = true;
+          html.find('.find-and-replace')[0].hidden = false;
         } else {
-          html.find('.string-list').show();
-          html.find('.find-and-replace').hide();
+          html.find('.string-list')[0].hidden = false;
+          html.find('.find-and-replace')[0].hidden = true;
         }
       });
       $(html).find('[name="method"]').trigger('input');
     } else if (this.configuration.imageForm) {
       $(html).on('input', '[name="method"]', (e) => {
         if (e.target.value === 'findAndReplace' || e.target.value === 'findAndReplaceRegex') {
-          html.find('.image-controls').hide();
-          html.find('.find-and-replace').show();
+          html.find('.image-controls')[0].hidden = true;
+          html.find('.find-and-replace')[0].hidden = false;
         } else {
-          html.find('.image-controls').show();
-          html.find('.find-and-replace').hide();
+          html.find('.image-controls')[0].hidden = false;
+          html.find('.find-and-replace')[0].hidden = true;
         }
       });
       $(html).find('[name="method"]').trigger('input');

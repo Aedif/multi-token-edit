@@ -326,9 +326,10 @@ export function registerKeybinds() {
     ],
     onDown: () => {
       LinkerAPI.openMenu();
+      return true;
     },
     restricted: true,
-    precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
+    precedence: CONST.KEYBINDING_PRECEDENCE.PRIORITY,
   });
 
   game.keybindings.register(MODULE_ID, 'smartLink', {
@@ -453,12 +454,12 @@ export function registerKeybinds() {
       const app = getMassEditForm();
       if (app) {
         app.close();
-        return;
+        return true;
       }
-      showMassEdit();
+      return showMassEdit();
     },
     restricted: true,
-    precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
+    precedence: CONST.KEYBINDING_PRECEDENCE.PRIORITY,
   });
 
   game.keybindings.register(MODULE_ID, 'copyKey', {

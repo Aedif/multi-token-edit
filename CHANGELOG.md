@@ -1,3 +1,8 @@
+# 2.5.1
+
+- Fixed `Open Linker Menu` and `Open Multi-Placeable Edit` keybindings resetting selected placeable rotation
+- Fixed input fields not being displayed after selecting `Find and Replace` on randomizer forms
+
 # 2.5.0
 
 **Directory Indexer**

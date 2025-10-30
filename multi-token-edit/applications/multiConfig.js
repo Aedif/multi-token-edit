@@ -162,12 +162,12 @@ export async function showMassEdit(found = null, documentName, options = {}) {
   let [target, selected] = getSelected(found);
 
   // If there are no placeable in control or just one, then either exit or display the default config window
-  if (!selected || !selected.length) return;
+  if (!selected || !selected.length) return false;
 
   if (!options.forceForm && game.settings.get(MODULE_ID, 'singleDocDefaultConfig')) {
     if (selected.length === 1) {
       if (selected[0].sheet) selected[0].sheet.render(true, {});
-      return;
+      return false;
     }
   }
 
