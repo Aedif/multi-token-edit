@@ -1,3 +1,9 @@
+# 2.5.2
+
+- New options added to: `MassEdit.exportPresets(...)`
+  - `query` - allows to filter exported presets using a search query
+- Tagger rules are now fully handled by ME which should fix inaccurate rule application on multi-placeable preset spawning
+
 # 2.5.1
 
 - Fixed `Open Linker Menu` and `Open Multi-Placeable Edit` keybindings resetting selected placeable rotation
