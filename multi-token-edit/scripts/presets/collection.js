@@ -785,6 +785,7 @@ export class PresetStorage {
     workingCompendium = false,
     externalCompendiums = false,
     virtualDirectory = false,
+    query = '',
     json = false,
   } = {}) {
     let toExport = [];
@@ -807,13 +808,21 @@ export class PresetStorage {
       toExport = toExport.concat(pack._meIndex.contents);
     }
 
+    // Filter via query
+    if (query) toExport = await PresetStorage.retrieve({ query, presets: toExport });
+
     await PresetStorage.batchLoad(toExport);
 
     if (virtualDirectory) {
       const virtualPack = await FileIndexer.collection();
       if (virtualPack) {
         if (!virtualPack._meIndex) await PresetStorage._loadIndex(virtualPack);
-        toExport = toExport.concat(virtualPack._meIndex.contents);
+        let virtualPresets = virtualPack._meIndex.contents;
+
+        // Filter via query
+        if (query) virtualPresets = await PresetStorage.retrieve({ query, presets: virtualPresets });
+
+        toExport = toExport.concat(virtualPresets);
       }
     }
 

@@ -126,9 +126,6 @@ export class Spawner {
       }
     }
 
-    // Assign ownership to the user who triggered the spawn call, hide, apply flags, and re-generate links
-    Spawner._autoModifyData(docToData, hidden, flags, preset.preserveLinks, sceneId);
-
     // =======================
     // Spawn position handling
     // =======================
@@ -188,6 +185,9 @@ export class Spawner {
       });
       if (!confirm) return [];
     }
+
+    // Assign ownership to the user who triggered the spawn call, hide, apply flags, and re-generate links
+    Spawner._autoModifyData(docToData, hidden, flags, preset.preserveLinks, sceneId);
 
     // ================================
     // end of - Spawn position handling
@@ -289,6 +289,8 @@ export class Spawner {
   static _autoModifyData(docToData, hidden, flags, preserveLinks, sceneId) {
     hidden = hidden || game.keyboard.isModifierActive(foundry.helpers.interaction.KeyboardManager.MODIFIER_KEYS.ALT);
 
+    const taggerActive = game.modules.get('tagger')?.active;
+
     docToData.forEach((dataArr, documentName) => {
       dataArr.forEach((data) => {
         // Assign ownership for Drawings and MeasuredTemplates
@@ -302,6 +304,10 @@ export class Spawner {
 
         // Apply flags
         if (flags) data.flags = foundry.utils.mergeObject(data.flags ?? {}, flags);
+
+        // Apply Tagger rules
+        if (taggerActive && data.flags?.tagger?.tags?.length && !game.keyboard.isModifierActive('CONTROL'))
+          data.flags.tagger.tags = applyTaggerTagRules(data.flags.tagger.tags);
 
         // Apply Tagger rules for Spawn Preset behaviors
         if (documentName === 'Region' && data.behaviors) {
@@ -318,7 +324,7 @@ export class Spawner {
       });
     });
 
-    // We need to make sure that newly spawned tiles are displayed above currently places ones
+    // We need to make sure that newly spawned tiles are displayed above currently placed ones
     if (docToData.get('Tile')) {
       const maxSort = Math.max(0, ...game.scenes.get(sceneId).tiles.map((d) => d.sort)) + 1;
       docToData
