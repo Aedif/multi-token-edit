@@ -20,6 +20,11 @@
   "styles": ["styles/slider.css", "styles/general.css"],
   "languages": [
     {
+      "lang": "cs",
+      "name": "Čeština",
+      "path": "lang/cs.json"
+    },
+    {
       "lang": "en",
       "name": "English",
       "path": "lang/en.json"
