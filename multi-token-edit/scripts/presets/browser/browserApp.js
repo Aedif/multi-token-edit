@@ -130,10 +130,7 @@ export class PresetBrowser extends PresetContainerV2 {
     return title;
   }
 
-  static async buildTree(
-    type,
-    { externalCompendiums = true, virtualDirectory = true, setFormVisibility = false } = {}
-  ) {
+  static async buildTree(type, { externalCompendiums = true, virtualDirectory = true } = {}) {
     const { workingTree, externalTrees } = await getPresetPackTrees({ type, virtualDirectory, externalCompendiums });
     searchNode(workingTree, null, null, false, type, false);
     externalTrees.forEach((tree) => searchNode(tree, null, null, false, type, false));
@@ -144,7 +141,6 @@ export class PresetBrowser extends PresetContainerV2 {
     this.tree = await PresetBrowser.buildTree(this.documentName, {
       externalCompendiums: PresetBrowser.CONFIG.externalCompendiums,
       virtualDirectory: PresetBrowser.CONFIG.virtualDirectory,
-      setFormVisibility: true,
     });
   }
 

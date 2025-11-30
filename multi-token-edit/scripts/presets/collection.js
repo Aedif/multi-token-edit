@@ -5,7 +5,6 @@ import { PresetBrowser } from './browser/browserApp.js';
 import { DOCUMENT_FIELDS, Preset, VirtualFilePreset } from './preset.js';
 import { decodeURIComponentSafely, exportPresets, parseSearchQuery, placeableToData } from './utils.js';
 
-const DEFAULT_PACK = 'world.mass-edit-presets-main';
 export const META_INDEX_ID = 'MassEditMetaData';
 export const META_INDEX_FIELDS = ['img', 'documentName', 'tags'];
 
@@ -119,6 +118,28 @@ export class PresetAPI {
 
     return presets;
   }
+
+  /**
+   * Update preset tags using provided uuid to tag mappings.
+   * {
+   *  "uuid1": ["tag1"],
+   *  "uuid2": ["tag1", "tag2"],
+   * }
+   * @param {object} mappings
+   */
+  static async updateTags(mappings) {
+    const uuids = Object.keys(mappings);
+    const presets = await PresetStorage.retrieve({ uuid: uuids });
+    for (const preset of presets) {
+      let tags = mappings[preset.uuid];
+      if (tags && Array.isArray(tags)) {
+        tags = tags.map((t) => t.slugify({ strict: true })).filter(Boolean);
+        if (tags.length) preset.update({ tags }, true);
+      }
+    }
+
+    return Preset.processBatchUpdates();
+  }
 }
 
 export class PresetFolder {
@@ -227,6 +248,15 @@ export class PresetPackFolder extends PresetVirtualFolder {
 }
 
 export class PresetStorage {
+  static DEFAULT_PACK = 'world.mass-edit-presets-main';
+
+  /**
+   * Revert the working compendium to default pack
+   */
+  static async fallbackToDefaultPack() {
+    await game.settings.set(MODULE_ID, 'workingPack', PresetStorage.DEFAULT_PACK);
+  }
+
   /**
    * Construct a collection of presets representing the index of the passed in compendium
    * @param {Collection} pack
@@ -261,7 +291,7 @@ export class PresetStorage {
   static async _initCompendium(packId) {
     // Get/Create compendium
     let compendium = game.packs.get(packId);
-    if (!compendium && packId === DEFAULT_PACK) {
+    if (!compendium && packId === PresetStorage.DEFAULT_PACK) {
       if (!this._creatingDefaultCompendium)
         this._creatingDefaultCompendium = foundry.documents.collections.CompendiumCollection.createCompendium({
           label: 'Mass Edit: Presets (MAIN)',

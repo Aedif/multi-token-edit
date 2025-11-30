@@ -1,3 +1,11 @@
+# 2.5.3
+
+- Token dimensions updates on Scenescapes will now be blocked by default on Scenescapes, preventing system/third-party module breaking auto-scaling functionality
+- If the working pack is removed, the Preset Browser will now automatically switch to and if needed create the default preset compendium
+- New API: `MassEdit.updatePresetTags(...)`
+  - Allows mass importing of tags using the following format:
+    - `{ uuid: ["tag1"], uuid2: ["tag1", "tag2"]}`
+
 # 2.5.2
 
 - New options added to: `MassEdit.exportPresets(...)`

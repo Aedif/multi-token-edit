@@ -740,12 +740,10 @@ export class MassTransformer {
   }
 }
 
-export async function editPreviewPlaceables({
-  placeables,
-  callback = null,
-  mainPlaceable = null,
-  hardLinked = false,
-} = {}) {
+export async function editPreviewPlaceables(
+  { placeables, callback = null, mainPlaceable = null, hardLinked = false } = {},
+  context = {}
+) {
   const controlled = new Set();
   let hoveredDocument = mainPlaceable?.document;
 
@@ -786,6 +784,7 @@ export async function editPreviewPlaceables({
         await transformer.update({
           ignoreLinks: true,
           animate: false,
+          ...context,
         });
 
         callback?.(confirm);

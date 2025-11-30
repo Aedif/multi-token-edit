@@ -35,6 +35,7 @@ globalThis.MassEdit = {
   getPreset: PresetStorage.retrieveSingle.bind(PresetStorage),
   getPresets: PresetStorage.retrieve.bind(PresetStorage),
   createPreset: PresetAPI.createPreset,
+  updatePresetTags: PresetAPI.updateTags,
   spawnPreset: Spawner.spawnPreset,
   activateBrush: activateBrush,
   openBag,

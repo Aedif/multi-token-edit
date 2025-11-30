@@ -7,7 +7,6 @@ import ScenescapeConfig from './configuration.js';
 import { Scenescape } from './scenescape.js';
 import { LinkerAPI } from '../linker/linker.js';
 import { editPreviewPlaceables, MassTransformer, TransformBus } from '../transformer.js';
-
 /**
  * Class to manage registering and un-registering of wrapper functions to change
  * token and tile control behavior on Scenescapes
@@ -83,6 +82,12 @@ export class ScenescapeControls {
     });
     this._hooks.push({ hook: 'preCreateToken', id });
 
+    // Prevent dimensions changes via non-scenescape updates
+    id = Hooks.on('preUpdateToken', (document, change, options) => {
+      if (('width' in change || 'height' in change) && !options.scenescape) return false;
+    });
+    this._hooks.push({ hook: 'preUpdateToken', id });
+
     // On token texture update we want to keep the token height and position the same while
     // adopting the new aspect ratio
     id = Hooks.on('updateToken', async (token, change, options, userId) => {
@@ -98,7 +103,7 @@ export class ScenescapeControls {
             [`flags.${MODULE_ID}.width`]: updatedWidth / canvas.scene.grid.sizeX,
             x: token.x + (width - updatedWidth) / 2,
           },
-          { animate: false }
+          { animate: false, scenescape: true }
         );
       }
     });
@@ -129,7 +134,10 @@ export class ScenescapeControls {
         width /= canvas.dimensions.size;
         height /= canvas.dimensions.size;
 
-        token.update({ x, y, width, height, elevation, flags: { [MODULE_ID]: { width, height, size } } });
+        token.update(
+          { x, y, width, height, elevation, flags: { [MODULE_ID]: { width, height, size } } },
+          { scenescape: true }
+        );
       }
     });
     this._hooks.push({ hook: 'createToken', id });
@@ -241,11 +249,14 @@ export class ScenescapeControls {
 
         if (objects.length) {
           const draggedObject = objects[0];
-          editPreviewPlaceables({
-            placeables: [draggedObject],
-            mainPlaceable: draggedObject,
-            hardLinked: true,
-          });
+          editPreviewPlaceables(
+            {
+              placeables: [draggedObject],
+              mainPlaceable: draggedObject,
+              hardLinked: true,
+            },
+            { scenescape: true }
+          );
         }
 
         event.interactionData.clones = [];
@@ -331,10 +342,10 @@ export class ScenescapeControls {
       }
 
       // If we're doing an auto-flip lets ignore position changes
-      if (!foundry.utils.isEmpty(update)) await document.update(update);
+      if (!foundry.utils.isEmpty(update)) await document.update(update, { scenescape: true });
       else transformer.pivot(PIVOTS.BOTTOM).position(nBottom);
 
-      await transformer.update({ teleport: true, ignoreLinks: true, animate: false });
+      await transformer.update({ teleport: true, ignoreLinks: true, animate: false, scenescape: true });
     }
 
     return objects;
