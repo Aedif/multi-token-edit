@@ -955,6 +955,32 @@ nav > a[data-tab='me-pinned'] {
   border-color: darkorange;
 }
 
+
+/* ==========================================
+   ====== Preset Browser Saved Searches =====
+   ==========================================*/
+
+.me-saved-searches .container {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  gap: 5px;
+}
+
+.me-saved-searches .search {
+  border: 1px solid gray;
+  border-radius: 5px;
+  padding: 5px;
+  min-width: 75px;
+
+  display: flex;
+  justify-content: space-between;
+}
+
+.me-saved-searches .remove {
+  margin-left: 5px;
+}
+
 /* Temp fix */
 string-tags-multi {
   display: flex;

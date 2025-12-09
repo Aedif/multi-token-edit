@@ -9,7 +9,6 @@ import { LinkerAPI } from '../../linker/linker.js';
 import { DOC_ICONS, Preset } from '../preset.js';
 import { parseSearchQuery, placeableToData } from '../utils.js';
 import { MODULE_ID, SUPPORTED_PLACEABLES, UI_DOCS } from '../../constants.js';
-import { TagSelector } from './tagSelector.js';
 import PresetBrowserSettings from './settingsApp.js';
 import { PresetConfig } from '../editApp.js';
 import { PresetContainerV2 } from '../containerAppV2.js';
@@ -45,6 +44,10 @@ export class PresetBrowser extends PresetContainerV2 {
 
   static async setSetting(setting, value) {
     return await game.settings.set(MODULE_ID, 'presetBrowser', { ...PresetBrowser.CONFIG, [setting]: value });
+  }
+
+  static async setSettings() {
+    return await game.settings.set(MODULE_ID, 'presetBrowser', { ...PresetBrowser.CONFIG });
   }
 
   /**
@@ -102,7 +105,7 @@ export class PresetBrowser extends PresetContainerV2 {
       documentChange: PresetBrowser._onDocumentChange,
       toggleSetting: PresetBrowser._onToggleSetting,
       toggleLock: PresetBrowser._onToggleLock,
-      toggleTagSelector: PresetBrowser._onToggleTagSelector,
+      toggleSavedSearches: PresetBrowser._onToggleSavedSearches,
       toggleSortMode: PresetBrowser._onToggleSortMode,
       createFolder: PresetBrowser._onCreateFolder,
       createPreset: PresetBrowser._onCreatePreset,
@@ -154,8 +157,6 @@ export class PresetBrowser extends PresetContainerV2 {
     context.workingTree = this.tree.workingTree;
     context.externalTrees = this.tree.externalTrees;
     context.sortable = true;
-
-    this._tagSelector?.render(true);
 
     if (PresetBrowser.CONFIG.persistentSearch && this.lastSearch) {
       this._onSearch(this.lastSearch, { render: false });
@@ -224,7 +225,8 @@ export class PresetBrowser extends PresetContainerV2 {
         });
         break;
       case 'main':
-        $(element).find('.header-search input').on('input', this._onSearchInput.bind(this));
+        this._searchInput = $(element).find('.header-search input');
+        this._searchInput.on('input', this._onSearchInput.bind(this));
         break;
     }
   }
@@ -503,6 +505,7 @@ export class PresetBrowser extends PresetContainerV2 {
       searchNode(this.tree.workingTree, null, null, false, this.documentName, false);
       this.tree.externalTrees.forEach((tree) => searchNode(tree, null, null, false, this.documentName, false));
 
+      this._savedSearches?.updateQuery(this.lastSearch);
       if (render) this._renderContent();
       return;
     }
@@ -518,10 +521,11 @@ export class PresetBrowser extends PresetContainerV2 {
     searchNode(this.tree.workingTree, search, negativeSearch, false, this.documentName, true);
     this.tree.externalTrees.forEach((f) => searchNode(f, search, negativeSearch, false, this.documentName, true));
 
-    if (render) this._renderContent(true);
+    this._savedSearches?.updateQuery(this.lastSearch);
+    if (render) this._renderContent();
   }
 
-  async _renderContent(search = false) {
+  async _renderContent() {
     await super._renderContent({
       callback: Boolean(this.callback),
       presets: this.tree.workingTree.folder.presets,
@@ -530,7 +534,6 @@ export class PresetBrowser extends PresetContainerV2 {
       externalTrees: this.tree.externalTrees.length ? this.tree.externalTrees : null,
       browser: true,
     });
-    this._tagSelector?.render(true);
   }
 
   async _onFolderSort(sourceUuid, targetUuid, { inside = true, folderUuid = null } = {}) {
@@ -605,6 +608,42 @@ export class PresetBrowser extends PresetContainerV2 {
     }
   }
 
+  /**
+   * Called by SavedSearches app to request the display of a saved search.
+   * @param {object} search
+   */
+  async loadSavedSearch(search) {
+    this.lastSearch = search.query;
+
+    let saveSettings = false;
+    ['switchLayer', 'autoScale', 'externalCompendiums', 'virtualDirectory', 'sortMode'].forEach((setting) => {
+      if (setting in search && PresetBrowser.CONFIG[setting] !== search[setting]) {
+        PresetBrowser.CONFIG[setting] = setting;
+        saveSettings = true;
+      }
+    });
+
+    let fullRender = false;
+    if ('documentName' in search) {
+      if (this.documentName !== search.documentName) {
+        this.documentName = search.documentName;
+        PresetBrowser._type = this.documentName;
+        if (PresetBrowser.CONFIG.switchLayer)
+          canvas.getLayerByEmbeddedName(this.documentName === 'Actor' ? 'Token' : this.documentName)?.activate();
+        fullRender = true;
+      }
+    }
+
+    if (saveSettings) await PresetBrowser.setSettings();
+
+    if (fullRender || saveSettings) {
+      this.lastSearch = search.query;
+      this.render(true);
+    } else {
+      this._searchInput.val(search.query).trigger('input');
+    }
+  }
+
   static async _onToggleSortMode() {
     await PresetBrowser.setSetting('sortMode', PresetBrowser.CONFIG.sortMode === 'manual' ? 'alphabetical' : 'manual');
     this.render(true);
@@ -653,19 +692,21 @@ export class PresetBrowser extends PresetContainerV2 {
     }
   }
 
-  static async _onToggleTagSelector(event) {
-    if (this._tagSelector) {
-      this._tagSelector.close(true);
-      this._tagSelector = null;
+  static async _onToggleSavedSearches(event) {
+    if (this._savedSearches) {
+      this._savedSearches.close(true);
+      this._savedSearches = null;
     } else {
-      this._tagSelector = new TagSelector(this);
-      this._tagSelector.render(true);
+      import('./savedSearches.js').then((module) => {
+        this._savedSearches = new module.default(this);
+        this._savedSearches.render(true);
+      });
     }
   }
 
   async close(options = {}) {
     PresetBrowser.objectHover = false;
-    this._tagSelector?.close();
+    this._savedSearches?.close();
 
     return super.close(options);
   }

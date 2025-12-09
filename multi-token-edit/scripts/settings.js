@@ -180,6 +180,7 @@ export function registerSettings() {
       dropdownDocuments: ['Note', 'Scene', 'Wall'],
       autoSaveVirtualFolders: {},
       searchLimit: 1001,
+      savedSearches: [],
     },
     onChange: (val) => {
       PresetBrowser.CONFIG = val;
@@ -187,6 +188,7 @@ export function registerSettings() {
   });
   PresetBrowser.CONFIG = game.settings.get(MODULE_ID, 'presetBrowser');
   if (!PresetBrowser.CONFIG.searchLimit) PresetBrowser.CONFIG.searchLimit = 1001;
+  if (!PresetBrowser.CONFIG.savedSearches) PresetBrowser.CONFIG.savedSearches = [];
 
   // end of Preset Settings
   // ======================
@@ -262,17 +264,6 @@ export function registerSettings() {
     default: false,
     requiresReload: true,
   });
-
-  if (game.modules.get('spotlight-omnisearch')?.active) {
-    game.settings.register(MODULE_ID, 'disableOmniSearchIndex', {
-      name: `Disable preset inclusion within Spotlight Omnisearch`,
-      hint: 'Presets will no longer be included when performing Spotlight Omnisearch searches.',
-      scope: 'world',
-      config: true,
-      type: Boolean,
-      default: false,
-    });
-  }
 
   game.settings.register(MODULE_ID, 'brush', {
     scope: 'world',

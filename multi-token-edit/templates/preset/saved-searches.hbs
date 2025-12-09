@@ -1,0 +1,27 @@
+<div class="me-saved-searches">
+
+    <fieldset style="gap: 5px;">
+        <div class="form-group">
+            <div class="form-fields">
+                <input class="search" type="search" name="query" value="{{search.query}}" placeholder="Search" autocomplete="off" readonly>
+                <button class="fa-solid fa-floppy-disk icon" type="button" data-tooltip="Save" data-action="save"></button>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div class="form-fields" style="gap: 5px;">
+              <input class="" type="text" name="label" value="{{search.label}}" autocomplete="off" placeholder="Label (optional)">
+              <color-picker name="color" value="{{search.color}}"></color-picker>
+            </div>
+        </div>
+    </fieldset>
+
+    <div class="container">
+        {{#each searches as |search|}}
+        <div class="search{{#if search.active}} active{{/if}}" data-index="{{@index}}" data-query="{{search.query}}" style="background-color: {{search.color}}; color: {{search.textColor}};" draggable="true">
+            <a data-action="toggle" data-tooltip="{{search.query}}">{{search.label}}</a>
+            <a data-action="remove" class="remove" data-tooltip="Remove"><i class="fa-solid fa-x fa-xs"></i></a>
+        </div>
+        {{/each}}
+    </div>
+</div>
