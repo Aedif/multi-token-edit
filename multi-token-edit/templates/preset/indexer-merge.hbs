@@ -1,0 +1,83 @@
+<div>
+
+    <table>
+        <tr>
+            <th>Index</th>
+            <th><a data-tooltip="Folders"><i class="fa-solid fa-folder"></i></a></th>
+            <th><a data-tooltip="Files"><i class="fa-solid fa-file"></i> </a></th>
+            <th><a data-tooltip="Tags"><i class="fa-solid fa-tag"></i></a></th>
+        </tr>
+        <tr style="background: #00739f;">
+            <td>VIRTUAL DIRECTORY</td>
+            <td>{{current.folderCount}}</td>
+            <td>{{current.fileCount}}</td>
+            <td>{{current.tagCount}}</td>
+        </tr>
+        <tr><td></td></tr>
+        <tr>
+            <td colspan="4" style="text-align: center;">TO MERGE</td>
+        </tr>
+        {{#if scan}}
+        <tr style="background: chocolate;">
+            <td>Latest Scan</td>
+            <td>{{scan.folderCount}}</td>
+            <td>{{scan.fileCount}}</td>
+            <td>{{scan.tagCount}}</td>
+        </tr>
+        {{/if}}
+        {{#if found}}
+        <tr style="background: darkmagenta;">
+            <td><b>Pre-Built</b></td>
+            <td></td>
+            <td></td>
+            <td></td>
+        </tr>
+        {{#each found as |index|}}
+        <tr>
+            <td style="font-size: smaller;">&nbsp;&nbsp;{{index.name}}</td>
+            <td>{{index.folderCount}}</td>
+            <td>{{index.fileCount}}</td>
+            <td>{{index.tagCount}}</td>
+        </tr>
+        {{/each}}
+        {{/if}}
+        {{#if registered}}
+        <tr style="background: darkslategrey;">
+            <td><b>Registered</b></td>
+            <td></td>
+            <td></td>
+            <td></td>
+        </tr>
+        {{#each registered as |index|}}
+        <tr>
+            <td style="font-size: smaller;">&nbsp;&nbsp;{{index.name}}</td>
+            <td>{{index.folderCount}}</td>
+            <td>{{index.fileCount}}</td>
+            <td>{{index.tagCount}}</td>
+        </tr>
+        {{/each}}
+        {{/if}}
+
+        <tr><td></td></tr>
+        <tr style="background-color: black; font-weight: bold; border: 1px solid white;">
+            <td>TOTAL</td>
+            <td>{{total.folderCount}}</td>
+            <td>{{total.fileCount}}</td>
+            <td>{{total.tagCount}}</td>
+        </tr>
+    </table>
+
+    <br>
+    
+    <div class="form-group">
+        <label style="color: red;">!! Discard VIRTUAL DIRECTORY !!</label>
+        <input name="overwrite" type="checkbox"/>
+        <p class="hint">If checked, instead of merging, the current index will be deleted and replaced. Only tags of files contained within both the current and the new index will be preserved.</p>
+    </div>
+
+    <br>
+
+    <footer class="sheet-footer flexrow">
+        <button type="submit" value="merge">Merge {{#if scan}}<i style="color: chocolate" class="fa-solid fa-square"></i>{{/if}}{{#if found}}<i style="color: darkmagenta" class="fa-solid fa-square"></i>{{/if}}<i class="fa-solid fa-merge"></i><i style="color: #00739f" class="fa-solid fa-square"></i></button>
+    </footer>
+</div>

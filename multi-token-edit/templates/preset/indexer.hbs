@@ -38,21 +38,14 @@
         <legend>Advanced Settings (USE WITH CAUTION)</legend>
 
         <div class="form-group">
-            <label>Ignore External Indexes</label>
+            <label>Ignore Pre-Built Indexes</label>
             <input name="ignoreExternal" type="checkbox" {{checked ignoreExternal}}/>
-            <p class="hint">When enabled external indexes will not be read and directories processed as normal.</p>
+            <p class="hint">When enabled pre-built indexes found within scanned folders will not be read and directories will be processed as normal.</p>
         </div>
 
         <div class="form-group">
-            <label>Override Tags</label>
-            <input name="overrideTags" type="checkbox" {{checked overrideTags}}/>
-            <p class="hint">When enabled user tags set through the Preset Browser will be overridden during re-indexing.</p>
-        </div>
-
-        <div class="form-group">
-            <label>Fresh Scan</label>
-            <input name="fresh" type="checkbox" {{checked fresh}}/>
-            <p class="hint">When enabled the current index will be fully overridden and a new one created using only the fresh results from the new scan. Tags and any directory not selected to be indexed will be lost.</p>
+            <button data-action="export" type="button"><i class="fa-solid fa-file-export"></i>Export VIRTUAL DIRECTORY</button>
+            <button data-action="import" type="button"><i class="fa-solid fa-file-import"></i>Import VIRTUAL DIRECTORY</button>
         </div>
     
     </fieldset>

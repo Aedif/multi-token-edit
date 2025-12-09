@@ -277,6 +277,33 @@ export class ScenescapeControls {
       'MIXED'
     );
     this._wrapperIds.push(id);
+
+    /**
+     * Improve Token drag box select by using the non-alpha pixel bounds
+     */
+    id = libWrapper.register(
+      MODULE_ID,
+      'foundry.canvas.placeables.Token.prototype._overlapsSelection',
+      function (wrapped, rectangle) {
+        if (!this.shape) return false;
+
+        const bounds = this.mesh._canvasBounds;
+        if (bounds) {
+          const tRect = new PIXI.Rectangle(
+            bounds.minX,
+            bounds.minY,
+            bounds.maxX - bounds.minX,
+            bounds.maxY - bounds.minY
+          );
+
+          if (!rectangle.intersects(tRect)) return false;
+        }
+
+        return wrapped(rectangle);
+      },
+      'MIXED'
+    );
+    this._wrapperIds.push(id);
   }
 
   static _getTokenDimensions(token) {
