@@ -1,3 +1,31 @@
+# 2.6.0
+
+**Indexer**
+
+- Removed `Override Tags` and `Fresh Scan` settings
+- Added new button to export and import VIRTUAL DIRECTORY index
+- After generating an index a new `Index Merge` form will now be shown
+  - The form shows the total folder, file, and tag counts shown for:
+    - VIRTUAL DIRECTORY
+    - The latest scan that was just performed
+    - Pre-built indexes that have been found during the scan
+  - An option to `Discard VIRTUAL DIRECTORY`
+    - If checked instead of merging the latest scan into the VIRTUAL DIRECTORY, it will replace it
+    - Tags of files shared between the VIRTUAL DIRECTORYU and the latest scan will be preserved
+
+**Scenescapes**
+
+- Improved Token box select to take into account artworks with large empty areas
+
+**Preset Browser**
+
+- Replaced `Tag Selector` with `Saved Searches`
+  - Allows saving the snapshot of the current search state:
+    - Query, Category, Layer Switch, Auto-Scaling, External Compendiums, Virtual Directory
+  - The search state can be given a label and a background color to be saved under
+  - Clicking a saved search will re-create that state within the browser
+  - Saved searches can be dragged around to change their order
+
 # 2.5.3
 
 - Token dimensions updates on Scenescapes will now be blocked by default on Scenescapes, preventing system/third-party module breaking auto-scaling functionality

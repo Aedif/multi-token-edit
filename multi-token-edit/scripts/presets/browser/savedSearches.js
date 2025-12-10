@@ -4,7 +4,7 @@ import { PresetBrowser } from './browserApp.js';
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
 /**
- * Form to prompt the user for index merge behavior.
+ * Application to handle Preset Browser search state saving and loading.
  */
 export default class SavedSearches extends HandlebarsApplicationMixin(ApplicationV2) {
   constructor(browserApp) {
@@ -73,6 +73,11 @@ export default class SavedSearches extends HandlebarsApplicationMixin(Applicatio
     return { searches, search: { ...this._saveSettings, query: this._browserApp.lastSearch } };
   }
 
+  /**
+   * Determine most contrasting text font color on the provided background color
+   * @param {string} bgColor
+   * @returns {string} 'white' | 'black'
+   */
   _getContrastColor(bgColor) {
     if (!bgColor?.trim()) return 'white';
 
@@ -81,6 +86,11 @@ export default class SavedSearches extends HandlebarsApplicationMixin(Applicatio
     return L > 0.179 ? 'black' : 'white'; // WCAG-recommended threshold
   }
 
+  /**
+   * Handle request to save the current Preset Browser search state
+   * @param {*} event
+   * @returns
+   */
   static async _onSaveSearch(event) {
     const formData = new foundry.applications.ux.FormDataExtended(this.form);
     const search = formData.object;
@@ -114,11 +124,23 @@ export default class SavedSearches extends HandlebarsApplicationMixin(Applicatio
     this.render(true);
   }
 
+  /**
+   * Handle a click of a saved search
+   * @param {Event} event
+   * @param {HTMLElement} element
+   */
   static _onToggleSearch(event, element) {
     const search = PresetBrowser.CONFIG.savedSearches[Number(element.closest('.search').dataset.index)];
+    this._saveSettings = search;
+    this.render(true);
     this._browserApp.loadSavedSearch(search);
   }
 
+  /**
+   * Handle removal of a saved search
+   * @param {Event} event
+   * @param {HTMLElement} element
+   */
   static async _onRemove(event, element) {
     const index = Number(element.closest('.search').dataset.index);
     const savedSearches = PresetBrowser.CONFIG.savedSearches;
@@ -135,6 +157,8 @@ export default class SavedSearches extends HandlebarsApplicationMixin(Applicatio
   /** @override */
   _attachFrameListeners() {
     super._attachFrameListeners();
+
+    // Listeners to handle saved search drag/drop to change their order
     const html = $(this.element);
     html.on('dragstart', '.search', (event) => {
       event.originalEvent.dataTransfer.clearData();
@@ -147,9 +171,15 @@ export default class SavedSearches extends HandlebarsApplicationMixin(Applicatio
     });
   }
 
+  /**
+   * Change order of a saved search at index 'fromIndex'
+   * @param {Number} fromIndex saved search index to move
+   * @param {Number} toIndex index to move to
+   */
   async _onSort(fromIndex, toIndex) {
     if (fromIndex === toIndex) return;
     const savedSearches = PresetBrowser.CONFIG.savedSearches;
+    if (toIndex === savedSearches.length - 1) toIndex++;
     savedSearches.splice(toIndex, 0, savedSearches[fromIndex]);
     savedSearches.splice(fromIndex + (toIndex < fromIndex ? 1 : 0), 1);
     await PresetBrowser.setSetting('savedSearches', savedSearches);
