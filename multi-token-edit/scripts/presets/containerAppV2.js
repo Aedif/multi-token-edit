@@ -710,6 +710,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
     if (!controlled.length) return;
 
     for (const s of selected) {
+      await s.load({ force: true, callHook: true });
       pasteDataUpdate(controlled, s, false, true);
     }
   }

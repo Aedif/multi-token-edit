@@ -1,3 +1,10 @@
+# 2.6.1
+
+**3D Canvas**
+
+- Fixed Token previews not getting cleaned up and removed
+- Fixed `Apply to Selected Placeables` option not loading Virtual Directory presets before applying their data
+
 # 2.6.0
 
 **Indexer**

@@ -155,7 +155,7 @@
       },
       "export-as-json": "Export as JSON",
       "open-journal": "Open Journal",
-      "apply-to-selected": "Apply to selected Placeables",
+      "apply-to-selected": "Apply to Selected Placeables",
       "apply-to-selected-warn": "Presets of multiple document types cannot be mixed for this operation.",
       "export-to-compendium": "Export to Compendium",
       "copy-to-clipboard": "Copy to Clipboard",

@@ -607,6 +607,7 @@ export class MassTransformer {
           // Tokens get async loaded without a way to await them
           // We'll need to retrieve the 3D token when the transforms are actually getting applied
           game.Levels3DPreview.addToken(object);
+          object._l3dPreview = null; // required
         } else if (documentName === 'AmbientLight') {
           game.Levels3DPreview.addLight(object);
           l3dPreview = game.Levels3DPreview.lights[object.id];
