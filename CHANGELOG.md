@@ -1,3 +1,9 @@
+# 2.6.2
+
+**3D Canvas**
+
+- Fixed Token preview scaling
+
 # 2.6.1
 
 **3D Canvas**

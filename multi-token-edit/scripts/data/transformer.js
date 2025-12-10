@@ -674,6 +674,13 @@ export class DataTransformer {
         mesh.position.x = pos.x;
         mesh.position.y = pos.y;
         mesh.position.z = pos.z;
+
+        if (transform.scale != null) {
+          mesh.scale.multiplyScalar(transform.scale);
+        }
+        if (transform.rotation != null) {
+          mesh.rotation.y += game.Levels3DPreview.THREE.MathUtils.degToRad(-transform.rotation);
+        }
       }
     }
   }
