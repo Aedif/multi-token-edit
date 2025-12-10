@@ -102,7 +102,7 @@ export default class SavedSearches extends HandlebarsApplicationMixin(Applicatio
     }
 
     // Copy other browser settings relevant to the search
-    ['switchLayer', 'autoScale', 'externalCompendiums', 'virtualDirectory', 'sortMode'].forEach((setting) => {
+    ['switchLayer', 'autoScale', 'externalCompendiums', 'virtualDirectory'].forEach((setting) => {
       search[setting] = PresetBrowser.CONFIG[setting];
     });
     search.documentName = this._browserApp.documentName;

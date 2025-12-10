@@ -17,21 +17,6 @@ import { collapseFolders, getPresetPackTrees, searchNode } from './tree.js';
 
 const SEARCH_MIN_CHAR = 2;
 
-const SORT_MODES = {
-  manual: {
-    get tooltip() {
-      return localize('SIDEBAR.SortModeManual', false);
-    },
-    icon: '<i class="fa-solid fa-arrow-down-short-wide"></i>',
-  },
-  alphabetical: {
-    get tooltip() {
-      return localize('SIDEBAR.SortModeAlpha', false);
-    },
-    icon: '<i class="fa-solid fa-arrow-down-a-z"></i>',
-  },
-};
-
 export function openPresetBrowser(documentName) {
   new PresetBrowser(null, null, documentName).render(true);
 }
@@ -106,7 +91,6 @@ export class PresetBrowser extends PresetContainerV2 {
       toggleSetting: PresetBrowser._onToggleSetting,
       toggleLock: PresetBrowser._onToggleLock,
       toggleSavedSearches: PresetBrowser._onToggleSavedSearches,
-      toggleSortMode: PresetBrowser._onToggleSortMode,
       createFolder: PresetBrowser._onCreateFolder,
       createPreset: PresetBrowser._onCreatePreset,
       openSettingConfig: PresetBrowser._onOpenSettingConfig,
@@ -171,7 +155,6 @@ export class PresetBrowser extends PresetContainerV2 {
     context.autoScale = PresetBrowser.CONFIG.autoScale;
     context.externalCompendiums = PresetBrowser.CONFIG.externalCompendiums;
     context.virtualDirectory = PresetBrowser.CONFIG.virtualDirectory;
-    context.sortMode = SORT_MODES[PresetBrowser.CONFIG.sortMode];
     context.displayDragDropMessage =
       context.allowDocumentSwap &&
       !(
@@ -616,7 +599,7 @@ export class PresetBrowser extends PresetContainerV2 {
     this.lastSearch = search.query;
 
     let saveSettings = false;
-    ['switchLayer', 'autoScale', 'externalCompendiums', 'virtualDirectory', 'sortMode'].forEach((setting) => {
+    ['switchLayer', 'autoScale', 'externalCompendiums', 'virtualDirectory'].forEach((setting) => {
       if (setting in search && PresetBrowser.CONFIG[setting] !== search[setting]) {
         PresetBrowser.CONFIG[setting] = setting;
         saveSettings = true;
@@ -642,11 +625,6 @@ export class PresetBrowser extends PresetContainerV2 {
     } else {
       this._searchInput.val(search.query).trigger('input');
     }
-  }
-
-  static async _onToggleSortMode() {
-    await PresetBrowser.setSetting('sortMode', PresetBrowser.CONFIG.sortMode === 'manual' ? 'alphabetical' : 'manual');
-    this.render(true);
   }
 
   static _onToggleLock(event, target) {

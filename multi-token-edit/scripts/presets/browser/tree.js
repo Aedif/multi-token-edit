@@ -95,10 +95,10 @@ async function collectionToTree(collection) {
  * @returns
  */
 function collectionTreeToPresetTree(tree, index) {
-  tree.folder.presets = tree.entries.map((entry) => index.get(entry._id)).filter(Boolean);
-  if (PresetBrowser.CONFIG.sortMode === 'alphabetical')
-    tree.folder.presets.sort((p1, p2) => p1.name.localeCompare(p2.name));
-  else tree.folder.presets.sort((p1, p2) => p1.sort - p2.sort);
+  tree.folder.presets = tree.entries
+    .map((entry) => index.get(entry._id))
+    .filter(Boolean)
+    .sort((p1, p2) => p1.sort - p2.sort);
 
   return {
     folder: tree.folder,

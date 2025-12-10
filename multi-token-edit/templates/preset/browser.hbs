@@ -31,18 +31,17 @@
         </div>
         {{/if}}
         <div class="header-search flexrow">
-            <a style="color: #6e6e6e" data-action="toggleSavedSearches" data-tooltip="Saved Searches"><i class="fa-solid fa-bookmark"></i></a>
-            <input class="{{#if lastSearch}}active{{/if}}" type="search" name="search" value="{{lastSearch}}" placeholder="{{localize 'FILES.Search'}}" autocomplete="off" style="color: black">
-            <a class="header-control" data-action="toggleSortMode" data-tooltip="{{sortMode.tooltip}}">{{{sortMode.icon}}}</a>
-            <a class="header-control" data-action="createFolder" data-tooltip="{{localize 'SIDEBAR.ACTIONS.CREATE.Folder'}}" style="position: relative;"><i class="fas fa-folder"></i><i class="fas fa-plus"></i></a>
-            {{#unless allowDocumentSwap}}
-            <a class="header-control {{#if externalCompendiums}}active{{/if}}" data-setting="externalCompendiums" data-action="toggleSetting" data-tooltip="{{localize 'MassEdit.presets.controls.external-compendiums'}}" style="flex: 0 0 30px;"><i class="fa-solid fa-books"></i></a>
-            {{/unless}}
             {{#if (eq currentDocument "Bag")}}
             <a class="header-control" data-action="createBag" data-tooltip="Create a new Bag" style="position: relative;"><i class="fas fa-plus-square"></i></a>
             {{else if isPlaceable}}
             <a class="header-control" data-action="createPreset" data-tooltip="Create Preset from Selected" style="position: relative;"><i class="fas fa-plus-square"></i></a>
             {{/if}}
+            <a class="header-control" data-action="createFolder" data-tooltip="{{localize 'SIDEBAR.ACTIONS.CREATE.Folder'}}" style="position: relative;"><i class="fas fa-folder"></i><i class="fas fa-plus"></i></a>
+            {{#unless allowDocumentSwap}}
+            <a class="header-control {{#if externalCompendiums}}active{{/if}}" data-setting="externalCompendiums" data-action="toggleSetting" data-tooltip="{{localize 'MassEdit.presets.controls.external-compendiums'}}" style="flex: 0 0 30px;"><i class="fa-solid fa-books"></i></a>
+            {{/unless}}
+            <input class="{{#if lastSearch}}active{{/if}}" type="search" name="search" value="{{lastSearch}}" placeholder="{{localize 'FILES.Search'}}" autocomplete="off" style="color: black">
+            <a style="color: #6e6e6e" data-action="toggleSavedSearches" data-tooltip="Saved Searches"><i class="fa-solid fa-bookmark"></i></a>
         </div>
     </header>
 

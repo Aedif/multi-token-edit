@@ -420,12 +420,6 @@ export class PresetStorage {
   }
 
   static _updateCompendium(compendium, documents, operation, userId) {
-    // console.log('updateCompendium', {
-    //   compendium,
-    //   documents: foundry.utils.deepClone(documents),
-    //   operation: foundry.utils.deepClone(operation),
-    //   userId,
-    // });
     if (!compendium.index?.get(META_INDEX_ID)) return;
 
     if (operation.data) this._updateCompendiumCreate(compendium, documents, operation, userId);
