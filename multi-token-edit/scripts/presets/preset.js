@@ -328,7 +328,7 @@ export class VirtualFilePreset extends Preset {
       uuid: 'virtual@' + src,
       documentName,
       data,
-      gridSize: canvas.grid.size ?? 150,
+      gridSize: 150,
       img: src,
     });
   }

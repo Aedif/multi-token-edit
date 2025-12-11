@@ -332,10 +332,12 @@ class CategoryBrowserApplication extends PresetContainerV2 {
         queries.unshift(this.options.globalQuery);
       }
 
-      for (const query of queries) {
-        if (this._queryRunTime !== runTime) return;
-        results = await this._runQuery(query, false, results);
-      }
+      const compoundQuery = queries.map((q) => `( ${q} )`).join(' AND ');
+      results = await PresetStorage.retrieve({
+        query: compoundQuery,
+        virtualDirectory: PresetBrowser.CONFIG.virtualDirectory,
+        externalCompendiums: PresetBrowser.CONFIG.externalCompendiums,
+      });
     }
 
     if (this._queryRunTime !== runTime) return;
@@ -365,23 +367,6 @@ class CategoryBrowserApplication extends PresetContainerV2 {
     } else {
       return super._renderContent({ presets: this._presetResults });
     }
-  }
-
-  /**
-   * Run a search query and returns the results
-   * @param {String} query                Query to be ran
-   * @param {Boolean} matchAny            Should any tag match be returned?
-   * @param {Array[Presets]|null} presets If provided search will be carried out on this preset array instead of all presets
-   * @returns {Array[Presets]|null}       Query results
-   */
-  async _runQuery(query, matchAny = false, presets) {
-    return PresetStorage.retrieve({
-      query,
-      matchAny,
-      virtualDirectory: PresetBrowser.CONFIG.virtualDirectory,
-      externalCompendiums: PresetBrowser.CONFIG.externalCompendiums,
-      presets,
-    });
   }
 
   async close(options = {}) {

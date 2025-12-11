@@ -301,20 +301,21 @@ export class FileIndexer {
     source = 'data',
     processAutoSave = false,
     fileExport = false,
+    name = CACHE_NAME,
   } = {}) {
     if (folders) {
       const cache = [];
       for (const sourceFolder of folders) {
         const sourceCache = {
           source: sourceFolder.name,
-          index: sourceFolder.children.map((ch) => this._cacheFolder(ch.folder)),
+          index: sourceFolder.children.map((ch) => this._cacheFolder(ch.folder, ch)),
         };
         if (sourceFolder.bucket) sourceCache.bucket = sourceFolder.bucket;
         cache.push(sourceCache);
       }
 
       if (fileExport) this._exportIndexDownload(cache);
-      else this._writeIndexToCache(cache, { path, notify, source });
+      else this._writeIndexToCache(cache, { path, notify, source, name });
     }
 
     if (processAutoSave && this._collection) {
@@ -357,22 +358,25 @@ export class FileIndexer {
 
           const sourceCache = {
             source: wFolder.name,
-            index: wFolder.children.map((ch) => this._cacheFolder(ch.folder)),
+            index: wFolder.children.map((ch) => this._cacheFolder(ch.folder, ch)),
           };
 
           this.mergeCaches(index, [sourceCache]);
         }
 
-        this._writeIndexToCache(index, { path: location.target, notify: false, source: location.source });
+        this._writeIndexToCache(index, { path: location.target, notify: false, source: location.source, name });
       }
     }
   }
 
-  static async _writeIndexToCache(index, { path = CACHE_PATH, notify = true, source = 'data' } = {}) {
+  static async _writeIndexToCache(
+    index,
+    { path = CACHE_PATH, notify = true, source = 'data', name = CACHE_NAME } = {}
+  ) {
     const str = JSON.stringify(index);
 
     const blob = await StringCompress.compress(str);
-    const tFile = new File([blob], CACHE_NAME);
+    const tFile = new File([blob], name);
     await foundry.applications.apps.FilePicker.upload(source, path, tFile, {}, { notify });
   }
 
@@ -419,10 +423,12 @@ export class FileIndexer {
     });
   }
 
-  static _cacheFolder(folder) {
+  static _cacheFolder(folder, ch) {
     const fDic = { dir: encodeURIComponentSafely(folder.name) };
+    if (folder.subtext) fDic.subtext = folder.subtext;
+    if (folder.icon) fDic.icon = folder.icon;
     if (folder.presets.length) fDic.files = folder.presets.map((p) => this._cachePreset(p));
-    if (folder.children.length) fDic.dirs = folder.children.map((ch) => this._cacheFolder(ch.folder));
+    if (folder.children.length) fDic.dirs = folder.children.map((ch) => this._cacheFolder(ch.folder, ch));
     return fDic;
   }
 
@@ -463,6 +469,7 @@ export class FileIndexer {
 
     const types = new Set(['ALL']);
     node.entries = [];
+    const presets = [];
     if (cache.files) {
       for (const file of cache.files) {
         const preset = VirtualFilePreset.fromSrc(
@@ -477,6 +484,7 @@ export class FileIndexer {
 
         this._collection._meIndex.set(preset.uuid, preset);
         node.entries.push({ _id: preset.uuid });
+        presets.push(preset);
         types.add(preset.documentName);
       }
     }
@@ -494,6 +502,7 @@ export class FileIndexer {
       bucket: options.bucket,
       types: Array.from(types),
       children: node.children,
+      presets,
     });
     node.children.forEach((ch) => (ch.folder.parent = node.folder));
 
@@ -1126,6 +1135,11 @@ export class FileIndexerAPI {
 
   static registerCacheFile(cacheFile) {
     FileIndexer._registeredCacheFiles.push(cacheFile);
+  }
+
+  static async saveCache({ source = 'data', path = '', name = CACHE_NAME } = {}) {
+    await FileIndexer.collection();
+    FileIndexer.saveIndexToCache({ path, source, name });
   }
 }
 

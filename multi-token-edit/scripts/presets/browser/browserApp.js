@@ -7,13 +7,14 @@ import { DragHoverOverlay, localFormat, localize, spawnSceneAsPreset } from '../
 import { META_INDEX_ID, PresetAPI, PresetPackFolder, PresetStorage } from '../collection.js';
 import { LinkerAPI } from '../../linker/linker.js';
 import { DOC_ICONS, Preset } from '../preset.js';
-import { parseSearchQuery, placeableToData } from '../utils.js';
+import { placeableToData } from '../utils.js';
 import { MODULE_ID, SUPPORTED_PLACEABLES, UI_DOCS } from '../../constants.js';
 import PresetBrowserSettings from './settingsApp.js';
 import { PresetConfig } from '../editApp.js';
 import { PresetContainerV2 } from '../containerAppV2.js';
 import { uploadFiles } from '../../auxilaryFeatures/utils.js';
 import { collapseFolders, getPresetPackTrees, searchNode } from './tree.js';
+import { buildQueryMatcher } from '../search.js';
 
 const SEARCH_MIN_CHAR = 2;
 
@@ -119,8 +120,8 @@ export class PresetBrowser extends PresetContainerV2 {
 
   static async buildTree(type, { externalCompendiums = true, virtualDirectory = true } = {}) {
     const { workingTree, externalTrees } = await getPresetPackTrees({ type, virtualDirectory, externalCompendiums });
-    searchNode(workingTree, null, null, false, type, false);
-    externalTrees.forEach((tree) => searchNode(tree, null, null, false, type, false));
+    searchNode(workingTree, null, false, type, false);
+    externalTrees.forEach((tree) => searchNode(tree, null, false, type, false));
     return { workingTree, externalTrees };
   }
 
@@ -485,8 +486,8 @@ export class PresetBrowser extends PresetContainerV2 {
       if (event) $(event.target).removeClass('active');
       collapseFolders(this.tree.workingTree);
       this.tree.externalTrees.forEach((tree) => collapseFolders(tree));
-      searchNode(this.tree.workingTree, null, null, false, this.documentName, false);
-      this.tree.externalTrees.forEach((tree) => searchNode(tree, null, null, false, this.documentName, false));
+      searchNode(this.tree.workingTree, null, false, this.documentName, false);
+      this.tree.externalTrees.forEach((tree) => searchNode(tree, null, false, this.documentName, false));
 
       this._savedSearches?.updateQuery(this.lastSearch);
       if (render) this._renderContent();
@@ -495,14 +496,14 @@ export class PresetBrowser extends PresetContainerV2 {
 
     if (query.length < SEARCH_MIN_CHAR) return;
 
-    const { search, negativeSearch } = parseSearchQuery(query, { matchAny: false });
-    if (!(search || negativeSearch)) return;
+    const matcher = buildQueryMatcher(query);
+    if (!matcher) return;
 
     if (event) $(event.target).addClass('active');
 
     PresetBrowser._matches = 0;
-    searchNode(this.tree.workingTree, search, negativeSearch, false, this.documentName, true);
-    this.tree.externalTrees.forEach((f) => searchNode(f, search, negativeSearch, false, this.documentName, true));
+    searchNode(this.tree.workingTree, matcher, false, this.documentName, true);
+    this.tree.externalTrees.forEach((f) => searchNode(f, matcher, false, this.documentName, true));
 
     this._savedSearches?.updateQuery(this.lastSearch);
     if (render) this._renderContent();

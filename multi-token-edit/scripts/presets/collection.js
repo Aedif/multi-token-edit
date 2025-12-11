@@ -3,7 +3,8 @@ import { SeededRandom, localize } from '../utils.js';
 import { FileIndexer } from './fileIndexer.js';
 import { PresetBrowser } from './browser/browserApp.js';
 import { DOCUMENT_FIELDS, Preset, VirtualFilePreset } from './preset.js';
-import { decodeURIComponentSafely, exportPresets, parseSearchQuery, placeableToData } from './utils.js';
+import { decodeURIComponentSafely, exportPresets, placeableToData } from './utils.js';
+import { buildQueryMatcher } from './search.js';
 
 export const META_INDEX_ID = 'MassEditMetaData';
 export const META_INDEX_FIELDS = ['img', 'documentName', 'tags'];
@@ -597,8 +598,7 @@ export class PresetStorage {
    * @param {String} [options.query]                     Search query to be ran. Format: "blue #castle @AmbientLight"
    *                                                     Terms: blue, Tags: castle, Type: AmbientLight
    *                                                     None, or all component of the query can be provided or excluded
-   * @param {String|Array[String]|Object} [options.tags] Tags to match a preset against. Can be provided as an object containing 'tags' array and 'matchAny' flag.
-   *                                                     Comma separated string, or a list of strings. In the latter 2 cases 'matchAny' is assumed true
+   * @param {String|Array[String]|Object} [options.tags] Tags to match a preset against. Can be provided as an array or a comma separated string
    * @param {String} [options.folder]                    Folder name
    * @param {Boolean} [options.random]                   If multiple presets are found a random one will be chosen
    * @returns {Array[Preset]|Array[String]|Array[Object]}
@@ -608,7 +608,6 @@ export class PresetStorage {
     name,
     types,
     query,
-    matchAny = true,
     tags,
     virtualDirectory = true,
     externalCompendiums = true,
@@ -626,21 +625,31 @@ export class PresetStorage {
     else if (query && (types || tags || name))
       throw console.warn(`When 'query' is provided 'types', 'tags', and 'name' arguments are ignored.`);
     else {
-      let search, negativeSearch;
+      let matcher;
+
       if (query) {
-        ({ search, negativeSearch } = parseSearchQuery(query, { matchAny }));
+        matcher = buildQueryMatcher(query);
       } else {
+        query = '';
+        if (name) query += name;
+        if (types) types.forEach((t) => (query += ' @' + t));
         if (tags) {
-          if (Array.isArray(tags)) tags = { tags, matchAny };
-          else if (typeof tags === 'string') tags = { tags: tags.split(','), matchAny };
+          if (typeof tags === 'object') tags = tags.tags;
+          else if (typeof tags === 'string')
+            tags = tags
+              .split(',')
+              .map((t) => t.trim())
+              .filter(Boolean);
+
+          tags.forEach((t) => (query += ' #' + t));
         }
 
-        search = { name, types, tags };
+        if (query) matcher = buildQueryMatcher(query);
       }
-      if (!search && !negativeSearch) return [];
+      if (!matcher) return [];
 
-      if (presets) presets = presets.filter((preset) => this._matchPreset(preset, search, negativeSearch));
-      else presets = await this._search(search, negativeSearch, { virtualDirectory, externalCompendiums });
+      if (presets) presets = presets.filter((p) => matcher(p));
+      else presets = await this._search(matcher, { virtualDirectory, externalCompendiums });
     }
 
     if (load) await this.batchLoad(presets);
@@ -664,11 +673,10 @@ export class PresetStorage {
 
   /**
    * Search all managed packs
-   * @param {object} search
-   * @param {object} negativeSearch
+   * @param {function} matcher
    * @returns
    */
-  static async _search(search, negativeSearch, { virtualDirectory, externalCompendiums } = {}) {
+  static async _search(matcher, { virtualDirectory, externalCompendiums } = {}) {
     const packs = [];
 
     if (externalCompendiums) {
@@ -690,46 +698,11 @@ export class PresetStorage {
       if (!pack._meIndex) await this._loadIndex(pack);
 
       for (const entry of pack._meIndex) {
-        if (this._matchPreset(entry, search, negativeSearch)) results.push(entry);
+        if (matcher(entry)) results.push(entry);
       }
     }
 
     return results;
-  }
-
-  /**
-   * Match an entry against the provided search and negativeSearch
-   * @param {Entry} entry
-   * @param {object} search
-   * @param {object} negativeSearch
-   */
-  static _matchPreset(entry, search, negativeSearch) {
-    let match = true;
-
-    if (search) {
-      const { name, terms, types, tags } = search;
-      if (name && name !== entry.name) match = false;
-      else if (types && !types.includes(entry.documentName)) match = false;
-      else if (terms && !terms.every((t) => entry.name.toLowerCase().includes(t))) match = false;
-      else if (tags) {
-        if (tags.noTags) match = !entry.tags.length;
-        else if (tags.matchAnyTag) match = tags.tags.some((t) => entry.tags.includes(t));
-        else match = tags.tags.every((t) => entry.tags.includes(t));
-      }
-    }
-    if (match && negativeSearch) {
-      const { name, terms, types, tags } = negativeSearch;
-      if (name && name === entry.name) match = false;
-      else if (types && types.includes(entry.documentName)) match = false;
-      else if (terms && !terms.every((t) => !entry.name.toLowerCase().includes(t))) match = false;
-      else if (tags) {
-        if (tags.noTags) match = !!entry.tags.length;
-        else if (tags.matchAnyTag) match = tags.tags.some((t) => !entry.tags.includes(t));
-        else match = tags.tags.every((t) => !entry.tags.includes(t));
-      }
-    }
-
-    return match;
   }
 
   /**

@@ -7,10 +7,6 @@
         <div class="form-group">
             <div class="search">
                 <input class="terms" type="text" value="{{search.terms}}" name="searches.inclusive.{{@index}}.terms">
-                <div class="match" title="All tags within the search must be matched.">
-                    <label><i class="fa-solid fa-tag"></i> All</label>
-                    <input type="checkbox" name="searches.inclusive.{{@index}}.matchAll" {{checked search.matchAll}}>
-                </div>
                 <a data-action="removeSearchTerm" data-index="{{@index}}" data-type="inclusive"><i class="fas fa-trash"></i></a>
             </div>
         </div>
@@ -26,10 +22,6 @@
         <div class="form-group">
             <div class="search">
                 <input class="terms" type="text" value="{{search.terms}}" name="searches.exclusive.{{@index}}.terms">
-                <div class="match" title="All tags within the search must be matched.">
-                    <label><i class="fa-solid fa-tag"></i> All</label>
-                    <input type="checkbox" name="searches.exclusive.{{@index}}.matchAll" {{checked search.matchAll}}>
-                </div>
                 <a data-action="removeSearchTerm" data-index="{{@index}}" data-type="exclusive"><i class="fas fa-trash"></i></a>
             </div>
         </div>

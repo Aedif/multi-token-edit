@@ -1,7 +1,6 @@
 import { MODULE_ID, SUPPORTED_PLACEABLES } from '../../constants.js';
 import { META_INDEX_ID, PresetPackFolder, PresetStorage } from '../collection.js';
 import { FileIndexer } from '../fileIndexer.js';
-import { matchPreset } from '../utils.js';
 import { PresetBrowser } from './browserApp.js';
 
 /**
@@ -114,25 +113,23 @@ export function collapseFolders(node) {
   node.children.forEach((ch) => collapseFolders(ch));
 }
 
-export function searchNode(node, search, negativeSearch, forceRender = false, type, expandFolders = true) {
+export function searchNode(node, matcher, forceRender = false, type, expandFolders = true) {
   const folder = node.folder;
-  const folderName = folder.name.toLowerCase();
 
   let match = false;
   if (!folder.flags[MODULE_ID]?.types?.some((t) => t === type) && !folder.typeless) {
     folder._meMatch = false;
     return;
-  } else if (search && folderName && !folder._noSearch)
-    match = !search.tags && search.terms?.every((t) => folderName.includes(t));
+  } else if (matcher && folder.name && !folder._noSearch) match = matcher(null, folder);
 
   let childFolderMatch = false;
   for (const n of node.children) {
-    if (searchNode(n, search, negativeSearch, match || forceRender, type, expandFolders)) childFolderMatch = true;
+    if (searchNode(n, matcher, match || forceRender, type, expandFolders)) childFolderMatch = true;
   }
 
   let presetMatch = false;
   for (const p of folder.presets) {
-    if (_searchPreset(p, search, negativeSearch, match || forceRender, type, expandFolders)) presetMatch = true;
+    if (_searchPreset(p, matcher, match || forceRender, type, expandFolders)) presetMatch = true;
   }
 
   const containsMatch = match || childFolderMatch || presetMatch;
@@ -142,7 +139,7 @@ export function searchNode(node, search, negativeSearch, forceRender = false, ty
   return containsMatch;
 }
 
-function _searchPreset(preset, search, negativeSearch, forceRender, type, limit) {
+function _searchPreset(preset, matcher, forceRender, type, limit) {
   if (limit && PresetBrowser._matches > PresetBrowser.CONFIG.searchLimit) {
     preset._meMatch = false;
     return false;
@@ -153,7 +150,7 @@ function _searchPreset(preset, search, negativeSearch, forceRender, type, limit)
     return false;
   }
 
-  const matched = matchPreset(preset, search, negativeSearch);
+  const matched = !matcher || matcher(preset);
 
   if (matched) {
     PresetBrowser._matches++;

@@ -272,7 +272,6 @@ class BagApplication extends PresetContainerV2 {
       (
         await PresetStorage.retrieve({
           query: search.terms,
-          matchAny: !search.matchAll,
           virtualDirectory,
         })
       ).forEach((p) => uuids.add(p.uuid));
@@ -280,11 +279,9 @@ class BagApplication extends PresetContainerV2 {
 
     if (uuids.size) {
       for (const search of searches.exclusive) {
-        if (tags) tags = { tags, matchAny: !search.matchAll };
         (
           await PresetStorage.retrieve({
             query: search.terms,
-            matchAny: !search.matchAll,
             virtualDirectory,
           })
         ).forEach((p) => uuids.delete(p.uuid));
@@ -394,7 +391,7 @@ class BagConfig extends foundry.applications.api.HandlebarsApplicationMixin(foun
   _saveState(formData, clearEmptySearch = false) {
     formData = foundry.utils.expandObject(formData.object);
 
-    [('inclusive', 'exclusive')].forEach((type) => {
+    ['inclusive', 'exclusive'].forEach((type) => {
       if (formData.searches?.[type]) {
         const searches = [];
         let i = 0;
@@ -420,7 +417,6 @@ class BagConfig extends foundry.applications.api.HandlebarsApplicationMixin(foun
     const type = target.dataset.type;
     this.preset.data[0].searches[type].push({
       terms: '',
-      matchAll: true,
     });
     this.render(true);
   }

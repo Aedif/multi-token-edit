@@ -1,3 +1,15 @@
+# 2.7.0
+
+**Search**
+
+- Support of logical operators `OR` & `AND` has been added within all preset search contexts
+  - e.g. `(statue OR chair) AND (elvish OR orcish #ruined)`
+
+**Indexer**
+
+- Fixed incomplete exports when editing `Virtual Directory` presets from within a `Category Browser` without first opening the `Preset Browser`
+- Fixed folder icon and subtext not caching
+
 # 2.6.2
 
 **3D Canvas**
