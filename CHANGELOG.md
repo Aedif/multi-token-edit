@@ -1,3 +1,10 @@
+# 2.7.1
+
+**Preset Browser**
+
+- Fixed folder export
+- Fixed Actor folder import
+
 # 2.7.0
 
 **Search**

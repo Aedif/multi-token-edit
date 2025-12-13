@@ -53,9 +53,9 @@ export async function trackProgress({ title = 'Progress', cancelCallback, total 
 }
 
 export function countFolderItems(folder) {
-  if (folder.presets) {
+  if (folder.contents) {
     return (
-      folder.presets.length +
+      folder.contents.length +
       folder.children.reduce(function (sum, ch) {
         return sum + countFolderItems(ch.folder);
       }, 0)
