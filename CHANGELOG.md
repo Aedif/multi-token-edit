@@ -1,3 +1,8 @@
+# 2.7.2
+
+- Improved migration API to reload Mass Edit index of migrated compendiums
+- Improved Token Attacher migration macro to account for control token offset
+
 # 2.7.1
 
 **Preset Browser**

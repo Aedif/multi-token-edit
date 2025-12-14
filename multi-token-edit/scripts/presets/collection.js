@@ -284,6 +284,16 @@ export class PresetStorage {
   }
 
   /**
+   * Fully reload the index of the passed in compendium
+   * @param {Collection} pack
+   */
+  static async reloadIndex(pack) {
+    await this._loadIndex(pack, true);
+    pack.initializeTree?.();
+    foundry.applications.instances.get(PresetBrowser.DEFAULT_OPTIONS.id)?.render(true);
+  }
+
+  /**
    * Retrieves a compendium and create a metadata document within it
    * If it's a DEFAULT_PACK and does not exist it will be created
    * @param {string} packId

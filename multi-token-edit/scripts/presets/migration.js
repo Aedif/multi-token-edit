@@ -126,7 +126,12 @@ export class V12Migrator {
       ui.notifications.info('Mass Edit - No data to migrate: ' + pack.metadata.label);
     } else {
       await JournalEntry.updateDocuments(updates, { pack: pack.collection });
-      ui.notifications.notify('Mass Edit - Migrated ' + updates.length + ' presets within "' + pack.metadata.label);
+
+      setTimeout(() => {
+        PresetStorage.reloadIndex(pack).then(() => {
+          ui.notifications.notify('Mass Edit - Migrated ' + updates.length + ' presets within "' + pack.metadata.label);
+        });
+      }, 5000);
     }
 
     return pack;
