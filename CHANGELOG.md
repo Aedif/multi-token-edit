@@ -1,3 +1,9 @@
+# 2.7.3
+
+**Indexer**
+
+- Fixed a bug preventing merge window rendering when the current/main cache does not exist
+
 # 2.7.2
 
 - Improved migration API to reload Mass Edit index of migrated compendiums

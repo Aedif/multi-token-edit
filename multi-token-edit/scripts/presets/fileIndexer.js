@@ -215,6 +215,7 @@ export class FileIndexer {
       }
 
       this._collection = null;
+      await this.collection();
       foundry.applications.instances.get(PresetBrowser.DEFAULT_OPTIONS.id)?.render(true);
     }
     this._buildingIndex = false;
@@ -314,8 +315,8 @@ export class FileIndexer {
         cache.push(sourceCache);
       }
 
-      if (fileExport) this._exportIndexDownload(cache);
-      else this._writeIndexToCache(cache, { path, notify, source, name });
+      if (fileExport) await this._exportIndexDownload(cache);
+      else await this._writeIndexToCache(cache, { path, notify, source, name });
     }
 
     if (processAutoSave && this._collection) {
@@ -1035,7 +1036,7 @@ export class IndexMergeConfirmationForm extends HandlebarsApplicationMixin(Appli
 
   /** @override */
   async _prepareContext(options) {
-    this._currentCache = await FileIndexer.loadIndexCache(CACHE_PATH + '/' + CACHE_NAME);
+    this._currentCache = (await FileIndexer.loadIndexCache(CACHE_PATH + '/' + CACHE_NAME)) ?? [];
 
     const current = this._prepareCounts(this._currentCache);
     const scan = this._prepareCounts(this._scannedCache);
