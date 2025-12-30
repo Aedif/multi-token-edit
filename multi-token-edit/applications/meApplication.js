@@ -521,9 +521,9 @@ export const WithBaseMassEditForm = (cls) => {
      * Toggle all ME checkboxes on/off when right-clicking tabs
      * @param {*} html
      */
-    _registerNavigationTabMassSelect(html) {
+    _registerNavigationTabMassSelect(html, selector = 'nav > .item') {
       // Select/Deselect all Mass Edit checkboxes when right-clicking the navigation tabs
-      html.on('contextmenu', 'nav > .item', (event) => {
+      html.on('contextmenu', selector, (event) => {
         const tab = event.target.dataset?.tab;
         if (tab) {
           const group = $(event.target).closest('nav').attr('data-group');
@@ -565,7 +565,7 @@ export const WithBaseMassEditForm = (cls) => {
 
     _insertModuleSpecificFields(html) {
       // Monk's Active Tiles
-      if (this.documentName === 'Tile' && this._createAction) {
+      if (this.documentName === 'Tile' && game.modules.get('monks-active-tiles')?.active) {
         let chk = $(`
               <div class="form-group">
                 <label>Mass Edit: ${localize(`form.actions`)}</label>
@@ -573,7 +573,7 @@ export const WithBaseMassEditForm = (cls) => {
                     <input type="hidden" name="flags.monks-active-tiles.actions">
                 </div>
               `);
-        $(html).find('.matt-tab[data-tab="trigger-actions"]').prepend(chk);
+        $(html).find('.matt-tab[data-tab="actions"]').prepend(chk);
         this._processFormGroup(chk, 'meInsert');
 
         chk = $(`
@@ -583,7 +583,7 @@ export const WithBaseMassEditForm = (cls) => {
                     <input type="hidden" name="flags.monks-active-tiles.files">
                 </div>
               `);
-        chk.insertBefore('.matt-tab[data-tab="trigger-images"] .files-list');
+        chk.insertBefore('.matt-tab[data-tab="images"] .images-group');
         this._processFormGroup(chk, 'meInsert');
       }
 
@@ -1020,7 +1020,7 @@ export const WithMassEditFormApplicationV2 = (cls) => {
       this._registerBrushRefreshListeners(html);
       this._registerNumericalInputListeners(html);
       this._registerInputChangeCallback(html);
-      this._registerNavigationTabMassSelect(html);
+      this._registerNavigationTabMassSelect(html, 'nav.tabs > [data-action="tab"]');
       this._insertModUpdateCheckboxes(html);
       this._insertModuleSpecificFields(html);
       this._insertSpecialFields(html);

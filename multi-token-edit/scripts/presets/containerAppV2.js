@@ -1083,37 +1083,6 @@ export function itemSelect(event, element, itemList) {
 }
 
 /**
- * Check if mouse is currently within bound of an application
- * @param {*} event
- * @returns
- */
-function checkMouseInWindow(event) {
-  let inWindow = false;
-
-  if (ui.sidebar?.element?.length) {
-    inWindow = _coordOverElement(event.pageX, event.pageY, $(ui.sidebar.element));
-  }
-  if (!inWindow) {
-    inWindow = _coordOverElement(event.pageX, event.pageY, $(event.target).closest('.application'));
-  }
-
-  return inWindow;
-}
-
-function _coordOverElement(x, y, element) {
-  var offset = element.offset();
-  let appX = offset.left;
-  let appY = offset.top;
-  let appW = element.width();
-  let appH = element.height();
-
-  if (x > appX && x < appX + appW && y > appY && y < appY + appH) {
-    return true;
-  }
-  return false;
-}
-
-/**
  * Handle preset being dragged out onto the canvas
  */
 export function registerPresetDragDropHooks() {
