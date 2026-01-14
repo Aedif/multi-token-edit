@@ -1,0 +1,12 @@
+<div class="tab{{#if active}} active{{/if}}" data-group="{{group}}" data-tab="{{id}}">
+    {{> (lookup @root "tabNavigationPartial") tabs=tabs}}
+    
+    {{#each controls}}
+        {{~>me-form-group}}
+    {{/each}}
+
+    {{#each tabs}}
+        {{~>me-tab}}
+    {{/each}}
+
+</div>

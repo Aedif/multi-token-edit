@@ -1,15 +1,5 @@
-<div class="form-group">
-    {{#if pins}}
-    {{#unless disabled}}
-    <a class="me-pinned {{#if pinned}}active{{/if}}" title="{{localize 'MassEdit.common.pin'}}"><i class="fas fa-thumbtack"></i></a>&nbsp;
-    {{/unless}}
-    {{/if}}
-    
-    {{#if editableLabel}}
-    <input class="me-editable-label" type="text" value="{{label}}"/>
-    {{else}}
+<div class="form-group">    
     <label>{{label}}</label>
-    {{/if}}
     
     <div class="form-fields">
         {{#if text}}

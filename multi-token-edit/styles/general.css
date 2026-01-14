@@ -627,21 +627,21 @@ input.me-subtract {
 /* ===================== 
    === Generic Form ====
    ===================== */
+.mass-edit-generic-form {
+  gap: 0;
+}
+
 .mass-edit-generic-form nav {
   overflow-x: auto;
+  border-bottom: 1px solid var(--color-tabs-border);
+}
+
+.mass-edit-generic-form .tab {
+  gap: 0;
 }
 
 nav > a[data-tab='me-pinned'] {
   color: orangered;
-}
-
-.me-pinned {
-  flex: 0.1 !important;
-  color: gray;
-}
-
-.me-pinned.active {
-  color: gold;
 }
 
 .me-delete-flag {
@@ -651,10 +651,6 @@ nav > a[data-tab='me-pinned'] {
 
 .me-delete-flag.active {
   color: rgb(255, 0, 0);
-}
-
-.me-editable-label {
-  border: none !important;
 }
 
 .mass-edit-generic-form .tva-jsonArray {

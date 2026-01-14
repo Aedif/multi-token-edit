@@ -18,7 +18,8 @@ export const WithMassConfig = (documentName = 'NONE') => {
   let cls;
   const sheets = CONFIG[documentName]?.sheetClasses;
   if (!sheets || documentName === 'Actor') {
-    cls = FormApplication;
+    const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
+    cls = HandlebarsApplicationMixin(ApplicationV2);
   } else {
     cls = Object.values(Object.values(sheets).pop() ?? {}).pop()?.cls;
   }

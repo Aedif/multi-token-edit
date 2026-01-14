@@ -1,9 +1,10 @@
-import { CUSTOM_CONTROLS } from '../../data/custom-controls.js';
 import { MODULE_ID } from '../../scripts/constants.js';
-import { getCommonData, localize } from '../../scripts/utils.js';
+import { getCommonData } from '../../scripts/utils.js';
 import { WithMassConfig } from '../forms.js';
 import { showMassEdit } from '../multiConfig.js';
-import { constructNav, isColorField } from './navGenerator.js';
+
+const IMAGE_FIELDS = ['img', 'image', 'src', 'texture'];
+const COLOR_FIELDS = ['tint'];
 
 const WMC = WithMassConfig();
 export class MassEditGenericForm extends WMC {
@@ -18,102 +19,209 @@ export class MassEditGenericForm extends WMC {
       allData = foundry.utils.flattenObject(allData);
     }
 
-    let documentName = options.documentName ?? 'NONE';
-
-    let customControls = foundry.utils.mergeObject(
-      CUSTOM_CONTROLS[documentName] ?? {},
-      game.settings.get(MODULE_ID, 'customControls')[documentName] ?? {}
-    );
-    customControls = foundry.utils.mergeObject(customControls, options.customControls?.[documentName] ?? {});
-
-    const [nav, tabSelectors] = constructNav(allData, documentName, customControls, !options.noTabs);
     const commonData = getCommonData(objects);
 
     super(docs[0], docs, {
-      tabs: tabSelectors,
       commonData: commonData,
       ...options,
     });
 
     this.allData = allData;
-    this.nav = nav;
-    this.editableLabels = {};
-
-    this.pinnedFields = game.settings.get(MODULE_ID, 'pinnedFields')[this.documentName] ?? {};
-    this.customControls = customControls;
 
     if (options.callback) this.callbackOnUpdate = options.callback;
     if (options.closeCallback) this.closeCallback = options.closeCallback;
   }
 
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      id: 'mass-edit-generic-form',
-      classes: ['sheet'],
-      template: `modules/${MODULE_ID}/templates/generic/genericForm.html`,
-      resizable: true,
-      minimizable: false,
-      title: `Generic`,
-      width: 500,
-      height: 'auto',
-    });
+  static TABS = {};
+
+  /**
+   * Dynamically assemble a tabs configuration
+   */
+  #configureTabs(data) {
+    // const { getType } = foundry.utils;
+
+    // let main;
+    // for (const key of Object.keys(data)) {
+    //   const t = getType(data[key]);
+    //   if (t !== 'Object') {
+    //     if (!main) main = { id: 'main', label: 'main', controls: [], tabs: [] };
+    //     main.controls.push(this._genControl(key, data[key]));
+    //   } else {
+    //     if (!main) main = { id: 'main', label: 'main', controls: [], tabs: [] };
+    //   }
+    // }
+
+    const topTab = this._genTab(null, '', data);
+    if (!topTab.controls.length) {
+      topTab.tabs.forEach((t) => {
+        t.group = 'sheet';
+      });
+      topTab.tabs[0].active = true;
+      return topTab.tabs;
+    } else {
+      const main = { id: 'main', label: 'Main', controls: topTab.controls, tabs: [], group: 'sheet', active: true };
+      topTab.tabs.forEach((t) => {
+        t.group = 'sheet';
+      });
+      topTab.tabs.active = false;
+      return [main, ...topTab.tabs];
+    }
+
+    // tabGroups - optional?
+    // _onClickTab - can be overriden, maybe should support right-clicking here?
   }
 
-  _getHeaderButtons() {
-    const buttons = super._getHeaderButtons();
+  _genTab(key, parentId, obj) {
+    const id = parentId ? `${parentId}.${key}` : key;
+    let controls = [];
+    const tabs = [];
+    const group = parentId;
+
+    for (const [k, v] of Object.entries(obj)) {
+      const t = foundry.utils.getType(v);
+      if (t !== 'Object') controls.push(this._genControl(k, v, id ? `${id}.${k}` : k));
+      else {
+        const tab = this._genTab(k, id, v);
+        if (tab) tabs.push(tab);
+      }
+    }
+
+    if (!controls.length && !tabs.length) return null;
+
+    // If the tab has controls and tabs we want to place the controls under a 'Main' tab
+    if (tabs.length && controls.length) {
+      tabs.unshift({ id: `${id}.main`, label: 'Main', controls, tabs: [], group: id });
+      controls = [];
+    }
+
+    if (tabs.length) tabs[0].active = true;
+
+    return { id, label: this._genLabel(key), controls, tabs, group };
+  }
+
+  _genLabel(key) {
+    if (!key) return '';
+    return key;
+    if (key.length <= 3) return key.toUpperCase();
+    return key.charAt(0).toUpperCase() + key.slice(1);
+  }
+
+  _genControl(key, value, name) {
+    const control = { label: this._genLabel(key), value, name };
+
+    const type = foundry.utils.getType(value);
+    const allowedArrayElTypes = ['number', 'string'];
+
+    if (type === 'number') {
+      control.number = true;
+      if (COLOR_FIELDS.includes(key)) {
+        control.colorPickerNumber = true;
+        try {
+          control.colorValue = new Color(value).toString();
+        } catch (e) {}
+      }
+    } else if (type === 'string') {
+      control.text = true;
+      if (IMAGE_FIELDS.includes(key) || key.toLowerCase().includes('image') || key.toLowerCase().includes('path'))
+        control.filePicker = true;
+      else if (COLOR_FIELDS.includes(key)) control.colorPicker = true;
+    } else if (type === 'boolean') {
+      control.boolean = true;
+    } else if (type === 'Array' && value.every((el) => allowedArrayElTypes.includes(foundry.utils.getType(el)))) {
+      control.value = value.join(', ');
+      control.array = true;
+    } else if (type === 'Array') {
+      control.jsonArray = true;
+      control.value = JSON.stringify(value, null, 2);
+    } else {
+      control.disabled = true;
+      control.text = true;
+    }
+
+    return control;
+  }
+
+  static DEFAULT_OPTIONS = {
+    id: 'mass-edit-generic-form',
+    tag: 'form',
+    form: {
+      closeOnSubmit: true,
+    },
+    window: {
+      title: 'Generic',
+      contentClasses: ['mass-edit-generic-form', 'standard-form'],
+      minimizable: true,
+      resizable: true,
+      // controls: [
+      //   {
+      //     icon: 'fas fa-file-export',
+      //     label: 'Export',
+      //     action: 'export',
+      //   },
+      // ],
+    },
+    position: {
+      width: 500,
+      height: 'auto',
+    },
+    actions: { meSwitchToTokenForm: MassEditGenericForm._onSwitchToTokenForm },
+  };
+
+  /** @override */
+  static PARTS = {
+    tabs: { template: 'templates/generic/tab-navigation.hbs' },
+    main: { template: `modules/${MODULE_ID}/templates/generic/genericForm.hbs` },
+    footer: { template: 'templates/generic/form-footer.hbs' },
+  };
+
+  /** @override */
+  _getHeaderControls() {
+    const buttons = super._getHeaderControls();
     if (this.options.tokens) {
-      buttons.unshift({
-        label: '',
+      buttons.push({
+        label: 'Switch',
         class: 'mass-edit-tokens',
         icon: 'fas fa-user-circle',
-        onclick: () => {
-          showMassEdit(this.options.tokens, 'Token');
-          this.close();
-        },
+        action: 'meSwitchToTokenForm',
+        visible: true,
       });
     }
+
     return buttons;
   }
 
-  async getData(options) {
-    const data = await super.getData(options);
+  static _onSwitchToTokenForm() {
+    showMassEdit(this.options.tokens, 'Token');
+    this.close();
+  }
+
+  _processFormData(event, form, formData) {
+    return foundry.utils.expandObject(formData.object);
+  }
+
+  /** @override */
+  async _prepareContext(options) {
+    const context = await super._prepareContext(options);
+    const tabs = this.#configureTabs(this.allData);
     // Cache partials
     await foundry.applications.handlebars.getTemplate(
-      `modules/${MODULE_ID}/templates/generic/navHeaderPartial.html`,
-      'me-navHeaderPartial'
-    );
-    await foundry.applications.handlebars.getTemplate(
-      `modules/${MODULE_ID}/templates/generic/form-group.html`,
+      `modules/${MODULE_ID}/templates/generic/form-group.hbs`,
       'me-form-group'
     );
 
-    data.nav = this.nav;
+    await foundry.applications.handlebars.getTemplate(`modules/${MODULE_ID}/templates/generic/tab.hbs`, 'me-tab');
 
-    return data;
+    return Object.assign(context, {
+      tabs: tabs,
+      tabNavigationPartial: 'templates/generic/tab-navigation.hbs',
+    });
   }
 
-  /**
-   * @param {JQuery} html
-   */
-  activateListeners(html) {
-    super.activateListeners(html);
-    html.find('.me-pinned').click((event) => {
-      const star = $(event.target).parent();
-      const control = star.closest('.form-group').find('[name]');
-      const name = control.attr('name');
-      if (star.hasClass('active')) {
-        star.removeClass('active');
-        delete this.pinnedFields[name];
-      } else {
-        star.addClass('active');
-        this.pinnedFields[name] = { label: name };
-      }
-    });
+  /** @override */
+  _attachFrameListeners() {
+    super._attachFrameListeners();
 
-    html.find('.me-editable-label').on('input', (event) => {
-      const name = $(event.target).closest('.form-group').find('[name]').attr('name');
-      this.editableLabels[name] = event.target.value;
-    });
+    const html = $(this.element);
 
     html.find('.color-number').on('change', (event) => {
       if (event.target.dataset?.editNumber) {
@@ -126,26 +234,6 @@ export class MassEditGenericForm extends WMC {
       }
     });
 
-    html.find('.me-editable-label, label').on('contextmenu', (event) => {
-      const formGroup = $(event.target).closest('.form-group');
-      if (!formGroup.length) return;
-      const input = formGroup.find('[name]');
-      const name = input.attr('name');
-      if (name) {
-        if (isColorField(name)) return;
-
-        const type = input.attr('type');
-        if (type === 'range') {
-          unsetCustomControl(name, this.documentName);
-          return;
-        } else if (type === 'number') {
-          defineRangeControl(name, input.val(), this.customControls, this.documentName);
-        } else if (type === 'text') {
-          defineSelectControl(name, input.val(), this.customControls, this.documentName);
-        }
-      }
-    });
-
     if (this.options.inputChangeCallback) {
       html.on('change', 'input, select', async (event) => {
         setTimeout(() => this.options.inputChangeCallback(this.getSelectedFields()), 100);
@@ -153,109 +241,10 @@ export class MassEditGenericForm extends WMC {
     }
   }
 
-  /**
-   * @param {Event} event
-   * @param {Object} formData
-   */
-  async _updateObject(event, formData) {
-    super._updateObject(event, formData);
-
-    // Save pinned field values and labels
-    const pinned = game.settings.get(MODULE_ID, 'pinnedFields');
-    pinned[this.documentName] = this.pinnedFields;
-
-    for (const name of Object.keys(this.pinnedFields)) {
-      this.pinnedFields[name].value = formData[name];
-    }
-
-    if (!foundry.utils.isEmpty(this.editableLabels)) {
-      for (const [name, label] of Object.entries(this.editableLabels)) {
-        if (name in this.pinnedFields) {
-          this.pinnedFields[name].label = label;
-          this.pinnedFields[name].value = formData[name];
-        }
-      }
-      this.editableLabels = {};
-    }
-
-    game.settings.set(MODULE_ID, 'pinnedFields', pinned);
-  }
-
+  /** @override */
   async close(options = {}) {
     if (this.callbackOnUpdate) this.callbackOnUpdate(null);
     this.closeCallback?.(null);
     return super.close(options);
   }
-}
-
-function defineRangeControl(name, val, customControls, documentName, { min = null, max = null, step = null } = {}) {
-  let content = `
-<div class="form-group slim">
-  <label>Range</label>
-  <div class="form-fields">
-    <label>${localize('Minimum', false)}</label>
-    <input type="number" value="${min ?? val}" name="min" step="any">
-    <label>${localize('Maximum', false)}</label>
-    <input type="number" value="${max ?? val}" name="max" step="any">
-    <label>${localize('generic-form.step-size')}</label>
-    <input type="number" value="${step ?? 1}" name="step" step="any">
-  </div>
-</div>
-  `;
-  new Dialog({
-    title: localize('generic-form.define-range'),
-    content: content,
-    buttons: {
-      save: {
-        label: localize('Save', false),
-        callback: async (html) => {
-          const min = html.find('[name="min"]').val() || val;
-          const max = html.find('[name="max"]').val() || val;
-          const step = html.find('[name="step"]').val() || 1;
-
-          setProperty(customControls, name, { range: true, min, max, step });
-          const allControls = game.settings.get(MODULE_ID, 'customControls');
-          allControls[documentName] = customControls;
-          game.settings.set(MODULE_ID, 'customControls', allControls);
-        },
-      },
-    },
-  }).render(true);
-}
-
-function defineSelectControl(name, val, customControls, documentName, { options = null } = {}) {
-  let content = `
-<div class="form-group slim">
-  <label>${localize('common.options')}</label>
-  <textarea name="options">${options ? options.join('\n') : val}</textarea>
-</div>
-  `;
-  new Dialog({
-    title: localize('generic-form.define-dropdown'),
-    content: content,
-    buttons: {
-      save: {
-        label: localize('Save', false),
-        callback: async (html) => {
-          const options = html.find('[name="options"]').val().trim();
-          if (options) {
-            setProperty(customControls, name, {
-              select: true,
-              options: options.split('\n').filter((o) => o),
-            });
-            const allControls = game.settings.get(MODULE_ID, 'customControls');
-            allControls[documentName] = customControls;
-            game.settings.set(MODULE_ID, 'customControls', allControls);
-          }
-        },
-      },
-    },
-  }).render(true);
-}
-
-function unsetCustomControl(name, documentName) {
-  const allControls = game.settings.get(MODULE_ID, 'customControls');
-  let docControls = allControls[documentName] || {};
-  setProperty(docControls, name, null);
-  game.settings.set(MODULE_ID, 'customControls', allControls);
 }

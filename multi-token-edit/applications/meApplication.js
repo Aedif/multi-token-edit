@@ -35,7 +35,7 @@ export const WithBaseMassEditForm = (cls) => {
 
       BaseMassEditForm._setMEActions(options);
 
-      if (SUPPORTED_SHEET_CONFIGS.includes(documentName) && documentName !== 'Actor') {
+      if (SUPPORTED_SHEET_CONFIGS.includes(documentName)) {
         options.document = doc;
         super(options);
       } else {
@@ -1047,10 +1047,11 @@ export const WithMassEditFormApplicationV2 = (cls) => {
         foundry.utils.mergeObject(submitData, updateData, { performDeletions: true });
         foundry.utils.mergeObject(submitData, updateData, { performDeletions: false });
       }
-      this.document.validate({ changes: submitData, clean: true, fallback: false, strict: false });
+      this.document?.validate({ changes: submitData, clean: true, fallback: false, strict: false });
       return submitData;
     }
 
+    /** @override */
     _getHeaderControls() {
       return [].concat(super._getHeaderControls()).concat(this._getMeControls());
     }

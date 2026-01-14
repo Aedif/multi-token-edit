@@ -193,20 +193,6 @@ export function registerSettings() {
   // end of Preset Settings
   // ======================
 
-  game.settings.register(MODULE_ID, 'pinnedFields', {
-    scope: 'world',
-    config: false,
-    type: Object,
-    default: {},
-  });
-
-  game.settings.register(MODULE_ID, 'customControls', {
-    scope: 'world',
-    config: false,
-    type: Object,
-    default: {},
-  });
-
   // Disable until duplicate flag value bug is fixed
   // game.settings.register(MODULE_ID, 'enableFlagsTab', {
   //   name: localize('settings.enableFlagsTab.name'),
