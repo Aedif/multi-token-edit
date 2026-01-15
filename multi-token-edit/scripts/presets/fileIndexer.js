@@ -301,9 +301,6 @@ export class FileIndexer {
       if (!this._collection) return null;
     }
 
-    console.log(this._collection);
-    console.log(preset);
-
     this._findDeletePreset(this._collection.tree.children, preset.uuid);
     this._collection._meIndex.delete(preset.uuid);
   }

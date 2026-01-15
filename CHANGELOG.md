@@ -1,3 +1,10 @@
+# 2.7.4
+
+- Fixed Tab right-click select on Mass Edit forms
+- Fixed MATT custom field insertion
+- Updated Generic forms to AppV2
+- Virtual Presets/Folders can now be removed manually from the index using context menu options
+
 # 2.7.3
 
 **Indexer**
