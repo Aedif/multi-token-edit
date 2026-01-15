@@ -295,6 +295,63 @@ export class FileIndexer {
     return preset;
   }
 
+  static async delete(preset) {
+    if (!this._collection) {
+      await this.collection();
+      if (!this._collection) return null;
+    }
+
+    console.log(this._collection);
+    console.log(preset);
+
+    this._findDeletePreset(this._collection.tree.children, preset.uuid);
+    this._collection._meIndex.delete(preset.uuid);
+  }
+
+  static _findDeletePreset(folders, uuid) {
+    for (const folder of folders) {
+      const entry = folder.entries.find((entry) => entry._id === uuid);
+      if (entry) {
+        folder.entries = folder.entries.filter((e) => e._id !== uuid);
+        folder.folder.presets = folder.folder.presets.filter((p) => p.uuid !== uuid);
+        return true;
+      }
+      if (this._findDeletePreset(folder.children, uuid)) return true;
+    }
+    return false;
+  }
+
+  static async deleteFolder(folder) {
+    if (!this._collection) {
+      await this.collection();
+      if (!this._collection) return null;
+    }
+
+    if (this._findDeleteFolder(this._collection.tree.children, folder.id)) {
+      return this.saveIndexToCache({ processAutoSave: true, notify: false });
+    }
+  }
+
+  static _findDeleteFolder(folders, id) {
+    const index = folders.findIndex((f) => f.folder.id === id);
+    if (index > -1) {
+      this._deleteFolder(folders[index]);
+      folders.splice(index, 1);
+      return true;
+    }
+
+    for (const folder of folders) {
+      if (this._findDeleteFolder(folder.children, id)) return true;
+    }
+
+    return false;
+  }
+
+  static _deleteFolder(folder) {
+    folder.entries.forEach((entry) => this._collection._meIndex.delete(entry._id));
+    folder.children.forEach((ch) => this._deleteFolder(ch));
+  }
+
   static async saveIndexToCache({
     folders = this._collection?.tree.children.map((ch) => ch.folder),
     path = CACHE_PATH,

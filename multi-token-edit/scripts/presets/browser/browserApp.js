@@ -468,7 +468,10 @@ export class PresetBrowser extends PresetContainerV2 {
         });
       }
 
-      if (confirm) await folder.delete({ deleteSubfolders: deleteAll, deleteContents: deleteAll });
+      if (confirm) {
+        await folder.delete({ deleteSubfolders: deleteAll, deleteContents: deleteAll });
+        this.render(true);
+      }
     }
   }
 

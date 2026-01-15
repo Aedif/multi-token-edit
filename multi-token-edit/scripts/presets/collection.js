@@ -208,6 +208,11 @@ export class VirtualFileFolder extends PresetVirtualFolder {
     this.path = options.path;
     if (options.source && ['data', 'forgevtt'].includes(options.source)) this.indexable = true;
   }
+
+  async delete() {
+    await FileIndexer.deleteFolder(this);
+    CONFIG['ME-Folder']?.collection?.instance?.delete(this.id);
+  }
 }
 
 export class PresetPackFolder extends PresetVirtualFolder {
@@ -393,7 +398,12 @@ export class PresetStorage {
 
     // Sort by compendium
     const sorted = {};
+    const virtual = [];
     for (const preset of presets) {
+      if (preset.virtual) {
+        virtual.push(preset);
+        continue;
+      }
       let { collection } = foundry.utils.parseUuid(preset.uuid);
       if (!collection) continue;
       collection = collection.collection;
@@ -407,6 +417,9 @@ export class PresetStorage {
         sorted[pack].map((p) => p.id),
         { pack }
       );
+    }
+    for (const vPreset of virtual) {
+      vPreset.delete();
     }
   }
 

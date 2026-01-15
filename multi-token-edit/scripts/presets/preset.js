@@ -403,9 +403,20 @@ export class VirtualFilePreset extends Preset {
 
   async update(update) {
     if (!update.hasOwnProperty('tags')) return;
-
     this.tags = update.tags;
+    this.#processIndexUpdate();
+  }
 
+  /**
+   * Delete preset from virtual index
+   * @returns
+   */
+  async delete() {
+    await FileIndexer.delete(this);
+    this.#processIndexUpdate();
+  }
+
+  #processIndexUpdate() {
     clearTimeout(VirtualFilePreset._updateTimeout);
     VirtualFilePreset._updateTimeout = setTimeout(
       () => FileIndexer.saveIndexToCache({ processAutoSave: true, notify: false }),

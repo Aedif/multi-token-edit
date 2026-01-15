@@ -551,8 +551,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
         condition: (item) =>
           game.user.isGM &&
           !this.presetsDisableDelete &&
-          (this.presetsForceAllowDelete ||
-            (Preset.isEditable(item.dataset.uuid) && !item.classList.contains('virtual'))),
+          (this.presetsForceAllowDelete || Preset.isEditable(item.dataset.uuid)),
         callback: (item) => this._onDeleteSelectedPresets(item),
         sort: 1100,
       },
@@ -678,9 +677,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
         condition: (header) => {
           const uuid = header.closest('.folder').dataset.uuid;
           const folder = fromUuidSync(uuid);
-          return (
-            !(folder instanceof VirtualFileFolder || folder instanceof PresetPackFolder) && !folder.collection.locked
-          );
+          return !(folder instanceof PresetPackFolder) && !folder.collection?.locked;
         },
         callback: (header) =>
           this._onFolderDelete($(header).closest('.folder').data('uuid'), {
