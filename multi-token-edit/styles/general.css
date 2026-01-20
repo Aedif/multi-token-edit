@@ -653,7 +653,7 @@ nav > a[data-tab='me-pinned'] {
   color: rgb(255, 0, 0);
 }
 
-.mass-edit-generic-form .tva-jsonArray {
+.mass-edit-generic-form .me-jsonArray {
   height: 100px;
   white-space: pre-wrap;
 }

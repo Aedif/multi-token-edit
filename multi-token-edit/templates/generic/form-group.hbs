@@ -8,18 +8,15 @@
             <button type="button" class="file-picker" data-type="imagevideo" data-target="{{name}}" title="{{localize 'FILES.BrowseTooltip'}}" tabindex="-1">
                 <i class="fas fa-file-import fa-fw"></i>
             </button>
-            {{else if colorPicker}}
-            <input type="color" value="{{value}}" data-edit="{{name}}">
             {{/if}}
         {{else if number}}
         <input type="number" name="{{name}}" step="any" value="{{value}}" {{disabled disabled}}/>
-            {{#if colorPickerNumber}}
-            <input class="color-number" type="color" value="{{colorValue}}" data-edit-number="{{name}}">
-            {{/if}}
+        {{else if color}}
+        <color-picker {{#if numeric}}class="numeric"{{/if}} name="{{name}}" value="{{value}}" {{disabled disabled}}></color-picker>
         {{else if boolean}}
         <input type="checkbox" name="{{name}}" {{checked value}} {{disabled disabled}}/>
         {{else if array}}
-        <input class="tva-array" type="text" name="{{name}}" value="{{value}}" {{disabled disabled}}/>
+        <input class="me-array" type="text" name="{{name}}" value="{{value}}" {{disabled disabled}}/>
         {{else if range}}
         <input type="range" name="{{name}}" value="{{value}}" min="{{min}}" max="{{max}}" step="{{step}}">
         <span class="range-value">{{value}}</span>
@@ -30,7 +27,7 @@
             {{/each}}
         </select>
         {{else if jsonArray}}
-        <textarea class="tva-jsonArray" name="{{name}}">{{value}}</textarea>
+        <textarea class="me-jsonArray" name="{{name}}">{{value}}</textarea>
         {{/if}}
     </div>
 </div>

@@ -1,3 +1,7 @@
+# 2.7.5
+
+- Fixed `inputChangeCallback` not being called on `Generic` forms
+
 # 2.7.4
 
 - Fixed Tab right-click select on Mass Edit forms
@@ -863,7 +867,6 @@ MassEdit.sceneNotFoundMessages?.push({
 
 - Fixed active brush interacting with placeables while dragging application windows
 - Brushes activated via the Preset browser will now open up a new menu:
-
   - The menu contains controls to manage how selected presets will be applied on the canvas
   - **Rotation**: Applies a random rotation within the selected range
   - **Scale**: Applies a random scale within the selected range
@@ -939,14 +942,12 @@ MassEdit.sceneNotFoundMessages?.push({
 # 1.62.0
 
 - Preset tagging
-
   - Select `Edit` within the preset context menu to add tags
   - With multiple presets selected you'll have the option to `Add Tags` and `Remove Tags` from all selected presets
   - Tagged presets will be included in the matching searches
   - Hover over a preset to see its tags
 
 - External compendium folder editing
-
   - Assign color, name, and group
   - Folders with the same group name will be displayed together under one folder
 
@@ -1163,7 +1164,6 @@ Misc.
 - Added new window control: `Scale To Grid`
   - When toggled on, Tiles, Drawings, and Walls dragged out onto the scene will be scaled according to pixel density (Grid Size)
 - Added `Delete Fields` option to preset edit form
-
   - Allows to delete individual fields from the stored placeable data
 
 **API**
@@ -1648,7 +1648,6 @@ Generic Forms
 - New keybinding: Shift+R
   - Will open Actor form for selected tokens without needing to switch to it through the Token form
 - New method added to the API: `showGenericForm`
-
   - e.g. `game.modules.get("multi-token-edit").api.showGenericForm({abc : 1, def: "foo"})`
   - Returns a promise that will be resolved once the Mass Edit form has been submitted
   - The form will directly update the object/s passed to it
@@ -1831,12 +1830,10 @@ Patreon
 New features:
 
 - Copy/Paste
-
   - Placeable data can now be copied using 'Shift+C' and pasted on currently selected or hovered over placeable using 'Shift+V'. (kebindings can be re-configured)
   - Each placeable type has their own "clipboard"
 
 - Presets
-
   - Modified configuration windows now have a new header button: 'Presets'
   - Allows to save currently selected fields and apply them later
   - Each placeable type has their own preset list
@@ -1876,7 +1873,6 @@ Misc.
 
 - Added support for Tiles, Drawings, Walls, AmbientLights, AmbientSounds, MeasuredTemplates and Notes
 - New key-binding: **Open Placeable Search and Select**
-
   - Opens a configuration window allowing the user to choose fields to perform a search with on the current scene and either select or select and edit all the found placeables
   - If no placeable is currently selected a Dialog will be opened to choose which type of placeable is to be searched.
 

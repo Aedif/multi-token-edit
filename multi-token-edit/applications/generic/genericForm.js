@@ -38,19 +38,6 @@ export class MassEditGenericForm extends WMC {
    * Dynamically assemble a tabs configuration
    */
   #configureTabs(data) {
-    // const { getType } = foundry.utils;
-
-    // let main;
-    // for (const key of Object.keys(data)) {
-    //   const t = getType(data[key]);
-    //   if (t !== 'Object') {
-    //     if (!main) main = { id: 'main', label: 'main', controls: [], tabs: [] };
-    //     main.controls.push(this._genControl(key, data[key]));
-    //   } else {
-    //     if (!main) main = { id: 'main', label: 'main', controls: [], tabs: [] };
-    //   }
-    // }
-
     const topTab = this._genTab(null, '', data);
     if (!topTab.controls.length) {
       topTab.tabs.forEach((t) => {
@@ -67,7 +54,6 @@ export class MassEditGenericForm extends WMC {
       return [main, ...topTab.tabs];
     }
 
-    // tabGroups - optional?
     // _onClickTab - can be overriden, maybe should support right-clicking here?
   }
 
@@ -102,8 +88,6 @@ export class MassEditGenericForm extends WMC {
   _genLabel(key) {
     if (!key) return '';
     return key;
-    if (key.length <= 3) return key.toUpperCase();
-    return key.charAt(0).toUpperCase() + key.slice(1);
   }
 
   _genControl(key, value, name) {
@@ -113,18 +97,23 @@ export class MassEditGenericForm extends WMC {
     const allowedArrayElTypes = ['number', 'string'];
 
     if (type === 'number') {
-      control.number = true;
-      if (COLOR_FIELDS.includes(key)) {
-        control.colorPickerNumber = true;
+      if (COLOR_FIELDS.includes(key) || key.toLowerCase().includes('color')) {
+        control.color = true;
+        control.numeric = true;
+
         try {
-          control.colorValue = new Color(value).toString();
-        } catch (e) {}
+          control.value = new Color(value).toString();
+        } catch (e) {
+          control.value = '';
+        }
+      } else {
+        control.number = true;
       }
     } else if (type === 'string') {
       control.text = true;
       if (IMAGE_FIELDS.includes(key) || key.toLowerCase().includes('image') || key.toLowerCase().includes('path'))
         control.filePicker = true;
-      else if (COLOR_FIELDS.includes(key)) control.colorPicker = true;
+      else if (COLOR_FIELDS.includes(key) || key.toLowerCase().includes('color')) control.color = true;
     } else if (type === 'boolean') {
       control.boolean = true;
     } else if (type === 'Array' && value.every((el) => allowedArrayElTypes.includes(foundry.utils.getType(el)))) {
@@ -152,13 +141,6 @@ export class MassEditGenericForm extends WMC {
       contentClasses: ['mass-edit-generic-form', 'standard-form'],
       minimizable: true,
       resizable: true,
-      // controls: [
-      //   {
-      //     icon: 'fas fa-file-export',
-      //     label: 'Export',
-      //     action: 'export',
-      //   },
-      // ],
     },
     position: {
       width: 500,
@@ -206,39 +188,14 @@ export class MassEditGenericForm extends WMC {
     // Cache partials
     await foundry.applications.handlebars.getTemplate(
       `modules/${MODULE_ID}/templates/generic/form-group.hbs`,
-      'me-form-group'
+      'me-form-group',
     );
-
     await foundry.applications.handlebars.getTemplate(`modules/${MODULE_ID}/templates/generic/tab.hbs`, 'me-tab');
 
     return Object.assign(context, {
       tabs: tabs,
       tabNavigationPartial: 'templates/generic/tab-navigation.hbs',
     });
-  }
-
-  /** @override */
-  _attachFrameListeners() {
-    super._attachFrameListeners();
-
-    const html = $(this.element);
-
-    html.find('.color-number').on('change', (event) => {
-      if (event.target.dataset?.editNumber) {
-        let col = 0;
-        try {
-          col = Number(Color.fromString(event.target.value));
-        } catch (e) {}
-
-        $(event.target).siblings(`[name="${event.target.dataset.editNumber}"]`).val(col).trigger('input');
-      }
-    });
-
-    if (this.options.inputChangeCallback) {
-      html.on('change', 'input, select', async (event) => {
-        setTimeout(() => this.options.inputChangeCallback(this.getSelectedFields()), 100);
-      });
-    }
   }
 
   /** @override */
