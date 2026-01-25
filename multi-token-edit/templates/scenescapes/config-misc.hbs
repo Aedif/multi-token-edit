@@ -1,0 +1,16 @@
+<div class="tab{{#if tab.active}} active{{/if}}" data-group="{{tab.group}}" data-tab="{{tab.id}}">
+    <div class="form-group">
+        <label>Pixel Perfect Hover</label>
+        <div class="form-fields">
+            <input type="checkbox" name="pixelPerfect" {{checked pixelPerfect}}/>
+        </div>
+        <p class="hint">When enabled `Pixel Perfect Hover` will be force applied on this scene.</p>
+    </div>
+    <div class="form-group">
+        <label>Hide Border</label>
+        <div class="form-fields">
+            <input type="checkbox" name="hideBorder" {{checked hideBorder}}/>
+        </div>
+        <p class="hint">When enabled no outline will be shown to denote placeable border.</p>
+    </div>
+</div>

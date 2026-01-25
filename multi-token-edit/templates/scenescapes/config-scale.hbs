@@ -1,0 +1,22 @@
+<div class="tab{{#if tab.active}} active{{/if}}" data-group="{{tab.group}}" data-tab="{{tab.id}}">
+    <div class="" style="display: flex; justify-content: space-between;">
+        {{#each markerTemplates as |template|}}
+        <a class="marker" data-action="marker" data-height="{{template.height}}">
+            <img src="{{template.src}}" title="{{template.height}}ft" height="70">
+        </a>
+        {{/each}}
+    </div>
+    <p class="hint">Select and place reference tiles on the scene. ALT+Mouse Wheel can be used to scale the tiles up and down. </p>
+
+    <img src="modules/multi-token-edit/images/scenescape_sample.webp">
+
+    <div class="form-group">
+        <label>Distance <span class="units" style="color: darkorange;">(feet)</span></label>
+        <div class="form-fields">
+            <range-picker name="scaleDistance" value="{{scaleDistance}}" min="6" max="500" step="1"></range-picker>
+        </div>
+        <p class="hint">At what distance the apparent size of an object halves?</p>
+    </div>
+
+    <img src="modules/multi-token-edit/images/scenescape_sample_distance.webp">
+</div>

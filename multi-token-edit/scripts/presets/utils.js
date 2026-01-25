@@ -63,7 +63,7 @@ export function applyTaggerTagRules(tags) {
               .find((tag) => {
                 return tag.match(findTag);
               })
-              .match(findTag)[1]
+              .match(findTag)[1],
           );
         });
 
@@ -383,7 +383,7 @@ export function registerSideBarPresetDropListener() {
       data = JSON.parse(data);
 
       let presets = (await PresetStorage.retrieve({ uuid: data.uuids })).filter(
-        (p) => p.documentName === 'AmbientSound'
+        (p) => p.documentName === 'AmbientSound',
       );
 
       await PresetStorage.batchLoad(presets);
@@ -480,7 +480,7 @@ export async function exportPresets(presets, { fileName, json = false, load = tr
   foundry.utils.saveDataToFile(
     JSON.stringify(presets, null, 2),
     'text/json',
-    (fileName ?? 'mass-edit-presets') + '.json'
+    (fileName ?? 'mass-edit-presets') + '.json',
   );
 }
 
@@ -542,17 +542,15 @@ export async function sceneNotFoundError(preset) {
     if (!(message.query && message.content)) continue;
     let p = await PresetStorage.retrieve({ presets: [preset], query: message.query });
     if (p.length) {
+      dialog = true;
+
       const content = message.content.replace('{{name}}', preset.name);
-      dialog = new Dialog(
-        {
-          title: message.title,
-          content,
-          buttons: {},
-        },
-        { height: 'auto' }
-      );
-      await dialog.render(true);
-      setTimeout(() => dialog.setPosition({ height: 'auto' }), 200);
+
+      foundry.applications.api.DialogV2.prompt({
+        window: { title: message.title }, // FIXME: double localization
+        position: { width: 480 },
+        content,
+      });
       break;
     }
   }

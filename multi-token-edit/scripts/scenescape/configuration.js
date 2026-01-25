@@ -11,146 +11,121 @@ const TEMPLATES = [
   { height: 100, src: `modules/${MODULE_ID}/images/100ft.webp` },
 ];
 
-export default class ScenescapeConfig extends FormApplication {
+const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
+
+export default class ScenescapeConfig extends HandlebarsApplicationMixin(ApplicationV2) {
   static autoScale = true;
 
   static close() {
-    Object.values(ui.windows)
-      .find((w) => w instanceof ScenescapeConfig)
-      ?.close();
+    foundry.applications.instances.get(ScenescapeConfig.DEFAULT_OPTIONS.id)?.close();
   }
 
   constructor() {
-    super({}, { left: 60 });
+    super({});
     this.scene = canvas.scene;
     this.flags = this.scene.getFlag(MODULE_ID, 'scenescape') ?? {};
     this.dataUpdate = {};
     this._createReferenceMarkers();
   }
 
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      id: 'mass-edit-scenescape',
-      classes: ['sheet', 'mass-edit-dark-window'],
-      template: `modules/${MODULE_ID}/templates/scenescape.html`,
-      tabs: [{ navSelector: '.sheet-tabs', contentSelector: '.content', initial: 'scale' }],
-      resizable: false,
-      minimizable: false,
-      width: 300,
+  /** @override */
+  static DEFAULT_OPTIONS = {
+    id: 'mass-edit-scenescape',
+    window: { resizable: true, minimizable: true, contentClasses: ['standard-form'] },
+    tag: 'form',
+    form: {
+      handler: ScenescapeConfig._onSubmit,
+      submitOnChange: false,
+      closeOnSubmit: true,
+    },
+    classes: ['mass-edit', 'flexcol'],
+    actions: {
+      revert: ScenescapeConfig._onRevert,
+      marker: ScenescapeConfig._onMarker,
+      limit: ScenescapeConfig._onLimit,
+    },
+    position: {
+      width: 420,
       height: 'auto',
-    });
-  }
+      left: 60,
+    },
+  };
+
+  /** @override */
+  static PARTS = {
+    tabs: { template: 'templates/generic/tab-navigation.hbs' },
+    scale: { template: `modules/${MODULE_ID}/templates/scenescapes/config-scale.hbs` },
+    movement: { template: `modules/${MODULE_ID}/templates/scenescapes/config-movement.hbs` },
+    misc: { template: `modules/${MODULE_ID}/templates/scenescapes/config-misc.hbs` },
+    footer: { template: 'templates/generic/form-footer.hbs' },
+  };
+
+  /** @override */
+  static TABS = {
+    main: {
+      tabs: [
+        { id: 'scale', label: 'Scale', icon: 'fa-solid fa-arrow-up-triangle-square' },
+        { id: 'movement', label: 'Movement', icon: 'fa-solid fa-shoe-prints' },
+        { id: 'misc', label: 'Misc', icon: 'fa-solid fa-gear' },
+      ],
+      initial: 'scale',
+    },
+  };
 
   get title() {
     return 'Scenescape: ' + this.scene.name;
   }
 
-  _getHeaderButtons() {
-    const buttons = super._getHeaderButtons();
+  /** @override */
+  async _preparePartContext(partId, context, options) {
+    await super._preparePartContext(partId, context, options);
+    if (partId in context.tabs) context.tab = context.tabs[partId];
+    switch (partId) {
+      case 'scale':
+        context.markerTemplates = TEMPLATES;
+        context.scaleDistance = this.flags.scaleDistance ?? 32;
+        break;
+      case 'movement':
+        context.speed = this.flags.speed ?? 4.3;
+        context.speedY = this.flags.speedY ?? 8.6;
+        break;
+      case 'misc':
+        context.pixelPerfect = this.flags.pixelPerfect ?? true;
+        context.hideBorder = this.flags.hideBorder ?? false;
+        break;
+      case 'footer':
+        context.buttons = [{ type: 'submit', icon: 'fa-solid fa-floppy-disk', label: 'Save' }];
+        break;
+    }
+    return context;
+  }
 
-    buttons.unshift({
-      label: 'Revert',
-      class: 'mass-edit-scenescape-delete',
-      icon: 'fas fa-trash fa-fw',
-      onclick: () => {
-        this.scene.unsetFlag(MODULE_ID, 'scenescape');
-        this.close();
-        ScenescapeControls._checkActivateControls();
-      },
-    });
+  /** @override */
+  _getHeaderControls() {
+    const buttons = super._getHeaderControls();
+    if (this.options.tokens) {
+      buttons.push({
+        label: 'Revert',
+        class: 'mass-edit-scenescape-delete',
+        icon: 'fas fa-trash fa-fw',
+        action: 'revert',
+      });
+    }
 
     return buttons;
   }
 
-  async getData(options) {
-    const data = super.getData(options);
-    data.markerTemplates = TEMPLATES;
-    data.scaleDistance = this.flags.scaleDistance ?? 32;
-    data.speed = this.flags.speed ?? 4.3;
-    data.speedY = this.flags.speedY ?? 8.6;
-    data.pixelPerfect = this.flags.pixelPerfect ?? true;
-    return data;
+  static _onRevert() {
+    this.scene.unsetFlag(MODULE_ID, 'scenescape');
+    this.close();
+    ScenescapeControls._checkActivateControls();
   }
 
-  /**
-   * @param {JQuery} html
-   */
-  activateListeners(html) {
-    super.activateListeners(html);
-
-    html.on('click', '.marker > img', this._onClickMarker.bind(this));
-    html.on('click', '.select-limit-lower', () => this._onSelectLimit('y2'));
-    html.on('click', '.select-limit-upper', () => this._onSelectLimit('y1'));
-    html.on('click', '.auto-select-limits', this._onAutoSelectLimits.bind(this));
-    html.on('click', '.clear-limits', this._onClearLimits.bind(this));
-  }
-
-  /**
-   * Set movement limits to lowest and highest reference markers
-   * @returns
-   */
-  _onAutoSelectLimits() {
-    const ys = this.scene.tiles
-      .filter((d) => d.getFlag(MODULE_ID, 'scenescape')?.marker)
-      .map((d) => d.y + d.height)
-      .sort((y1, y2) => y1 - y2);
-    if (!ys.length) return this._onClearLimits();
-
-    foundry.utils.mergeObject(this.flags, {
-      movementLimits: {
-        y1: ys[0],
-        y2: ys[ys.length - 1],
-      },
-    });
-
-    ui.notifications.info(`Limits set to: {${ys[0]}, ${ys[ys.length - 1]}}`);
-  }
-
-  async _onLockInScale() {
-    const { markers, foregroundElevation } = Scenescape.processReferenceMarkers(this.scene);
-    if (markers) {
-      const update = { [`flags.${MODULE_ID}.scenescape.markers`]: markers, foregroundElevation };
-
-      // Disable settings which interfere with Scenescapes
-      update['grid.type'] = CONST.GRID_TYPES.GRIDLESS;
-      update['fog.exploration'] = false;
-      update.tokenVision = false;
-      update['flags.levels.lightMasking'] = true;
-      update['flags.wall-height.advancedVision'] = false;
-
-      await this.scene.update(update);
-    } else {
-      await this.scene.update({ [`flags.${MODULE_ID}.scenescape.-=markers`]: null });
-    }
-  }
-
-  _onSelectLimit(varName) {
-    this._onMinimize();
-    LineSelector.select((pos) => {
-      if (pos) {
-        const limits = this.flags.movementLimits ?? {};
-        limits[varName] = pos.y;
-
-        if (limits.y1 != null && limits.y2 != null) {
-          let y1 = Math.min(limits.y1, limits.y2);
-          limits.y2 = Math.max(limits.y1, limits.y2);
-          limits.y1 = y1;
-        }
-
-        foundry.utils.mergeObject(this.flags, { movementLimits: limits });
-      }
-      this._onMaximize();
-    }, Object.values(this.flags.movementLimits ?? {}));
-  }
-
-  _onClearLimits() {
-    delete this.flags.movementLimits;
-  }
-
-  async _onClickMarker(event) {
+  static async _onMarker(event, element) {
     this._onMinimize();
 
-    const height = Number($(event.target).closest('.marker').data('height'));
+    const height = Number(element.dataset.height);
+    console.log(event, element, height);
     const preset = new Preset({
       documentName: 'Tile',
       data: [
@@ -180,6 +155,88 @@ export default class ScenescapeConfig extends FormApplication {
       layerSwitch: true,
     });
     this._onMaximize();
+  }
+
+  static async _onLimit(event, element) {
+    const limit = element.dataset.limit;
+
+    switch (limit) {
+      case 'y1':
+      case 'y2':
+        this._onSelectLimit(limit);
+        break;
+      case 'auto':
+        this._onAutoSelectLimits();
+        break;
+      case 'clear':
+        this._onClearLimits();
+        break;
+    }
+  }
+
+  _onSelectLimit(varName) {
+    this._onMinimize();
+    LineSelector.select(
+      (pos) => {
+        if (pos) {
+          const limits = this.flags.movementLimits ?? {};
+          limits[varName] = pos.y;
+
+          if (limits.y1 != null && limits.y2 != null) {
+            let y1 = Math.min(limits.y1, limits.y2);
+            limits.y2 = Math.max(limits.y1, limits.y2);
+            limits.y1 = y1;
+          }
+
+          foundry.utils.mergeObject(this.flags, { movementLimits: limits });
+        }
+        this._onMaximize();
+      },
+      Object.values(this.flags.movementLimits ?? {}),
+    );
+  }
+
+  /**
+   * Set movement limits to lowest and highest reference markers
+   * @returns
+   */
+  _onAutoSelectLimits() {
+    const ys = this.scene.tiles
+      .filter((d) => d.getFlag(MODULE_ID, 'scenescape')?.marker)
+      .map((d) => d.y + d.height)
+      .sort((y1, y2) => y1 - y2);
+    if (!ys.length) return this._onClearLimits();
+
+    foundry.utils.mergeObject(this.flags, {
+      movementLimits: {
+        y1: ys[0],
+        y2: ys[ys.length - 1],
+      },
+    });
+
+    ui.notifications.info(`Limits set to: {${ys[0]}, ${ys[ys.length - 1]}}`);
+  }
+
+  _onClearLimits() {
+    delete this.flags.movementLimits;
+  }
+
+  async _onLockInScale() {
+    const { markers, foregroundElevation } = Scenescape.processReferenceMarkers(this.scene);
+    if (markers) {
+      const update = { [`flags.${MODULE_ID}.scenescape.markers`]: markers, foregroundElevation };
+
+      // Disable settings which interfere with Scenescapes
+      update['grid.type'] = CONST.GRID_TYPES.GRIDLESS;
+      update['fog.exploration'] = false;
+      update.tokenVision = false;
+      update['flags.levels.lightMasking'] = true;
+      update['flags.wall-height.advancedVision'] = false;
+
+      await this.scene.update(update);
+    } else {
+      await this.scene.update({ [`flags.${MODULE_ID}.scenescape.-=markers`]: null });
+    }
   }
 
   _deleteReferenceMarkers() {
@@ -232,16 +289,12 @@ export default class ScenescapeConfig extends FormApplication {
       ?.maximize();
   }
 
-  /**
-   * @param {Event} event
-   * @param {Object} formData
-   */
-  async _updateObject(event, formData) {
+  static async _onSubmit(event, form, formData) {
     let update = {};
 
     foundry.utils.mergeObject(this.flags, formData);
 
-    ['movementLimits', 'speed', 'speedY', 'scaleDistance', 'pixelPerfect'].forEach((varName) => {
+    ['movementLimits', 'speed', 'speedY', 'scaleDistance', 'pixelPerfect', 'hideBorder'].forEach((varName) => {
       if (foundry.utils.isEmpty(this.flags[varName])) update[`flags.${MODULE_ID}.scenescape.-=${varName}`] = null;
       else update[`flags.${MODULE_ID}.scenescape.${varName}`] = this.flags[varName];
     });

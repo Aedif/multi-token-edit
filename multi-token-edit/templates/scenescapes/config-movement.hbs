@@ -1,0 +1,32 @@
+<div class="tab{{#if tab.active}} active{{/if}}" data-group="{{tab.group}}" data-tab="{{tab.id}}">
+    <div class="form-group">
+        <label>Step Size <span class="units" style="color: darkorange;">(feet)</span></label>
+        <div class="form-fields">
+            <label>⇆</label>
+            <input type="number" value="{{speed}}" min="0.1" max="1000" step="0.1" name="speed"></input>
+            <label>⇅</label>
+            <input type="number" value="{{speedY}}" min="0.1" max="1000" step="0.1" name="speedY"></input>
+        </div>
+        <p class="hint">Distance tokens and tiles will move when pressing WASD or arrow keys.</p>
+    </div>
+
+    <div class="form-group">
+        <label>Limits</label>
+        <div class="form-fields">
+            <button data-action="limit" data-limit="y1" type="button" data-tooltip="Select upper limit.">
+                <i class="fa-solid fa-arrow-up-to-line"></i>
+            </button>
+            <button data-action="limit" data-limit="y2" type="button" data-tooltip="Select lower limit.">
+                <i class="fa-solid fa-arrow-down-to-line"></i>
+            </button>
+            <button data-action="limit" data-limit="auto" type="button" data-tooltip="Set limits to highest and lowest reference tile.">
+                <i class="fa-solid fa-arrows-left-right-to-line fa-rotate-90"></i>
+            </button>
+            <button data-action="limit" data-limit="clear" type="button" data-tooltip="Clear all movement limits." style="color: red;">
+                <i class="fa-solid fa-trash"></i>
+            </button>
+        </div>
+        <p class="hint">Select lower and upper limit lines for token movement.</p>
+    </div>
+    <img src="modules/multi-token-edit/images/scenescape_sample_limit.webp" height="148">
+</div>

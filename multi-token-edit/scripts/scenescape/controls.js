@@ -67,7 +67,7 @@ export class ScenescapeControls {
         {
           autoFlipX: app.document.getFlag(MODULE_ID, 'autoFlipX'),
           autoFlipY: app.document.getFlag(MODULE_ID, 'autoFlipY'),
-        }
+        },
       );
       $(html).find('[name="mirrorX"]').closest('.form-group').after(formGroup);
     });
@@ -103,7 +103,7 @@ export class ScenescapeControls {
             [`flags.${MODULE_ID}.width`]: updatedWidth / canvas.scene.grid.sizeX,
             x: token.x + (width - updatedWidth) / 2,
           },
-          { animate: false, scenescape: true }
+          { animate: false, scenescape: true },
         );
       }
     });
@@ -136,7 +136,7 @@ export class ScenescapeControls {
 
         token.update(
           { x, y, width, height, elevation, flags: { [MODULE_ID]: { width, height, size } } },
-          { scenescape: true }
+          { scenescape: true },
         );
       }
     });
@@ -156,7 +156,7 @@ export class ScenescapeControls {
         wrapped(...args);
         return '';
       },
-      'WRAPPER'
+      'WRAPPER',
     );
     this._wrapperIds.push(id);
 
@@ -169,7 +169,7 @@ export class ScenescapeControls {
         this.border.visible = false;
 
         if (!this.mesh.filters) this.mesh.filters = [];
-        if (!this.document.isSecret && this.controlled) {
+        if (!this.document.isSecret && this.controlled && !Scenescape.hideBorder) {
           if (!this.mesh.filters.find((f) => f.ssOutline)) {
             const outlineFilter = OutlineFilter.create({
               outlineColor: Color.from(_token._getBorderColor()).rgb,
@@ -185,7 +185,7 @@ export class ScenescapeControls {
 
         return result;
       },
-      'WRAPPER'
+      'WRAPPER',
     );
     this._wrapperIds.push(id);
 
@@ -193,7 +193,7 @@ export class ScenescapeControls {
       MODULE_ID,
       'foundry.canvas.layers.TokenLayer.prototype.moveMany',
       this._moveMany,
-      'OVERRIDE'
+      'OVERRIDE',
     );
     this._wrapperIds.push(id);
 
@@ -201,7 +201,7 @@ export class ScenescapeControls {
       MODULE_ID,
       'foundry.canvas.layers.TilesLayer.prototype.moveMany',
       this._moveMany,
-      'OVERRIDE'
+      'OVERRIDE',
     );
     this._wrapperIds.push(id);
 
@@ -216,7 +216,7 @@ export class ScenescapeControls {
         height *= grid.sizeY;
         return { width, height };
       },
-      'OVERRIDE'
+      'OVERRIDE',
     );
     this._wrapperIds.push(id);
 
@@ -232,7 +232,7 @@ export class ScenescapeControls {
         }
         return wrapped(changed, options, userId);
       },
-      'WRAPPER'
+      'WRAPPER',
     );
     this._wrapperIds.push(id);
 
@@ -255,14 +255,14 @@ export class ScenescapeControls {
               mainPlaceable: draggedObject,
               hardLinked: true,
             },
-            { scenescape: true }
+            { scenescape: true },
           );
         }
 
         event.interactionData.clones = [];
         return false;
       },
-      'OVERRIDE'
+      'OVERRIDE',
     );
     this._wrapperIds.push(id);
 
@@ -274,7 +274,7 @@ export class ScenescapeControls {
 
         return wrapped(user, event);
       },
-      'MIXED'
+      'MIXED',
     );
     this._wrapperIds.push(id);
 
@@ -293,7 +293,7 @@ export class ScenescapeControls {
             bounds.minX,
             bounds.minY,
             bounds.maxX - bounds.minX,
-            bounds.maxY - bounds.minY
+            bounds.maxY - bounds.minY,
           );
 
           if (!rectangle.intersects(tRect)) return false;
@@ -301,7 +301,7 @@ export class ScenescapeControls {
 
         return wrapped(rectangle);
       },
-      'MIXED'
+      'MIXED',
     );
     this._wrapperIds.push(id);
   }
@@ -326,7 +326,7 @@ export class ScenescapeControls {
 
     const documentName = this.constructor.documentName;
     const incrementScale = game.keyboard.isModifierActive(
-      foundry.helpers.interaction.KeyboardManager.MODIFIER_KEYS.SHIFT
+      foundry.helpers.interaction.KeyboardManager.MODIFIER_KEYS.SHIFT,
     )
       ? 0.5
       : 1.0;
@@ -337,7 +337,7 @@ export class ScenescapeControls {
         bottom,
         dx * incrementScale,
         dy * incrementScale,
-        documentName === 'Tile'
+        documentName === 'Tile',
       );
 
       const transformer = new MassTransformer()

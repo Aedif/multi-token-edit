@@ -28,6 +28,10 @@ export class Scenescape {
     return this._movementLimits;
   }
 
+  static get hideBorder() {
+    return this._hideBorder;
+  }
+
   static get depth() {
     if (this._markers?.length) {
       return this._markers[this._markers.length - 1].elevation;
@@ -45,6 +49,7 @@ export class Scenescape {
       this._stepDistanceY = flags.speedY ?? 8.6;
       this._movementLimits = flags.movementLimits;
       this._markers = flags.markers;
+      this._hideBorder = flags.hideBorder;
       this.pixelPerfect = Boolean(flags.pixelPerfect ?? true);
     }
   }
