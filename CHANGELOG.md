@@ -1,3 +1,15 @@
+# 2.7.6
+
+**Scenescape**
+
+- Added new setting: `Misc` > `Hide Border`
+  - When enabled placeable border will no longer be shown on select/control
+- Configuration window has been updated to AppV2
+
+**Misc.**
+
+- Scene Not Found error prompt updated to AppV2
+
 # 2.7.5
 
 - Fixed `inputChangeCallback` not being called on `Generic` forms
