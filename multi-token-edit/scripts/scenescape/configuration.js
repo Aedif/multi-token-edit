@@ -292,7 +292,7 @@ export default class ScenescapeConfig extends HandlebarsApplicationMixin(Applica
   static async _onSubmit(event, form, formData) {
     let update = {};
 
-    foundry.utils.mergeObject(this.flags, formData);
+    foundry.utils.mergeObject(this.flags, formData.object);
 
     ['movementLimits', 'speed', 'speedY', 'scaleDistance', 'pixelPerfect', 'hideBorder'].forEach((varName) => {
       if (foundry.utils.isEmpty(this.flags[varName])) update[`flags.${MODULE_ID}.scenescape.-=${varName}`] = null;
