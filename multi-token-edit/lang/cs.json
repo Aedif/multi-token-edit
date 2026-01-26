@@ -1,0 +1,218 @@
+{
+  "MassEdit": {
+    "behavior": {
+      "linkToken": {
+        "linkId": {
+          "label": "Propojené ID",
+          "hint": "ID použité k vytvoření propojení mezi oblastí a tokenem."
+        }
+      }
+    },
+    "form": {
+      "immediate-update-title": "Automatické použití změn při úpravě polí.",
+      "global-search-title": "Povolení globálního vyhledávání ve světě.",
+      "global-delete-title": "Smazat",
+      "actions": "Akce",
+      "images": "Obrázky",
+      "shaders": "Shader efekty",
+      "delete-warning": "MAZÁNÍ [{count}] dokumentů {document}",
+      "proceed": "Chceš pokračovat?",
+      "search-and-edit": "Vyhledat a upravit",
+      "apply-on-current-scene": "Použít na aktuální scénu",
+      "apply-on-all-scenes": "Použít na VŠECHNY scény",
+      "apply-update-proto": "Použít a aktualizovat prototyp",
+      "apply-json": "Použít data JSON",
+      "mass-search-title": "HROMADNÉ VYHLEDÁVÁNÍ dokumentů {document}",
+      "mass-edit-title": "HROMADNÁ ÚPRAVA dokumentů {document} [ {count} ]",
+      "adding": "Přidávání",
+      "subtracting": "Odebírání"
+    },
+    "dialog": {
+      "search-document": "Vyber typ dokumentu, který chceš vyhledat:",
+      "document-not-found": "'Pro vybraný typ nebyly nalezeny žádné dokumenty. ({document})'"
+    },
+    "generic-form": {
+      "step-size": "Krok",
+      "define-range": "Definovat ovládání rozsahu",
+      "define-dropdown": "Definovat rozbalovací nabídku",
+      "pinned": "Připnuto"
+    },
+    "clipboard": {
+      "copy": "Mass Edit: Data {document} zkopírována do schránky",
+      "paste": "Mass Edit: Vložená data do {count} dokumentů {document}"
+    },
+    "macro": {
+      "dependency-warning": "Teoto makrov vyžaduje, aby byl modul {module} aktivní.",
+      "target-all-title": "Makro bude při spuštění cílit na VŠECHNY dokumenty {document} v rámci zvolené 'oblasti působnosti'.",
+      "target-ids": "ID aktuálně vybraných",
+      "target-ids-title": "ID aktuálně vybraných dokumentů budou uložena v makru.",
+      "target-search-title": "Makro bude při spuštění vyhledávat dokumenty {document} odpovídající specifickým polím.",
+      "target-tagger-title": "Makro bude při spuštění cílit na značky modulu Tagger.",
+      "target-current-scene-title": "Makro bude použito na aktuálně aktivní scénu."
+    },
+    "keybindings": {
+      "presetApply": {
+        "name": "Otevřít prohlížeč předvoleb",
+        "hint": "Otevře prohlížeč nastavení umístitelných objektů, skupin a scén."
+      },
+      "presetApplyScene": {
+        "name": "Otevřít prohlížeč předvoleb scén",
+        "hint": "Otevře prohlížeč předvoleb nastavení scén."
+      },
+      "selectKey": {
+        "name": "Otevřít vyhledávání a výběr objektů",
+        "hint": "Po stisknutí otevře okno, kde můžeš zvolit pole, podle nichž bude modul vyhledávat a vybírat umístitelné objekty na aktuální scéně."
+      },
+      "editKey": {
+        "name": "Otevřít hromadnou úpravu objektů",
+        "hint": "Po stisknutí otevře okno pro současnou aktualizaci všech vybraných objektů."
+      },
+      "genericForm": {
+        "name": "Otevřít obecnou hromadnou úpravu objektů",
+        "hint": "Po stisknutí otevře okno pro současnou úpravu všech vybraných objektů."
+      },
+      "linkerMenu": {
+        "name": "Otevřít menu propojení",
+        "hint": "Menu, ve kterém můžeš vytvářet a mazat propojení mezi umístitelnými objekty."
+      },
+      "placeableEdit": {
+        "name": "Režim úprav náhledu objektů",
+        "hint": "Vybrané objekty či objekty vybrané po aktivaci klávesové zkratky přejdou do režimu náhledu umožňujícího hromadnou transformaci."
+      }
+    },
+    "settings": {
+      "autoSnap": {
+        "name": "Přichytávat souřadnice k mřížce?",
+        "hint": "Při zaškrtnutí a použití 'Vybrat rozsah' v nabídce náhodných souřadnic budou hodnoty rozsahu automaticky zarovnány s mřížkou."
+      },
+      "panToSearch": {
+        "name": "Posouvat pohled na cíl hledání?",
+        "hint": "Po zaškrtnutí bude obrazovka automaticky centrovat na první nalezený objekt."
+      },
+      "tmfxFieldsEnable": {
+        "name": "Vložit pole TMFX?",
+        "hint": "Do formulářů Mass Edit budou přidána pole pro barvu DungeonDraft a filtr Předvolby. Výběr těchto polí způsobí aplikaci filtrů TMFX (=Token Magic FX)."
+      },
+      "enableFlagsTab": {
+        "name": "Záložka Příznaky",
+        "hint": "Po povolení bude do formulářů Mass Edit přidána záložka 'Příznaky', která umožní aktualizaci a odstranění příznaků dokumentu."
+      },
+      "rangeToTextbox": {
+        "name": "Zadávat hodnoty posuvníků ručně?",
+        "hint": "Po zaškrtnutí budou popisky hodnot posuvníků rozsahu převedeny na textová pole."
+      },
+      "singleDocDefaultConfig": {
+        "name": "Jeden objekt ve výchozím nastavení?",
+        "hint": "Při zaškrtnutí a vybrání či zvýraznění jediného objekt se otevře výchozí okno namísto okna Mass Edit."
+      }
+    },
+    "randomizer": {
+      "interpolate": "Interpolovat",
+      "interpolateReverse": "Interpolovat (obráceně)",
+      "pickRange": "Vybrat rozsah",
+      "addImagesToList": "Přidat obrázky do seznamu",
+      "listOfImages": "Seznam obrázků použitých při náhodném výběru",
+      "selectFolder": "Vybrat složku",
+      "includeSubfolders": "Zahrnout podsložky",
+      "sequential": "Postupné",
+      "findAndReplace": "Najít a nahradit",
+      "findAndReplaceRegex": "Najít a nahradit (RegEx)",
+      "generators": "Generátory",
+      "listOfStrings": "Seznam řetězců použitých při náhodném výběru",
+      "allowDuplicates": "Povolit duplikáty",
+      "stepSize": "Velikost kroku",
+      "snapToGrid": "Přichytit k mřížce"
+    },
+    "presets": {
+      "preset-browser": "Prohlížeč předvoleb",
+      "drag-placeable-message": "Přetáhni objekty, které chceš použít k vytvoření předvolby.",
+      "drag-placeable": "Přetáhnout objekt",
+      "drag-placeable-hint": "Další objekty, které budou vytvořeny společně s touto předvolbou.",
+      "drag-over-message": "VYTVOŘIT PŘEDVOLBU",
+      "default-name": "Nová předvolba",
+      "spawning": "Vytváření",
+      "main": "Hlavní",
+      "tags": "Štítky",
+      "warn-no-fields": "Nebyla vybrána žádná pole, nelze provést aktualizaci.",
+      "imported": "Importováno {count} předvoleb.",
+      "import": "Importovat předvolby",
+      "assign": "Přiřazeno {count} {document}ů k předvolbě.",
+      "select-compendium": "Vybrat kompendium",
+      "working-directory-message": "Změň kompendium, ve kterém modul ukládá a upravuje předvolby. Ujisti se, že neobsahuje záznamy, které nejsou předvolbami, aby nedošlo k problémům.",
+      "update-preset": "Aktualizovat předvolbu",
+      "delete-fields": "Odstranit pole",
+      "select-delete": "Vyber pole, která chceš z této předvolby odstranit.",
+      "select-modify": "Vyber pole, která chceš upravit při vytvoření předvolby.",
+      "data-edit": "Upravit data {document} uložená v předvolbě/předvolbách.",
+      "data-assign": "Přiřadit aktuálně vybrané {document}/y k předvolbě/předvolbám.",
+      "controls": {
+        "activate-brush": "Aktivovat štětec",
+        "document-lock": "Uzamknout aktuální kategorii jako výchozí při otevření formuláře.",
+        "layer-switch": "Automatické přepínání vrstev.",
+        "external-compendiums": "Zobrazit externí kompendia.",
+        "scale-to-grid": "Měřítko dlaždic, kreseb a stěn relativně k velikosti mřížky.",
+        "virtual-directory": "Zobrazit virtuální adresáře."
+      },
+      "export-as-json": "Exportovat jako JSON",
+      "open-journal": "Otevřít deník",
+      "apply-to-selected": "Použít na vybrané objekty",
+      "apply-to-selected-warn": "Předvolby více typů dokumentů nelze pro tuto operaci kombinovat.",
+      "export-to-compendium": "Exportovat do kompendia",
+      "copy-to-clipboard": "Kopírovat do schránky",
+      "copy-source-to-clipboard": "Kopírovat zdroj do schránky",
+      "keep-ids": "Zachovat ID",
+      "keep-ids-hint": "Předvolby a složky se stejným ID budou v cíli přepsány.",
+      "search-presets": "Vyhledat předvolby",
+      "search-presets-folders": "Vyhledat předvolby a složky",
+      "delete-presets-warn": "Chystáš se trvale odstranit [ {count} ] předvoleb.",
+      "spawn-random": "Místo celé skupiny vytvořit náhodný objekt.",
+      "bag": {
+        "search": "Vyhledávání",
+        "appearance": "Vzhled",
+        "misc": "Různé"
+      }
+    },
+    "css": {
+      "pick": "Vyber styl:"
+    },
+    "common": {
+      "range": "Rozsah",
+      "min": "Min",
+      "max": "Max",
+      "random": "Náhodně",
+      "randomize": "Náhodně upravit",
+      "color": "Barva",
+      "method": "Metoda",
+      "find": "Najít",
+      "replace": "Nahradit",
+      "list": "Seznam",
+      "generate": "Generovat",
+      "pin": "Připnout",
+      "preset": "Předvolba",
+      "presets": "Předvolby",
+      "delete": "Smazat",
+      "apply": "Použít",
+      "ratio": "Poměr",
+      "options": "Možnosti",
+      "all": "Vše",
+      "swap": "Prohodit",
+      "import": "Importovat",
+      "copy": "Kopírovat",
+      "paste": "Vložit",
+      "data": "Data",
+      "modify": "Upravit",
+      "placeable": "Umístitelný objekt",
+      "attach": "Připojit",
+      "attached": "Připojeno"
+    }
+  },
+  "TYPES": {
+    "RegionBehavior": {
+      "multi-token-edit": {
+        "linkToken": "Propojit token",
+        "spawnPreset": "Vytvořit předvolbu",
+        "deSpawnPreset": "Zrušit vytvoření předvolby"
+      }
+    }
+  }
+}
