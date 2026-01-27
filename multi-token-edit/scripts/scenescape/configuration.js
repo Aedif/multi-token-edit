@@ -125,7 +125,6 @@ export default class ScenescapeConfig extends HandlebarsApplicationMixin(Applica
     this._onMinimize();
 
     const height = Number(element.dataset.height);
-    console.log(event, element, height);
     const preset = new Preset({
       documentName: 'Tile',
       data: [

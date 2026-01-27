@@ -1,3 +1,7 @@
+# 2.7.7
+
+- Fixed `Monks Active Tile` insert fields `Actions` and `Files` overwriting data
+
 # 2.7.6
 
 **Scenescape**
