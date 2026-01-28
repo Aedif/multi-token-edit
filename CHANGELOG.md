@@ -1,3 +1,8 @@
+# 2.7.8
+
+- Fixed `Revert` header control not rendering on `Scenescape` configuration form
+- Fixed `Scenescape: Auto-flip` control not appearing on `Prototype Token` configuration form
+
 # 2.7.7
 
 - Fixed `Monks Active Tile` insert fields `Actions` and `Files` overwriting data

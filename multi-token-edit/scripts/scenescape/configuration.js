@@ -103,14 +103,13 @@ export default class ScenescapeConfig extends HandlebarsApplicationMixin(Applica
   /** @override */
   _getHeaderControls() {
     const buttons = super._getHeaderControls();
-    if (this.options.tokens) {
-      buttons.push({
-        label: 'Revert',
-        class: 'mass-edit-scenescape-delete',
-        icon: 'fas fa-trash fa-fw',
-        action: 'revert',
-      });
-    }
+
+    buttons.push({
+      label: 'Revert Scene',
+      class: 'mass-edit-scenescape-delete',
+      icon: 'fas fa-trash fa-fw',
+      action: 'revert',
+    });
 
     return buttons;
   }

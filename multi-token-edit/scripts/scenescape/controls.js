@@ -61,17 +61,18 @@ export class ScenescapeControls {
 
     let id;
 
-    id = Hooks.on('renderTokenConfig', async (app, html, options) => {
+    id = Hooks.on('renderTokenApplication', async (app, html, options) => {
+      const token = app.document ?? app.token;
       const formGroup = await foundry.applications.handlebars.renderTemplate(
         `modules/${MODULE_ID}/templates/scenescapes/autoFlipFormGroup.html`,
         {
-          autoFlipX: app.document.getFlag(MODULE_ID, 'autoFlipX'),
-          autoFlipY: app.document.getFlag(MODULE_ID, 'autoFlipY'),
+          autoFlipX: token.getFlag(MODULE_ID, 'autoFlipX'),
+          autoFlipY: token.getFlag(MODULE_ID, 'autoFlipY'),
         },
       );
-      $(html).find('[name="mirrorX"]').closest('.form-group').after(formGroup);
+      html.querySelector('[name="mirrorX"]').closest('.form-group').insertAdjacentHTML('afterend', formGroup);
     });
-    this._hooks.push({ hook: 'renderTokenConfig', id });
+    this._hooks.push({ hook: 'renderTokenApplication', id });
 
     id = Hooks.on('preCreateToken', async (token, data, options, userId) => {
       if (!options.spawnPreset) {
