@@ -14,19 +14,19 @@ import { PresetConfig } from './editApp.js';
 export async function registerPresetHandlebarPartials() {
   await foundry.applications.handlebars.getTemplate(
     `modules/${MODULE_ID}/templates/preset/container/partials/preset.hbs`,
-    'me-preset'
+    'me-preset',
   );
   await foundry.applications.handlebars.getTemplate(
     `modules/${MODULE_ID}/templates/preset/container/partials/folder.hbs`,
-    'me-preset-folder'
+    'me-preset-folder',
   );
   await foundry.applications.handlebars.getTemplate(
     `modules/${MODULE_ID}/templates/preset/container/partials/presetsContent.hbs`,
-    'me-presets-content'
+    'me-presets-content',
   );
   await foundry.applications.handlebars.getTemplate(
     `modules/${MODULE_ID}/templates/preset/container/partials/presetsTopList.hbs`,
-    'me-preset-list'
+    'me-preset-list',
   );
 
   // Conditional rendering helper
@@ -55,7 +55,7 @@ export async function registerPresetHandlebarPartials() {
 }
 
 export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplicationMixin(
-  foundry.applications.api.ApplicationV2
+  foundry.applications.api.ApplicationV2,
 ) {
   static _oldPositions = {};
 
@@ -722,6 +722,10 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
       return p;
     });
 
+    for (const p of presets) {
+      if (p.virtual) await p.load({ force: true });
+    }
+
     await PresetStorage.createDocuments(presets, pack);
 
     if (selected.length) this.render(true);
@@ -870,7 +874,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
           `<video width="${320 * ratio}" height="${240 * ratio}" autoplay loop><source src="${src}" type="video/${src
             .split('.')
             .pop()
-            .toLowerCase()}"></video>`
+            .toLowerCase()}"></video>`,
         );
       }
     }
@@ -912,7 +916,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
           ),
           draggable: folder.pack === PresetStorage.workingPack,
           browser: true,
-        }
+        },
       );
       folderElement.replaceWith(content);
     }
@@ -941,7 +945,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
         createEnabled,
         externalTrees,
         browser,
-      }
+      },
     );
     $(this.form).find('.item-list').html(content);
   }
@@ -953,7 +957,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
         label: item.attributes.name,
         type: 'uuid',
         id: item.dataset.uuid,
-      })
+      }),
     );
   }
 

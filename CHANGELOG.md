@@ -1,3 +1,8 @@
+# 2.7.10
+
+- Fixed modifications via `MassEdit.spawnPreset` hook being overridden for virtual 3D model presets
+- Fixed 3D Virtual model export to compendium producing invalid presets
+
 # 2.7.9
 
 - 3D model `Auto Center` is now enabled by default when spawning presets

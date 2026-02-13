@@ -383,20 +383,26 @@ export class VirtualFilePreset extends Preset {
     const modelBB = new game.Levels3DPreview.THREE.Box3().setFromObject(object3d.model);
     const depth = (modelBB.max.y - modelBB.min.y) * canvas.grid.size ?? 0.05;
 
-    data.flags = {
-      'levels-3d-preview': {
-        model3d: src,
-        autoGround: true,
-        autoCenter: true,
-        cameraCollision: false,
-        castShadow: true,
-        collision: true,
-        color: '#ffffff',
-        dynaMesh: 'default',
-        sight: true,
-        depth,
+    foundry.utils.mergeObject(
+      data,
+      {
+        flags: {
+          'levels-3d-preview': {
+            model3d: src,
+            autoGround: true,
+            autoCenter: true,
+            cameraCollision: false,
+            castShadow: true,
+            collision: true,
+            color: '#ffffff',
+            dynaMesh: 'default',
+            sight: true,
+            depth,
+          },
+        },
       },
-    };
+      { overwrite: false },
+    );
 
     data.width = canvas.grid.size * (modelBB.max.x - modelBB.min.x);
     data.height = canvas.grid.size * (modelBB.max.z - modelBB.min.z);
