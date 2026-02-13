@@ -333,7 +333,7 @@ export class PresetStorage {
           {
             pack: packId,
             keepId: true,
-          }
+          },
         );
       }
 
@@ -415,7 +415,7 @@ export class PresetStorage {
     for (const pack of Object.keys(sorted)) {
       await JournalEntry.deleteDocuments(
         sorted[pack].map((p) => p.id),
-        { pack }
+        { pack },
       );
     }
     for (const vPreset of virtual) {
@@ -604,7 +604,7 @@ export class PresetStorage {
       foundry.utils.setProperty(
         data,
         `flags.${MODULE_ID}.preset`,
-        new Preset({ name: document.name, data: [{}] }).toJSON()
+        new Preset({ name: document.name, data: [{}] }).toJSON(),
       );
     }
   }

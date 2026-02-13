@@ -374,28 +374,30 @@ export class VirtualFilePreset extends Preset {
 
     if (!game.Levels3DPreview || this.documentName === 'Token') {
       foundry.utils.setProperty(data, 'flags.levels-3d-preview.model3d', src);
+      foundry.utils.setProperty(data, 'flags.levels-3d-preview.autoCenter', true);
       foundry.utils.setProperty(data, 'texture.src', 'modules/levels-3d-preview/assets/blank.webp');
       return;
     }
+
+    const object3d = await game.Levels3DPreview.helpers.loadModel(src);
+    const modelBB = new game.Levels3DPreview.THREE.Box3().setFromObject(object3d.model);
+    const depth = (modelBB.max.y - modelBB.min.y) * canvas.grid.size ?? 0.05;
 
     data.flags = {
       'levels-3d-preview': {
         model3d: src,
         autoGround: true,
-        autoCenter: false,
+        autoCenter: true,
         cameraCollision: false,
         castShadow: true,
         collision: true,
         color: '#ffffff',
         dynaMesh: 'default',
         sight: true,
+        depth,
       },
     };
 
-    const object3d = await game.Levels3DPreview.helpers.loadModel(src);
-    const modelBB = new game.Levels3DPreview.THREE.Box3().setFromObject(object3d.model);
-    const depth = (modelBB.max.y - modelBB.min.y) * canvas.grid.size;
-    data.flags['levels-3d-preview'].depth = depth ?? 0.05;
     data.width = canvas.grid.size * (modelBB.max.x - modelBB.min.x);
     data.height = canvas.grid.size * (modelBB.max.z - modelBB.min.z);
     data.texture.src = `modules/levels-3d-preview/assets/blank.webp`;
@@ -420,7 +422,7 @@ export class VirtualFilePreset extends Preset {
     clearTimeout(VirtualFilePreset._updateTimeout);
     VirtualFilePreset._updateTimeout = setTimeout(
       () => FileIndexer.saveIndexToCache({ processAutoSave: true, notify: false }),
-      3000
+      3000,
     );
   }
 

@@ -1,3 +1,7 @@
+# 2.7.9
+
+- 3D model `Auto Center` is now enabled by default when spawning presets
+
 # 2.7.8
 
 - Fixed `Revert` header control not rendering on `Scenescape` configuration form
