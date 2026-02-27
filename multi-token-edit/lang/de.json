@@ -1,0 +1,218 @@
+{
+  "MassEdit": {
+    "behavior": {
+      "linkToken": {
+        "linkId": {
+          "label": "Verknüpfungs-ID",
+          "hint": "ID, die verwendet wird, um eine Verknüpfung zwischen der Region und dem Token herzustellen."
+        }
+      }
+    },
+    "form": {
+      "immediate-update-title": "Änderungen bei Feldänderungen automatisch anwenden.",
+      "global-search-title": "Weltweite Suche aktivieren.",
+      "global-delete-title": "Löschen.",
+      "actions": "Aktionen",
+      "images": "Bilder",
+      "shaders": "Shader",
+      "delete-warning": "{count} {document}(s) WERDEN GELÖSCHT",
+      "proceed": "Möchten Sie fortfahren?",
+      "search-and-edit": "Suchen und Bearbeiten",
+      "apply-on-current-scene": "Auf aktuelle Szene anwenden",
+      "apply-on-all-scenes": "Auf ALLE Szenen anwenden",
+      "apply-update-proto": "Anwenden und Prototyp aktualisieren",
+      "apply-json": "JSON-Daten anwenden",
+      "mass-search-title": "Massen-{document}-SUCHE",
+      "mass-edit-title": "Massen-{document}-BEARBEITUNG [ {count} ]",
+      "adding": "Addieren",
+      "subtracting": "Subtrahieren"
+    },
+    "dialog": {
+      "search-document": "Wählen Sie einen Dokumenttyp, den Sie suchen möchten:",
+      "document-not-found": "`Keine Dokumente für den ausgewählten Typ gefunden. ({document})`"
+    },
+    "generic-form": {
+      "step-size": "Schrittgröße",
+      "define-range": "Bereichssteuerung definieren",
+      "define-dropdown": "Dropdown-Steuerung definieren",
+      "pinned": "Angepinnt"
+    },
+    "clipboard": {
+      "copy": "Mass Edit: {document}-Daten in die Zwischenablage kopiert",
+      "paste": "Mass Edit: Daten in {count} {document}(s) eingefügt"
+    },
+    "macro": {
+      "dependency-warning": "Dieses Makro erfordert, dass das Modul {module} aktiv ist.",
+      "target-all-title": "Das Makro wird zur Laufzeit ALLE {document}(s) im gewählten Bereich ansprechen.",
+      "target-ids": "IDs der aktuellen Auswahl",
+      "target-ids-title": "Die IDs der aktuell ausgewählten Dokumente werden im Makro gespeichert.",
+      "target-search-title": "Das Makro sucht zur Laufzeit nach {document}(s), die bestimmten Feldern entsprechen.",
+      "target-tagger-title": "Das Makro wird zur Laufzeit die Tags des Tagger-Moduls ansprechen.",
+      "target-current-scene-title": "Das Makro wird auf die aktuell aktive Szene angewendet."
+    },
+    "keybindings": {
+      "presetApply": {
+        "name": "Vorlagen-Browser öffnen",
+        "hint": "Öffnet den Browser für Platzierbare, Sammlungen und Szenenkonfigurationen."
+      },
+      "presetApplyScene": {
+        "name": "Szenen-Vorlagen-Browser öffnen",
+        "hint": "Öffnet den Browser für Szenenkonfigurations-Vorlagen."
+      },
+      "selectKey": {
+        "name": "Platzierbare suchen und auswählen",
+        "hint": "Öffnet ein Konfigurationsfenster, in dem Felder ausgewählt werden können, anhand derer das Modul Platzierbare auf der aktuellen Szene sucht und auswählt."
+      },
+      "editKey": {
+        "name": "Mehrfach-Bearbeitung von Platzierbaren öffnen",
+        "hint": "Öffnet ein Konfigurationsfenster, um alle ausgewählten Platzierbaren gleichzeitig zu aktualisieren."
+      },
+      "genericForm": {
+        "name": "Generische Mehrfach-Objekt-Bearbeitung öffnen",
+        "hint": "Öffnet ein Konfigurationsfenster, um alle ausgewählten Objekte gleichzeitig zu aktualisieren."
+      },
+      "linkerMenu": {
+        "name": "Verknüpfungsmenü öffnen",
+        "hint": "Ein Menü, in dem Verknüpfungen zwischen Platzierbaren erstellt und gelöscht werden können."
+      },
+      "placeableEdit": {
+        "name": "Vorschaubearbeitung von Platzierbaren",
+        "hint": "Ausgewählte oder nach Aktivierung der Tastenkombination ausgewählte Platzierbare wechseln in den Vorschaumodus für Massentransformationen."
+      }
+    },
+    "settings": {
+      "autoSnap": {
+        "name": "Koordinaten automatisch am Raster einrasten",
+        "hint": "Bei Verwendung von \"Bereich auswählen\" im Koordinaten-Zufallsgenerator werden die Bereichswerte automatisch am Raster eingerastet."
+      },
+      "panToSearch": {
+        "name": "Zum Suchergebnis schwenken",
+        "hint": "Zentriert den Bildschirm automatisch auf das erste gefundene Platzierbare."
+      },
+      "tmfxFieldsEnable": {
+        "name": "TMFX-Felder einfügen",
+        "hint": "DungeonDraft-Tönungsfarbe und Vorlagenfilterfelder werden zu Mass Edit-Formularen hinzugefügt. Die Auswahl dieser Felder bewirkt, dass TokenMagicFX-Filter angewendet werden."
+      },
+      "enableFlagsTab": {
+        "name": "Flags-Reiter",
+        "hint": "Wenn aktiviert, wird der Reiter „Flags“ zu Mass Edit-Formularen hinzugefügt, um Dokument-Flags zu aktualisieren und zu entfernen."
+      },
+      "rangeToTextbox": {
+        "name": "Manuelle Eingabe für Bereichsregler erlauben",
+        "hint": "Wandelt Reglerbeschriftungen in Textfelder um."
+      },
+      "singleDocDefaultConfig": {
+        "name": "Einzelnes Platzierbares: Standardkonfiguration",
+        "hint": "Wenn ein einzelnes Platzierbares ausgewählt oder überfahren wird, wird das Standard-Konfigurationsfenster anstelle der Mass Edit-Konfiguration geöffnet."
+      }
+    },
+    "randomizer": {
+      "interpolate": "Interpolieren",
+      "interpolateReverse": "Interpolieren (umgekehrt)",
+      "pickRange": "Bereich auswählen",
+      "addImagesToList": "Bilder zur Liste hinzufügen",
+      "listOfImages": "Liste der Bilder, die bei der Zufallsgenerierung verwendet werden",
+      "selectFolder": "Ordner auswählen",
+      "includeSubfolders": "Unterordner einbeziehen",
+      "sequential": "Sequenziell",
+      "findAndReplace": "Suchen und Ersetzen",
+      "findAndReplaceRegex": "Suchen und Ersetzen (RegEx)",
+      "generators": "Generatoren",
+      "listOfStrings": "Liste der Zeichenketten, die bei der Zufallsgenerierung verwendet werden",
+      "allowDuplicates": "Duplikate erlauben",
+      "stepSize": "Schrittgröße",
+      "snapToGrid": "Am Raster einrasten"
+    },
+    "presets": {
+      "preset-browser": "Vorlagen-Browser",
+      "drag-placeable-message": "Platzierbare hereinziehen, um eine Vorlage zu erstellen.",
+      "drag-placeable": "Platzierbares hereinziehen",
+      "drag-placeable-hint": "Zusätzliche Platzierbare, die zusammen mit der Vorlage erzeugt werden.",
+      "drag-over-message": "VORLAGE ERSTELLEN",
+      "default-name": "Neue Vorlage",
+      "spawning": "Erzeugung",
+      "main": "Hauptteil",
+      "tags": "Tags",
+      "warn-no-fields": "Keine Felder ausgewählt, Aktualisierung nicht möglich.",
+      "imported": "{count} Vorlagen importiert.",
+      "import": "Vorlagen importieren",
+      "assign": "{count} {document}(s) der Vorlage zugewiesen.",
+      "select-compendium": "Kompendium auswählen",
+      "working-directory-message": "Ändert das Kompendium, in dem das Modul Vorlagen speichert und bearbeitet. Stellen Sie sicher, dass es keine Journale enthält, die keine Vorlagen sind, um unerwartete Probleme zu vermeiden.",
+      "update-preset": "Vorlage aktualisieren",
+      "delete-fields": "Felder löschen",
+      "select-delete": "Wählen Sie die Felder aus, die aus dieser Vorlage entfernt werden sollen.",
+      "select-modify": "Wählen Sie Felder aus, die bei der Erzeugung der Vorlage zur Änderung angeboten werden.",
+      "data-edit": "{document}-Daten in der/den Vorlage(n) bearbeiten.",
+      "data-assign": "Aktuell ausgewählte {document}(s) der/den Vorlage(n) zuweisen.",
+      "controls": {
+        "activate-brush": "Pinsel aktivieren",
+        "document-lock": "Aktuelle Kategorie als Standard beim Öffnen des Formulars sperren.",
+        "layer-switch": "Automatischer Ebenenwechsel.",
+        "external-compendiums": "Externe Kompendien anzeigen.",
+        "scale-to-grid": "Kacheln, Zeichnungen und Wände relativ zur Rastergröße skalieren.",
+        "virtual-directory": "Virtuelle Verzeichnisse anzeigen."
+      },
+      "export-as-json": "Als JSON exportieren",
+      "open-journal": "Journal öffnen",
+      "apply-to-selected": "Auf ausgewählte Platzierbare anwenden",
+      "apply-to-selected-warn": "Vorlagen verschiedener Dokumenttypen können für diesen Vorgang nicht gemischt werden.",
+      "export-to-compendium": "In Kompendium exportieren",
+      "copy-to-clipboard": "In Zwischenablage kopieren",
+      "copy-source-to-clipboard": "Quelle in Zwischenablage kopieren",
+      "keep-ids": "IDs beibehalten",
+      "keep-ids-hint": "Vorlagen und Ordner mit denselben IDs werden am Zielort überschrieben.",
+      "search-presets": "Vorlagen durchsuchen",
+      "search-presets-folders": "Vorlagen und Ordner durchsuchen",
+      "delete-presets-warn": "Sie sind dabei, [ {count} ] Vorlagen dauerhaft zu löschen.",
+      "spawn-random": "Anstelle der gesamten Gruppe ein zufälliges Platzierbares erzeugen.",
+      "bag": {
+        "search": "Suche",
+        "appearance": "Erscheinungsbild",
+        "misc": "Sonstiges"
+      }
+    },
+    "css": {
+      "pick": "Stil auswählen:"
+    },
+    "common": {
+      "range": "Bereich",
+      "min": "Min",
+      "max": "Max",
+      "random": "Zufall",
+      "randomize": "Zufällig generieren",
+      "color": "Farbe",
+      "method": "Methode",
+      "find": "Suchen",
+      "replace": "Ersetzen",
+      "list": "Liste",
+      "generate": "Generieren",
+      "pin": "Anheften",
+      "preset": "Vorlage",
+      "presets": "Vorlagen",
+      "delete": "Löschen",
+      "apply": "Anwenden",
+      "ratio": "Verhältnis",
+      "options": "Optionen",
+      "all": "Alle",
+      "swap": "Tauschen",
+      "import": "Importieren",
+      "copy": "Kopieren",
+      "paste": "Einfügen",
+      "data": "Daten",
+      "modify": "Ändern",
+      "placeable": "Platzierbares",
+      "attach": "Anhängen",
+      "attached": "Angehängt"
+    }
+  },
+  "TYPES":{
+    "RegionBehavior": {
+      "multi-token-edit": {
+        "linkToken": "Token verknüpfen",
+        "spawnPreset": "Vorlage erzeugen",
+        "deSpawnPreset": "Vorlage entfernen"
+      }
+    }
+  }
+}
