@@ -3,6 +3,7 @@ import { localize } from '../utils.js';
 import { PresetBrowser } from './browser/browserApp.js';
 import { PresetStorage } from './collection.js';
 import { PresetContainerV2 } from './containerAppV2.js';
+import { callAsyncHook } from './utils.js';
 
 /**
  * Constructs and opens a menu for browsing through Mass Edit presets
@@ -23,7 +24,7 @@ export async function openCategoryBrowser(
     disableDelete = true,
     width,
     height,
-  } = {}
+  } = {},
 ) {
   // // If category browser is already open close it
   const id = 'mass-edit-category-browser-' + (name?.slugify() ?? foundry.utils.randomID());
@@ -55,12 +56,14 @@ class Category {
   menu = null; // CategoryList this category is part of
   submenu = null; // CategoryList to be displayed when this category is active
 
-  constructor({ title, fa, img, query, disableQuery, menu }) {
+  constructor({ title, fa, img, query, disableQuery, downloadable, tooltip, menu }) {
     this.title = title; // Hover text
     this.fa = fa; // Font Awesome icon
     this.img = img; // Image icon
     this.query = query; // Search query to be ran when active
     this.disableQuery = disableQuery; // Prevent query from being run when category is click (children will still inherit this query)
+    this.downloadable = downloadable; // Enable right-click download of presets
+    this.tooltip = tooltip; // Tooltip text
     this.menu = menu; // CategoryList this category is part of
     this.id = foundry.utils.randomID(); // Unique identifier
   }
@@ -184,11 +187,10 @@ class CategoryBrowserApplication extends PresetContainerV2 {
     super._attachPartListeners(partId, element, options);
     switch (partId) {
       case 'main':
-        let html = $(element);
-        if (this.options.editEnabled) {
-          html.find('.category').on('contextmenu', this._onRightClickCategory.bind(this));
-        }
-        html.find('.header-search input').on('input', this._onSearchInput.bind(this));
+        element.querySelector('.header-search input').addEventListener('input', this._onSearchInput.bind(this));
+        element.querySelectorAll('.category').forEach((element) => {
+          element.addEventListener('contextmenu', this._onRightClickCategory.bind(this));
+        });
         break;
     }
   }
@@ -225,8 +227,8 @@ class CategoryBrowserApplication extends PresetContainerV2 {
     this._menus.push(categoryList);
 
     submenu.forEach((category) => {
-      const { title, fa, img, submenu, query, disableQuery } = category;
-      const cat = new Category({ title, fa, img, menu: categoryList, query, disableQuery });
+      const { title, fa, img, submenu, query, disableQuery, downloadable, tooltip } = category;
+      const cat = new Category({ title, fa, img, menu: categoryList, query, disableQuery, downloadable, tooltip });
       if (submenu?.length) cat.submenu = this._processMenu(submenu, cat);
       categoryList.categories.push(cat);
       this._categories.set(cat.id, cat);
@@ -251,9 +253,29 @@ class CategoryBrowserApplication extends PresetContainerV2 {
     this._runQueryTree();
   }
 
-  _onRightClickCategory(event) {
-    const category = this._categories.get($(event.currentTarget).data('id'));
-    new EditCategory(category, this).render(true);
+  async _onRightClickCategory(event) {
+    const category = this._categories.get(event.target.closest('.category').dataset.id);
+    if (this.options.editEnabled) {
+      new EditCategory({ category, browser: this }).render(true);
+    } else if (category.downloadable) {
+      if (!game.modules.get('baileywiki-content')?.active) return;
+
+      const confirm = await foundry.applications.api.DialogV2.confirm({
+        id: 'me-category-download-confirm',
+        modal: true,
+        window: { title: 'Asset Download' },
+        position: { width: 400 },
+        content: `<p>Would you like to download all of the assets contained within this category?</p>`,
+      });
+      if (!confirm) return;
+
+      const { query, title } = EditCategory.determineCompoundQuery(category, this);
+      game.modules.get('baileywiki-content').api.batchDownloadPresets({ query, label: title });
+    }
+  }
+
+  _onDownloadCategory(element) {
+    console.log(element);
   }
 
   /**
@@ -362,7 +384,7 @@ class CategoryBrowserApplication extends PresetContainerV2 {
         .html(
           `<div style="width: 100%; height: 100%; text-align: center; font-size: xxx-large;">
             <i class="fa-duotone fa-solid fa-spinner fa-spin-pulse" style="position: relative; top: 30%;"></i>
-           </div>`
+           </div>`,
         );
     } else {
       return super._renderContent({ presets: this._presetResults });
@@ -517,13 +539,15 @@ MassEdit.openCategoryBrowser(menu, options);`;
     if (category.img) json.img = category.img;
     if (category.query) json.query = category.query;
     if (category.disableQuery) json.disableQuery = category.disableQuery;
+    if (category.downloadable) json.downloadable = category.downloadable;
+    if (category.tooltip) json.tooltip = category.tooltip;
     if (category.submenu) json.submenu = this._menuToJson(category.submenu);
     return json;
   }
 }
 
 class EditCategory extends FormApplication {
-  constructor(category, browser) {
+  constructor({ category, browser, activeQueries, globalQuery } = {}) {
     super({}, {});
     this.category = category;
     this.browser = browser;
@@ -571,6 +595,45 @@ class EditCategory extends FormApplication {
         this.browser.render(true);
       }
     });
+    html.on('click', '.calculateAssetSize', async () => {
+      if (!game.modules.get('baileywiki-content')?.active) return;
+      // Determine compound query of this category
+
+      const { query: compoundQuery } = EditCategory.determineCompoundQuery(this.category, this.browser);
+
+      const presets = await MassEdit.getPresets({ query: compoundQuery, load: true });
+      const assets = await game.modules.get('baileywiki-content').api.RetrievePremiumAssetsFromPresets(presets);
+
+      ui.notifications.info(`Calculating the size of ${presets.length} presets containing ${assets.length} assets.`);
+
+      let totalBytes = 0;
+      for (const asset of assets) {
+        try {
+          const response = await fetch(asset);
+          if (response.headers.has('Content-Length')) totalBytes += Number(response.headers.get('Content-Length') ?? 0);
+        } catch (e) {}
+      }
+
+      const mb = (totalBytes / (1024 * 1024)).toFixed(2);
+      const tooltip = `${mb} MB`;
+
+      ui.notifications.info('Size: ' + tooltip);
+
+      html.find('input[name="tooltip"]').val(tooltip);
+    });
+  }
+
+  static determineCompoundQuery(category, browser) {
+    let tC = category;
+    const queries = [];
+    const titles = [];
+    while (tC) {
+      if (tC.query && !tC.disableQuery) queries.unshift(tC.query);
+      titles.unshift(tC.title);
+      tC = tC.menu.parentCategory;
+    }
+    if (browser.options.globalQuery) queries.unshift(browser.options.globalQuery);
+    return { query: queries.map((q) => `( ${q} )`).join(' AND '), title: titles.join(' > ') };
   }
 
   /**

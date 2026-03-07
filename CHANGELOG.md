@@ -1,3 +1,13 @@
+# 2.7.11
+
+- German language translation courtesy of @BlueSkyBlackBird
+
+**Category Browser**
+
+- Added `Downloadable` toggle to category editor
+- Added `Tooltip` text field to category editor
+- Added `Calculate Asset Size` button to category editor
+
 # 2.7.10
 
 - Fixed modifications via `MassEdit.spawnPreset` hook being overridden for virtual 3D model presets

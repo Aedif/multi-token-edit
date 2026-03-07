@@ -23,9 +23,19 @@
     </div>
 
     <div class="form-group">
+        <label>Tooltip</label>
+        <input type="text" name="tooltip" value="{{category.tooltip}}"/>
+    </div>
+
+    <div class="form-group">
         <label>Do not run query</label>
         <input type="checkbox" name="disableQuery" {{checked category.disableQuery}}/>
         <p class="notes">Prevents query from being run when clicked. Child categories will still inherit this query.</p>
+    </div>
+
+    <div class="form-group">
+        <label>Downloadable</label>
+        <input type="checkbox" name="downloadable" {{checked category.downloadable}}/>
     </div>
 
     <footer class="sheet-footer flexrow" style="flex-direction: column;">
@@ -37,6 +47,7 @@
         {{else}}
         <button type="submit" value="addSumbenu"><i class="fa-solid fa-square-caret-right"></i> Add Submenu</button>
         {{/if}}
+        <button type="button" class="calculateAssetSize"><i class="fa-solid fa-toolbox"></i> Calculate Asset Size</button>
         <button type="button" class="moveUp"><i class="fa-solid fa-arrow-up"></i></button>
         <button type="button" class="moveDown"><i class="fa-solid fa-arrow-down"></i></button>
     </footer>

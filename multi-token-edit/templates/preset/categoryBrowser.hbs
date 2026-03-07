@@ -4,7 +4,7 @@
         {{#each menus as |menu|}}
         <div class="category-list {{../alignment}}">
             {{#each menu.categories as |category|}}
-            <div class="category {{#if category.active}}active{{/if}}" data-id="{{category.id}}" data-tooltip="<h4>{{category.title}}</h4>{{#if category.query}}<div class='mass-edit-tags tags'><span>{{category.query}}</span></div>{{/if}}" data-action="categorySelect">
+            <div class="category {{#if category.active}}active{{/if}}" data-id="{{category.id}}" data-tooltip="<h4>{{category.title}}</h4>{{#if category.tooltip}}<p>{{category.tooltip}}</p>{{/if}}{{#if category.query}}<div class='mass-edit-tags tags'><span>{{category.query}}</span></div>{{/if}}" data-action="categorySelect" {{#if category.downloadable}}data-downloadable="true"{{/if}}>
                 {{#if category.img}}
                 <img src="{{category.img}}">
                 {{else if category.fa}}
@@ -12,6 +12,9 @@
                 {{else}}
                 <i class="fa-solid fa-triangle-exclamation"></i>
                 {{/if}}
+                {{!-- {{#if category.downloadable}}
+                <i class="dl-icon fa-solid fa-download"></i>
+                {{/if}} --}}
             </div>
             {{/each}}
         </div>

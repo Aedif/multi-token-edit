@@ -938,6 +938,7 @@ nav > a[data-tab='me-pinned'] {
   margin-bottom: 5px;
   border-style: solid;
   border-width: 1px;
+  position: relative;
 }
 
 .mass-edit-category-browser .category img {
@@ -950,6 +951,17 @@ nav > a[data-tab='me-pinned'] {
 .mass-edit-category-browser .category.active {
   border-color: darkorange;
 }
+
+.mass-edit-category-browser .category .dl-icon{
+  font-size: x-small;
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  color: darkorange;
+  z-index: -1;
+  pointer-events: none;
+}
+
 
 
 /* ==========================================
