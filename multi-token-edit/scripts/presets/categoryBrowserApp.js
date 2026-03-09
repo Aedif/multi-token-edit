@@ -601,7 +601,7 @@ class EditCategory extends FormApplication {
     const queries = [];
     const titles = [];
     while (tC) {
-      if (tC.query && !tC.disableQuery) queries.unshift(tC.query);
+      if (tC.query) queries.unshift(tC.query);
       titles.unshift(tC.title);
       tC = tC.menu.parentCategory;
     }

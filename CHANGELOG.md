@@ -1,3 +1,7 @@
+# 2.7.13
+
+- Fixed compound query parsing
+
 # 2.7.12
 
 - Category Browser
