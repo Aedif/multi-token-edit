@@ -22,6 +22,7 @@ export async function openCategoryBrowser(
     globalQuery = '',
     editEnabled = false,
     disableDelete = true,
+    categoryDownload = false,
     width,
     height,
   } = {},
@@ -43,6 +44,7 @@ export async function openCategoryBrowser(
     globalQuery,
     editEnabled,
     disableDelete,
+    categoryDownload,
     width,
     height,
     id,
@@ -56,13 +58,13 @@ class Category {
   menu = null; // CategoryList this category is part of
   submenu = null; // CategoryList to be displayed when this category is active
 
-  constructor({ title, fa, img, query, disableQuery, downloadable, tooltip, menu }) {
+  constructor({ title, fa, img, query, disableQuery, disableDownload, tooltip, menu }) {
     this.title = title; // Hover text
     this.fa = fa; // Font Awesome icon
     this.img = img; // Image icon
     this.query = query; // Search query to be ran when active
     this.disableQuery = disableQuery; // Prevent query from being run when category is click (children will still inherit this query)
-    this.downloadable = downloadable; // Enable right-click download of presets
+    this.disableDownload = disableDownload; // Enable right-click download of presets
     this.tooltip = tooltip; // Tooltip text
     this.menu = menu; // CategoryList this category is part of
     this.id = foundry.utils.randomID(); // Unique identifier
@@ -227,8 +229,8 @@ class CategoryBrowserApplication extends PresetContainerV2 {
     this._menus.push(categoryList);
 
     submenu.forEach((category) => {
-      const { title, fa, img, submenu, query, disableQuery, downloadable, tooltip } = category;
-      const cat = new Category({ title, fa, img, menu: categoryList, query, disableQuery, downloadable, tooltip });
+      const { title, fa, img, submenu, query, disableQuery, disableDownload, tooltip } = category;
+      const cat = new Category({ title, fa, img, menu: categoryList, query, disableQuery, disableDownload, tooltip });
       if (submenu?.length) cat.submenu = this._processMenu(submenu, cat);
       categoryList.categories.push(cat);
       this._categories.set(cat.id, cat);
@@ -255,27 +257,13 @@ class CategoryBrowserApplication extends PresetContainerV2 {
 
   async _onRightClickCategory(event) {
     const category = this._categories.get(event.target.closest('.category').dataset.id);
+    if (!category) return;
     if (this.options.editEnabled) {
       new EditCategory({ category, browser: this }).render(true);
-    } else if (category.downloadable) {
-      if (!game.modules.get('baileywiki-content')?.active) return;
-
-      const confirm = await foundry.applications.api.DialogV2.confirm({
-        id: 'me-category-download-confirm',
-        modal: true,
-        window: { title: 'Asset Download' },
-        position: { width: 400 },
-        content: `<p>Would you like to download all of the assets contained within this category?</p>`,
-      });
-      if (!confirm) return;
-
+    } else if (this.options.categoryDownload && !category.disableDownload) {
       const { query, title } = EditCategory.determineCompoundQuery(category, this);
-      game.modules.get('baileywiki-content').api.batchDownloadPresets({ query, label: title });
+      callAsyncHook('MassEdit.categoryDownload', query, title);
     }
-  }
-
-  _onDownloadCategory(element) {
-    console.log(element);
   }
 
   /**
@@ -510,6 +498,7 @@ const options = {
   searchBar: ${options.searchBar},
   globalSearch: ${this._globalSearch},
   globalQuery: "${options.globalQuery}",
+  categoryDownload: ${options.categoryDownload},
   editEnabled: ${options.editEnabled},
   disableDelete: ${options.disableDelete}
 };
@@ -539,7 +528,7 @@ MassEdit.openCategoryBrowser(menu, options);`;
     if (category.img) json.img = category.img;
     if (category.query) json.query = category.query;
     if (category.disableQuery) json.disableQuery = category.disableQuery;
-    if (category.downloadable) json.downloadable = category.downloadable;
+    if (category.disableDownload) json.disableDownload = category.disableDownload;
     if (category.tooltip) json.tooltip = category.tooltip;
     if (category.submenu) json.submenu = this._menuToJson(category.submenu);
     return json;
@@ -547,7 +536,7 @@ MassEdit.openCategoryBrowser(menu, options);`;
 }
 
 class EditCategory extends FormApplication {
-  constructor({ category, browser, activeQueries, globalQuery } = {}) {
+  constructor({ category, browser } = {}) {
     super({}, {});
     this.category = category;
     this.browser = browser;
@@ -568,7 +557,7 @@ class EditCategory extends FormApplication {
   }
 
   async getData(options) {
-    return { category: this.category };
+    return { category: this.category, categoryDownload: this.browser.options.categoryDownload };
   }
 
   /**
@@ -596,30 +585,14 @@ class EditCategory extends FormApplication {
       }
     });
     html.on('click', '.calculateAssetSize', async () => {
-      if (!game.modules.get('baileywiki-content')?.active) return;
-      // Determine compound query of this category
+      const { query } = EditCategory.determineCompoundQuery(this.category, this.browser);
+      const result = {};
+      await callAsyncHook('MassEdit.calculateCategoryAssetSize', query, result);
 
-      const { query: compoundQuery } = EditCategory.determineCompoundQuery(this.category, this.browser);
-
-      const presets = await MassEdit.getPresets({ query: compoundQuery, load: true });
-      const assets = await game.modules.get('baileywiki-content').api.RetrievePremiumAssetsFromPresets(presets);
-
-      ui.notifications.info(`Calculating the size of ${presets.length} presets containing ${assets.length} assets.`);
-
-      let totalBytes = 0;
-      for (const asset of assets) {
-        try {
-          const response = await fetch(asset);
-          if (response.headers.has('Content-Length')) totalBytes += Number(response.headers.get('Content-Length') ?? 0);
-        } catch (e) {}
+      if (result.bytes) {
+        const mb = (result.bytes / (1024 * 1024)).toFixed(2);
+        html.find('input[name="tooltip"]').val(`${mb} MB`);
       }
-
-      const mb = (totalBytes / (1024 * 1024)).toFixed(2);
-      const tooltip = `${mb} MB`;
-
-      ui.notifications.info('Size: ' + tooltip);
-
-      html.find('input[name="tooltip"]').val(tooltip);
     });
   }
 

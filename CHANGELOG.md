@@ -1,3 +1,11 @@
+# 2.7.12
+
+- Category Browser
+  - Added a new global flag: `categoryDownload`
+    - When enabled right-clicked categories will call `MassEdit.categoryDownload` hook
+  - Added a new category flag: `disableDownload`
+    - When enabled the global `categoryDownload` flag will be ignored
+
 # 2.7.11
 
 - German language translation courtesy of @BlueSkyBlackBird
