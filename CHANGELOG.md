@@ -1,3 +1,10 @@
+# 2.7.15
+
+- Fixed tokens colliding with linked walls
+- Added `defaultActiveCategory` field to Category Browser
+    - Allows to define a category to be active when the browser is first opened
+    - Format: `defaultActiveCategory: "Releases,2025,Dec"`
+
 # 2.7.14
 
 - Category Browser's edit mode now preserves category active state

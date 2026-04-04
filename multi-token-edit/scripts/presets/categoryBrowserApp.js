@@ -23,6 +23,7 @@ export async function openCategoryBrowser(
         editEnabled = false,
         disableDelete = true,
         categoryDownload = false,
+        defaultActiveCategory = '',
         width,
         height,
     } = {},
@@ -45,6 +46,7 @@ export async function openCategoryBrowser(
         editEnabled,
         disableDelete,
         categoryDownload,
+        defaultActiveCategory,
         width,
         height,
         id,
@@ -58,9 +60,8 @@ class Category {
     menu = null; // CategoryList this category is part of
     submenu = null; // CategoryList to be displayed when this category is active
 
-    constructor({ title, active, fa, img, query, disableQuery, disableDownload, tooltip, menu }) {
+    constructor({ title, fa, img, query, disableQuery, disableDownload, tooltip, menu }) {
         this.title = title; // Hover text
-        this.active = active; // Is the category active/selected
         this.fa = fa; // Font Awesome icon
         this.img = img; // Image icon
         this.query = query; // Search query to be ran when active
@@ -148,6 +149,7 @@ class CategoryBrowserApplication extends PresetContainerV2 {
         } else {
             // Otherwise we process the fed in JSON menu structure
             this._processMenu(menu)._topMenu = true;
+            this._setDefaultActiveCategory();
         }
 
         this._globalSearch = this.options.globalSearch;
@@ -224,10 +226,9 @@ class CategoryBrowserApplication extends PresetContainerV2 {
         this._menus.push(categoryList);
 
         submenu.forEach((category) => {
-            const { title, active, fa, img, submenu, query, disableQuery, disableDownload, tooltip } = category;
+            const { title, fa, img, submenu, query, disableQuery, disableDownload, tooltip } = category;
             const cat = new Category({
                 title,
-                active,
                 fa,
                 img,
                 menu: categoryList,
@@ -242,6 +243,28 @@ class CategoryBrowserApplication extends PresetContainerV2 {
         });
 
         return categoryList;
+    }
+
+    /**
+     * Sets the default active category using the 'defaultActiveCategory' field if provided
+     */
+    _setDefaultActiveCategory() {
+        if (!this.options.defaultActiveCategory?.trim()) return;
+
+        const chain = this.options.defaultActiveCategory
+            .split(',')
+            .map((c) => c.trim().toLocaleLowerCase())
+            .filter(Boolean);
+        let currentMenu = this._menus[0];
+        for (const title of chain) {
+            const category = currentMenu.categories.find((c) => c.title.toLocaleLowerCase() === title);
+            if (!category) return;
+            category.active = true;
+            currentMenu.active = true;
+            currentMenu = category.submenu;
+            if (!currentMenu) return;
+            currentMenu.active = true;
+        }
     }
 
     /**
@@ -509,6 +532,7 @@ const options = {
   globalSearch: ${this._globalSearch},
   globalQuery: "${options.globalQuery}",
   categoryDownload: ${options.categoryDownload},
+  defaultActiveCategory: "${options.defaultActiveCategory}",
   editEnabled: ${options.editEnabled},
   disableDelete: ${options.disableDelete}
 };
@@ -534,7 +558,6 @@ MassEdit.openCategoryBrowser(menu, options);`;
 
     _categoryToJson(category) {
         const json = { title: category.title };
-        if (category.active) json.active = true;
         if (category.fa) json.fa = category.fa;
         if (category.img) json.img = category.img;
         if (category.query) json.query = category.query;
