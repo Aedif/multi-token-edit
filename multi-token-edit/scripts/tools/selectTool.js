@@ -27,7 +27,7 @@ export function enablePixelPerfectSelect(force = false) {
                 const result = await wrapped(...args);
 
                 // Change the frame to use pixel contain function instead of rectangle contain
-                const hitArea = this.frame.interaction.hitArea;
+                const hitArea = this.frame.hitArea;
                 hitArea._originalContains = hitArea.contains;
                 hitArea._mesh = this.mesh;
                 hitArea.contains = function (...args) {
