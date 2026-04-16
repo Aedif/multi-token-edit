@@ -162,7 +162,10 @@ function _getControlButtons(controls) {
 }
 
 function _placeableRefresh(placeable) {
-  if (placeable.controlled) placeable.controlIcon.border.visible = true;
+  if (!placeable?.controlled) return;
+  const border = placeable.controlIcon?.border;
+  if (!border) return;
+  border.visible = true;
 }
 
 function registerRegionWrappers() {
