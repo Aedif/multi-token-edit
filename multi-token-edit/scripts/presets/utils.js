@@ -135,6 +135,8 @@ export function mergePresetDataToDefaultDoc(preset, presetData) {
                 texture: {
                     scaleX: 1,
                     scaleY: 1,
+                    anchorX: 0,
+                    anchorY: 0,
                 },
                 width: canvas.grid.sizeX ?? canvas.grid.w, // v12
                 height: canvas.grid.sizeY ?? canvas.grid.h, // v12
@@ -167,14 +169,14 @@ export function mergePresetDataToDefaultDoc(preset, presetData) {
             data = { config: { dim: 20, bright: 20 }, x: 0, y: 0 };
             break;
         case 'Scene':
-            data = { name: preset.name };
+            data = { name: preset.name ?? 'Scene' };
             break;
         case 'Wall':
             data = { c: [0, 0, canvas.grid.size, 0] };
             break;
         case 'Region':
             data = {
-                name: preset.name,
+                name: preset.name ?? 'Region',
                 shapes: [
                     {
                         type: 'rectangle',
@@ -294,11 +296,11 @@ export function getDataBounds(documentName, data) {
 
         let width, height;
         if (documentName === 'Tile') {
-            const { anchorX, anchorY } = data.texture ?? { anchorX: 0.5, anchorY: 0.5 };
+            const { anchorX, anchorY } = data.texture;
             width = data.width;
             height = data.height;
-            x1 -= data.width * anchorX;
-            y1 -= data.height * anchorY;
+            x1 -= data.width * (anchorX ?? 0);
+            y1 -= data.height * (anchorY ?? 0);
         } else if (documentName === 'Drawing') {
             width = data.shape.width;
             height = data.shape.height;

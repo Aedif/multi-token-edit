@@ -467,7 +467,7 @@ export class DataTransformer {
 
         if (transform.rotation != null) {
             const dr = Math.toRadians(transform.rotation % 360);
-            const { anchorX, anchorY } = data.texture ?? { anchorX: 0.5, anchorY: 0.5 };
+            const { anchorX, anchorY } = data.texture;
             let rectCenter = {
                 x: data.x + data.width / 2 - data.width * anchorX,
                 y: data.y + data.height / 2 - data.height * anchorY,
@@ -479,7 +479,7 @@ export class DataTransformer {
         }
 
         if (transform.mirrorX || transform.mirrorY) {
-            const { anchorX, anchorY } = data.texture ?? { anchorX: 0.5, anchorY: 0.5 };
+            const { anchorX, anchorY } = data.texture;
             let rectCenter = {
                 x: data.x + data.width / 2 - data.width * anchorX,
                 y: data.y + data.height / 2 - data.height * anchorY,
