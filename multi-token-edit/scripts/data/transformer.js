@@ -467,24 +467,32 @@ export class DataTransformer {
 
         if (transform.rotation != null) {
             const dr = Math.toRadians(transform.rotation % 360);
-            let rectCenter = { x: data.x + data.width / 2, y: data.y + data.height / 2 };
+            const { anchorX, anchorY } = data.texture ?? { anchorX: 0.5, anchorY: 0.5 };
+            let rectCenter = {
+                x: data.x + data.width / 2 - data.width * anchorX,
+                y: data.y + data.height / 2 - data.height * anchorY,
+            };
             [rectCenter.x, rectCenter.y] = this.rotatePoint(origin.x, origin.y, rectCenter.x, rectCenter.y, dr);
-            data.x = rectCenter.x - data.width / 2;
-            data.y = rectCenter.y - data.height / 2;
+            data.x = rectCenter.x - data.width / 2 + data.width * anchorX;
+            data.y = rectCenter.y - data.height / 2 + data.height * anchorY;
             data.rotation += Math.toDegrees(dr);
         }
 
         if (transform.mirrorX || transform.mirrorY) {
-            let rectCenter = { x: data.x + data.width / 2, y: data.y + data.height / 2 };
+            const { anchorX, anchorY } = data.texture ?? { anchorX: 0.5, anchorY: 0.5 };
+            let rectCenter = {
+                x: data.x + data.width / 2 - data.width * anchorX,
+                y: data.y + data.height / 2 - data.height * anchorY,
+            };
             if (transform.mirrorX) {
                 rectCenter.x = origin.x - (rectCenter.x - origin.x);
                 data.texture.scaleX *= -1;
-                data.x = rectCenter.x - data.width / 2;
+                data.x = rectCenter.x - data.width / 2 + data.width * anchorX;
             }
             if (transform.mirrorY) {
                 rectCenter.y = origin.y - (rectCenter.y - origin.y);
                 data.texture.scaleY *= -1;
-                data.y = rectCenter.y - data.height / 2;
+                data.y = rectCenter.y - data.height / 2 + data.height * anchorY;
             }
             data.rotation = 180 - (data.rotation - 180);
         }
