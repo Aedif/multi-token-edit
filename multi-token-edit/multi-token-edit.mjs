@@ -6,7 +6,7 @@ import { PresetAPI, PresetStorage } from './scripts/presets/collection.js';
 import { openPresetBrowser, registerPresetBrowserHooks } from './scripts/presets/browser/browserApp.js';
 import { registerKeybinds, registerSettings } from './scripts/settings.js';
 import { BrushMenu, activateBrush, deactivateBush, openBrushMenu } from './scripts/brush.js';
-import { V12Migrator } from './scripts/presets/migration.js';
+import { Migrator } from './scripts/presets/migration.js';
 import { performMassSearch, performMassUpdate } from './applications/formUtils.js';
 import { importSceneCompendium, registerSideBarPresetDropListener } from './scripts/presets/utils.js';
 import { LinkerAPI, registerLinkerHooks } from './scripts/linker/linker.js';
@@ -42,8 +42,8 @@ globalThis.MassEdit = {
     openCategoryBrowser,
     deactivateBrush: deactivateBush,
     openBrushMenu: openBrushMenu,
-    migratePack: (pack, options = {}) => V12Migrator.migratePack(pack, options),
-    migrateAllPacks: (options = {}) => V12Migrator.migrateAllPacks(options),
+    migratePack: (pack, options = {}) => Migrator.migratePack(pack, options),
+    migrateAllPacks: (options = {}) => Migrator.migrateAllPacks(options),
     linker: LinkerAPI,
     PIVOTS: PIVOTS,
     importSceneCompendium,

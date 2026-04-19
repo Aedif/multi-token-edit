@@ -1,8 +1,11 @@
-import { MODULE_ID } from '../constants.js';
+import { MODULE_ID, SUPPORTED_PLACEABLES } from '../constants.js';
 import { META_INDEX_ID, PresetStorage } from './collection.js';
 import { PRESET_FIELDS } from './preset.js';
 
-export class V12Migrator {
+export class Migrator {
+    // Used when Presets do not contain an explicit coreVersion field
+    static ASSUMED_CORE_VERSION = '13.351';
+
     static async migrateAllPacks({ migrateFunc = null, transformFunc = null, coreMigration = false } = {}) {
         if (!migrateFunc && !transformFunc && !coreMigration) {
             ui.notifications.warn('Specify either a `migrateFunc`, `transformFunc`, or enable `coreMigration` flag.');
@@ -79,19 +82,37 @@ export class V12Migrator {
                 if (!preset) continue;
 
                 let update = {};
+                const coreVersion = preset.coreVersion ?? Migrator.ASSUMED_CORE_VERSION;
 
                 // Migrate Preset data
                 if (preset.data?.length) {
-                    this._migrateData(preset.data, preset.documentName, coreMigration, migrateFunc);
+                    const documentChange = await this._migrateData(preset.data, preset.documentName, {
+                        coreMigration,
+                        migrateFunc,
+                        coreVersion,
+                        fullCoreMigration: preset.data.length > 1 || preset.data[0].hasOwnProperty('x'),
+                    });
                     foundry.utils.setProperty(update, `flags.${MODULE_ID}.preset.data`, preset.data);
+                    if (documentChange)
+                        foundry.utils.setProperty(update, `flags.${MODULE_ID}.preset.documentName`, documentChange);
                 }
 
                 // Convert attached Preset data
                 if (preset.attached?.length) {
                     for (const attached of preset.attached) {
-                        this._migrateData([attached.data], attached.documentName, coreMigration, migrateFunc);
+                        const documentChange = await this._migrateData([attached.data], attached.documentName, {
+                            coreMigration,
+                            migrateFunc,
+                            coreVersion,
+                            fullCoreMigration: true,
+                        });
+                        if (documentChange) attached.documentName = documentChange;
                     }
                     foundry.utils.setProperty(update, `flags.${MODULE_ID}.preset.attached`, preset.attached);
+                }
+
+                if (coreMigration && foundry.utils.isNewerVersion(game.version, coreVersion)) {
+                    foundry.utils.setProperty(update, `flags.${MODULE_ID}.preset.coreVersion`, game.version);
                 }
 
                 if (!foundry.utils.isEmpty(update)) {
@@ -143,37 +164,104 @@ export class V12Migrator {
         return pack;
     }
 
-    static _migrateData(dataArr, documentName, coreMigration = true, migrateFunc = null) {
-        const cls = getDocumentClass(documentName);
-
+    static async _migrateData(
+        dataArr,
+        documentName,
+        { coreMigration = true, migrateFunc, coreVersion, fullCoreMigration = true } = {},
+    ) {
+        let documentChange;
         for (const data of dataArr) {
-            if (coreMigration) this._coreMigrate(documentName, cls, data);
+            if (coreMigration) {
+                documentChange = await this._coreMigrate(documentName, data, coreVersion, fullCoreMigration);
+            }
             if (migrateFunc) migrateFunc(data, documentName); // Custom migration function
 
             // Token Attacher data traversal
             const prototypeAttached = data.flags?.['token-attacher']?.prototypeAttached;
-            if (prototypeAttached) this._migratePrototypeAttached(prototypeAttached, coreMigration, migrateFunc);
+            if (prototypeAttached)
+                await this._migratePrototypeAttached(prototypeAttached, coreMigration, migrateFunc, coreVersion);
         }
+
+        if (documentChange) return documentChange;
     }
 
-    // Core Foundry migration
-    static _coreMigrate(documentName, cls, data) {
-        switch (documentName) {
-            case 'Tile':
-                const mode = data.occlusion?.mode;
-                if (Number.isNumeric(mode) && (mode === 0 || !Object.values(CONST.OCCLUSION_MODES).includes(mode))) {
-                    delete data.occlusion.mode;
-                    data.occlusion.modes = [];
+    /**
+     * Perform core Foundry migration using the `migrateDocumentData` socket.
+     * @param {string} documentName
+     * @param {object} data
+     * @param {string} coreVersion
+     * @param {boolean} fullCoreMigration
+     * @returns {null|string} documentName is only returned if after migration it has been transformed to another
+     */
+    static async _coreMigrate(documentName, data, coreVersion, fullCoreMigration) {
+        if (SUPPORTED_PLACEABLES.includes(documentName) && foundry.utils.isNewerVersion(game.version, coreVersion)) {
+            const layerMap = {
+                Token: 'tokens',
+                Tile: 'tiles',
+                Drawing: 'drawings',
+                AmbientLight: 'lighting',
+                Note: 'notes',
+                Region: 'regions',
+                AmbientSound: 'sounds',
+                MeasuredTemplate: 'templates',
+                Wall: 'walls',
+            };
+            const layer = layerMap[documentName];
+
+            // `migrateDocumentData` does not accept embeds
+            // Lets submit a minimum viable scene instead which includes the placeable data we want to migrate
+            const response = await new Promise((resolve) => {
+                game.socket.emit(
+                    'migrateDocumentData',
+                    'Scene',
+                    {
+                        name: 'Migrate',
+                        _stats: { exportSource: { coreVersion }, coreVersion },
+                        [layer]: [data],
+                    },
+                    resolve,
+                );
+            });
+
+            const source = response.source;
+            if (source) {
+                if (source[layer]?.length) {
+                    foundry.utils.mergeObject(data, source[layer][0], { insertKeys: fullCoreMigration });
+                } else {
+                    // If we can't find the data in the expected layer then it has likely been transformed into
+                    // another types of placeable. Lets look for it.
+                    const sl = Object.values(layerMap).find((l) => source[l]?.length);
+                    if (sl) {
+                        foundry.utils.mergeObject(data, source[sl][0]);
+                        return Object.keys(layerMap).find((k) => layer[k] === sl);
+                    }
                 }
-                break;
+            }
+        } else {
+            const response = await new Promise((resolve) => {
+                game.socket.emit(
+                    'migrateDocumentData',
+                    documentName,
+                    { ...data, _stats: data._stats ?? { exportSource: { coreVersion }, coreVersion } },
+                    resolve,
+                );
+            });
+            const source = response.source;
+            if (source) foundry.utils.mergeObject(data, source);
         }
-
-        cls?.migrateData(data);
     }
 
-    static _migratePrototypeAttached(prototypeAttached, coreMigration = true, migrateFunc = null) {
+    static async _migratePrototypeAttached(prototypeAttached, coreMigration = true, migrateFunc = null, coreVersion) {
         for (const [documentName, attached] of Object.entries(prototypeAttached)) {
-            this._migrateData(attached, documentName, coreMigration, migrateFunc);
+            const documentChange = await this._migrateData(attached, documentName, {
+                coreMigration,
+                migrateFunc,
+                coreVersion,
+                fullCoreMigration: true,
+            });
+            if (documentChange) {
+                prototypeAttached[documentChange] = prototypeAttached[documentChange]?.concat(attached) ?? attached;
+            }
         }
     }
 }

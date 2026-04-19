@@ -290,17 +290,46 @@ export function getDataBounds(documentName, data) {
             }
         });
     } else {
-        x1 = data.x || 0;
-        y1 = data.y || 0;
+        x1 = data.x ?? 0;
+        y1 = data.y ?? 0;
         z1 = data.elevation ?? 0;
 
         let width, height;
         if (documentName === 'Tile') {
-            const { anchorX, anchorY } = data.texture;
             width = data.width;
             height = data.height;
-            x1 -= data.width * (anchorX ?? 0);
-            y1 -= data.height * (anchorY ?? 0);
+
+            const a = Math.toRadians(data.rotation);
+            const cos = Math.cos(a);
+            const sin = Math.sin(a);
+
+            const { anchorX, anchorY } = data.texture;
+            const x0 = -anchorX * width;
+            const x1o = (1 - anchorX) * width;
+            const y0 = -anchorY * height;
+            const y1o = (1 - anchorY) * height;
+
+            let minX = Infinity;
+            let minY = Infinity;
+            let maxX = -Infinity;
+            let maxY = -Infinity;
+
+            for (const cx of [x0, x1o]) {
+                for (const cy of [y0, y1o]) {
+                    const rx = x1 + cos * cx - sin * cy;
+                    const ry = y1 + sin * cx + cos * cy;
+
+                    if (rx < minX) minX = rx;
+                    if (ry < minY) minY = ry;
+                    if (rx > maxX) maxX = rx;
+                    if (ry > maxY) maxY = ry;
+                }
+            }
+
+            x1 = minX;
+            y1 = minY;
+            width = maxX - minX;
+            height = maxY - minY;
         } else if (documentName === 'Drawing') {
             width = data.shape.width;
             height = data.shape.height;

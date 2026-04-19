@@ -468,33 +468,28 @@ export class DataTransformer {
         if (transform.rotation != null) {
             const dr = Math.toRadians(transform.rotation % 360);
             const { anchorX, anchorY } = data.texture;
-            let rectCenter = {
-                x: data.x + data.width / 2 - data.width * anchorX,
-                y: data.y + data.height / 2 - data.height * anchorY,
-            };
+            let rectCenter = this.#getTileCenterPoint(data);
             [rectCenter.x, rectCenter.y] = this.rotatePoint(origin.x, origin.y, rectCenter.x, rectCenter.y, dr);
-            data.x = rectCenter.x - data.width / 2 + data.width * anchorX;
-            data.y = rectCenter.y - data.height / 2 + data.height * anchorY;
+
             data.rotation += Math.toDegrees(dr);
+            [data.x, data.y] = this.#getTileAnchorPoint(rectCenter, data);
         }
 
         if (transform.mirrorX || transform.mirrorY) {
-            const { anchorX, anchorY } = data.texture;
-            let rectCenter = {
-                x: data.x + data.width / 2 - data.width * anchorX,
-                y: data.y + data.height / 2 - data.height * anchorY,
-            };
+            let rectCenter = this.#getTileCenterPoint(data);
             if (transform.mirrorX) {
                 rectCenter.x = origin.x - (rectCenter.x - origin.x);
                 data.texture.scaleX *= -1;
-                data.x = rectCenter.x - data.width / 2 + data.width * anchorX;
+                data.rotation = -data.rotation;
+                data.texture.anchorX = 1 - data.texture.anchorX;
             }
             if (transform.mirrorY) {
                 rectCenter.y = origin.y - (rectCenter.y - origin.y);
                 data.texture.scaleY *= -1;
-                data.y = rectCenter.y - data.height / 2 + data.height * anchorY;
+                data.rotation = 180 - (data.rotation - 180);
+                data.texture.anchorY = 1 - data.texture.anchorY;
             }
-            data.rotation = 180 - (data.rotation - 180);
+            [data.x, data.y] = this.#getTileAnchorPoint(rectCenter, data);
         }
 
         if (preview) {
@@ -528,6 +523,25 @@ export class DataTransformer {
                 }
             }
         }
+    }
+
+    static #getTileCenterPoint(data) {
+        const a = Math.toRadians(data.rotation);
+        const cos = Math.cos(a);
+        const sin = Math.sin(a);
+        const dx = (0.5 - data.texture.anchorX) * data.width;
+        const dy = (0.5 - data.texture.anchorY) * data.height;
+        return { x: data.x + (cos * dx - sin * dy), y: data.y + (sin * dx + cos * dy) };
+    }
+
+    static #getTileAnchorPoint(center, data) {
+        const a = Math.toRadians(data.rotation);
+        const cos = Math.cos(a);
+        const sin = Math.sin(a);
+        const dx = (0.5 - data.texture.anchorX) * data.width;
+        const dy = (0.5 - data.texture.anchorY) * data.height;
+
+        return [center.x - (cos * dx - sin * dy), center.y - (sin * dx + cos * dy)];
     }
 
     static transformDrawing(data, origin, transform, preview) {
