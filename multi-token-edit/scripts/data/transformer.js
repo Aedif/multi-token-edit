@@ -172,31 +172,32 @@ export class DataTransformer {
 
         if (preview) {
             const doc = preview.document;
-            if (data.elevation) doc.elevation = data.elevation;
-            if (data.shapes) {
-                for (let i = 0; i < data.shapes.length; i++) {
-                    const docShape = doc.shapes[i];
-                    const dataShape = data.shapes[i];
+            doc.updateSource(data);
+            // if (data.elevation) doc.elevation = data.elevation;
+            // if (data.shapes) {
+            //     for (let i = 0; i < data.shapes.length; i++) {
+            //         const docShape = doc.shapes[i];
+            //         const dataShape = data.shapes[i];
 
-                    if (docShape.type !== dataShape.type) {
-                        // We've performed a type change (rectangle -> polygon)
-                        doc.shapes[i] = new foundry.data.PolygonShapeData(dataShape);
-                    } else if (docShape.type === 'polygon') {
-                        docShape.points = dataShape.points;
-                    } else {
-                        docShape.x = dataShape.x;
-                        docShape.y = dataShape.y;
+            //         if (docShape.type !== dataShape.type) {
+            //             // We've performed a type change (rectangle -> polygon)
+            //             doc.shapes[i] = new foundry.data.PolygonShapeData(dataShape);
+            //         } else if (docShape.type === 'polygon') {
+            //             docShape.points = dataShape.points;
+            //         } else {
+            //             docShape.x = dataShape.x;
+            //             docShape.y = dataShape.y;
 
-                        if (docShape.type === 'rectangle') {
-                            docShape.width = dataShape.width;
-                            docShape.height = dataShape.height;
-                        } else if (docShape.type === 'ellipse') {
-                            docShape.radiusX = dataShape.radiusX;
-                            docShape.radiusY = dataShape.radiusY;
-                        }
-                    }
-                }
-            }
+            //             if (docShape.type === 'rectangle') {
+            //                 docShape.width = dataShape.width;
+            //                 docShape.height = dataShape.height;
+            //             } else if (docShape.type === 'ellipse') {
+            //                 docShape.radiusX = dataShape.radiusX;
+            //                 docShape.radiusY = dataShape.radiusY;
+            //             }
+            //         }
+            //     }
+            // }
         }
     }
 
@@ -418,7 +419,7 @@ export class DataTransformer {
             const shape = doc.shape;
             shape.x = data.x;
             shape.y = data.y;
-            shape.rotation = data.rotation;
+            doc.rotation = data.rotation;
             if (data.config) {
                 doc.config.dim = data.config.dim;
                 doc.config.bright = data.config.bright;

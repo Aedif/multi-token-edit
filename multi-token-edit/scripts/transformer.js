@@ -375,24 +375,6 @@ export class MassTransformer {
 
                     // For some reason collision bool is refreshed after creation of the preview
                     if (preview._l3dPreview) preview._l3dPreview.collision = false;
-
-                    // Special position update conditions
-                    // - Region: We need to simulate doc update via `_onUpdate` call
-                    // - AmbientLight and AmbientSound sources need to be re-initialized to have their fields properly rendered
-                    switch (documentName) {
-                        case 'Region':
-                            preview.document._onUpdate({ shapes: null }, { preview: true });
-                            break;
-                        case 'AmbientLight':
-                            preview.initializeLightSource();
-                            break;
-                        case 'AmbientSound':
-                            preview.initializeSoundSource();
-                            break;
-                        case 'Wall':
-                            preview.createDoorMeshes();
-                            break;
-                    }
                 }
                 // End of Hacks
             }
@@ -594,7 +576,7 @@ export class MassTransformer {
 
             // Foundry as well as various modules might have complex `isVisible` and 'visible' conditions
             // lets simplify by overriding this function to make sure the preview is always visible
-            MassTransformer._overridePlaceableVisibility(object);
+            MassTransformer._overridePlaceableVisibility(object, documentName);
 
             // 3D Canvas
             if (game.Levels3DPreview?._active) {
@@ -630,7 +612,7 @@ export class MassTransformer {
         return object;
     }
 
-    static _overridePlaceableVisibility(placeable) {
+    static _overridePlaceableVisibility(placeable, documentName) {
         Object.defineProperty(placeable, 'isVisible', {
             get: function () {
                 return true;
@@ -643,6 +625,15 @@ export class MassTransformer {
             },
             set: function () {},
         });
+        if (documentName === 'AmbientLight' || documentName === 'AmbientSound') {
+            Object.defineProperty(placeable.controls.border, 'visible', {
+                get: function () {
+                    return true;
+                },
+                set: function () {},
+            });
+            placeable.controls.alpha = 0.4;
+        }
         if (placeable.controlIcon) {
             placeable.controlIcon.alpha = 0.4;
             Object.defineProperty(placeable.controlIcon, 'visible', {
