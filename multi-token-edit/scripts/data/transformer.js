@@ -1,4 +1,5 @@
 import { MODULE_ID } from '../constants';
+import { getDataBounds } from '../presets/utils';
 import { Scenescape } from '../scenescape/scenescape';
 
 export class DataTransformer {
@@ -58,6 +59,12 @@ export class DataTransformer {
                     for (let i = 0; i < shape.points.length; i++) {
                         shape.points[i] = shape.points[i] * scale + (i % 2 === 0 ? originOffsetX : originOffsetY);
                     }
+                } else if (shape.type === 'emanation') {
+                    shape.base.x = shape.base.x * scale + originOffsetX;
+                    shape.base.y = shape.base.y * scale + originOffsetY;
+                    shape.radius *= scale;
+                    shape.base.width *= scale;
+                    shape.base.height *= scale;
                 } else {
                     shape.x = shape.x * scale + originOffsetX;
                     shape.y = shape.y * scale + originOffsetY;
@@ -67,6 +74,15 @@ export class DataTransformer {
                     } else if (shape.type === 'rectangle') {
                         shape.height *= scale;
                         shape.width *= scale;
+                    } else if (shape.type === 'line') {
+                        shape.length *= scale;
+                        shape.width *= scale;
+                    } else if (shape.type === 'cone' || shape.type === 'circle' || shape.type === 'ring') {
+                        shape.radius *= scale;
+                        if (shape.type === 'ring') {
+                            shape.innerWidth *= scale;
+                            shape.outerWidth *= scale;
+                        }
                     }
                 }
             }
@@ -83,6 +99,9 @@ export class DataTransformer {
                             console.log(shape, transform);
                         }
                     }
+                } else if (shape.type === 'emanation') {
+                    shape.base.x += transform.x;
+                    shape.base.y += transform.y;
                 } else {
                     shape.x += transform.x;
                     shape.y += transform.y;
@@ -97,26 +116,10 @@ export class DataTransformer {
         if (transform.rotation != null && data.shapes) {
             for (const shape of data.shapes) {
                 if (shape.type === 'rectangle') {
-                    // Foundry does not support rotation for rectangles
-                    // Convert it to a polygon instead
-                    shape.type = 'polygon';
-                    shape.points = [
-                        shape.x,
-                        shape.y,
-                        shape.x + shape.width,
-                        shape.y,
-                        shape.x + shape.width,
-                        shape.y + shape.height,
-                        shape.x,
-                        shape.y + shape.height,
-                    ];
-                    delete shape.width;
-                    delete shape.height;
-                    delete shape.x;
-                    delete shape.y;
-                    delete shape.rotation;
-                }
-                if (shape.type === 'polygon') {
+                    RectangleUtils.rotate(shape, origin, transform);
+                } else if (shape.type === 'line') {
+                    LineUtils.rotate(shape, origin, transform);
+                } else if (shape.type === 'polygon') {
                     const dr = Math.toRadians(transform.rotation % 360);
                     for (let i = 0; i < shape.points.length; i += 2) {
                         [shape.points[i], shape.points[i + 1]] = this.rotatePoint(
@@ -127,34 +130,34 @@ export class DataTransformer {
                             dr,
                         );
                     }
+                } else if (shape.type === 'emanation') {
+                    const dr = Math.toRadians(transform.rotation % 360);
+                    let base = shape.base;
+                    [base.x, base.y] = this.rotatePoint(origin.x, origin.y, base.x, base.y, dr);
                 } else {
                     const dr = Math.toRadians(transform.rotation % 360);
-                    let rectCenter = {
-                        x: shape.x + (shape.radiusX ?? shape.width) / 2,
-                        y: shape.y + (shape.radiusY ?? shape.height) / 2,
-                    };
-                    [rectCenter.x, rectCenter.y] = this.rotatePoint(origin.x, origin.y, rectCenter.x, rectCenter.y, dr);
-                    shape.x = rectCenter.x - (shape.radiusX ?? shape.width) / 2;
-                    shape.y = rectCenter.y - (shape.radiusY ?? shape.height) / 2;
+                    [shape.x, shape.y] = this.rotatePoint(origin.x, origin.y, shape.x, shape.y, dr);
+                    if (shape.type === 'ellipse' || shape.type === 'cone') shape.rotation += Math.toDegrees(dr);
                 }
             }
         }
 
         if (transform.mirrorX || transform.mirrorY) {
             for (const shape of data.shapes) {
-                if (shape.type === 'rectangle' || shape.type === 'ellipse') {
-                    const rectCenter = {
-                        x: shape.x + (shape.width ?? shape.radiusX) / 2,
-                        y: shape.y + (shape.height ?? shape.radiusY) / 2,
-                    };
-                    if (transform.mirrorX) {
-                        rectCenter.x = origin.x - (rectCenter.x - origin.x);
-                        shape.x = rectCenter.x - (shape.width ?? shape.radiusX) / 2;
+                if (shape.type === 'rectangle') {
+                    RectangleUtils.mirror(shape, origin, transform);
+                } else if (shape.type === 'circle' || shape.type === 'ring' || shape.type === 'ellipse') {
+                    if (transform.mirrorX) shape.x = origin.x - (shape.x - origin.x);
+                    if (transform.mirrorY) shape.y = origin.y - (shape.y - origin.y);
+
+                    if (shape.type === 'ellipse') {
+                        if (transform.mirrorX) shape.rotation = -shape.rotation;
+                        if (transform.mirrorY) shape.rotation = 180 - (shape.rotation - 180);
                     }
-                    if (transform.mirrorY) {
-                        rectCenter.y = origin.y - (rectCenter.y - origin.y);
-                        shape.y = rectCenter.y - (shape.height ?? shape.radiusY) / 2;
-                    }
+                } else if (shape.type === 'emanation') {
+                    const base = shape.base;
+                    if (transform.mirrorX) base.x = origin.x - (base.x - origin.x);
+                    if (transform.mirrorY) base.y = origin.y - (base.y - origin.y);
                 } else if (shape.type === 'polygon') {
                     if (transform.mirrorX) {
                         for (let i = 0; i < shape.points.length; i += 2) {
@@ -166,6 +169,16 @@ export class DataTransformer {
                             shape.points[i] = origin.y - (shape.points[i] - origin.y);
                         }
                     }
+                } else if (shape.type === 'cone' || shape.type === 'line') {
+                    if (transform.mirrorX) {
+                        shape.x = origin.x - (shape.x - origin.x);
+                        if (shape.rotation > 180) shape.rotation = 360 - (shape.rotation - 180);
+                        else shape.rotation = 180 - shape.rotation;
+                    }
+                    if (transform.mirrorY) {
+                        shape.y = origin.y - (shape.y - origin.y);
+                        shape.rotation = 180 - (shape.rotation - 180);
+                    }
                 }
             }
         }
@@ -173,31 +186,6 @@ export class DataTransformer {
         if (preview) {
             const doc = preview.document;
             doc.updateSource(data);
-            // if (data.elevation) doc.elevation = data.elevation;
-            // if (data.shapes) {
-            //     for (let i = 0; i < data.shapes.length; i++) {
-            //         const docShape = doc.shapes[i];
-            //         const dataShape = data.shapes[i];
-
-            //         if (docShape.type !== dataShape.type) {
-            //             // We've performed a type change (rectangle -> polygon)
-            //             doc.shapes[i] = new foundry.data.PolygonShapeData(dataShape);
-            //         } else if (docShape.type === 'polygon') {
-            //             docShape.points = dataShape.points;
-            //         } else {
-            //             docShape.x = dataShape.x;
-            //             docShape.y = dataShape.y;
-
-            //             if (docShape.type === 'rectangle') {
-            //                 docShape.width = dataShape.width;
-            //                 docShape.height = dataShape.height;
-            //             } else if (docShape.type === 'ellipse') {
-            //                 docShape.radiusX = dataShape.radiusX;
-            //                 docShape.radiusY = dataShape.radiusY;
-            //             }
-            //         }
-            //     }
-            // }
         }
     }
 
@@ -467,30 +455,28 @@ export class DataTransformer {
         if (data.elevation != null) data.elevation += transform.z ?? 0;
 
         if (transform.rotation != null) {
-            const dr = Math.toRadians(transform.rotation % 360);
-            const { anchorX, anchorY } = data.texture;
-            let rectCenter = this.#getTileCenterPoint(data);
-            [rectCenter.x, rectCenter.y] = this.rotatePoint(origin.x, origin.y, rectCenter.x, rectCenter.y, dr);
-
-            data.rotation += Math.toDegrees(dr);
-            [data.x, data.y] = this.#getTileAnchorPoint(rectCenter, data);
+            const rectangle = { ...data, anchorX: data.texture.anchorX, anchorY: data.texture.anchorY };
+            RectangleUtils.rotate(rectangle, origin, transform);
+            data.x = rectangle.x;
+            data.y = rectangle.y;
+            data.rotation = rectangle.rotation;
         }
 
         if (transform.mirrorX || transform.mirrorY) {
-            let rectCenter = this.#getTileCenterPoint(data);
-            if (transform.mirrorX) {
-                rectCenter.x = origin.x - (rectCenter.x - origin.x);
-                data.texture.scaleX *= -1;
-                data.rotation = -data.rotation;
-                data.texture.anchorX = 1 - data.texture.anchorX;
-            }
-            if (transform.mirrorY) {
-                rectCenter.y = origin.y - (rectCenter.y - origin.y);
-                data.texture.scaleY *= -1;
-                data.rotation = 180 - (data.rotation - 180);
-                data.texture.anchorY = 1 - data.texture.anchorY;
-            }
-            [data.x, data.y] = this.#getTileAnchorPoint(rectCenter, data);
+            if (transform.mirrorX) data.texture.scaleX *= -1;
+            if (transform.mirrorY) data.texture.scaleY *= -1;
+
+            const rectangle = {
+                ...data,
+                anchorX: data.texture.anchorX,
+                anchorY: data.texture.anchorY,
+            };
+            RectangleUtils.mirror(rectangle, origin, transform);
+            data.x = rectangle.x;
+            data.y = rectangle.y;
+            data.texture.anchorX = rectangle.anchorX;
+            data.texture.anchorY = rectangle.anchorY;
+            data.rotation = rectangle.rotation;
         }
 
         if (preview) {
@@ -577,17 +563,18 @@ export class DataTransformer {
         }
 
         if (transform.mirrorX || transform.mirrorY) {
-            const rectCenter = { x: data.x + data.shape.width / 2, y: data.y + data.shape.height / 2 };
+            const bounds = getDataBounds('Drawing', data);
+            const rectCenter = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
 
             if (transform.mirrorX) {
                 data.x = origin.x - (rectCenter.x - origin.x);
                 if (data.shape.points) {
                     const points = data.shape.points;
                     for (let i = 0; i < points.length; i += 2) {
-                        points[i] = data.shape.width / 2 - (points[i] - data.shape.width / 2);
+                        points[i] = bounds.width / 2 - (points[i] - bounds.width / 2);
                     }
                 }
-                data.x = rectCenter.x - data.shape.width / 2;
+                data.x = rectCenter.x - bounds.width / 2;
             }
 
             if (transform.mirrorY) {
@@ -595,10 +582,10 @@ export class DataTransformer {
                 if (data.shape.points) {
                     const points = data.shape.points;
                     for (let i = 1; i < points.length; i += 2) {
-                        points[i] = data.shape.height / 2 - (points[i] - data.shape.height / 2);
+                        points[i] = bounds.height / 2 - (points[i] - bounds.height / 2);
                     }
                 }
-                data.y = rectCenter.y - data.shape.height / 2;
+                data.y = rectCenter.y - bounds.height / 2;
             }
 
             data.rotation = 180 - (data.rotation - 180);
@@ -612,7 +599,7 @@ export class DataTransformer {
             doc.shape.height = data.shape.height;
             doc.shape.points = data.shape.points;
             doc.rotation = data.rotation;
-            if (data.elevation) doc.elevation = data.elevation;
+            if (data.elevation != null) doc.elevation = data.elevation;
         }
     }
 
@@ -728,5 +715,85 @@ export class DataTransformer {
         const dx = x2 - x,
             dy = y2 - y;
         return [x + Math.cos(rot) * dx - Math.sin(rot) * dy, y + Math.sin(rot) * dx + Math.cos(rot) * dy];
+    }
+}
+
+class RectangleUtils {
+    static mirror(rectangle, origin, transform) {
+        let center = this.centerPoint(rectangle);
+        if (transform.mirrorX) {
+            center.x = origin.x - (center.x - origin.x);
+            rectangle.rotation = -rectangle.rotation;
+            rectangle.anchorX = 1 - rectangle.anchorX;
+        }
+        if (transform.mirrorY) {
+            center.y = origin.y - (center.y - origin.y);
+            rectangle.rotation = 180 - (rectangle.rotation - 180);
+            rectangle.anchorY = 1 - rectangle.anchorY;
+        }
+        [rectangle.x, rectangle.y] = this.anchorPoint(center, rectangle);
+    }
+
+    static rotate(rectangle, origin, transform) {
+        const dr = Math.toRadians(transform.rotation % 360);
+        let rectCenter = this.centerPoint(rectangle);
+        [rectCenter.x, rectCenter.y] = DataTransformer.rotatePoint(origin.x, origin.y, rectCenter.x, rectCenter.y, dr);
+
+        rectangle.rotation += Math.toDegrees(dr);
+        [rectangle.x, rectangle.y] = this.anchorPoint(rectCenter, rectangle);
+    }
+
+    static centerPoint(rectangle) {
+        const a = Math.toRadians(rectangle.rotation);
+        const cos = Math.cos(a);
+        const sin = Math.sin(a);
+        const dx = (0.5 - rectangle.anchorX) * rectangle.width;
+        const dy = (0.5 - rectangle.anchorY) * rectangle.height;
+        return { x: rectangle.x + (cos * dx - sin * dy), y: rectangle.y + (sin * dx + cos * dy) };
+    }
+
+    static anchorPoint(center, rectangle) {
+        const a = Math.toRadians(rectangle.rotation);
+        const cos = Math.cos(a);
+        const sin = Math.sin(a);
+        const dx = (0.5 - rectangle.anchorX) * rectangle.width;
+        const dy = (0.5 - rectangle.anchorY) * rectangle.height;
+
+        return [center.x - (cos * dx - sin * dy), center.y - (sin * dx + cos * dy)];
+    }
+}
+
+class LineUtils {
+    static rotate(line, origin, transform) {
+        const dr = Math.toRadians(transform.rotation % 360);
+        let center = this.centerPoint(line);
+        [center.x, center.y] = DataTransformer.rotatePoint(origin.x, origin.y, center.x, center.y, dr);
+
+        line.rotation += Math.toDegrees(dr);
+        [line.x, line.y] = this.anchorPoint(center, line);
+    }
+
+    static centerPoint(line) {
+        const a = Math.toRadians(line.rotation);
+        const r = line.length / 2;
+        return { x: line.x + Math.cos(a) * r, y: line.y + Math.sin(a) * r };
+    }
+
+    static anchorPoint(center, line) {
+        const a = Math.toRadians(line.rotation);
+        const r = line.length / 2;
+        return [center.x - Math.cos(a) * r, center.y - Math.sin(a) * r];
+    }
+}
+
+// TODO
+class ConeUtils {
+    static centerPoint(cone) {
+        if (cone.angle === 360) return { x: cone.x, y: cone.y };
+        return new foundry.data.BaseShapeData.TYPES.cone(cone).center;
+    }
+
+    static anchorPoint(center, cone) {
+        if (cone.angle === 360) return { x: center.x, y: center.y };
     }
 }

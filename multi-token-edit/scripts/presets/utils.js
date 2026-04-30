@@ -273,88 +273,67 @@ export function getDataBounds(documentName, data) {
         z1 = data.elevation?.bottom ?? 0;
         z2 = data.elevation?.top ?? 0;
         data.shapes?.forEach((shape) => {
-            if (shape.points) {
-                for (let i = 0; i < shape.points.length; i += 2) {
-                    let x = shape.points[i];
-                    let y = shape.points[i + 1];
-                    x1 = Math.min(x1, x);
-                    y1 = Math.min(y1, y);
-                    x2 = Math.max(x2, x);
-                    y2 = Math.max(y2, y);
-                }
-            } else {
-                x1 = Math.min(x1, shape.x);
-                y1 = Math.min(y1, shape.y);
-                x2 = Math.max(x2, shape.x + (shape.radiusX ?? shape.width));
-                y2 = Math.max(y2, shape.y + (shape.radiusY ?? shape.height));
-            }
+            const bounds = _getShapeBounds(shape);
+            x1 = Math.min(x1, bounds.x);
+            y1 = Math.min(y1, bounds.y);
+            x2 = Math.max(x2, bounds.x + bounds.width);
+            y2 = Math.max(y2, bounds.y + bounds.height);
         });
+    } else if (documentName === 'drawing') {
+        const bounds = _getShapeBounds(_getDrawingShape(data));
+        x1 = bounds.x;
+        y1 = bounds.y;
+        x2 = x1 + bounds.width;
+        y2 = y1 + bounds.height;
+        z1 = data.elevation ?? 0;
     } else {
         x1 = data.x ?? 0;
         y1 = data.y ?? 0;
         z1 = data.elevation ?? 0;
 
-        let width, height;
+        let bWidth, bHeight;
         if (documentName === 'Tile') {
-            width = data.width;
-            height = data.height;
-
-            const a = Math.toRadians(data.rotation);
-            const cos = Math.cos(a);
-            const sin = Math.sin(a);
-
-            const { anchorX, anchorY } = data.texture;
-            const x0 = -anchorX * width;
-            const x1o = (1 - anchorX) * width;
-            const y0 = -anchorY * height;
-            const y1o = (1 - anchorY) * height;
-
-            let minX = Infinity;
-            let minY = Infinity;
-            let maxX = -Infinity;
-            let maxY = -Infinity;
-
-            for (const cx of [x0, x1o]) {
-                for (const cy of [y0, y1o]) {
-                    const rx = x1 + cos * cx - sin * cy;
-                    const ry = y1 + sin * cx + cos * cy;
-
-                    if (rx < minX) minX = rx;
-                    if (ry < minY) minY = ry;
-                    if (rx > maxX) maxX = rx;
-                    if (ry > maxY) maxY = ry;
-                }
-            }
-
-            x1 = minX;
-            y1 = minY;
-            width = maxX - minX;
-            height = maxY - minY;
+            const { width, height, rotation, x, y } = data;
+            const { anchorX, anchorY } = data.texture ?? {};
+            const bounds = _getShapeBounds({
+                x: x ?? 0,
+                y: y ?? 0,
+                width,
+                height,
+                rotation,
+                anchorX,
+                anchorY,
+                type: 'rectangle',
+            });
+            x1 = bounds.x;
+            y1 = bounds.y;
+            bWidth = bounds.width;
+            bHeight = bounds.height;
         } else if (documentName === 'Drawing') {
-            width = data.shape.width;
-            height = data.shape.height;
+            bWidth = data.shape.width;
+            bHeight = data.shape.height;
         } else if (documentName === 'Token') {
             if (data.flags?.[MODULE_ID]?.width != null) {
-                width = data.flags[MODULE_ID].width;
+                bWidth = data.flags[MODULE_ID].width;
             } else {
-                width = data.width;
+                bWidth = data.width;
             }
 
             if (data.flags?.[MODULE_ID]?.height != null) {
-                height = data.flags[MODULE_ID].height;
+                bHeight = data.flags[MODULE_ID].height;
             } else {
-                height = data.height;
+                bHeight = data.height;
             }
 
-            width *= canvas.dimensions.size;
-            height *= canvas.dimensions.size;
+            bWidth *= canvas.dimensions.size;
+            bHeight *= canvas.dimensions.size;
         } else {
-            width = 0;
-            height = 0;
+            bWidth = 0;
+            bHeight = 0;
         }
 
-        x2 = x1 + (width || 0);
-        y2 = y1 + (height || 0);
+        x2 = x1 + (bWidth || 0);
+        y2 = y1 + (bHeight || 0);
         z2 = z1;
     }
     return {
@@ -370,6 +349,44 @@ export function getDataBounds(documentName, data) {
         height: y2 - y1,
         elevation: { bottom: z1, top: z2 },
     };
+}
+
+function _getShapeBounds(data) {
+    return new foundry.data.BaseShapeData.TYPES[data.type](data).bounds;
+}
+
+function _getDrawingShape(data) {
+    const { x, y, shape, rotation } = data;
+    const { type, width, height } = shape;
+    switch (type) {
+        case 'r':
+            return new foundry.data.BaseShapeData.TYPES.rectangle({
+                x: x + width / 2,
+                y: y + height / 2,
+                width,
+                height,
+                anchorX: 0.5,
+                anchorY: 0.5,
+                rotation,
+            });
+        case 'e':
+            return new foundry.data.BaseShapeData.TYPES.ellipse({
+                x: x + width / 2,
+                y: y + height / 2,
+                radiusX: width / 2,
+                radiusY: height / 2,
+                rotation,
+            });
+        case 'p': {
+            const polygon = new foundry.data.BaseShapeData.TYPES.polygon({
+                points: shape.points.slice(),
+                origin: { x: width / 2, y: height / 2 },
+            });
+            polygon.rotate(rotation);
+            polygon.move({ x: x + width / 2, y: y + height / 2 });
+            return polygon;
+        }
+    }
 }
 
 export function isImage(path) {
