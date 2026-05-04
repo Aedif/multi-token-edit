@@ -349,7 +349,9 @@ export class PresetConfig extends foundry.applications.api.HandlebarsApplication
         );
         this._data.gridSize = canvas.grid.size;
         this._data.modifyOnSpawn = [];
-        this._data.coreVersion = game.version;
+        this._data.metadata ??= {};
+        this._data.metadata.coreVersion = game.version;
+        this._data.metadata.levels = Preset.retrieveLevels(this._data);
         this.render(true);
     }
 

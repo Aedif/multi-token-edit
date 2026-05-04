@@ -202,7 +202,7 @@ export class Spawner {
 
         // Switch active layer to the preset's base placeable type
         if (layerSwitch) {
-            if (game.user.isGM || ['Token', 'MeasuredTemplate', 'Note'].includes(preset.documentName))
+            if (game.user.isGM || ['Token', 'Region', 'Note'].includes(preset.documentName))
                 canvas.getLayerByEmbeddedName(preset.documentName)?.activate();
         }
 
@@ -210,6 +210,10 @@ export class Spawner {
         // Create Documents
         // ================
         const allDocuments = [];
+
+        if (preset.metadata?.levels?.length) {
+            await Spawner._mergeCreateLevels(docToData, preset.metadata.levels, sceneId);
+        }
 
         for (const [documentName, dataArr] of docToData.entries()) {
             const documents = await createDocuments(documentName, dataArr, sceneId, { spawnPreset: true });
@@ -229,6 +233,39 @@ export class Spawner {
         });
 
         return allDocuments;
+    }
+
+    static async _mergeCreateLevels(docToData, levels, sceneId) {
+        const scene = game.scenes.get(sceneId);
+        const toCreate = [];
+        const toUpdate = [];
+        const remappedLevelIds = {};
+
+        for (const level of levels) {
+            const exists = scene.levels.find(
+                (l) => l.elevation.bottom === level.elevation.bottom && l.elevation.top === level.elevation.top,
+            );
+            if (exists) {
+                remappedLevelIds[level.id] = exists.id;
+            } else {
+                const id = foundry.utils.randomID();
+                remappedLevelIds[level.id] = id;
+
+                toCreate.push({ name: level.name, elevation: level.elevation, _id: id });
+                if (level.visibility) toUpdate.push({ _id: id, visibility: level.visibility });
+            }
+        }
+        if (toCreate.length) {
+            await scene.createEmbeddedDocuments('Level', toCreate, { keepId: true });
+            await scene.updateEmbeddedDocuments('Level', toUpdate);
+        }
+
+        for (const [documentName, dataArr] of docToData.entries()) {
+            dataArr.forEach((data) => {
+                if (data.level) data.level = remappedLevelIds[data.level] ?? data.level;
+                else if (data.levels) data.levels = data.levels.map((level) => remappedLevelIds[level] ?? level);
+            });
+        }
     }
 
     static _regenerateLinks(docToData) {

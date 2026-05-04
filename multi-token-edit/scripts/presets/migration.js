@@ -82,7 +82,7 @@ export class Migrator {
                 if (!preset) continue;
 
                 let update = {};
-                const coreVersion = preset.coreVersion ?? Migrator.ASSUMED_CORE_VERSION;
+                const coreVersion = preset.metadata?.coreVersion ?? Migrator.ASSUMED_CORE_VERSION;
 
                 // Migrate Preset data
                 if (preset.data?.length) {
@@ -112,7 +112,7 @@ export class Migrator {
                 }
 
                 if (coreMigration && foundry.utils.isNewerVersion(game.version, coreVersion)) {
-                    foundry.utils.setProperty(update, `flags.${MODULE_ID}.preset.coreVersion`, game.version);
+                    foundry.utils.setProperty(update, `flags.${MODULE_ID}.preset.metadata.coreVersion`, game.version);
                 }
 
                 if (!foundry.utils.isEmpty(update)) {

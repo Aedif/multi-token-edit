@@ -1,4 +1,4 @@
-import { MODULE_ID } from '../constants.js';
+import { MODULE_ID, SUPPORTED_PLACEABLES } from '../constants.js';
 import { Scenescape } from '../scenescape/scenescape.js';
 import { is3DModel, isAudio, loadImageVideoDimensions } from '../utils.js';
 import { FileIndexer } from './fileIndexer.js';
@@ -25,7 +25,7 @@ export const PRESET_FIELDS = [
     'attached',
     'tags',
     'preserveLinks',
-    'coreVersion',
+    'metadata',
 ];
 
 export const DOC_ICONS = {
@@ -62,6 +62,40 @@ export class Preset {
         return !collection.locked;
     }
 
+    static retrieveLevels(presetData, documentName, scene = canvas.scene) {
+        const placeableData = [];
+        if (SUPPORTED_PLACEABLES.includes(presetData.documentName ?? documentName))
+            placeableData.push(...presetData.data);
+        placeableData.attached?.forEach((att) => {
+            if (SUPPORTED_PLACEABLES.includes(att.documentName)) placeableData.push(att.data);
+        });
+
+        const levelIds = new Set();
+        for (const data of placeableData) {
+            if (data.level) levelIds.add(data.level);
+            else if (data.levels) data.levels.forEach((id) => levelIds.add(id));
+        }
+
+        const levels = levelIds.map((id) => {
+            const level = scene.levels.get(id);
+            if (!level) return null;
+
+            return {
+                id: level.id,
+                name: level.name,
+                elevation: {
+                    top: level.elevation.top,
+                    bottom: level.elevation.bottom,
+                },
+                visibility: {
+                    levels: [...(level.visibility.levels ?? [])],
+                },
+            };
+        });
+
+        return [...levels];
+    }
+
     constructor(data) {
         this.id = data.id ?? data._id ?? foundry.utils.randomID();
         this.name = data.name ?? 'Mass Edit Preset';
@@ -81,7 +115,7 @@ export class Preset {
         this.folder = data.folder;
         this.uuid = data.uuid;
         this.gridSize = data.gridSize;
-        this.coreVersion = data.coreVersion;
+        this.metadata = data.metadata ?? {};
         this.modifyOnSpawn = data.modifyOnSpawn;
         this.preSpawnScript = data.preSpawnScript;
         this.postSpawnScript = data.postSpawnScript;
@@ -160,7 +194,7 @@ export class Preset {
                     ? preset.addSubtract
                     : Object.fromEntries(preset.addSubtract ?? []);
             this.gridSize = preset.gridSize;
-            this.coreVersion = preset.coreVersion;
+            this.metadata = preset.metadata ?? {};
             this.modifyOnSpawn = preset.modifyOnSpawn;
             this.preSpawnScript = preset.preSpawnScript;
             this.postSpawnScript = preset.postSpawnScript;

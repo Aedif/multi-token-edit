@@ -28,7 +28,9 @@ export class PresetAPI {
         };
 
         presetData.gridSize = canvas.scene.grid.size;
-        presetData.coreVersion = actor._stats.coreVersion;
+        presetData.metadata = { coreVersion: actor._stats.coreVersion };
+        const levels = Preset.retrieveLevels(presetData);
+        if (levels.length) preset.metadata.levels = levels;
 
         const preset = new Preset(presetData);
         return preset;
@@ -109,7 +111,9 @@ export class PresetAPI {
             }
 
             defPreset.gridSize = placeables[0].document.parent.grid.size;
-            defPreset.coreVersion = game.version;
+            defPreset.metadata = { coreVersion: game.version };
+            const levels = Preset.retrieveLevels(defPreset, null, placeables[0].document.parent);
+            if (levels.length) defPreset.metadata.levels = levels;
 
             foundry.utils.mergeObject(defPreset, options, { inplace: true });
 
