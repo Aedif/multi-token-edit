@@ -6,15 +6,22 @@ export class Migrator {
     // Used when Presets do not contain an explicit coreVersion field
     static ASSUMED_CORE_VERSION = '13.351';
 
-    static async migrateAllPacks({ migrateFunc = null, transformFunc = null, coreMigration = false } = {}) {
-        if (!migrateFunc && !transformFunc && !coreMigration) {
-            ui.notifications.warn('Specify either a `migrateFunc`, `transformFunc`, or enable `coreMigration` flag.');
+    static async migrateAllPacks({
+        migrateFunc = null,
+        transformFunc = null,
+        coreMigration = false,
+        levelsMigration = false,
+    } = {}) {
+        if (!migrateFunc && !transformFunc && !coreMigration && !levelsMigration) {
+            ui.notifications.warn(
+                'Specify either a `migrateFunc`, `transformFunc`, or enable `coreMigration` or `levelsMigration` flag.',
+            );
             return;
         }
 
-        if (transformFunc && (migrateFunc || coreMigration)) {
+        if (transformFunc && (migrateFunc || coreMigration || levelsMigration)) {
             ui.notifications.warn(
-                '`transformFunc` cannot be executed alongside `migrateFunc` or `coreMigration` flag.',
+                '`transformFunc` cannot be executed alongside `migrateFunc` or `coreMigration` or `levelsMigration` flag.',
             );
             return;
         }
@@ -28,7 +35,7 @@ export class Migrator {
             }
 
             try {
-                await this.migratePack({ pack, migrateFunc, transformFunc, coreMigration });
+                await this.migratePack({ pack, migrateFunc, transformFunc, coreMigration, levelsMigration });
             } catch (e) {
                 console.warn(`Mass Edit - Ran into an issue while migrating ${pack.metadata.label}`);
                 console.error(e);
@@ -41,6 +48,7 @@ export class Migrator {
         migrateFunc = null,
         transformFunc = null,
         coreMigration = false,
+        levelsMigration = false,
     } = {}) {
         if (foundry.utils.getType(pack) === 'string') {
             let fPack = game.packs.get(pack) || game.packs.find((p) => p.metadata.label === pack);
@@ -61,14 +69,16 @@ export class Migrator {
             return;
         }
 
-        if (!migrateFunc && !transformFunc && !coreMigration) {
-            ui.notifications.warn('Specify either a `migrateFunc`, `transformFunc`, or enable `coreMigration` flag.');
+        if (!migrateFunc && !transformFunc && !coreMigration && !levelsMigration) {
+            ui.notifications.warn(
+                'Specify either a `migrateFunc`, `transformFunc`, or enable `coreMigration` or `levelsMigration` flag.',
+            );
             return;
         }
 
-        if (transformFunc && (migrateFunc || coreMigration)) {
+        if (transformFunc && (migrateFunc || coreMigration || levelsMigration)) {
             ui.notifications.warn(
-                '`transformFunc` cannot be executed alongside `migrateFunc` or `coreMigration` flag.',
+                '`transformFunc` cannot be executed alongside `migrateFunc` or `coreMigration` or `levelsMigration` flag.',
             );
             return;
         }
@@ -131,6 +141,33 @@ export class Migrator {
                 preset = foundry.utils.deepClone(original);
 
                 await transformFunc(preset, document);
+
+                const diff = foundry.utils.diffObject(original, preset);
+                Object.keys(diff).forEach((field) => {
+                    if (!PRESET_FIELDS.includes(field)) delete diff[field];
+                });
+
+                if (!foundry.utils.isEmpty(diff)) {
+                    let update = {};
+                    update._id = document.id;
+
+                    foundry.utils.setProperty(update, `flags.${MODULE_ID}.preset`, diff);
+                    updates.push(update);
+                }
+            }
+        }
+
+        if (levelsMigration) {
+            const { LevelsMigration } = await import('./migrationLevels.js');
+
+            for (const document of documents) {
+                let preset = document.getFlag(MODULE_ID, 'preset');
+                if (!preset) continue;
+
+                const original = preset;
+                preset = foundry.utils.deepClone(original);
+
+                LevelsMigration.migrateData(preset);
 
                 const diff = foundry.utils.diffObject(original, preset);
                 Object.keys(diff).forEach((field) => {

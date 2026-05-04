@@ -63,7 +63,7 @@ export class LevelsMigration {
         }
     }
 
-    static async migrateData(preset) {
+    static migrateData(preset) {
         const containsLevels = this.#getDataByType(preset, 'Wall').find(
             (wall) => wall.flags?.['wall-height']?.top || wall.flags?.['wall-height']?.bottom,
         );
@@ -75,7 +75,7 @@ export class LevelsMigration {
         });
 
         // Migrate drawings first
-        await this.migrateDrawingsToRegions(preset);
+        this.migrateDrawingsToRegions(preset);
 
         const inferredLevels = {};
         const orphanedDocuments = [];
@@ -259,7 +259,6 @@ export class LevelsMigration {
                     } else {
                         document.levels = level.aboveLevels;
                     }
-                    console.log(document);
                     delete document.flags?.levels;
                     continue;
                 }
@@ -287,7 +286,7 @@ export class LevelsMigration {
         return true;
     }
 
-    static async migrateDrawingsToRegions(preset) {
+    static migrateDrawingsToRegions(preset) {
         const baseRegionData = {
             color: '#fe6c0b',
             elevation: {},
