@@ -8,7 +8,7 @@ import { registerKeybinds, registerSettings } from './scripts/settings.js';
 import { BrushMenu, activateBrush, deactivateBush, openBrushMenu } from './scripts/brush.js';
 import { Migrator } from './scripts/presets/migration.js';
 import { performMassSearch, performMassUpdate } from './applications/formUtils.js';
-import { importSceneCompendium, registerSideBarPresetDropListener } from './scripts/presets/utils.js';
+import { registerSideBarPresetDropListener } from './scripts/presets/utils.js';
 import { LinkerAPI, registerLinkerHooks } from './scripts/linker/linker.js';
 import { MODULE_ID, PIVOTS } from './scripts/constants.js';
 import { registerScenescapeHooks, Scenescape } from './scripts/scenescape/scenescape.js';
@@ -46,11 +46,14 @@ globalThis.MassEdit = {
     migrateAllPacks: (options = {}) => Migrator.migrateAllPacks(options),
     linker: LinkerAPI,
     PIVOTS: PIVOTS,
-    importSceneCompendium,
     openPresetBrowser,
     FileIndexer: FileIndexerAPI,
     recoverPresetIndex: PresetStorage._recoverIndex.bind(PresetStorage),
     exportPresets: PresetStorage.exportPresets,
+    importScenes: async () => {
+        const { importScenes } = await import('./scripts/presets/fauxSceneImporter.js');
+        return importScenes();
+    },
 };
 
 // Initialize module

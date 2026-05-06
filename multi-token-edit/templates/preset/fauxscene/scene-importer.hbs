@@ -1,0 +1,53 @@
+<div class="flexcol" style="height: 100%;">
+    <div class="flexrow" style="flex-wrap: nowrap; align-items: baseline; flex: 0 0 32px; border-bottom: 1px solid gray; margin-bottom: 5px;">
+        <div>
+            <h3 style="text-align: center; margin: 0; padding: 0;" data-tooltip="New FauxScenes.">New</h3>
+        </div>
+        <div>
+            <h3 style="text-align: center; margin: 0; padding: 0;" data-tooltip="Existing FauxScenes with mismatched names.">Mismatched</h3>
+        </div>
+        <div>
+            <h3 style="text-align: center; margin: 0; padding: 0;" data-tooltip="Existing FauxScenes not found within the Scene compendium.">Dangling</h3>
+        </div>
+    </div>
+
+    <div class="flexrow" style="flex-wrap: nowrap; align-items: normal; overflow: hidden; flex: 1; gap: 5px;">
+        <div style="flex: 1; overflow-y: auto; border-right: 1px solid gray;">
+            <ol class="plain create">
+                {{#each toCreateFauxScenes}}
+                {{~>me-faux-scene-entry}}
+                {{/each}}
+            </ol>
+        </div>
+        <div style="flex: 1; overflow-y: auto; border-right: 1px solid gray;">
+            <ol class="plain rename">
+                {{#each toRenameFauxScenes}}
+                {{~>me-faux-scene-entry}}
+                {{/each}}
+            </ol>
+        </div>
+        <div style="flex: 1; overflow-y: scroll;">
+            <ol class="plain dangling">
+                {{#each danglingFauxScenes}}
+                {{~>me-faux-scene-entry}}
+                {{/each}}
+            </ol>
+        </div>
+    </div>
+
+    <div class="flexrow" style="flex-wrap: nowrap; align-items: baseline; flex: 0 0 50px; margin-top: 5px; border-top: 1px solid gray; padding-top: 5px; gap: 5px;">
+        <div class="flexrow" style="border-right: 1px solid gray; padding: 5px; gap: 5px;">
+            <button type="button" data-action="create" data-tooltip="Create all new FauxScenes."><i class="fa-solid fa-plus"></i> Create</button>
+            <button type="button" data-action="tag" data-type="create" data-tooltip="Tag all new FauxScenes."><i class="fa-solid fa-tag"></i> Tag</button>
+        </div>
+        <div class="flexrow" style="border-right: 1px solid gray; padding: 5px; gap: 5px;">
+            <button type="button" data-action="rename" data-tooltip="Rename all mismatched FauxScenes."><i class="fa-solid fa-pen"></i> Rename</button>
+            <button type="button" data-action="tag" data-type="rename" data-tooltip="Tag all mismatched FauxScenes."><i class="fa-solid fa-tag"></i> Tag</button>
+        </div>
+        <div class="flexrow" style="padding: 5px; gap: 5px;">
+            <button type="button" data-action="delete" data-tooltip="Delete all dangling scenes."><i class="fa-solid fa-x"></i> Delete</button>
+            <button type="button" data-action="tag" data-type="dangling" data-tooltip="Tag all dangling FauxScenes."><i class="fa-solid fa-tag"></i> Tag</button>
+        </div>
+    </div>
+
+</div>
