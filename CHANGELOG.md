@@ -1,3 +1,13 @@
+# 2.8.0
+
+- Replaced `MassEdit.importSceneCompendium()` with `MassEdit.importScenes()`
+    - The new API handles the rendering of the import preview UI
+    - The following operations can now be performed in 3 distinct steps:
+        - Creating/Importing new FauxScenes
+        - Renaming mismatched FauxScenes
+        - Removing "Dangling" FauxScenes
+    - In addition FauxScenes can now be tagged en masse based on the category they're in
+
 # 2.7.15
 
 - Fixed tokens colliding with linked walls
