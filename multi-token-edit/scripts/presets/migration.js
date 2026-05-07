@@ -270,8 +270,9 @@ export class Migrator {
                     // another types of placeable. Lets look for it.
                     const sl = Object.values(layerMap).find((l) => source[l]?.length);
                     if (sl) {
+                        Object.keys(data).forEach((k) => delete data[k]);
                         foundry.utils.mergeObject(data, source[sl][0]);
-                        return Object.keys(layerMap).find((k) => layer[k] === sl);
+                        return Object.keys(layerMap).find((k) => layerMap[k] === sl);
                     }
                 }
             }
@@ -285,7 +286,10 @@ export class Migrator {
                 );
             });
             const source = response.source;
-            if (source) foundry.utils.mergeObject(data, source);
+            if (source) {
+                Object.keys(data).forEach((k) => delete data[k]);
+                foundry.utils.mergeObject(data, source);
+            }
         }
     }
 
