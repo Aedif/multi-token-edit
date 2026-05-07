@@ -26,8 +26,6 @@ export class DataTransformer {
             this.transformNote(data, origin, transform, preview);
         } else if (documentName === 'Token') {
             this.transformToken(data, origin, transform, preview);
-        } else if (documentName === 'MeasuredTemplate') {
-            this.transformMeasuredTemplate(data, origin, transform, preview);
         } else if (documentName === 'AmbientLight') {
             this.transformAmbientLight(data, origin, transform, preview);
         } else if (documentName === 'AmbientSound') {
@@ -313,53 +311,6 @@ export class DataTransformer {
 
         data.c = c;
         if (preview) preview.document.c = c;
-    }
-
-    static transformMeasuredTemplate(data, origin, transform, preview) {
-        if (transform.scale != null) {
-            const scale = transform.scale;
-            data.x *= scale;
-            data.y *= scale;
-            if (!transform.gridScale) {
-                data.distance *= scale;
-                if (data.width) data.width *= scale;
-            }
-
-            data.x += origin.x - origin.x * scale;
-            data.y += origin.y - origin.y * scale;
-        }
-
-        data.x += transform.x;
-        data.y += transform.y;
-        if (data.elevation != null) data.elevation += transform.z ?? 0;
-
-        if (transform.rotation != null) {
-            const dr = Math.toRadians(transform.rotation % 360);
-            [data.x, data.y] = this.rotatePoint(origin.x, origin.y, data.x, data.y, dr);
-            data.direction += Math.toDegrees(dr);
-        }
-
-        if (transform.mirrorX || transform.mirrorY) {
-            if (transform.mirrorX) {
-                data.x = origin.x - (data.x - origin.x);
-                if (data.direction > 180) data.direction = 360 - (data.direction - 180);
-                else data.direction = 180 - data.direction;
-            }
-            if (transform.mirrorY) {
-                data.y = origin.y - (data.y - origin.y);
-                data.direction = 180 - (data.direction - 180);
-            }
-        }
-
-        if (preview) {
-            const doc = preview.document;
-            doc.x = data.x;
-            doc.y = data.y;
-            doc.direction = data.direction;
-            doc.distance = data.distance;
-            doc.width = data.width;
-            if (data.elevation) doc.elevation = data.elevation;
-        }
     }
 
     static transformAmbientLight(data, origin, transform, preview) {

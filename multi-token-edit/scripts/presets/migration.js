@@ -1,4 +1,4 @@
-import { MODULE_ID, SUPPORTED_PLACEABLES } from '../constants.js';
+import { MODULE_ID } from '../constants.js';
 import { META_INDEX_ID, PresetStorage } from './collection.js';
 import { PRESET_FIELDS } from './preset.js';
 
@@ -231,18 +231,19 @@ export class Migrator {
      * @returns {null|string} documentName is only returned if after migration it has been transformed to another
      */
     static async _coreMigrate(documentName, data, coreVersion, fullCoreMigration) {
-        if (SUPPORTED_PLACEABLES.includes(documentName) && foundry.utils.isNewerVersion(game.version, coreVersion)) {
-            const layerMap = {
-                Token: 'tokens',
-                Tile: 'tiles',
-                Drawing: 'drawings',
-                AmbientLight: 'lighting',
-                Note: 'notes',
-                Region: 'regions',
-                AmbientSound: 'sounds',
-                MeasuredTemplate: 'templates',
-                Wall: 'walls',
-            };
+        const layerMap = {
+            Token: 'tokens',
+            Tile: 'tiles',
+            Drawing: 'drawings',
+            AmbientLight: 'lighting',
+            Note: 'notes',
+            Region: 'regions',
+            AmbientSound: 'sounds',
+            MeasuredTemplate: 'templates',
+            Wall: 'walls',
+        };
+
+        if (layerMap[documentName] && foundry.utils.isNewerVersion(game.version, coreVersion)) {
             const layer = layerMap[documentName];
 
             // `migrateDocumentData` does not accept embeds

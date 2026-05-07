@@ -162,9 +162,6 @@ export function mergePresetDataToDefaultDoc(preset, presetData) {
                 rotation: 0,
             };
             break;
-        case 'MeasuredTemplate':
-            data = { distance: 10, x: 0, y: 0 };
-            break;
         case 'AmbientLight':
             data = { config: { dim: 20, bright: 20 }, x: 0, y: 0 };
             break;

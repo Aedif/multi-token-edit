@@ -32,7 +32,6 @@ export const DOC_ICONS = {
     ALL: '<i class="fas fa-globe"></i>',
     Bag: '<i class="fa-solid fa-sack"></i>',
     Token: '<i class="fas fa-user-circle"></i>',
-    MeasuredTemplate: '<i class="fas fa-ruler-combined"></i>',
     Tile: '<i class="fa-solid fa-cubes"></i>',
     Drawing: '<i class="fa-solid fa-pencil-alt"></i>',
     Wall: '<i class="fa-solid fa-block-brick"></i>',

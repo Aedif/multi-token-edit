@@ -80,11 +80,11 @@ export function enablePixelPerfectSelect(force = false) {
 }
 
 /**
- * Enable 'Select' tool for layers that do not have it. (AmbientLight, AmbientSound, MeasuredTemplate, and Note)
+ * Enable MouseWheel Region rotation
  */
 export function enableSelectToolEnhancements() {
     Hooks.on('canvasReady', () => {
-        if (SUPPORTED_PLACEABLES.includes('Region')) canvas.regions.options.rotatableObjects = true;
+        canvas.regions.options.rotatableObjects = true;
     });
 
     Hooks.on('getSceneControlButtons', (controls) => _getControlButtons(controls));

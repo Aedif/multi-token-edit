@@ -338,10 +338,14 @@ export class Spawner {
 
         docToData.forEach((dataArr, documentName) => {
             dataArr.forEach((data) => {
-                // Assign ownership for Drawings and MeasuredTemplates
-                if (['Drawing', 'MeasuredTemplate'].includes(documentName)) {
-                    if (documentName === 'Drawing') data.author = game.user.id;
-                    else if (documentName === 'MeasuredTemplate') data.user = game.user.id;
+                // Assign ownership for Drawings and Regions
+                if (documentName === 'Drawing') {
+                    data.author = game.user.id;
+                } else if (documentName === 'Region') {
+                    data.ownership = {
+                        [game.user.id]: CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER,
+                        default: CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE,
+                    };
                 }
 
                 // Hide

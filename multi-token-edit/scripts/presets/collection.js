@@ -94,9 +94,6 @@ export class PresetAPI {
                 case 'Drawing':
                     defPreset.img = 'icons/svg/acid.svg';
                     break;
-                case 'MeasuredTemplate':
-                    defPreset.img = 'icons/svg/circle.svg';
-                    break;
             }
 
             //  Assign preset name
