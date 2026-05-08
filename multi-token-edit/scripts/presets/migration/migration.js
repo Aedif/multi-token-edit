@@ -1,6 +1,6 @@
-import { MODULE_ID } from '../constants.js';
-import { META_INDEX_ID, PresetStorage } from './collection.js';
-import { PRESET_FIELDS } from './preset.js';
+import { MODULE_ID } from '../../constants.js';
+import { META_INDEX_ID, PresetStorage } from '../collection.js';
+import { PRESET_FIELDS } from '../preset.js';
 
 export class Migrator {
     // Used when Presets do not contain an explicit coreVersion field

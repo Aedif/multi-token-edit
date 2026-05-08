@@ -8,11 +8,11 @@
 FoundryVTT module to enhance selection, editing, and re-usability of placeables.
 
 ## Features
+
 - Editing of multiple placeables at the same time
 - Saving of placeables as re-usable presets
 - Attaching/Linking of placeables to one another
-- Enables selection tool within AmbientLight, AmbientSound, MeasuredTemplate, Note and Region layers.
-- Enables dragging and rotation of Regions
+- Enables mouse wheel rotation of Regions
 - Field randomization
 - Simple macro generation
 - and more!
@@ -24,7 +24,7 @@ Support the continuing development of the module by subscribing to Baileywiki ov
 #### Recommended modules:
 
 - [Multiple Document Selection](https://foundryvtt.com/packages/multiple-document-selection)
-  - Will enable selection of multiple documents in the sidebar which Mass Edit will recognise when using `Shift+E` keybind.
+    - Will enable selection of multiple documents in the sidebar which Mass Edit will recognise when using `Shift+E` keybind.
 
 ## Example Video
 

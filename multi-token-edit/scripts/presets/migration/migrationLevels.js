@@ -281,7 +281,7 @@ export class LevelsMigration {
         preset.metadata ??= {};
         preset.metadata.levels = createdLevels;
 
-        console.log(`Levels Module - Migrated preset [${preset.name}] to Core Foundry Levels`);
+        console.log(`Levels - Migrated preset [${preset.name}] to Core Foundry Levels`);
 
         return true;
     }

@@ -1,3 +1,9 @@
+# 3.0.0
+
+- V14 Support
+- Existing prefabs containing `MeasuredTemplates` and `Tiles` will not work correctly until a core migration macro is ran
+    - `Levels` module migration macros are available however it is still under active development, use with caution
+
 # 2.7.15
 
 - Fixed tokens colliding with linked walls

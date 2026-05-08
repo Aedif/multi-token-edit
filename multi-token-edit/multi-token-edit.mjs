@@ -6,7 +6,7 @@ import { PresetAPI, PresetStorage } from './scripts/presets/collection.js';
 import { openPresetBrowser, registerPresetBrowserHooks } from './scripts/presets/browser/browserApp.js';
 import { registerKeybinds, registerSettings } from './scripts/settings.js';
 import { BrushMenu, activateBrush, deactivateBush, openBrushMenu } from './scripts/brush.js';
-import { Migrator } from './scripts/presets/migration.js';
+import { Migrator } from './scripts/presets/migration/migration.js';
 import { performMassSearch, performMassUpdate } from './applications/formUtils.js';
 import { registerSideBarPresetDropListener } from './scripts/presets/utils.js';
 import { LinkerAPI, registerLinkerHooks } from './scripts/linker/linker.js';
