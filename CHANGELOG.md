@@ -1,3 +1,7 @@
+# 3.0.1
+
+- Fixed Scenescape outline filter causing canvas to freeze
+
 # 3.0.0
 
 - V14 Support
