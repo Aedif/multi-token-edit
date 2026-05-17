@@ -1,3 +1,9 @@
+# 3.0.2
+
+- Fixed `Placeable Preview Editing` control not applying changes on scenescapes
+- Fixed PF2e specific bug causing region preview rotation to fail when dragged from the chat card
+- Fixed Mass Edit form checkboxes not auto-toggling for `multi-select` fields
+
 # 3.0.1
 
 - Fixed Scenescape outline filter causing canvas to freeze

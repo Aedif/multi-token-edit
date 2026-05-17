@@ -113,7 +113,11 @@ export class ScenescapeControls {
         id = Hooks.on('createToken', async (token, options, userId) => {
             if (game.user.id !== userId || options.spawnPreset) return;
 
-            let { width, height } = await loadImageVideoDimensions(token.texture.src);
+            let { width, height } = token.flags[MODULE_ID] ?? {};
+            if (!width || !height) {
+                ({ width, height } = await loadImageVideoDimensions(token.texture.src));
+            }
+
             if (width && height) {
                 const bottom = {
                     x: token.x + (token.width * canvas.dimensions.size) / 2,

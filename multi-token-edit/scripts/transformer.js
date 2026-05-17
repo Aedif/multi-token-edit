@@ -778,6 +778,7 @@ export async function editPreviewPlaceables(
                 await transformer.update({
                     ignoreLinks: true,
                     animate: false,
+                    scenescape: Scenescape.active,
                     ...context,
                 });
 

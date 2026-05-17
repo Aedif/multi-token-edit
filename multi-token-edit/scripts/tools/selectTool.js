@@ -132,35 +132,37 @@ function registerRegionWrappers() {
                 ui.notifications.warn('GAME.PausedWarning', { localize: true });
                 return this;
             }
-
             const data = this.document.toObject();
-            const { x1, y1, x2, y2 } = getDataBounds('Region', data);
-            const origin = {
-                x: x1 + (x2 - x1) / 2,
-                y: y1 + (y2 - y1) / 2,
-            };
-
+            let origin;
+            if (this.document.shapes.length === 1) {
+                origin = this.document.shapes[0].origin;
+            } else {
+                const { x1, y1, x2, y2 } = getDataBounds('Region', data);
+                origin = {
+                    x: x1 + (x2 - x1) / 2,
+                    y: y1 + (y2 - y1) / 2,
+                };
+            }
             DataTransformer.apply('Region', data, origin, { rotation: delta });
             await this.document.update({ shapes: data.shapes }, { meRotation: delta });
             return this;
         },
         'OVERRIDE',
     );
-
     libWrapper.register(
         MODULE_ID,
         'foundry.canvas.layers.RegionLayer.prototype._onMouseWheel',
-        function (event) {
+        function (wrapped, event) {
             // Identify the hovered region
             const region = this.hover;
-            if (!region || region.isPreview || region.document.shapes.some((s) => s.type === 'ellipse')) return;
-
+            if (!region || region.isPreview) return wrapped(event);
             // Determine the incremental angle of rotation from event data
             const snap = event.shiftKey ? 15 : 3;
             const delta = snap * Math.sign(event.delta);
-
             region.rotate(delta, snap);
+
+            return wrapped(event);
         },
-        'OVERRIDE',
+        'WRAPPER',
     );
 }
