@@ -1,3 +1,7 @@
+# 2.8.2
+
+- Fixed `MassEdit.updatePresetTags` API
+
 # 2.8.0
 
 - Replaced `MassEdit.importSceneCompendium()` with `MassEdit.importScenes()`
