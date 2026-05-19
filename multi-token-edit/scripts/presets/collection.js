@@ -133,7 +133,7 @@ export class PresetAPI {
      */
     static async updateTags(mappings) {
         const uuids = Object.keys(mappings);
-        const presets = await PresetStorage.retrieve({ uuid: uuids });
+        const presets = await PresetStorage.retrieve({ uuid: uuids, load: true });
         for (const preset of presets) {
             let tags = mappings[preset.uuid];
             if (tags && Array.isArray(tags)) {
