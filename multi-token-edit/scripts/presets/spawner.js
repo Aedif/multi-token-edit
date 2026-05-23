@@ -6,7 +6,7 @@ import { DataTransformer } from '../data/transformer.js';
 import { applyRandomization } from '../randomizer/randomizerUtils.js';
 import { Scenescape } from '../scenescape/scenescape.js';
 import { MassTransformer } from '../transformer.js';
-import { createDocuments, executeScript } from '../utils.js';
+import { createDocuments, executeScript, updateEmbeddedDocumentsViaGM } from '../utils.js';
 import { PresetStorage } from './collection.js';
 import { Preset } from './preset.js';
 import {
@@ -211,9 +211,7 @@ export class Spawner {
         // ================
         const allDocuments = [];
 
-        if (preset.metadata?.levels?.length) {
-            await Spawner._mergeCreateLevels(docToData, preset.metadata.levels, sceneId);
-        }
+        await Spawner._mergeCreateLevels(docToData, preset.metadata?.levels, sceneId);
 
         for (const [documentName, dataArr] of docToData.entries()) {
             const documents = await createDocuments(documentName, dataArr, sceneId, { spawnPreset: true });
@@ -236,7 +234,23 @@ export class Spawner {
     }
 
     static async _mergeCreateLevels(docToData, levels, sceneId) {
+        if (!levels?.length) return;
+
         const scene = game.scenes.get(sceneId);
+
+        // Special handling for presets with 1 level
+        if (levels.length === 1) {
+            const activeLevelId = canvas.level.id;
+
+            for (const [documentName, dataArr] of docToData.entries()) {
+                dataArr.forEach((data) => {
+                    if (data.level || documentName === 'Token') data.level = activeLevelId;
+                    else data.levels = [activeLevelId];
+                });
+            }
+            return;
+        }
+
         const toCreate = [];
         const toUpdate = [];
         const remappedLevelIds = {};
@@ -256,8 +270,8 @@ export class Spawner {
             }
         }
         if (toCreate.length) {
-            await scene.createEmbeddedDocuments('Level', toCreate, { keepId: true });
-            await scene.updateEmbeddedDocuments('Level', toUpdate);
+            await createDocuments('Level', toCreate, sceneId, { keepId: true });
+            await updateEmbeddedDocumentsViaGM('Level', toUpdate, {}, scene);
         }
 
         for (const [documentName, dataArr] of docToData.entries()) {

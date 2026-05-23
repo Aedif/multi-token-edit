@@ -1,3 +1,9 @@
+# 3.x.x
+
+- Multi-Layer select tool will now detect documents across all levels
+- Presets containing only a single level will be assigned the current active-level upon spawn
+- Fixed Preset drag/drop onto 3D Canvas
+
 # 3.0.2
 
 - Fixed `Placeable Preview Editing` control not applying changes on scenescapes

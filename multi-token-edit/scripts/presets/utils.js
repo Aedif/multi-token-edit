@@ -276,13 +276,6 @@ export function getDataBounds(documentName, data) {
             x2 = Math.max(x2, bounds.x + bounds.width);
             y2 = Math.max(y2, bounds.y + bounds.height);
         });
-    } else if (documentName === 'drawing') {
-        const bounds = _getShapeBounds(_getDrawingShape(data));
-        x1 = bounds.x;
-        y1 = bounds.y;
-        x2 = x1 + bounds.width;
-        y2 = y1 + bounds.height;
-        z1 = data.elevation ?? 0;
     } else {
         x1 = data.x ?? 0;
         y1 = data.y ?? 0;
