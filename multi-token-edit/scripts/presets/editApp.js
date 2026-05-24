@@ -37,6 +37,11 @@ export class PresetConfig extends foundry.applications.api.HandlebarsApplication
                     label: 'Export',
                     action: 'export',
                 },
+                {
+                    icon: 'fa-solid fa-circle-info',
+                    label: 'Metadata',
+                    action: 'metadata',
+                },
             ],
         },
         position: {
@@ -49,6 +54,7 @@ export class PresetConfig extends foundry.applications.api.HandlebarsApplication
             deleteFields: PresetConfig._onDeleteFields,
             assignDocument: PresetConfig._onAssignDocument,
             export: PresetConfig._onExport,
+            metadata: PresetConfig._onMetadata,
             fieldModify: PresetConfig._onFieldModify,
             attachSelected: PresetConfig._onAttachSelected,
             attachedRemove: PresetConfig._onAttachedRemove,
@@ -268,6 +274,16 @@ export class PresetConfig extends foundry.applications.api.HandlebarsApplication
             fileName = this.presets[0].name.replace(' ', '_').replace(/\W/g, '');
         }
         exportPresets(this.presets, { fileName });
+    }
+
+    static _onMetadata() {
+        if (!this._data?.metadata) return;
+
+        foundry.applications.api.DialogV2.prompt({
+            window: { title: 'Metadata', resizable: false },
+            position: { width: 480 },
+            content: `<textarea style="height: 500px;">${JSON.stringify(this._data.metadata, null, 2)}</textarea>`,
+        });
     }
 
     static async _onEditDocument() {

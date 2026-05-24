@@ -65,7 +65,7 @@ export class Preset {
         const placeableData = [];
         if (SUPPORTED_PLACEABLES.includes(presetData.documentName ?? documentName))
             placeableData.push(...presetData.data);
-        placeableData.attached?.forEach((att) => {
+        presetData.attached?.forEach((att) => {
             if (SUPPORTED_PLACEABLES.includes(att.documentName)) placeableData.push(att.data);
         });
 
