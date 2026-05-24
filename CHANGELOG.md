@@ -1,8 +1,11 @@
-# 3.x.x
+# 3.1.0
 
 - Multi-Layer select tool will now detect documents across all levels
 - Presets containing only a single level will be assigned the current active-level upon spawn
 - Fixed Preset drag/drop onto 3D Canvas
+- Fixed Levels data not getting encoded for `attached` placeables
+- New control added to Preset editor window: `Metadata`
+    - Displays preset metadata such as core version and encoded levels information
 
 # 3.0.2
 
