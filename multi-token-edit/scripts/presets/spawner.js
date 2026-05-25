@@ -265,13 +265,21 @@ export class Spawner {
                 const id = foundry.utils.randomID();
                 remappedLevelIds[level.id] = id;
 
-                toCreate.push({ name: level.name, elevation: level.elevation, _id: id });
-                if (level.visibility) toUpdate.push({ _id: id, visibility: level.visibility });
+                toCreate.push({
+                    name: level.name,
+                    elevation: level.elevation,
+                    visibility: foundry.utils.deepClone(level.visibility),
+                    _id: id,
+                });
             }
         }
         if (toCreate.length) {
+            for (const level of toCreate) {
+                if (level.visibility?.levels?.length) {
+                    level.visibility.levels = level.visibility.levels.map((id) => remappedLevelIds[id] ?? id);
+                }
+            }
             await createDocuments('Level', toCreate, sceneId, { keepId: true });
-            await updateEmbeddedDocumentsViaGM('Level', toUpdate, {}, scene);
         }
 
         for (const [documentName, dataArr] of docToData.entries()) {

@@ -75,24 +75,28 @@ export class Preset {
             else if (data.levels) data.levels.forEach((id) => levelIds.add(id));
         }
 
-        const levels = levelIds.map((id) => {
-            const level = scene.levels.get(id);
-            if (!level) return null;
+        const levels = [...levelIds]
+            .map((id) => {
+                const level = scene.levels.get(id) ?? presetData.metadata?.levels?.find((l) => l.id === id);
+                if (!level) return null;
 
-            return {
-                id: level.id,
-                name: level.name,
-                elevation: {
-                    top: level.elevation.top,
-                    bottom: level.elevation.bottom,
-                },
-                visibility: {
-                    levels: [...(level.visibility.levels ?? [])],
-                },
-            };
-        });
+                const visibleLevels = [...(level.visibility.levels ?? [])].filter((id) => levelIds.has(id));
 
-        return [...levels];
+                return {
+                    id: level.id,
+                    name: level.name,
+                    elevation: {
+                        top: level.elevation.top,
+                        bottom: level.elevation.bottom,
+                    },
+                    visibility: {
+                        levels: visibleLevels,
+                    },
+                };
+            })
+            .filter(Boolean);
+
+        return levels;
     }
 
     constructor(data) {

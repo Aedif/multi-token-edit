@@ -49,6 +49,7 @@ export class PresetAPI {
      * @param {object} [options={}]                               Optional Preset information
      * @param {String} [options.name]                             Preset name
      * @param {String} [options.img]                              Preset thumbnail image
+     * @param {Array[object]} [options.attached]                  Attached placeable data
      * @returns {Preset|Array[Preset]}
      */
     static async createPreset(placeables, options = {}) {
@@ -109,10 +110,11 @@ export class PresetAPI {
 
             defPreset.gridSize = placeables[0].document.parent.grid.size;
             defPreset.metadata = { coreVersion: game.version };
-            const levels = Preset.retrieveLevels(defPreset, null, placeables[0].document.parent);
-            if (levels.length) defPreset.metadata.levels = levels;
 
             foundry.utils.mergeObject(defPreset, options, { inplace: true });
+
+            const levels = Preset.retrieveLevels(defPreset, null, placeables[0].document.parent);
+            if (levels.length) defPreset.metadata.levels = levels;
 
             const preset = new Preset(defPreset);
             presets.push(preset);

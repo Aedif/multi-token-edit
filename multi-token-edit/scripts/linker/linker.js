@@ -661,16 +661,21 @@ export class LinkerAPI {
         const dg = canvas.controls.debug;
         dg.clear();
 
-        const width = 8;
+        const width = 6;
         const alpha = 1;
         docs.forEach((d) => {
-            let bounds = d.object.bounds;
-
-            dg.lineStyle(width + 2, 0, alpha, 0.5);
-            dg.drawRect(bounds.x, bounds.y, bounds.width, bounds.height);
-
             dg.lineStyle(width, LINKER_DOC_COLORS[d.documentName], alpha, 0.5);
-            dg.drawRect(bounds.x, bounds.y, bounds.width, bounds.height);
+
+            if (d.shape?.drawShape) d.shape.drawShape(dg);
+            else if (d.shapes) d.shapes.forEach((shape) => shape.drawShape(dg));
+            else if (d.documentName === 'Wall') {
+                const c = d.toObject().c;
+                console.log(c);
+                dg.moveTo(c[0], c[1]).lineTo(c[2], c[3]);
+            } else {
+                const { x, y, width, height } = getDataBounds(d.documentName, d.toObject());
+                dg.drawRect(x, y, width, height);
+            }
         });
     }
 
