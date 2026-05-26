@@ -1,3 +1,15 @@
+# 3.1.x
+
+**Misc**
+
+- Fixed levels information not getting encoded when creating preset or assigning placeables
+- Fixed level merge on Preset spawn not assigning proper visibility settings
+
+**Linker Menu**
+
+- Fixed node overlap
+- Improved Wall, Region, AmbientLight, and AmbientSound highlights during node hover
+
 # 3.1.0
 
 - Multi-Layer select tool will now detect documents across all levels
