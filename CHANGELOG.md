@@ -1,3 +1,11 @@
+# 2.8.3
+
+- Improved handling of malformed Preset tag updates
+- Scenescapes
+    - Implemented Token `scale` and `anchor` overrides
+    - If no actor image exists, created tokens will now default to Token texture src
+    - Fixed interference from `Levels` module's token elevation scaling setting
+
 # 2.8.2
 
 - Fixed `MassEdit.updatePresetTags` API
