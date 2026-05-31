@@ -300,7 +300,10 @@ export class Preset {
         if (this.document) {
             const flagUpdate = {};
             Object.keys(update).forEach((k) => {
-                if (k === 'randomize' || k === 'addSubtract') {
+                if (k === 'tags') {
+                    this.tags = (update[k] ?? []).filter((t) => typeof t === 'string');
+                    flagUpdate.tags = this.tags;
+                } else if (k === 'randomize' || k === 'addSubtract') {
                     flagUpdate[k] = Object.entries(update[k]);
                     this[k] = update[k];
                 } else if (k === 'data' && !(update.data instanceof Array)) {

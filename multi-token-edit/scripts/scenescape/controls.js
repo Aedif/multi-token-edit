@@ -43,6 +43,7 @@ export class ScenescapeControls {
     static _register() {
         this._registerLibWrappers();
         this._registerHooks();
+        this._registerModuleOverrides();
     }
 
     static _unregister() {
@@ -54,6 +55,7 @@ export class ScenescapeControls {
         });
         this._wrapperIds = [];
         this._hooks = [];
+        this._unregisterModuleOverrides();
     }
 
     static _registerHooks() {
@@ -76,8 +78,8 @@ export class ScenescapeControls {
 
         id = Hooks.on('preCreateToken', async (token, data, options, userId) => {
             if (!options.spawnPreset) {
-                const update = { ring: { enabled: false } };
-                if (token.actor?.img) update.texture = { src: token.actor.img };
+                const update = { ring: { enabled: false }, scale: 1, texture: { anchorX: 0.5, anchorY: 0.5 } };
+                if (token.actor && token.actor.img !== CONST.DEFAULT_TOKEN) update.texture = { src: token.actor.img };
                 token.updateSource(update);
             }
         });
@@ -310,6 +312,16 @@ export class ScenescapeControls {
             'MIXED',
         );
         this._wrapperIds.push(id);
+    }
+
+    static _registerModuleOverrides() {
+        // Levels
+        if (CONFIG.Levels?.settings) CONFIG.Levels.settings._tokenElevScale = false;
+    }
+
+    static _unregisterModuleOverrides() {
+        // Levels
+        CONFIG.Levels?.settings?.cacheSettings?.();
     }
 
     static _getTokenDimensions(token) {

@@ -1,14 +1,20 @@
-# 3.1.x
+# 3.1.1
 
-**Misc**
+**Levels**
 
-- Fixed levels information not getting encoded when creating preset or assigning placeables
+- Fixed levels information not getting encoded when creating presets or assigning placeables
 - Fixed level merge on Preset spawn not assigning proper visibility settings
 
 **Linker Menu**
 
-- Fixed node overlap
+- Fixed render errors caused by scene documents no longer necessarily having a placeable instances
+- Fixed menu node overlap
 - Improved Wall, Region, AmbientLight, and AmbientSound highlights during node hover
+
+**Misc**
+
+- Improved handling of malformed preset tag updates
+- Tokens created on scenescapes will now have `scale` set to 1, and `anchors` to 0.5 to improve rendering
 
 # 3.1.0
 
