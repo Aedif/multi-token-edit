@@ -12,9 +12,13 @@ export class DataTransformer {
      * @param {PlaceableObject} preview
      */
     static apply(documentName, data, origin, transform, preview) {
-        if (transform.x == null) transform.x = 0;
-        if (transform.y == null) transform.y = 0;
-        if (transform.z == null) transform.z = 0;
+        transform.x ??= 0;
+        transform.y ??= 0;
+        transform.z ??= 0;
+        if ('scale' in transform) {
+            transform.scaleX = transform.scale;
+            transform.scaleY = transform.scale;
+        }
 
         this._3dActive = game.Levels3DPreview?._active;
 
@@ -46,40 +50,41 @@ export class DataTransformer {
     }
 
     static transformRegion(data, origin, transform, preview) {
-        if (transform.scale != null && data.shapes) {
-            const scale = transform.scale;
+        if ((transform.scaleX != null || transform.scaleY != null) && data.shapes) {
+            const { scaleX, scaleY } = transform;
 
-            const originOffsetX = origin.x - origin.x * scale;
-            const originOffsetY = origin.y - origin.y * scale;
+            const originOffsetX = origin.x - origin.x * scaleX;
+            const originOffsetY = origin.y - origin.y * scaleY;
 
             for (const shape of data.shapes) {
                 if (shape.type === 'polygon') {
                     for (let i = 0; i < shape.points.length; i++) {
-                        shape.points[i] = shape.points[i] * scale + (i % 2 === 0 ? originOffsetX : originOffsetY);
+                        if (i % 2 === 0) shape.points[i] = shape.points[i] * scaleX + originOffsetX;
+                        else shape.points[i] = shape.points[i] * scaleY + originOffsetY;
                     }
                 } else if (shape.type === 'emanation') {
-                    shape.base.x = shape.base.x * scale + originOffsetX;
-                    shape.base.y = shape.base.y * scale + originOffsetY;
-                    shape.radius *= scale;
-                    shape.base.width *= scale;
-                    shape.base.height *= scale;
+                    shape.base.x = shape.base.x * scaleX + originOffsetX;
+                    shape.base.y = shape.base.y * scaleY + originOffsetY;
+                    shape.radius *= scaleX; // TODO, scaleY
+                    shape.base.width *= scaleX;
+                    shape.base.height *= scaleY;
                 } else {
-                    shape.x = shape.x * scale + originOffsetX;
-                    shape.y = shape.y * scale + originOffsetY;
+                    shape.x = shape.x * scaleX + originOffsetX;
+                    shape.y = shape.y * scaleY + originOffsetY;
                     if (shape.type === 'ellipse') {
-                        shape.radiusX *= scale;
-                        shape.radiusY *= scale;
+                        shape.radiusX *= scaleX;
+                        shape.radiusY *= scaleY;
                     } else if (shape.type === 'rectangle') {
-                        shape.height *= scale;
-                        shape.width *= scale;
+                        shape.width *= scaleX;
+                        shape.height *= scaleY;
                     } else if (shape.type === 'line') {
-                        shape.length *= scale;
-                        shape.width *= scale;
+                        shape.length *= scaleY; // TODO
+                        shape.width *= scaleX;
                     } else if (shape.type === 'cone' || shape.type === 'circle' || shape.type === 'ring') {
-                        shape.radius *= scale;
+                        shape.radius *= scaleX; // TODO, scaleY
                         if (shape.type === 'ring') {
-                            shape.innerWidth *= scale;
-                            shape.outerWidth *= scale;
+                            shape.innerWidth *= scaleX;
+                            shape.outerWidth *= scaleY;
                         }
                     }
                 }

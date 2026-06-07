@@ -167,7 +167,7 @@ export class Migrator {
                 const original = preset;
                 preset = foundry.utils.deepClone(original);
 
-                LevelsMigration.migrateData(preset);
+                await LevelsMigration.migrateData(preset);
 
                 const diff = foundry.utils.diffObject(original, preset);
                 Object.keys(diff).forEach((field) => {
@@ -199,6 +199,61 @@ export class Migrator {
         }
 
         return pack;
+    }
+
+    /**
+     * Functions used for testing migration of individual presets
+     * @param {Preset} preset
+     * @param {object} options
+     */
+    static async _migratePreset(
+        preset,
+        { migrateFunc = null, transformFunc = null, coreMigration = false, levelsMigration = false } = {},
+        options = {},
+    ) {
+        if (migrateFunc || coreMigration) {
+            const coreVersion = preset.metadata?.coreVersion ?? Migrator.ASSUMED_CORE_VERSION;
+
+            // Migrate Preset data
+            if (preset.data?.length) {
+                const documentChange = await this._migrateData(preset.data, preset.documentName, {
+                    coreMigration,
+                    migrateFunc,
+                    coreVersion,
+                    fullCoreMigration: preset.data.length > 1 || preset.data[0].hasOwnProperty('x'),
+                });
+
+                if (documentChange) preset.documentName = documentChange;
+            }
+
+            if (preset.attached?.length) {
+                for (const attached of preset.attached) {
+                    const documentChange = await this._migrateData([attached.data], attached.documentName, {
+                        coreMigration,
+                        migrateFunc,
+                        coreVersion,
+                        fullCoreMigration: true,
+                    });
+                    if (documentChange) attached.documentName = documentChange;
+                }
+            }
+
+            if (coreMigration && foundry.utils.isNewerVersion(game.version, coreVersion)) {
+                preset.metadata ??= {};
+                preset.metadata.coreVersion = game.version;
+            }
+        }
+
+        if (transformFunc) await transformFunc(preset, preset.document);
+
+        if (levelsMigration) {
+            const { LevelsMigration } = await import('./migrationLevels.js');
+            await LevelsMigration.migrateData(preset, {
+                generateSurfaceRegions: true,
+                generateRoofLevel: true,
+                ...options,
+            });
+        }
     }
 
     static async _migrateData(

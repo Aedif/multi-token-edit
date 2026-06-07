@@ -8,6 +8,8 @@ import { Scenescape } from '../scenescape/scenescape.js';
 import { MassTransformer } from '../transformer.js';
 import { createDocuments, executeScript, updateEmbeddedDocumentsViaGM } from '../utils.js';
 import { PresetStorage } from './collection.js';
+import { Migrator } from './migration/migration.js';
+import { LevelsMigration } from './migration/migrationLevels.js';
 import { Preset } from './preset.js';
 import {
     applyTaggerTagRules,
@@ -77,6 +79,7 @@ export class Spawner {
             throw Error(`No preset could be found matching: { uuid: "${uuid}", name: "${name}", type: "${type}"}`);
 
         // Lets clone the preset so that any modifications made to it will not affect the original
+        console.log('ORIGINAL PRESET', preset);
         preset = preset.clone();
 
         // Give an opportunity for other modules to modify the preset
@@ -84,6 +87,19 @@ export class Spawner {
 
         // Load virtual preset dimensions
         if (preset.virtual) await preset.load({ force: true });
+
+        // LEVELS TESTING
+        await Migrator._migratePreset(
+            preset,
+            {
+                coreMigration: true,
+                levelsMigration: true,
+            },
+            { ripper: MassEdit.ripperMigration },
+        );
+        //await LevelsMigration.migrateData(preset, { generateSurfaceRegions: true, generateRoofLevel: true });
+        console.log('MIGRATED PRESET', preset);
+        // LEVELS TSTING
 
         let presetData = preset.data;
 
@@ -238,13 +254,17 @@ export class Spawner {
 
         const scene = game.scenes.get(sceneId);
 
+        // TODO: Apply this to presets without levels as well?
         // Special handling for presets with 1 level
         if (levels.length === 1) {
-            const activeLevelId = canvas.level.id;
+            const activeLevelId =
+                canvas.scene.id === sceneId
+                    ? canvas.level.id
+                    : (scene.levels.find((l) => l.elevation.bottom === 0)?.id ?? scene.levels.sorted[0].id);
 
             for (const [documentName, dataArr] of docToData.entries()) {
                 dataArr.forEach((data) => {
-                    if (data.level || documentName === 'Token') data.level = activeLevelId;
+                    if (documentName === 'Token') data.level = activeLevelId;
                     else data.levels = [activeLevelId];
                 });
             }
@@ -252,15 +272,17 @@ export class Spawner {
         }
 
         const toCreate = [];
-        const toUpdate = [];
+        const toMerge = [];
         const remappedLevelIds = {};
 
         for (const level of levels) {
-            const exists = scene.levels.find(
-                (l) => l.elevation.bottom === level.elevation.bottom && l.elevation.top === level.elevation.top,
-            );
+            const exists = scene.levels.find((l) => {
+                l = l.toObject();
+                return l.elevation.bottom === level.elevation.bottom && l.elevation.top === level.elevation.top;
+            });
             if (exists) {
                 remappedLevelIds[level.id] = exists.id;
+                toMerge.push({ fromLevel: level, toLevel: exists });
             } else {
                 const id = foundry.utils.randomID();
                 remappedLevelIds[level.id] = id;
@@ -280,11 +302,32 @@ export class Spawner {
                 }
             }
             await createDocuments('Level', toCreate, sceneId, { keepId: true });
+
+            const sortUpdates = scene.levels.sorted
+                .sort((a, b) => a.elevation.bottom - b.elevation.bottom || a.elevation.top - b.elevation.top)
+                .map((l, i) => {
+                    return { _id: l.id, sort: i };
+                });
+            await updateEmbeddedDocumentsViaGM('Level', sortUpdates, {}, scene);
+        }
+
+        // Levels with matching elevation need to have their visibility merged
+        if (toMerge.length) {
+            const updates = [];
+            for (const { fromLevel, toLevel } of toMerge) {
+                const fromVisibilityLevels =
+                    fromLevel.visibility?.levels?.map((id) => remappedLevelIds[id] ?? id) ?? [];
+                if (fromVisibilityLevels.some((id) => !toLevel.visibility.levels.has(id))) {
+                    const levels = [...new Set([...fromVisibilityLevels, ...toLevel.visibility.levels])];
+                    updates.push({ _id: toLevel.id, visibility: { levels } });
+                }
+            }
+            if (updates.length) await updateEmbeddedDocumentsViaGM('Level', updates, {}, scene);
         }
 
         for (const [documentName, dataArr] of docToData.entries()) {
             dataArr.forEach((data) => {
-                if (data.level) data.level = remappedLevelIds[data.level] ?? data.level;
+                if (documentName === 'Token') data.level = remappedLevelIds[data.level] ?? data.level;
                 else if (data.levels) data.levels = data.levels.map((level) => remappedLevelIds[level] ?? level);
             });
         }
