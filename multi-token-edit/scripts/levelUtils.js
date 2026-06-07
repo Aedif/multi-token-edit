@@ -30,8 +30,6 @@ export async function tileToRegion(tile, { create = true, name, notification = f
         return { type: 'polygon', hole: p.isHole, points };
     });
 
-    const tileBounds = getDataBounds('Tile', tile.toObject?.() ?? tile);
-
     const scale = 1 / textureAlphaResolution;
     const scaleX = (scale / (texture.width / tile.width)) * tile.texture.scaleX;
     const scaleY = (scale / (texture.height / tile.height)) * tile.texture.scaleY;

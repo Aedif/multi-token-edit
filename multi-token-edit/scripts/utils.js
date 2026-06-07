@@ -641,7 +641,7 @@ export async function spawnSceneAsPreset(scene) {
         });
     });
 
-    let presetData;
+    let preset;
     if (scene.background.src) {
         let { x, y, width, height } = scene.dimensions.sceneRect;
 
@@ -659,35 +659,46 @@ export async function spawnSceneAsPreset(scene) {
               )
             : 0;
 
-        presetData = {
+        preset = {
             documentName: 'Tile',
-            data: {
-                texture: {
-                    src: scene.background.src,
+            data: [
+                {
+                    texture: {
+                        src: scene.background.src,
+                        anchorX: 0,
+                        anchorY: 0,
+                    },
+                    width,
+                    height,
+                    x,
+                    y,
+                    sort: minSort - 1,
+                    elevation: minElevation,
                 },
-                width,
-                height,
-                x,
-                y,
-                sort: minSort - 1,
-                elevation: minElevation,
-            },
+            ],
         };
     } else {
-        presetData = attached.findSplice((att) => att.documentName === 'Token');
-        if (!presetData) presetData = attached.findSplice((att) => att.documentName === 'Tile');
-        if (!presetData) presetData = attached.shift();
+        preset = attached.findSplice((att) => att.documentName === 'Tile');
+        if (!preset) preset = attached.findSplice((att) => att.documentName === 'Token');
+        if (!preset) preset = attached.shift();
+        if (preset) preset.data = [preset.data];
     }
 
-    if (!presetData) {
+    if (!preset) {
         ui.notifications.warn('Attempting to spawn an empty scene.');
         return;
     }
 
-    const preset = new Preset({ documentName: presetData.documentName, data: [presetData.data], attached });
+    preset.attached = attached;
+
+    preset.metadata ??= {};
+    preset.metadata.coreVersion = game.version;
+    preset.metadata.levels = Preset.retrieveLevels(preset, scene);
+
+    const tempPreset = new Preset(preset);
 
     await Spawner.spawnPreset({
-        preset,
+        preset: tempPreset,
         preview: true,
         previewRestrictedDocuments: preset.documentName === 'AmbientLight' ? null : ['AmbientLight'],
         pivot: MassEdit.PIVOTS.CENTER,

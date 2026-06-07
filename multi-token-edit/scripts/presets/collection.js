@@ -113,7 +113,7 @@ export class PresetAPI {
 
             foundry.utils.mergeObject(defPreset, options, { inplace: true });
 
-            const levels = Preset.retrieveLevels(defPreset, null, placeables[0].document.parent);
+            const levels = Preset.retrieveLevels(defPreset, placeables[0].document.parent);
             if (levels.length) defPreset.metadata.levels = levels;
 
             const preset = new Preset(defPreset);

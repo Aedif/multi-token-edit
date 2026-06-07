@@ -61,10 +61,9 @@ export class Preset {
         return !collection.locked;
     }
 
-    static retrieveLevels(presetData, documentName, scene = canvas.scene) {
+    static retrieveLevels(presetData, scene = canvas.scene) {
         const placeableData = [];
-        if (SUPPORTED_PLACEABLES.includes(presetData.documentName ?? documentName))
-            placeableData.push(...presetData.data);
+        if (SUPPORTED_PLACEABLES.includes(presetData.documentName)) placeableData.push(...presetData.data);
         presetData.attached?.forEach((att) => {
             if (SUPPORTED_PLACEABLES.includes(att.documentName)) placeableData.push(att.data);
         });
@@ -86,8 +85,8 @@ export class Preset {
                     id: level.id,
                     name: level.name,
                     elevation: {
-                        top: level.elevation.top,
-                        bottom: level.elevation.bottom,
+                        top: Number.isFinite(level.elevation.top) ? level.elevation.top : null,
+                        bottom: Number.isFinite(level.elevation.bottom) ? level.elevation.bottom : null,
                     },
                     visibility: {
                         levels: visibleLevels,
