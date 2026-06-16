@@ -28,6 +28,18 @@ export class LevelsMigration {
         return { top, bottom };
     }
 
+    static #logHeader(text, width = 80) {
+        console.info('_'.repeat(width));
+        text = ' ' + text.trim() + ' ';
+        text = '='.repeat((width - text.length) / 2) + text;
+        console.info(text.padEnd(width, '='));
+        console.info('‾'.repeat(width));
+    }
+
+    static #snap(n, to = 5) {
+        return Math.round(n / to) * to;
+    }
+
     static #setDocumentLevel({ documentName, data }, bottom, top) {
         if (documentName === 'Wall') {
             //if (foundry.utils.getProperty('flags.wall-height.bottom') != null)
@@ -82,8 +94,7 @@ export class LevelsMigration {
         }
     }
 
-    // TODO, generate a trackingobject of the surface defining tiles for the region, or create the surfaces here?
-    static #analyze(preset, { log = true } = {}) {
+    static #analyze(preset, { expandFlatLevels = false } = {}) {
         // Utility functions
         const keySort = function (a, b) {
             const [a1, a2] = a.split('|').map(Number);
@@ -137,19 +148,19 @@ export class LevelsMigration {
             }
         });
 
-        if (log) {
-            console.log('=== Ranges ===');
+        if (this.log) {
+            this.#logHeader('Step 1: Identifying Ranges');
             Object.keys(levelRanges)
                 .sort(keySort)
                 .forEach((k) => {
-                    console.log(
+                    console.info(
                         k.padEnd(10, ' '),
                         String(levelRanges[k].length).padEnd(5, ' '),
                         countDocuments(levelRanges[k]),
                     );
                 });
             if (orphanedDocuments.length) {
-                console.log('N/A'.padEnd(10, ' '), countDocuments(orphanedDocuments));
+                console.info('N/A'.padEnd(10, ' '), countDocuments(orphanedDocuments));
             }
         }
 
@@ -158,11 +169,9 @@ export class LevelsMigration {
         const normalized = {};
         const remappedRanges = {};
 
-        const snap = (n) => Math.round(n / 5) * 5;
-
         for (const [key, value] of Object.entries(levelRanges)) {
             const [bottom, top] = key.split('|').map(Number);
-            const newKey = `${snap(bottom)}|${snap(top)}`;
+            const newKey = `${this.#snap(bottom)}|${this.#snap(top)}`;
 
             normalized[newKey] ??= [];
             normalized[newKey].push(...levelRanges[key]);
@@ -170,23 +179,23 @@ export class LevelsMigration {
             if (key !== newKey) remappedRanges[key] = newKey;
         }
 
-        if (log) {
-            console.log('=== Normalized ===');
+        if (this.log) {
+            this.#logHeader('Step 2: Normalizing Ranges');
             Object.keys(normalized)
                 .sort(keySort)
                 .forEach((k) => {
-                    console.log(
+                    console.info(
                         k.padEnd(10, ' '),
                         String(normalized[k].length).padEnd(5, ' '),
                         countDocuments(normalized[k]),
                     );
                 });
 
-            console.log('=== Remapped Ranges ===');
+            console.info('[Remapped Elevations]');
             Object.keys(remappedRanges)
                 .sort(keySort)
                 .forEach((k) => {
-                    console.log(k.padEnd(10, ' '), remappedRanges[k]);
+                    console.info(k.padEnd(10, ' '), remappedRanges[k]);
                 });
         }
 
@@ -207,31 +216,34 @@ export class LevelsMigration {
             }
         }
 
-        if (log) {
-            console.log('=== Level Defining Ranges ===');
+        if (this.log) {
+            this.#logHeader('Step 3a: Identifying Level Defining Ranges');
             Object.keys(levelDefiningRanges)
                 .sort(keySort)
                 .forEach((k) => {
-                    console.log(
+                    console.info(
                         k.padEnd(10, ' '),
                         String(levelDefiningRanges[k].length).padEnd(5, ' '),
                         countDocuments(levelDefiningRanges[k]),
                     );
                 });
-            console.log('=== Level Spanning Ranges ===');
+            if (!Object.keys(levelDefiningRanges).length) console.info('** none **');
+
+            this.#logHeader('Step 3b: Identifying Level Spanning Ranges');
             Object.keys(levelSpanningRanges)
                 .sort(keySort)
                 .forEach((k) => {
-                    console.log(
+                    console.info(
                         k.padEnd(10, ' '),
                         String(levelSpanningRanges[k].length).padEnd(5, ' '),
                         countDocuments(levelSpanningRanges[k]),
                     );
                 });
+            if (!Object.keys(levelSpanningRanges).length) console.info('** none **');
         }
 
         // ===============================================
-        // Attempt to merge ranges that exist only on a very narrow elevation
+        // Attempt to merge ranges that exist on a very narrow elevation
         let rangesToCreate = new Set();
         for (const key of Object.keys(levelDefiningRanges)) {
             const [bottom, top] = key.split('|').map(Number);
@@ -256,9 +268,62 @@ export class LevelsMigration {
 
         rangesToCreate = [...rangesToCreate].sort(keySort);
 
+        if (this.log) {
+            this.#logHeader('Step 4: Flat Range Merge');
+            if (rangesToCreate.length) {
+                rangesToCreate.forEach((k) => {
+                    console.info(k);
+                });
+            } else console.info('None');
+        }
+
+        // ===============================================
+        // Expand single level ranges
+        if (expandFlatLevels) {
+            const flatRanges = [];
+            const otherRanges = [];
+            rangesToCreate.forEach((range) => {
+                const [bottom, top] = range.split('|').map(Number);
+                if (Number.isFinite(bottom) && Number.isFinite(top) && top === bottom) {
+                    flatRanges.push({ bottom, top });
+                } else {
+                    otherRanges.push({ bottom, top });
+                }
+            });
+            if (flatRanges.length && otherRanges.length) {
+                const newRanges = [...otherRanges];
+                for (const flatRange of flatRanges) {
+                    const elevation = flatRange.bottom;
+                    let closestElevation;
+                    let closestDistance = Infinity;
+                    for (const { bottom, top } of otherRanges) {
+                        if (Math.abs(bottom - elevation) < closestDistance) {
+                            closestDistance = Math.abs(bottom - elevation);
+                            closestElevation = bottom;
+                        }
+                    }
+                    if (elevation < closestElevation) {
+                        newRanges.push({ bottom: elevation, top: closestElevation });
+                    } else {
+                        newRanges.push({ bottom: elevation, top: elevation });
+                    }
+                }
+                rangesToCreate = newRanges.map((r) => `${r.bottom}|${r.top}`).sort(keySort);
+            }
+            if (this.log) {
+                this.#logHeader('(optional) Flat Range Upward Expand');
+                if (rangesToCreate.length) {
+                    rangesToCreate.forEach((k) => {
+                        console.info(k);
+                    });
+                } else console.info('** none **');
+            }
+        }
+
         // ===============================================
         // Look for roof elevators/stairs, if they exist without a level to be created, lets insert that level
         if (rangesToCreate.length) {
+            if (this.log) this.#logHeader('Step 5: Check/Create Infinite Roof Range');
             const legacyStairScripts = [
                 'CONFIG.Levels.handlers.RegionHandler.stair(',
                 'CONFIG.Levels.handlers.RegionHandler.stairDown',
@@ -271,7 +336,7 @@ export class LevelsMigration {
             const roofElevatorRegion = documentsWithElevation
                 .filter((d) => d.documentName === 'Region')
                 .find((region) => {
-                    if (region.data.elevation.top !== topRangeTop) return false;
+                    if (this.#snap(region.data.elevation.top) !== topRangeTop) return false;
 
                     const hasChangeLevel = region.data.behaviors?.find((b) => b.type === 'changeLevel');
                     if (hasChangeLevel) return true;
@@ -284,21 +349,28 @@ export class LevelsMigration {
                 });
             if (roofElevatorRegion) {
                 const key = `${topRangeTop}|${Infinity}`;
-                if (!rangesToCreate.includes(key)) rangesToCreate.push(key);
-            }
+                if (!rangesToCreate.includes(key)) {
+                    rangesToCreate.push(key);
+                    if (this.log) console.info('New Range Added: ', key);
+                }
+            } else if (this.log) console.info('** no elevator found leading to the roof **');
         }
 
-        if (log) {
-            console.log('=== Level Ranges To Create ===');
-            rangesToCreate.forEach((k) => {
-                console.log(k);
-            });
+        if (this.log) {
+            this.#logHeader('Final Levels');
+            if (rangesToCreate.length) {
+                rangesToCreate.forEach((k) => {
+                    console.info(k);
+                });
+            } else console.info('** none **');
         }
 
         return { rangesToCreate, remappedRanges, orphanedDocuments, documentsWithElevation };
     }
 
     static async #generateRegionSurfaces(preset, levels, documents) {
+        if (this.log) this.#logHeader('(optional) Generating Region Surfaces');
+
         for (const level of levels) {
             let largestTile;
             let largestArea = 0;
@@ -315,11 +387,18 @@ export class LevelsMigration {
             }
 
             if (largestTile) {
-                const region = await tileToRegion(largestTile.data, {
-                    create: false,
-                    name: 'Surface: ' + level.name,
-                });
+                let region;
 
+                try {
+                    region = await tileToRegion(largestTile.data, {
+                        create: false,
+                    });
+                } catch (e) {
+                    console.log('UNABLE TO CREATE REGION FOR REGION', level, largestTile);
+                    continue;
+                }
+
+                region.name = 'Surface: ' + level.name;
                 region.levels = [level.id];
 
                 region.elevation ??= {};
@@ -352,6 +431,7 @@ export class LevelsMigration {
                 }
 
                 this.#insertDocument(preset, 'Region', region);
+                if (this.log) console.info('Region Created: ', region.elevation);
 
                 // Set light/weather restrictions to surface tile
                 largestTile.data.restrictions ??= {};
@@ -396,10 +476,9 @@ export class LevelsMigration {
 
     static async migrateData(
         preset,
-        { generateSurfaceRegions = false, generateRoofLevel = false, ripper = false } = {},
+        { generateSurfaceRegions = false, generateRoofLevel = false, logging = false, expandFlatLevels = false } = {},
     ) {
-        // TODO, remove
-        if (ripper) return this.migrateDataRipper(preset, { generateSurfaceRegions, generateRoofLevel });
+        this.log = logging;
 
         const containsLevels = this.#getDataByType(preset, 'Wall').find(
             (wall) => wall.flags?.['wall-height']?.top || wall.flags?.['wall-height']?.bottom,
@@ -417,7 +496,9 @@ export class LevelsMigration {
         // Migrate drawings first
         this.migrateDrawingsToRegions(preset);
 
-        const { rangesToCreate, remappedRanges, documentsWithElevation, orphanedDocuments } = this.#analyze(preset);
+        const { rangesToCreate, remappedRanges, documentsWithElevation, orphanedDocuments } = this.#analyze(preset, {
+            expandFlatLevels,
+        });
         const createdLevels = this.#createLevels(rangesToCreate);
 
         this.#remapElevation(documentsWithElevation, remappedRanges);
@@ -451,8 +532,7 @@ export class LevelsMigration {
                         levelsToAdd.push(...regionBottomLevels, ...regionTopLevels);
                         elevation.top = top * 0.9; // TODO, why is this necessary?
                     } else if (script.includes('CONFIG.Levels.handlers.RegionHandler.elevator')) {
-                        const snap = (n) => Math.round(n / 5) * 5;
-                        const elevatorBottoms = script.match(/(-?\d+)(?=,)/g).map((x) => snap(parseFloat(x)));
+                        const elevatorBottoms = script.match(/(-?\d+)(?=,)/g).map((x) => this.#snap(parseFloat(x)));
                         const elevatorLevels = createdLevels
                             .filter((l) => elevatorBottoms.includes(l.elevation.bottom))
                             .map((l) => l.id);
@@ -480,6 +560,11 @@ export class LevelsMigration {
             if (documentName === 'Tile' && data.flags.levels) {
                 const { rangeTop, showIfAbove, showAboveRange, isBasement } = data.flags.levels || {};
                 const { bottom, top } = this.#getDocumentLevel(document);
+                // console.log(
+                //     data.texture.src,
+                //     { rangeTop, showAboveRange, showAboveRange, isBasement },
+                //     { bottom, top },
+                // );
                 if (isBasement) {
                     data.levels = createdLevels
                         .filter(
@@ -496,13 +581,16 @@ export class LevelsMigration {
                 } else if (!Number.isFinite(rangeTop)) {
                     const elevation = data.elevation;
                     const showAboveRangeBg = elevation - bgElevation;
+                    // console.log({ elevation, showAboveRangeBg, bgElevation });
                     if (showAboveRangeBg < 0) {
                         data.levels = createdLevels.map((l) => l.id);
                     } else {
                         const minElevation = elevation - showAboveRangeBg;
-                        data.levels = createdLevels.filter((l) => l.elevation.top > minElevation).map((l) => l.id);
+                        //console.log({ minElevation });
+                        data.levels = createdLevels.filter((l) => l.elevation.top >= minElevation).map((l) => l.id);
                     }
                 } else {
+                    // console.log('HERE', data.texture.src, createdLevels);
                     data.levels = createdLevels.filter((l) => l.elevation.bottom >= bottom).map((l) => l.id);
                     // data.levels = level.aboveLevels; // TODO confirm if the above logic ^ is a good substitute for this line
                 }
@@ -516,8 +604,6 @@ export class LevelsMigration {
                 continue;
             }
 
-            // TODO continue from her
-
             if (documentName === 'Wall') {
                 const { bottom, top } = this.#getDocumentLevel(document);
                 const includeLevels = createdLevels
@@ -530,12 +616,11 @@ export class LevelsMigration {
                     )
                     .map((l) => l.id);
                 data.levels = includeLevels;
+                delete data.flags?.['wall-height'];
             } else {
                 const { bottom, top } = this.#getDocumentLevel(document);
                 data.levels = createdLevels.filter((l) => l.elevation.bottom >= bottom).map((l) => l.id);
             }
-            // TODO confirm if the above ^ logic is a good approximation of the below code line
-            // data.levels = includedWallDocuments.includes(documentName) ? level.includedLevels : level.aboveLevels;
 
             delete data.flags?.levels;
         }
@@ -553,7 +638,6 @@ export class LevelsMigration {
         // Lets create Region defined surfaces for each level
         if (generateSurfaceRegions) await this.#generateRegionSurfaces(preset, createdLevels, documentsWithElevation);
 
-        // TODO might be a better way to handle this...
         createdLevels.forEach((level) => {
             if (level.elevation.top === Infinity) level.elevation.top = null;
         });
@@ -561,256 +645,7 @@ export class LevelsMigration {
         preset.metadata ??= {};
         preset.metadata.levels = createdLevels;
 
-        console.log(`Levels - Migrated preset [${preset.name}] to Core Foundry Levels`);
-
-        return true;
-
-        //return await this.migrateDataRipper(preset, { generateSurfaceRegions, generateRoofLevel });
-    }
-
-    static async migrateDataRipper(
-        preset,
-        { generateSurfaceRegions = false, roundTopElevation = false, generateRoofLevel = false } = {},
-    ) {
-        const containsLevels = this.#getDataByType(preset, 'Wall').find(
-            (wall) => wall.flags?.['wall-height']?.top || wall.flags?.['wall-height']?.bottom,
-        );
-        if (!containsLevels) return false;
-
-        const containsLevelsMetadata = preset.metadata?.levels;
-        if (containsLevelsMetadata) return;
-
-        this.#getDataByType(preset, 'Tile').forEach((data) => {
-            const collisions = data.flags?.levels?.noCollision === false;
-            if (collisions) foundry.utils.setProperty(data, 'flags.levels.blockSightMovement', true);
-        });
-
-        if (roundTopElevation) this.#roundTopElevation(preset);
-
-        // Migrate drawings first
-        this.migrateDrawingsToRegions(preset);
-
-        const inferredLevels = {};
-        const orphanedDocuments = [];
-
-        [
-            'Token',
-            'MeasuredTemplate',
-            'Tile',
-            'Drawing',
-            'Wall',
-            'AmbientLight',
-            'AmbientSound',
-            'Note',
-            'Region',
-        ].forEach((documentName) => {
-            const documents = this.#getDataByType(preset, documentName);
-            for (const document of documents) {
-                if (documentName === 'Tile' && !document.flags?.levels) continue;
-                const { bottom, top } = this.#getDocumentLevel({ documentName, data: document });
-                if (!Number.isFinite(top) || !Number.isFinite(bottom)) {
-                    orphanedDocuments.push(document);
-                    continue;
-                }
-                const key = `${bottom}${top}`;
-                if (inferredLevels[key]) {
-                    inferredLevels[key].documents.push({ documentName, data: document });
-                    continue;
-                }
-                inferredLevels[key] = {
-                    name: `Level (${bottom}|${top})`,
-                    bottom,
-                    top,
-                    documents: [{ documentName, data: document }],
-                };
-            }
-        });
-
-        const levelsWithContent = [];
-        const levelsToMerge = [];
-        const minRange = 5 * 1.5; // Hard coded scene.grid.distance to 5
-        for (const level of Object.values(inferredLevels)) {
-            const levelRange = level.top - level.bottom;
-            level.size = levelRange;
-            if (levelRange < minRange) {
-                levelsToMerge.push(level);
-                continue;
-            }
-            let isContained = false;
-            for (const maybeContainingLevel of Object.values(inferredLevels)) {
-                const maybeContainingRange = maybeContainingLevel.top - maybeContainingLevel.bottom;
-                const touches = level.bottom === maybeContainingLevel.bottom || level.top === maybeContainingLevel.top;
-                const isSmaller = levelRange > maybeContainingRange * 0.8 && levelRange < maybeContainingRange;
-                if (touches && isSmaller) {
-                    levelsToMerge.push(level);
-                    isContained = true;
-                }
-            }
-            if (isContained) continue;
-            level.name = `Level (${level.bottom}|${level.top})`;
-            levelsWithContent.push(level);
-        }
-        for (const level of levelsToMerge) {
-            const containingLevel = levelsWithContent
-                .filter((x) => level.bottom >= x.bottom && level.top <= x.top)
-                .sort((a, b) => a.size - b.size)?.[0];
-            if (!containingLevel) {
-                levelsWithContent.push(level);
-                continue;
-            }
-            containingLevel.documents.push(...level.documents);
-        }
-        levelsWithContent.sort((a, b) => a.bottom - b.bottom);
-
-        // TODO optionally determine if roof exists?
-        let roofTiles;
-        if (generateRoofLevel) roofTiles = this.#generateRoofLevel(levelsWithContent);
-
-        const levelsToCreate = levelsWithContent;
-
-        const createdLevels = levelsToCreate.map((level) => {
-            return {
-                id: foundry.utils.randomID(),
-                name: level.name,
-                elevation: {
-                    bottom: level.bottom,
-                    top: level.top,
-                },
-            };
-        });
-        createdLevels.forEach((level) => {
-            foundry.utils.setProperty(
-                level,
-                'visibility.levels',
-                createdLevels.filter((x) => x.elevation.bottom <= level.elevation.bottom).map((x) => x.id),
-            );
-        });
-        createdLevels.sort((a, b) => a.elevation.bottom - b.elevation.bottom);
-
-        const backgroundLevel = createdLevels.find((x) => x.elevation.bottom >= 0) ?? createdLevels[0];
-        const bgElevation = backgroundLevel.elevation.bottom;
-
-        for (const level of levelsWithContent) {
-            level.id = createdLevels.find((l) => l.name === level.name).id;
-        }
-        for (const level of levelsWithContent) {
-            level.includedLevels = levelsWithContent
-                .filter((x) => level.bottom <= x.bottom && level.top >= x.top)
-                .map((x) => x.id);
-            level.belowLevels = levelsWithContent.filter((x) => level.top >= x.top).map((x) => x.id);
-            level.aboveLevels = levelsWithContent.filter((x) => level.bottom <= x.bottom).map((x) => x.id);
-            level.allLevels = levelsWithContent.map((x) => x.id);
-        }
-
-        const includedWallDocuments = ['Wall', 'AmbientLight'];
-        for (const level of levelsWithContent) {
-            for (const { documentName, data: document } of level.documents) {
-                if (documentName === 'Region') {
-                    const levelsToAdd = [];
-                    const elevation = {};
-                    const behaviorsToRemove = [];
-                    for (const behavior of document.behaviors) {
-                        if (behavior.type !== 'executeScript') continue;
-                        const script = behavior.system.source;
-                        const top = document.elevation.top;
-                        const bottom = document.elevation.bottom;
-                        const regionBottomLevels = createdLevels
-                            .filter((x) => x.elevation.bottom === bottom)
-                            .map((x) => x.id);
-                        const regionTopLevels = createdLevels
-                            .filter((x) => x.elevation.bottom === top)
-                            .map((x) => x.id);
-                        if (script.includes('CONFIG.Levels.handlers.RegionHandler.stair(')) {
-                            levelsToAdd.push(...regionBottomLevels, ...regionTopLevels);
-                        } else if (script.includes('CONFIG.Levels.handlers.RegionHandler.stairDown')) {
-                            levelsToAdd.push(...regionBottomLevels, ...regionTopLevels);
-                            const delta = top - bottom;
-                            elevation.bottom = bottom + delta;
-                            elevation.top = (top + delta) * 0.9;
-                        } else if (script.includes('CONFIG.Levels.handlers.RegionHandler.stairUp')) {
-                            levelsToAdd.push(...regionBottomLevels, ...regionTopLevels);
-                            elevation.top = top * 0.9;
-                        } else if (script.includes('CONFIG.Levels.handlers.RegionHandler.elevator')) {
-                            const elevatorBottoms = script.match(/(-?\d+)(?=,)/g).map((x) => parseFloat(x));
-                            const elevatorLevels = createdLevels
-                                .filter((x) => elevatorBottoms.includes(x.elevation.bottom))
-                                .map((x) => x.id);
-                            levelsToAdd.push(...elevatorLevels);
-                        } else {
-                            continue;
-                        }
-                        behaviorsToRemove.push(behavior);
-                    }
-                    document.behaviors = document.behaviors.filter((b) => !behaviorsToRemove.includes(b));
-                    if (levelsToAdd.length) {
-                        document.behaviors.push({ type: 'changeLevel' });
-                        foundry.utils.mergeObject(document, { elevation });
-                    }
-                    const includedLevels = levelsWithContent
-                        .filter(
-                            (x) =>
-                                Number.between(x.bottom, document.elevation.bottom, document.elevation.top) ||
-                                Number.between(x.top, document.elevation.bottom, document.elevation.top),
-                        )
-                        .map((x) => x.id);
-                    document.levels = levelsToAdd.length ? levelsToAdd : includedLevels;
-                    continue;
-                }
-                if (documentName === 'Tile' && document.flags.levels) {
-                    const { rangeTop, showIfAbove, showAboveRange, isBasement } = document.flags.levels || {};
-                    if (isBasement) {
-                        document.levels = level.includedLevels;
-                    } else if (showIfAbove && showAboveRange) {
-                        const elevation = document.elevation;
-                        const minElevation = elevation - showAboveRange;
-                        document.levels = levelsWithContent.filter((x) => x.top > minElevation).map((x) => x.id);
-                    } else if (!Number.isFinite(rangeTop)) {
-                        const elevation = document.elevation;
-                        const showAboveRangeBg = elevation - bgElevation;
-                        if (showAboveRangeBg < 0) {
-                            document.levels = level.allLevels;
-                        } else {
-                            const minElevation = elevation - showAboveRangeBg;
-                            document.levels = levelsWithContent.filter((x) => x.top > minElevation).map((x) => x.id);
-                        }
-                    } else {
-                        document.levels = level.aboveLevels;
-                    }
-                    delete document.flags?.levels;
-                    continue;
-                }
-                if (documentName === 'Token') {
-                    document.levels = level.id;
-                    continue;
-                }
-                delete document.flags?.levels;
-                document.levels = includedWallDocuments.includes(documentName)
-                    ? level.includedLevels
-                    : level.aboveLevels;
-            }
-        }
-
-        const allLevels = levelsWithContent.map((x) => x.id);
-        for (const { documentName, data: document } of orphanedDocuments) {
-            delete document.flags?.levels;
-            document.levels = allLevels;
-        }
-        for (const tile of roofTiles) {
-            tile.data.levels = allLevels;
-        }
-
-        // Lets create Region defined surfaces for each level
-        if (generateSurfaceRegions) await this.#generateRegionSurfacesRipper(preset, levelsWithContent);
-
-        // TODO might be a better way to handle this...
-        createdLevels.forEach((level) => {
-            if (level.elevation.top === Infinity) level.elevation.top = null;
-        });
-
-        preset.metadata ??= {};
-        preset.metadata.levels = createdLevels;
-
-        console.log(`Levels - Migrated preset [${preset.name}] to Core Foundry Levels`);
+        console.info(`Levels - Migrated preset [${preset.name}] to Core Foundry Levels`);
 
         return true;
     }
@@ -879,7 +714,7 @@ export class LevelsMigration {
         regionsData.forEach((d) => this.#insertDocument(preset, 'Region', d));
         toDelete.forEach((d) => this.#deleteByReference(preset, d));
 
-        console.log('Levels - Migrated ' + migratedCount + ' drawings to regions ');
+        console.info('Levels - Migrated ' + migratedCount + ' drawings to regions ');
         return migratedCount;
     }
 
@@ -932,62 +767,5 @@ export class LevelsMigration {
             });
         }
         return roofTiles;
-    }
-
-    static async #generateRegionSurfacesRipper(preset, levels) {
-        for (const level of levels) {
-            let largestTile;
-            let largestArea = 0;
-            for (const { documentName, data } of level.documents) {
-                if (documentName !== 'Tile') continue;
-                if (data.width * data.height > largestArea) {
-                    const { top, bottom } = this.#getDocumentLevel({ documentName, data });
-                    if (bottom === level.bottom) {
-                        largestArea = data.width * data.height;
-                        largestTile = data;
-                    }
-                }
-            }
-
-            if (largestTile) {
-                const region = await tileToRegion(largestTile, {
-                    create: false,
-                    name: 'Surface: ' + level.name,
-                });
-
-                region.levels = [level.id];
-
-                region.elevation ??= {};
-                region.elevation.bottom = level.bottom;
-                region.elevation.top = level.top === Infinity ? null : level.top;
-                region.elevation.topInclusive = true;
-
-                region.behaviors ??= [];
-                region.behaviors.push({
-                    name: 'Define Surface',
-                    type: 'defineSurface',
-                    system: {
-                        culling: false,
-                        exposure: false,
-                        light: true,
-                        move: true,
-                        occlusion: true,
-                        placement: 'both', // determine if this is a roof level, and set placement to bot only
-                        sight: true,
-                        sound: true,
-                    },
-                });
-
-                if (largestTile.flags?.[MODULE_ID]?.links) {
-                    foundry.utils.setProperty(
-                        region,
-                        `flags.${MODULE_ID}.links`,
-                        foundry.utils.deepClone(largestTile.flags[MODULE_ID].links),
-                    );
-                }
-
-                this.#insertDocument(preset, 'Region', region);
-            }
-        }
     }
 }

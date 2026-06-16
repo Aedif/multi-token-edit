@@ -216,10 +216,14 @@ function calculateTransform(documentName, currentSource, previousSource, change,
     if (dRotation != null) {
         transform.rotation = dRotation;
 
-        const { x1, y1, x2, y2 } = getDataBounds(documentName, currentSource);
-
-        origin.x = x1 + (x2 - x1) / 2;
-        origin.y = y1 + (y2 - y1) / 2;
+        if (documentName === 'Tile') {
+            origin.x = currentSource.x;
+            origin.y = currentSource.y;
+        } else {
+            const { x1, y1, x2, y2 } = getDataBounds(documentName, currentSource);
+            origin.x = x1 + (x2 - x1) / 2;
+            origin.y = y1 + (y2 - y1) / 2;
+        }
     }
 
     if (currentSource.hasOwnProperty('elevation')) {

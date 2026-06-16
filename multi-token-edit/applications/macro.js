@@ -232,7 +232,7 @@ export default class MacroForm extends FormApplication {
      * @param {Object} formData
      */
     async _updateObject(event, formData) {
-        formData = expandObject(formData);
+        formData = foundry.utils.expandObject(formData);
 
         // Cleanup form data so that the macro generator only receives necessary information
         formData.fields = JSON.parse(formData.fields);

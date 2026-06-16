@@ -95,7 +95,7 @@ export class Spawner {
                 coreMigration: true,
                 levelsMigration: true,
             },
-            { ripper: MassEdit.ripperMigration },
+            { ripper: MassEdit.ripperMigration, logging: true, expandFlatLevels: true },
         );
         //await LevelsMigration.migrateData(preset, { generateSurfaceRegions: true, generateRoofLevel: true });
         console.log('MIGRATED PRESET', preset);

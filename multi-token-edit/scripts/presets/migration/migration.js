@@ -201,6 +201,128 @@ export class Migrator {
         return pack;
     }
 
+    static async migrateScene(scene, options1, options2) {
+        if (options1.levelsMigration) {
+            const isLevelsScene =
+                scene.flags.levels?.sceneLevels?.length ||
+                scene.walls.find((wall) => wall.flags?.['wall-height']?.top || wall.flags?.['wall-height']?.bottom);
+            if (!isLevelsScene) {
+                ui.notifications.warn(`Scene "${scene.name}" does not contain levels.`);
+                return;
+            }
+            const is3DScene =
+                scene.flags['levels-3d-preview']?.enablePlayers ||
+                scene.flags['levels-3d-preview']?.auto3d ||
+                scene.flags['levels-3d-preview']?.object3dSight;
+            if (is3DScene) {
+                ui.notifications.warn(`Scene "${scene.name}" is a 3D scene, Levels migration is not applicable.`);
+                return;
+            }
+        }
+
+        let allDocumentData = [];
+        for (const collection of Object.values(scene.collections)) {
+            const documentName = collection.documentClass.documentName;
+            if (documentName === 'Level') continue;
+
+            const documents = collection.contents;
+            for (const document of documents) {
+                allDocumentData.push({ documentName, data: document.toObject() });
+            }
+        }
+
+        if (!allDocumentData.length) return;
+
+        const tempPreset = allDocumentData.pop();
+        tempPreset.name = scene.name;
+        tempPreset.data = [tempPreset.data];
+        tempPreset.attached = allDocumentData;
+
+        await this._migratePreset(tempPreset, options1, options2);
+
+        if (tempPreset.metadata?.levels?.length) {
+            const firstLevel = scene.firstLevel;
+
+            const createdLevels = await scene.createEmbeddedDocuments(
+                'Level',
+                foundry.utils.deepClone(tempPreset.metadata.levels).map((l) => {
+                    l._id = l.id;
+                    return l;
+                }),
+                {
+                    keepId: true,
+                },
+            );
+
+            const backgroundElevation = scene.flags.levels?.backgroundElevation;
+            const foundBackgroundLevel = createdLevels.find((x) => x.elevation.bottom === backgroundElevation);
+            const backgroundLevel =
+                foundBackgroundLevel ??
+                (Number.isFinite(backgroundElevation)
+                    ? createdLevels[0]
+                    : createdLevels.find((x) => x.elevation.bottom >= 0)) ??
+                createdLevels[0];
+
+            await backgroundLevel.update({
+                background: {
+                    src: firstLevel.background.src,
+                },
+            });
+
+            await firstLevel.delete();
+        }
+
+        allDocumentData = [...tempPreset.attached, { documentName: tempPreset.documentName, data: tempPreset.data[0] }];
+
+        for (const collection of Object.values(scene.collections)) {
+            const documentName = collection.documentName;
+            if (documentName === 'Level') continue;
+
+            const presentInPreset = new Set(
+                allDocumentData.filter((d) => d.documentName === documentName).map((d) => d.data.id ?? d.data._id),
+            );
+
+            const toDelete = [];
+
+            const documents = collection.contents;
+            for (const document of documents) {
+                if (!presentInPreset.has(document.id)) toDelete.push(document.id);
+            }
+
+            if (toDelete.length) await scene.deleteEmbeddedDocuments(documentName, toDelete, { linkerDelete: true });
+        }
+
+        const documentUpdates = {};
+        for (const { documentName, data } of allDocumentData) {
+            documentUpdates[documentName] ??= [];
+            documentUpdates[documentName].push(data);
+        }
+
+        for (const [documentName, updates] of Object.entries(documentUpdates)) {
+            const collection = scene.getEmbeddedCollection(documentName);
+            const toUpdate = [];
+            const toCreate = [];
+
+            for (let update of updates) {
+                if (collection.has(update.id ?? update._id)) {
+                    const original = collection.get(update.id ?? update._id).toObject();
+                    update = foundry.utils.diffObject(original, update, { bidirectional: true });
+                    if (!foundry.utils.isEmpty(update)) {
+                        update._id = original._id;
+                        toUpdate.push(update);
+                    }
+                } else {
+                    toCreate.push(update);
+                }
+            }
+
+            if (toUpdate.length) scene.updateEmbeddedDocuments(documentName, toUpdate);
+            if (toCreate.length) scene.createEmbeddedDocuments(documentName, toCreate);
+        }
+
+        if (options1.levelsMigration) await scene.update({ 'flags.levels.sceneLevels': _del });
+    }
+
     /**
      * Functions used for testing migration of individual presets
      * @param {Preset} preset

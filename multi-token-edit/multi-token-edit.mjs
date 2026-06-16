@@ -44,6 +44,7 @@ globalThis.MassEdit = {
     openBrushMenu: openBrushMenu,
     migratePack: (pack, options = {}) => Migrator.migratePack(pack, options),
     migrateAllPacks: (options = {}) => Migrator.migrateAllPacks(options),
+    migrateScene: (scene, opts1, opts2) => Migrator.migrateScene(scene, opts1, opts2),
     linker: LinkerAPI,
     PIVOTS: PIVOTS,
     openPresetBrowser,
