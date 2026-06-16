@@ -66,6 +66,7 @@ export class Spawner {
         transform = {},
         brushPreview = false,
         flags,
+        automaticLevelMigration = false, // 06/2026, to be removed
     } = {}) {
         if (!canvas.ready) throw Error("Canvas need to be 'ready' for a preset to be spawned.");
         if (!(uuid || preset || name || type || folder || tags))
@@ -88,19 +89,16 @@ export class Spawner {
         // Load virtual preset dimensions
         if (preset.virtual) await preset.load({ force: true });
 
-        // LEVELS TESTING
-        await Migrator._migratePreset(
-            preset,
-            {
-                coreMigration: true,
-                levelsMigration: true,
-            },
-            { ripper: MassEdit.ripperMigration, logging: true, expandFlatLevels: true },
-        );
-        //await LevelsMigration.migrateData(preset, { generateSurfaceRegions: true, generateRoofLevel: true });
-        console.log('MIGRATED PRESET', preset);
-        // LEVELS TSTING
-
+        if (automaticLevelMigration) {
+            await Migrator._migratePreset(
+                preset,
+                {
+                    coreMigration: true,
+                    levelsMigration: true,
+                },
+                { ripper: MassEdit.ripperMigration, logging: true, expandFlatLevels: true },
+            );
+        }
         let presetData = preset.data;
 
         // Instead of using the entire data group use only one random one

@@ -1,61 +1,72 @@
 import { MODULE_ID, UI_DOCS } from '../../constants.js';
 import { DOC_ICONS } from '../preset.js';
 
-export default class PresetBrowserSettings extends FormApplication {
-  constructor(browser) {
-    super({}, {});
-    this.browser = browser;
-  }
+export default class PresetBrowserSettings extends foundry.applications.api.HandlebarsApplicationMixin(
+    foundry.applications.api.ApplicationV2,
+) {
+    constructor(browser) {
+        super({});
+        this.browser = browser;
+    }
 
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      id: 'mass-edit-browser-settings',
-      classes: ['sheet', 'mass-edit-dark-window'],
-      template: `modules/${MODULE_ID}/templates/preset/browserSettings.html`,
-      resizable: false,
-      minimizable: false,
-      title: 'Settings',
-      width: 400,
-      height: 'auto',
-    });
-  }
+    /** @override */
+    static DEFAULT_OPTIONS = {
+        id: 'mass-edit-browser-settings',
+        tag: 'form',
+        form: {
+            handler: PresetBrowserSettings._onSubmit,
+            submitOnChange: false,
+            closeOnSubmit: true,
+        },
+        window: {
+            title: 'Settings',
+            minimizable: false,
+            resizable: false,
+            contentClasses: ['standard-form'],
+        },
+        position: {
+            width: 440,
+            height: 'auto',
+        },
+        actions: {
+            documentSelect: PresetBrowserSettings._onDocumentSelect,
+        },
+    };
 
-  async getData(options) {
-    const data = foundry.utils.deepClone(game.settings.get(MODULE_ID, 'presetBrowser'));
+    /** @override */
+    static PARTS = {
+        main: { template: `modules/${MODULE_ID}/templates/preset/browserSettings.hbs` },
+        footer: { template: 'templates/generic/form-footer.hbs' },
+    };
 
-    data.dropdownDocuments = UI_DOCS.map((name) => {
-      return { name, active: data.dropdownDocuments.includes(name), icon: DOC_ICONS[name] };
-    });
+    /** @override */
+    async _prepareContext(options) {
+        const context = await super._prepareContext(options);
+        context.buttons = [{ type: 'submit', icon: 'fa-solid fa-floppy-disk', label: 'SETTINGS.Save' }];
 
-    return data;
-  }
+        const config = foundry.utils.deepClone(game.settings.get(MODULE_ID, 'presetBrowser'));
+        config.dropdownDocuments = UI_DOCS.map((name) => {
+            return { name, active: config.dropdownDocuments.includes(name), icon: DOC_ICONS[name] };
+        });
 
-  /**
-   * @param {JQuery} html
-   */
-  activateListeners(html) {
-    super.activateListeners(html);
+        return Object.assign(context, config);
+    }
 
-    html.find('.document-select').on('click', (event) => {
-      $(event.target).closest('.document-select').toggleClass('active');
-    });
-  }
+    static _onDocumentSelect(event, element) {
+        element.classList.toggle('active');
+    }
 
-  /**
-   * @param {Event} event
-   * @param {Object} formData
-   */
-  async _updateObject(event, formData) {
-    const dropdownDocuments = [];
-    $(this.form)
-      .find('.document-select.active')
-      .each(function () {
-        dropdownDocuments.push($(this).data('name'));
-      });
-    formData.dropdownDocuments = dropdownDocuments;
+    static async _onSubmit(event, form, formData) {
+        const dropdownDocuments = [];
+        form.querySelectorAll('.document-select.active').forEach((el) => {
+            dropdownDocuments.push(el.dataset.name);
+        });
 
-    const settings = foundry.utils.mergeObject(game.settings.get(MODULE_ID, 'presetBrowser'), formData);
-    await game.settings.set(MODULE_ID, 'presetBrowser', settings);
-    this.browser?.render(true);
-  }
+        const config = formData.object;
+        config.dropdownDocuments = dropdownDocuments;
+
+        const settings = foundry.utils.mergeObject(game.settings.get(MODULE_ID, 'presetBrowser'), config);
+        await game.settings.set(MODULE_ID, 'presetBrowser', settings);
+        this.browser?.render(true);
+    }
 }

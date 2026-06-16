@@ -368,7 +368,11 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
 
         // Spawn Preset
         this._setInteractivityState(false);
-        await this._onSpawnPreset(preset);
+        try {
+            await this._onSpawnPreset(preset);
+        } catch (e) {
+            console.error(e);
+        }
         this._setInteractivityState(true);
     }
 
@@ -389,6 +393,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
             preview: true,
             layerSwitch: PresetBrowser.CONFIG.switchLayer,
             scaleToGrid: PresetBrowser.CONFIG.autoScale || Scenescape.active,
+            automaticLevelMigration: PresetBrowser.CONFIG.automaticLevelMigration,
             pivot: PIVOTS.CENTER,
             ...options,
         });

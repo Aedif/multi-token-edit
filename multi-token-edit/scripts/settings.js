@@ -172,6 +172,7 @@ export function registerSettings() {
         default: {
             dropdownDocuments: [],
             persistentSearch: true,
+            automaticLevelMigration: true, // 06/2026, to be removed
             sortMode: 'manual', // manual | alphabetical
             autoScale: true,
             virtualDirectory: true,
@@ -187,9 +188,11 @@ export function registerSettings() {
             PresetBrowser.CONFIG = val;
         },
     });
-    PresetBrowser.CONFIG = game.settings.get(MODULE_ID, 'presetBrowser');
-    if (!PresetBrowser.CONFIG.searchLimit) PresetBrowser.CONFIG.searchLimit = 1001;
-    if (!PresetBrowser.CONFIG.savedSearches) PresetBrowser.CONFIG.savedSearches = [];
+    const CONFIG = game.settings.get(MODULE_ID, 'presetBrowser');
+    if (!CONFIG.searchLimit) CONFIG.searchLimit = 1001;
+    if (!CONFIG.savedSearches) CONFIG.savedSearches = [];
+    if (CONFIG.automaticLevelMigration == null) CONFIG.automaticLevelMigration = true;
+    PresetBrowser.CONFIG = CONFIG;
 
     // end of Preset Settings
     // ======================

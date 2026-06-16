@@ -1,0 +1,37 @@
+<section>
+    <div class="form-group">
+        <label>Persistent Search</label>
+        <div class="form-fields">
+            <input type="checkbox" name="persistentSearch" {{checked persistentSearch}}/>
+        </div>
+        <p class="hint">Search field will be retained after window closure and category changes.</p>
+    </div>
+
+    <div class="form-group">
+        <label>Levels Migration</label>
+        <div class="form-fields">
+            <input type="checkbox" name="automaticLevelMigration" {{checked automaticLevelMigration}}/>
+        </div>
+        <p class="hint">Detect and automatically migrate presets with 'Levels' and 'Wall Height' module flags.</p>
+    </div>
+
+    <div class="form-group">
+        <label>Search Result Limit</label>
+        <div class="form-fields">
+            <input type="number" name="searchLimit" value="{{searchLimit}}" min="100", max="999999999"/>
+        </div>
+        <p class="hint">Limit number of results displayed during searches.</p>
+    </div>
+
+    <div class="form-group">
+        <label>Dropdown Categories</label>
+        <div class="form-fields">
+            <div style="display: inline-flex; gap: 5px; font-size: medium;">
+                {{#each dropdownDocuments as |doc|}}
+                <a class="document-select {{#if doc.active}}active{{/if}}" title="{{doc.name}}" data-name="{{doc.name}}" data-action="documentSelect">{{{doc.icon}}}</i></a>
+                {{/each}}
+            </div>
+        </div>
+        <p class="hint">Select categories you wish to be hidden behind a dropdown menu.</p>
+    </div>    
+</section>
