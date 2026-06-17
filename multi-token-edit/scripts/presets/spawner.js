@@ -80,7 +80,6 @@ export class Spawner {
             throw Error(`No preset could be found matching: { uuid: "${uuid}", name: "${name}", type: "${type}"}`);
 
         // Lets clone the preset so that any modifications made to it will not affect the original
-        console.log('ORIGINAL PRESET', preset);
         preset = preset.clone();
 
         // Give an opportunity for other modules to modify the preset
@@ -96,7 +95,7 @@ export class Spawner {
                     coreMigration: true,
                     levelsMigration: true,
                 },
-                { ripper: MassEdit.ripperMigration, logging: true, expandFlatLevels: true },
+                { logging: true, generateSurfaceRegions: true, expandFlatLevels: true },
             );
         }
         let presetData = preset.data;
@@ -248,22 +247,24 @@ export class Spawner {
     }
 
     static async _mergeCreateLevels(docToData, levels, sceneId) {
-        if (!levels?.length) return;
-
         const scene = game.scenes.get(sceneId);
 
-        // TODO: Apply this to presets without levels as well?
-        // Special handling for presets with 1 level
-        if (levels.length === 1) {
-            const activeLevelId =
+        // Special handling for presets with 1 or less levels
+        if (!levels || levels.length === 1) {
+            const activeLevel =
                 canvas.scene.id === sceneId
-                    ? canvas.level.id
-                    : (scene.levels.find((l) => l.elevation.bottom === 0)?.id ?? scene.levels.sorted[0].id);
+                    ? canvas.level
+                    : (scene.levels.find((l) => l.elevation.bottom === 0) ?? scene.levels.sorted[0]);
+
+            const activeLevelElevation = activeLevel.toObject().elevation;
 
             for (const [documentName, dataArr] of docToData.entries()) {
                 dataArr.forEach((data) => {
-                    if (documentName === 'Token') data.level = activeLevelId;
-                    else data.levels = [activeLevelId];
+                    if (documentName === 'Token') data.level = activeLevel.id;
+                    else data.levels = [activeLevel.id];
+
+                    if (documentName === 'Region') data.elevation = { ...activeLevelElevation };
+                    else if (documentName !== 'Wall') data.elevation = activeLevelElevation.bottom;
                 });
             }
             return;

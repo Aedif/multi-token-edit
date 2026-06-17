@@ -24,6 +24,7 @@ import { registerSceneConfigHooks } from './scripts/auxilaryFeatures/sceneConfig
 import { registerDragUploadHooks } from './scripts/auxilaryFeatures/dragUpload.js';
 import { initRegisters } from './scripts/auxilaryFeatures/registers.js';
 import { registerMultiTagElement } from './scripts/libs/foundry/tags.js';
+import { tileToRegion } from './scripts/levelUtils.js';
 
 globalThis.MassTransformer = MassTransformer;
 
@@ -55,6 +56,7 @@ globalThis.MassEdit = {
         const { importScenes } = await import('./scripts/presets/fauxSceneImporter.js');
         return importScenes();
     },
+    tileToRegion,
 };
 
 // Initialize module

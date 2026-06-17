@@ -1,3 +1,28 @@
+# 3.2.0
+
+**Preset Browser**
+
+- Fixed the browser remaining un-interactive if an error occurred during preset spawn
+- Added a new setting: 'Automatic Levels Migration'
+    - When enabled the module will attempt to detect presets with old `Levels` and `Wall Height` flags and perform automatic migration to the v14 Levels
+
+**Levels**
+
+- Migration script has been improved
+    - Levels are now only defined by tiles, other placeables simply span them
+    - The largest tile at the bottom of any inferred level will have a region generated for them with a `Define Surface` behavior
+- `Spawn As Preset` scene context menu option will now encode relevant level information
+- Fixed incorrect encoding of levels with `Infinite` elevation
+
+- New keybind added: `Tile -> Region`
+    - Non-alpha pixels of selected tiles will be used to create new regions
+    - This capability is also exposed through `MassEdit.tileToRegion`
+
+**Misc**
+
+- Fixed Tile rotation updates not transferring correctly to other linked placeables
+- Fixed errors preventing macro generator from creating a new macro
+
 # 3.1.1
 
 **Levels**

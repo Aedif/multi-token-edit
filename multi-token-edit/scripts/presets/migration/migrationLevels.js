@@ -476,7 +476,7 @@ export class LevelsMigration {
 
     static async migrateData(
         preset,
-        { generateSurfaceRegions = false, generateRoofLevel = false, logging = false, expandFlatLevels = false } = {},
+        { generateSurfaceRegions = false, logging = false, expandFlatLevels = false } = {},
     ) {
         this.log = logging;
 
@@ -743,29 +743,5 @@ export class LevelsMigration {
             round({ documentName: preset.documentName, data: d });
         });
         preset.attached?.forEach((att) => round(att));
-    }
-
-    static #generateRoofLevel(levels) {
-        const topLevel = levels[levels.length - 1];
-        const roofTiles = [];
-        for (const tile of topLevel.documents) {
-            if (tile.documentName !== 'Tile') continue;
-            const { bottom, top } = this.#getDocumentLevel(tile);
-            // TODO perhaps check if Fade occlusion has been set too?
-            if (bottom === top && (topLevel.top === top || topLevel.top === top - 1 || topLevel.top === top + 1)) {
-                roofTiles.push(tile);
-            }
-        }
-        if (roofTiles.length) {
-            roofTiles.forEach((t) => (t.data.elevation = topLevel.top));
-            topLevel.documents = topLevel.documents.filter((d) => !roofTiles.includes(d));
-            levels.push({
-                name: `Level (${topLevel.top})`,
-                bottom: topLevel.top,
-                top: Infinity,
-                documents: roofTiles,
-            });
-        }
-        return roofTiles;
     }
 }
