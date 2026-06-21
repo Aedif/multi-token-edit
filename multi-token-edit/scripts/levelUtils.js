@@ -1,3 +1,4 @@
+import { MODULE_ID } from './constants.js';
 import { DataTransformer } from './data/transformer.js';
 import { getDataBounds } from './presets/utils.js';
 
@@ -59,7 +60,15 @@ export async function tileToRegion(tile, { create = true, name, notification = f
     const region = {
         name: name ?? (tile.name || 'Tile Region'),
         shapes,
+        elevation: {
+            bottom: tile.elevation,
+            top: tile.elevation,
+            topInclusive: true,
+        },
     };
+
+    const links = foundry.utils.getProperty(tile, `flags.${MODULE_ID}.links`);
+    if (links) foundry.utils.setProperty(region, `flags.${MODULE_ID}.links`, foundry.utils.deepClone(links));
 
     if (create && notification) ui.notifications.info(`Creating region: "${region.name}"`);
 

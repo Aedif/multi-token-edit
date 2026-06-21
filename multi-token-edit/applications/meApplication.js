@@ -577,40 +577,48 @@ export const WithBaseMassEditForm = (cls) => {
         }
 
         _insertModuleSpecificFields(html) {
+            const constructField = function (label, name) {
+                const formGroupEl = document.createElement('div');
+                formGroupEl.classList.add('form-group');
+
+                const labelEl = document.createElement('label');
+                labelEl.textContent = `Mass Edit: ${label}`;
+
+                formGroupEl.appendChild(labelEl);
+
+                const formFieldEl = document.createElement('div');
+                formFieldEl.classList.add('form-fields');
+
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = name;
+                formFieldEl.appendChild(input);
+
+                formGroupEl.appendChild(formFieldEl);
+
+                return formGroupEl;
+            };
             // Monk's Active Tiles
             if (this.documentName === 'Tile' && game.modules.get('monks-active-tiles')?.active) {
-                let chk = $(`
-              <div class="form-group">
-                <label>Mass Edit: ${localize(`form.actions`)}</label>
-                <div class="form-fields">
-                    <input type="hidden" name="MassEdit.insert.flags.monks-active-tiles.actions">
-                </div>
-              `);
-                $(html).find('.matt-tab[data-tab="actions"]').prepend(chk);
-                this._processFormGroup(chk, 'meInsert');
+                let el = constructField(localize(`form.actions`), 'MassEdit.insert.flags.monks-active-tiles.actions');
+                html.querySelector('.matt-tab[data-tab="actions"]')?.prepend(el);
+                this._processFormGroup(el, 'meInsert');
 
-                chk = $(`
-              <div class="form-group">
-                <label>Mass Edit: ${localize(`form.images`)}</label>
-                <div class="form-fields">
-                    <input type="hidden" name="MassEdit.insert.flags.monks-active-tiles.files">
-                </div>
-              `);
-                chk.insertBefore('.matt-tab[data-tab="images"] .images-group');
-                this._processFormGroup(chk, 'meInsert');
+                el = constructField(localize(`form.images`), 'MassEdit.insert.flags.monks-active-tiles.files');
+                html.querySelector('.matt-tab[data-tab="images"] .images-group')?.insertAdjacentElement(
+                    'beforebegin',
+                    el,
+                );
+                this._processFormGroup(el, 'meInsert');
             }
 
             // 3D Canvas
             if ((this.documentName === 'Tile' || this.documentName === 'Token') && game.Levels3DPreview) {
-                let chk = $(`
-              <div class="form-group">
-                <label>Mass Edit: ${localize(`form.shaders`)}</label>
-                <div class="form-fields">
-                    <input type="hidden" name="flags.levels-3d-preview.shaders">
-                </div>
-              `);
-                $(html).find('#shader-config').after(chk);
-                this._processFormGroup(chk, 'meInsert');
+                setTimeout(() => {
+                    const el = constructField(localize(`form.shaders`), 'flags.levels-3d-preview.shaders');
+                    html.querySelector('#shader-config')?.insertAdjacentElement('afterend', el);
+                    this._processFormGroup(el, 'meInsert');
+                }, 1000);
             }
         }
 
@@ -1038,7 +1046,7 @@ export const WithMassEditFormApplicationV2 = (cls) => {
             this._registerInputChangeCallback(html);
             this._registerNavigationTabMassSelect(html, 'nav.tabs > [data-action="tab"]');
             this._insertModUpdateCheckboxes(html);
-            this._insertModuleSpecificFields(html);
+            this._insertModuleSpecificFields(this.element);
             this._insertSpecialFields(html);
             this._registerMutateObserver(html);
         }

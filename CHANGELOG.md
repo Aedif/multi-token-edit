@@ -1,3 +1,8 @@
+# 3.2.1
+
+- Regions created via `tileToRegion` utility will now inherit tile's links and elevation
+- Fixed insertion of Mass Edit form `Shaders` field on 3D Canvas scenes
+
 # 3.2.0
 
 **Preset Browser**
