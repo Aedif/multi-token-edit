@@ -260,3 +260,8 @@ Hooks.on('renderTileHUD', (hud, html, tileData) => {
         });
     }
 });
+
+// Monks Active Tiles - Register Tile actions
+// Hooks.on('setupTileActions', (...args) => {
+//     import('./scripts/auxilaryFeatures/matt.js').then((module) => module.registerActions(...args));
+// });
