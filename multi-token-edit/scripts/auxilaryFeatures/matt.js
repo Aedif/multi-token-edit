@@ -1,5 +1,6 @@
-import { MODULE_ID } from '../constants';
+import { MODULE_ID, PIVOTS } from '../constants';
 import { PresetStorage } from '../presets/collection';
+import { Spawner } from '../presets/spawner';
 
 export async function registerActions(MonksActiveTiles) {
     MonksActiveTiles.registerTileGroup(MODULE_ID, 'Mass Edit');
@@ -78,6 +79,36 @@ export async function registerActions(MonksActiveTiles) {
 
             const locations = await MonksActiveTiles.getLocation.call(tile, action.data.location, args);
             if (!locations?.length) return;
+
+            const presets = [...presetCollection];
+            const flags = {
+                world: {
+                    spawnPreset: {
+                        originTileId: tile.id,
+                        signature: action.data.signature,
+                    },
+                },
+            };
+
+            for (const location of locations) {
+                const coord = { x: location.x, y: location.y };
+                if (location.dest) {
+                    if (location.dest instanceof foundry.documents.TileDocument) {
+                        ({ x: coord.x, y: coord.y } = location.dest.shape.center);
+                    }
+                }
+
+                const preset = presets[Math.floor(Math.random() * presets.length)];
+                await Spawner.spawnPreset({
+                    preset,
+                    x: coord.x,
+                    y: coord.y,
+                    scaleToGrid: false,
+                    sceneId: location.dest.parent.id,
+                    pivot: PIVOTS.CENTER,
+                    flags,
+                });
+            }
 
             console.log({ locations });
 

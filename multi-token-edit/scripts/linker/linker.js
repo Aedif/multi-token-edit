@@ -258,9 +258,12 @@ function _delete(document, options, userId) {
 
     const scene = document.parent;
     toDelete.forEach((data, documentName) => {
+        const collection = scene.getEmbeddedCollection(documentName);
+        const ids = data.map((d) => d._id).filter((id) => collection.has(id));
+
         scene.deleteEmbeddedDocuments(
             documentName,
-            data.map((d) => d._id),
+            ids,
             { linkerDelete: true, isUndo: true }, // Hack to prevent history tracking
         );
     });

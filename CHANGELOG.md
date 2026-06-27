@@ -1,3 +1,12 @@
+# 3.2.2
+
+- Improved level's migration script
+    - Both 'Walls' and 'Tiles' are considered as "levels defining"
+    - `MassEdit.tileToRegion(...)` API and its use within the migration scripts will now clean up near zero size area region shapes
+- Improved handling of one or zero levels containing preset spawning
+    - Relative elevations between placeable will now be attempted to be preserved instead of flattened to the current active level's bottom elevation
+- Fixed `MassEdit.importScenes(...)` API generating malformed tags
+
 # 3.2.1
 
 - Regions created via `tileToRegion` utility will now inherit tile's links and elevation

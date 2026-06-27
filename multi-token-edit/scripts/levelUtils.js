@@ -25,11 +25,18 @@ export async function tileToRegion(tile, { create = true, name, notification = f
 
     const classified = classifyRings(await alphaToPolygons(data, width, height));
 
-    const shapes = classified.map((p) => {
+    let shapes = classified.map((p) => {
         const points = [];
         p.ring.forEach(({ x, y }) => points.push(x, y));
         return { type: 'polygon', hole: p.isHole, points };
     });
+
+    shapes = shapes.filter((s) => new foundry.data.PolygonShapeData({ points: s.points }).area);
+
+    if (!shapes.length) {
+        if (notification) ui.notification.warn('Unable to generate region.');
+        return;
+    }
 
     const scale = 1 / textureAlphaResolution;
     const scaleX = (scale / (texture.width / tile.width)) * tile.texture.scaleX;

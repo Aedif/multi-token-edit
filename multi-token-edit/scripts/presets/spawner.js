@@ -246,11 +246,30 @@ export class Spawner {
         return allDocuments;
     }
 
+    static _inferLevel(docToData) {
+        let top = -Infinity;
+        let bottom = Infinity;
+
+        for (const [documentName, dataArr] of docToData.entries()) {
+            dataArr.forEach((data) => {
+                if (data.elevation != null) {
+                    if (top < data.elevation) top = data.elevation;
+                    if (bottom > data.elevation) bottom = data.elevation;
+                }
+            });
+        }
+
+        if (!Number.isFinite(top) || !Number.isFinite(bottom)) return null;
+
+        return { elevation: { top, bottom } };
+    }
+
     static async _mergeCreateLevels(docToData, levels, sceneId) {
         const scene = game.scenes.get(sceneId);
 
         // Special handling for presets with 1 or less levels
         if (!levels || levels.length === 1) {
+            const level = levels?.[0] ?? this._inferLevel(docToData);
             const activeLevel =
                 canvas.scene.id === sceneId
                     ? canvas.level
@@ -258,13 +277,32 @@ export class Spawner {
 
             const activeLevelElevation = activeLevel.toObject().elevation;
 
+            const resortTiles = (docToData.get('Tile') ?? []).map((data) => {
+                return { data, oldElevation: data.elevation };
+            });
+
             for (const [documentName, dataArr] of docToData.entries()) {
                 dataArr.forEach((data) => {
                     if (documentName === 'Token') data.level = activeLevel.id;
                     else data.levels = [activeLevel.id];
 
                     if (documentName === 'Region') data.elevation = { ...activeLevelElevation };
-                    else if (documentName !== 'Wall') data.elevation = activeLevelElevation.bottom;
+                    else if (documentName !== 'Wall') {
+                        if (level && data.elevation != null) {
+                            data.elevation = activeLevelElevation.bottom + (data.elevation - level.elevation.bottom);
+                        } else data.elevation = activeLevelElevation.bottom;
+                    }
+                });
+            }
+
+            // After re-mapping tile elevation lets re-sort them using the old elevation/sort
+            if (!level && resortTiles.length) {
+                resortTiles.sort(
+                    (t1, t2) =>
+                        (t1.oldElevation ?? 0) - (t2.oldElevation ?? 0) || (t1.data.sort ?? 0) - (t2.data.sort ?? 0),
+                );
+                resortTiles.forEach((t, i) => {
+                    t.data.sort = i;
                 });
             }
             return;

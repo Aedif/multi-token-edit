@@ -94,7 +94,7 @@ export class LevelsMigration {
         }
     }
 
-    static #analyze(preset, { expandFlatLevels = false } = {}) {
+    static #analyze(preset, { expandFlatLevels = false, levelDefiningDocuments = ['Tile', 'Wall'] } = {}) {
         // Utility functions
         const keySort = function (a, b) {
             const [a1, a2] = a.split('|').map(Number);
@@ -197,13 +197,13 @@ export class LevelsMigration {
                 .forEach((k) => {
                     console.info(k.padEnd(10, ' '), remappedRanges[k]);
                 });
+            if (!Object.keys(remappedRanges).length) console.info('** none **');
         }
 
         // ===============================================
         // Split ranges into ones containing level defining and spanning documents
         const levelSpanningRanges = {};
         const levelDefiningRanges = {};
-        const levelDefiningDocuments = ['Tile'];
 
         for (const [key, documents] of Object.entries(normalized)) {
             const containsLevelDefiningDocument = documents.some((document) =>
@@ -290,16 +290,16 @@ export class LevelsMigration {
                     otherRanges.push({ bottom, top });
                 }
             });
-            if (flatRanges.length && otherRanges.length) {
+            if (flatRanges.length) {
                 const newRanges = [...otherRanges];
                 for (const flatRange of flatRanges) {
                     const elevation = flatRange.bottom;
                     let closestElevation;
                     let closestDistance = Infinity;
-                    for (const { bottom, top } of otherRanges) {
-                        if (Math.abs(bottom - elevation) < closestDistance) {
-                            closestDistance = Math.abs(bottom - elevation);
-                            closestElevation = bottom;
+                    for (const otherRange of [...flatRanges, ...otherRanges]) {
+                        if (otherRange !== flatRange && Math.abs(otherRange.bottom - elevation) < closestDistance) {
+                            closestDistance = Math.abs(otherRange.bottom - elevation);
+                            closestElevation = otherRange.bottom;
                         }
                     }
                     if (elevation < closestElevation) {
@@ -393,8 +393,9 @@ export class LevelsMigration {
                     region = await tileToRegion(largestTile.data, {
                         create: false,
                     });
-                } catch (e) {
-                    console.log('UNABLE TO CREATE REGION FOR REGION', level, largestTile);
+                } catch (e) {}
+                if (!region) {
+                    console.log('UNABLE TO CREATE REGION FOR LEVEL', level, largestTile);
                     continue;
                 }
 
@@ -480,14 +481,32 @@ export class LevelsMigration {
     ) {
         this.log = logging;
 
-        const containsLevels = this.#getDataByType(preset, 'Wall').find(
-            (wall) => wall.flags?.['wall-height']?.top || wall.flags?.['wall-height']?.bottom,
-        );
-        if (!containsLevels) return false;
-
+        //
+        // Check if this preset require levels migration
+        //
         const containsLevelsMetadata = preset.metadata?.levels;
         if (containsLevelsMetadata) return;
 
+        const containsLevels = this.#getDataByType(preset, 'Wall').find(
+            (wall) => wall.flags?.['wall-height']?.top || wall.flags?.['wall-height']?.bottom,
+        );
+
+        if (!containsLevels) return false;
+
+        // if (!containsLevels) {
+        //     let sampleElevation = null;
+        //     const containsVariedElevation = this.#getDataByType(preset, 'Tile').some((tile) => {
+        //         if (tile.flags?.levels && sampleElevation != null && sampleElevation != tile.elevation) return true;
+        //         sampleElevation = tile.elevation;
+        //         return false;
+        //     });
+        //     console.log({ sampleElevation });
+        //     if (!containsVariedElevation) return false;
+        // }
+
+        //
+        // BEGIN MIGRATION
+        //
         this.#getDataByType(preset, 'Tile').forEach((data) => {
             const collisions = data.flags?.levels?.noCollision === false;
             if (collisions) foundry.utils.setProperty(data, 'flags.levels.blockSightMovement', true);
