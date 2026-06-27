@@ -320,7 +320,7 @@ class FauxSceneImporter extends HandlebarsApplicationMixin(ApplicationV2) {
         if (type === 'create') {
             callback = (tags) => {
                 this.toCreateFauxScenes.forEach((entry) => {
-                    entry.tags = [...new Set([...tags, ...[entry.tags ?? []]])];
+                    entry.tags = [...new Set([...tags, ...(entry.tags ?? [])])];
                 });
             };
         } else if (type === 'rename' || type === 'dangling') {

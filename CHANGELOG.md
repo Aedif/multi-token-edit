@@ -1,3 +1,7 @@
+# 2.8.4
+
+- Fixed MassEdit.importScenes(...) API generating malformed tags
+
 # 2.8.3
 
 - Improved handling of malformed Preset tag updates
