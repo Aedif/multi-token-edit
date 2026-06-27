@@ -216,10 +216,14 @@ function calculateTransform(documentName, currentSource, previousSource, change,
     if (dRotation != null) {
         transform.rotation = dRotation;
 
-        const { x1, y1, x2, y2 } = getDataBounds(documentName, currentSource);
-
-        origin.x = x1 + (x2 - x1) / 2;
-        origin.y = y1 + (y2 - y1) / 2;
+        if (documentName === 'Tile') {
+            origin.x = currentSource.x;
+            origin.y = currentSource.y;
+        } else {
+            const { x1, y1, x2, y2 } = getDataBounds(documentName, currentSource);
+            origin.x = x1 + (x2 - x1) / 2;
+            origin.y = y1 + (y2 - y1) / 2;
+        }
     }
 
     if (currentSource.hasOwnProperty('elevation')) {
@@ -254,9 +258,12 @@ function _delete(document, options, userId) {
 
     const scene = document.parent;
     toDelete.forEach((data, documentName) => {
+        const collection = scene.getEmbeddedCollection(documentName);
+        const ids = data.map((d) => d._id).filter((id) => collection.has(id));
+
         scene.deleteEmbeddedDocuments(
             documentName,
-            data.map((d) => d._id),
+            ids,
             { linkerDelete: true, isUndo: true }, // Hack to prevent history tracking
         );
     });
@@ -661,16 +668,21 @@ export class LinkerAPI {
         const dg = canvas.controls.debug;
         dg.clear();
 
-        const width = 8;
+        const width = 6;
         const alpha = 1;
         docs.forEach((d) => {
-            let bounds = d.object.bounds;
-
-            dg.lineStyle(width + 2, 0, alpha, 0.5);
-            dg.drawRect(bounds.x, bounds.y, bounds.width, bounds.height);
-
             dg.lineStyle(width, LINKER_DOC_COLORS[d.documentName], alpha, 0.5);
-            dg.drawRect(bounds.x, bounds.y, bounds.width, bounds.height);
+
+            if (d.shape?.drawShape) d.shape.drawShape(dg);
+            else if (d.shapes) d.shapes.forEach((shape) => shape.drawShape(dg));
+            else if (d.documentName === 'Wall') {
+                const c = d.toObject().c;
+                console.log(c);
+                dg.moveTo(c[0], c[1]).lineTo(c[2], c[3]);
+            } else {
+                const { x, y, width, height } = getDataBounds(d.documentName, d.toObject());
+                dg.drawRect(x, y, width, height);
+            }
         });
     }
 

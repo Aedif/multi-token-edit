@@ -1,12 +1,12 @@
 import { showMassEdit, showGenericForm } from './applications/multiConfig.js';
 import { createDocuments, isResponsibleGM, resolveCreateDocumentRequest, TagInput } from './scripts/utils.js';
 import { libWrapper } from './scripts/libs/shim/shim.js';
-import { enableUniversalSelectTool } from './scripts/tools/selectTool.js';
+import { enableSelectToolEnhancements } from './scripts/tools/selectTool.js';
 import { PresetAPI, PresetStorage } from './scripts/presets/collection.js';
 import { openPresetBrowser, registerPresetBrowserHooks } from './scripts/presets/browser/browserApp.js';
 import { registerKeybinds, registerSettings } from './scripts/settings.js';
 import { BrushMenu, activateBrush, deactivateBush, openBrushMenu } from './scripts/brush.js';
-import { V12Migrator } from './scripts/presets/migration.js';
+import { Migrator } from './scripts/presets/migration/migration.js';
 import { performMassSearch, performMassUpdate } from './applications/formUtils.js';
 import { registerSideBarPresetDropListener } from './scripts/presets/utils.js';
 import { LinkerAPI, registerLinkerHooks } from './scripts/linker/linker.js';
@@ -24,6 +24,7 @@ import { registerSceneConfigHooks } from './scripts/auxilaryFeatures/sceneConfig
 import { registerDragUploadHooks } from './scripts/auxilaryFeatures/dragUpload.js';
 import { initRegisters } from './scripts/auxilaryFeatures/registers.js';
 import { registerMultiTagElement } from './scripts/libs/foundry/tags.js';
+import { tileToRegion } from './scripts/levelUtils.js';
 
 globalThis.MassTransformer = MassTransformer;
 
@@ -42,8 +43,9 @@ globalThis.MassEdit = {
     openCategoryBrowser,
     deactivateBrush: deactivateBush,
     openBrushMenu: openBrushMenu,
-    migratePack: (pack, options = {}) => V12Migrator.migratePack(pack, options),
-    migrateAllPacks: (options = {}) => V12Migrator.migrateAllPacks(options),
+    migratePack: (pack, options = {}) => Migrator.migratePack(pack, options),
+    migrateAllPacks: (options = {}) => Migrator.migrateAllPacks(options),
+    migrateScene: (scene, opts1, opts2) => Migrator.migrateScene(scene, opts1, opts2),
     linker: LinkerAPI,
     PIVOTS: PIVOTS,
     openPresetBrowser,
@@ -54,6 +56,7 @@ globalThis.MassEdit = {
         const { importScenes } = await import('./scripts/presets/fauxSceneImporter.js');
         return importScenes();
     },
+    tileToRegion,
 };
 
 // Initialize module
@@ -76,8 +79,8 @@ Hooks.once('init', () => {
     TagInput.registerHandlebarsHelper();
     // Partials used for Preset rendering
     registerPresetHandlebarPartials();
-    // Enable select tool for all layers
-    enableUniversalSelectTool();
+    // Enable select tool enhancements
+    enableSelectToolEnhancements();
     // Settings/Keybindings
     registerSettings();
     registerKeybinds();
@@ -257,3 +260,8 @@ Hooks.on('renderTileHUD', (hud, html, tileData) => {
         });
     }
 });
+
+// Monks Active Tiles - Register Tile actions
+// Hooks.on('setupTileActions', (...args) => {
+//     import('./scripts/auxilaryFeatures/matt.js').then((module) => module.registerActions(...args));
+// });

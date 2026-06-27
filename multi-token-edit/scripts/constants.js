@@ -1,14 +1,13 @@
 export const MODULE_ID = 'multi-token-edit';
 export const SUPPORTED_PLACEABLES = [
-  'Token',
-  'MeasuredTemplate',
-  'Tile',
-  'Drawing',
-  'Wall',
-  'AmbientLight',
-  'AmbientSound',
-  'Note',
-  'Region',
+    'Token',
+    'Tile',
+    'Drawing',
+    'Wall',
+    'AmbientLight',
+    'AmbientSound',
+    'Note',
+    'Region',
 ];
 export const UI_DOCS = ['Bag', 'Scene', 'ALL', ...SUPPORTED_PLACEABLES];
 export const SUPPORTED_SHEET_CONFIGS = [...SUPPORTED_PLACEABLES, 'Actor', 'PlaylistSound', 'Scene'];
@@ -21,41 +20,39 @@ export const MODEL_EXTENSIONS = ['glb', 'gltf', 'fbx'];
 export const FILE_EXTENSIONS = [...IMAGE_EXTENSIONS, ...VIDEO_EXTENSIONS, ...AUDIO_EXTENSIONS, ...MODEL_EXTENSIONS];
 
 export const LINKER_DOC_ICONS = {
-  Token: 'modules/multi-token-edit/images/linker/person-fill.svg',
-  MeasuredTemplate: 'modules/multi-token-edit/images/linker/rulers.svg',
-  Tile: 'modules/multi-token-edit/images/linker/boxes.svg',
-  Drawing: 'modules/multi-token-edit/images/linker/pencil-fill.svg',
-  Wall: 'modules/multi-token-edit/images/linker/bricks.svg',
-  AmbientLight: 'modules/multi-token-edit/images/linker/lightbulb-fill.svg',
-  AmbientSound: 'modules/multi-token-edit/images/linker/music-note-beamed.svg',
-  Note: 'modules/multi-token-edit/images/linker/bookmark-fill.svg',
-  Region: 'modules/multi-token-edit/images/linker/border-outer.svg',
+    Token: 'modules/multi-token-edit/images/linker/person-fill.svg',
+    Tile: 'modules/multi-token-edit/images/linker/boxes.svg',
+    Drawing: 'modules/multi-token-edit/images/linker/pencil-fill.svg',
+    Wall: 'modules/multi-token-edit/images/linker/bricks.svg',
+    AmbientLight: 'modules/multi-token-edit/images/linker/lightbulb-fill.svg',
+    AmbientSound: 'modules/multi-token-edit/images/linker/music-note-beamed.svg',
+    Note: 'modules/multi-token-edit/images/linker/bookmark-fill.svg',
+    Region: 'modules/multi-token-edit/images/linker/border-outer.svg',
 };
 
 export const LINKER_DOC_COLORS = {
-  Token: 0xcec66e,
-  MeasuredTemplate: 0xff0000,
-  Tile: 0x23e230,
-  Drawing: 0xe223ce,
-  Wall: 0xb7b7b7,
-  AmbientLight: 0xffff00,
-  AmbientSound: 0x00e3ff,
-  Note: 0xffffff,
-  Region: 0xdc006b,
+    Token: 0xcec66e,
+    Tile: 0x23e230,
+    Drawing: 0xe223ce,
+    Wall: 0xb7b7b7,
+    AmbientLight: 0xffff00,
+    AmbientSound: 0x00e3ff,
+    Note: 0xffffff,
+    Region: 0xdc006b,
 };
 
 export const PIVOTS = {
-  TOP_LEFT: 'TOP_LEFT',
-  TOP: 'TOP',
-  TOP_RIGHT: 'TOP_RIGHT',
-  LEFT: 'LEFT',
-  CENTER: 'CENTER',
-  RIGHT: 'RIGHT',
-  BOTTOM_LEFT: 'BOTTOM_LEFT',
-  BOTTOM: 'BOTTOM',
-  BOTTOM_RIGHT: 'BOTTOM_RIGHT',
+    TOP_LEFT: 'TOP_LEFT',
+    TOP: 'TOP',
+    TOP_RIGHT: 'TOP_RIGHT',
+    LEFT: 'LEFT',
+    CENTER: 'CENTER',
+    RIGHT: 'RIGHT',
+    BOTTOM_LEFT: 'BOTTOM_LEFT',
+    BOTTOM: 'BOTTOM',
+    BOTTOM_RIGHT: 'BOTTOM_RIGHT',
 };
 
 export const THRESHOLDS = {
-  PIXEL_PERFECT_ALPHA: 0.75,
+    PIXEL_PERFECT_ALPHA: 0.75,
 };

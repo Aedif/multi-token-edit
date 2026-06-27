@@ -28,6 +28,9 @@ export class PresetAPI {
         };
 
         presetData.gridSize = canvas.scene.grid.size;
+        presetData.metadata = { coreVersion: actor._stats.coreVersion };
+        const levels = Preset.retrieveLevels(presetData);
+        if (levels.length) preset.metadata.levels = levels;
 
         const preset = new Preset(presetData);
         return preset;
@@ -46,6 +49,7 @@ export class PresetAPI {
      * @param {object} [options={}]                               Optional Preset information
      * @param {String} [options.name]                             Preset name
      * @param {String} [options.img]                              Preset thumbnail image
+     * @param {Array[object]} [options.attached]                  Attached placeable data
      * @returns {Preset|Array[Preset]}
      */
     static async createPreset(placeables, options = {}) {
@@ -91,9 +95,6 @@ export class PresetAPI {
                 case 'Drawing':
                     defPreset.img = 'icons/svg/acid.svg';
                     break;
-                case 'MeasuredTemplate':
-                    defPreset.img = 'icons/svg/circle.svg';
-                    break;
             }
 
             //  Assign preset name
@@ -108,8 +109,12 @@ export class PresetAPI {
             }
 
             defPreset.gridSize = placeables[0].document.parent.grid.size;
+            defPreset.metadata = { coreVersion: game.version };
 
             foundry.utils.mergeObject(defPreset, options, { inplace: true });
+
+            const levels = Preset.retrieveLevels(defPreset, placeables[0].document.parent);
+            if (levels.length) defPreset.metadata.levels = levels;
 
             const preset = new Preset(defPreset);
             presets.push(preset);

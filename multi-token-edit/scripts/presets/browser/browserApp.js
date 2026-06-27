@@ -779,16 +779,7 @@ export class PresetBrowser extends PresetContainerV2 {
      * @param {Event} event
      */
     async dropPlaceable(placeables, event) {
-        const presets = await PresetAPI.createPreset(placeables);
-
-        // Switch to just created preset's category before rendering if not set to 'ALL'
-        const documentName = placeables[0].document.documentName;
-        if (this.documentName !== 'ALL' && this.documentName !== documentName) this.documentName = documentName;
-
-        const options = { isCreate: true };
-        options.left = this.position.left + this.position.width + 20;
-        options.top = this.position.top;
-
+        const options = {};
         const linked = LinkerAPI.getLinkedDocuments(placeables.map((p) => p.document));
         if (linked.size) {
             const response = await new Promise((resolve) => {
@@ -807,11 +798,17 @@ export class PresetBrowser extends PresetContainerV2 {
             }
         }
 
-        this._editPresets(presets, options, event);
-    }
+        const presets = await PresetAPI.createPreset(placeables, options);
 
-    async actorToPreset(actor) {
-        const presets = await PresetAPI.createPreset(placeables);
+        // Switch to just created preset's category before rendering if not set to 'ALL'
+        const documentName = placeables[0].document.documentName;
+        if (this.documentName !== 'ALL' && this.documentName !== documentName) this.documentName = documentName;
+
+        this._editPresets(
+            presets,
+            { isCreate: true, left: this.position.left + this.position.width + 20, top: this.position.top },
+            event,
+        );
     }
 
     _getActiveEffectFields() {

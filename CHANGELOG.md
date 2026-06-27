@@ -1,16 +1,84 @@
-# 2.8.2
+# 3.2.2
 
-- Fixed `MassEdit.updatePresetTags` API
+- Improved level's migration script
+    - Both 'Walls' and 'Tiles' are considered as "levels defining"
+    - `MassEdit.tileToRegion(...)` API and its use within the migration scripts will now clean up near zero size area region shapes
+- Improved handling of one or zero levels containing preset spawning
+    - Relative elevations between placeable will now be attempted to be preserved instead of flattened to the current active level's bottom elevation
+- Fixed `MassEdit.importScenes(...)` API generating malformed tags
 
-# 2.8.0
+# 3.2.1
 
-- Replaced `MassEdit.importSceneCompendium()` with `MassEdit.importScenes()`
-    - The new API handles the rendering of the import preview UI
-    - The following operations can now be performed in 3 distinct steps:
-        - Creating/Importing new FauxScenes
-        - Renaming mismatched FauxScenes
-        - Removing "Dangling" FauxScenes
-    - In addition FauxScenes can now be tagged en masse based on the category they're in
+- Regions created via `tileToRegion` utility will now inherit tile's links and elevation
+- Fixed insertion of Mass Edit form `Shaders` field on 3D Canvas scenes
+
+# 3.2.0
+
+**Preset Browser**
+
+- Fixed the browser remaining un-interactive if an error occurred during preset spawn
+- Added a new setting: 'Automatic Levels Migration'
+    - When enabled the module will attempt to detect presets with old `Levels` and `Wall Height` flags and perform automatic migration to the v14 Levels
+
+**Levels**
+
+- Migration script has been improved
+    - Levels are now only defined by tiles, other placeables simply span them
+    - The largest tile at the bottom of any inferred level will have a region generated for them with a `Define Surface` behavior
+- `Spawn As Preset` scene context menu option will now encode relevant level information
+- Fixed incorrect encoding of levels with `Infinite` elevation
+
+- New keybind added: `Tile -> Region`
+    - Non-alpha pixels of selected tiles will be used to create new regions
+    - This capability is also exposed through `MassEdit.tileToRegion`
+
+**Misc**
+
+- Fixed Tile rotation updates not transferring correctly to other linked placeables
+- Fixed errors preventing macro generator from creating a new macro
+
+# 3.1.1
+
+**Levels**
+
+- Fixed levels information not getting encoded when creating presets or assigning placeables
+- Fixed level merge on Preset spawn not assigning proper visibility settings
+
+**Linker Menu**
+
+- Fixed render errors caused by scene documents no longer necessarily having a placeable instances
+- Fixed menu node overlap
+- Improved Wall, Region, AmbientLight, and AmbientSound highlights during node hover
+
+**Misc**
+
+- Improved handling of malformed preset tag updates
+- Tokens created on scenescapes will now have `scale` set to 1, and `anchors` to 0.5 to improve rendering
+
+# 3.1.0
+
+- Multi-Layer select tool will now detect documents across all levels
+- Presets containing only a single level will be assigned the current active-level upon spawn
+- Fixed Preset drag/drop onto 3D Canvas
+- Fixed Levels data not getting encoded for `attached` placeables
+- New control added to Preset editor window: `Metadata`
+    - Displays preset metadata such as core version and encoded levels information
+
+# 3.0.2
+
+- Fixed `Placeable Preview Editing` control not applying changes on scenescapes
+- Fixed PF2e specific bug causing region preview rotation to fail when dragged from the chat card
+- Fixed Mass Edit form checkboxes not auto-toggling for `multi-select` fields
+
+# 3.0.1
+
+- Fixed Scenescape outline filter causing canvas to freeze
+
+# 3.0.0
+
+- V14 Support
+- Existing prefabs containing `MeasuredTemplates` and `Tiles` will not work correctly until a core migration macro is ran
+    - `Levels` module migration macros are available however it is still under active development, use with caution
 
 # 2.7.15
 

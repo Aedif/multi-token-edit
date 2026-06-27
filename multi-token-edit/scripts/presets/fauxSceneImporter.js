@@ -151,8 +151,6 @@ class FauxSceneImporter extends HandlebarsApplicationMixin(ApplicationV2) {
             }
         }
 
-        console.log({ toCreateFauxScenes, toRenameFauxScenes, existingFauxScenes, danglingFauxScenes });
-
         await foundry.applications.handlebars.getTemplate(
             `modules/${MODULE_ID}/templates/preset/fauxscene/entry-partial.hbs`,
             'me-faux-scene-entry',
@@ -320,7 +318,7 @@ class FauxSceneImporter extends HandlebarsApplicationMixin(ApplicationV2) {
         if (type === 'create') {
             callback = (tags) => {
                 this.toCreateFauxScenes.forEach((entry) => {
-                    entry.tags = [...new Set([...tags, ...[entry.tags ?? []]])];
+                    entry.tags = [...new Set([...tags, ...(entry.tags ?? [])])];
                 });
             };
         } else if (type === 'rename' || type === 'dangling') {
