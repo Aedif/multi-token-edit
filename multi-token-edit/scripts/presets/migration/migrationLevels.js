@@ -465,12 +465,39 @@ export class LevelsMigration {
     }
 
     static #remapElevation(documents, remappedRanges) {
+        const tileTokenResort = {};
+        let resort = false;
+
         for (const document of documents) {
             const { bottom, top } = this.#getDocumentLevel(document);
+
             const key = `${bottom}|${top}`;
+            let newBottom;
             if (key in remappedRanges) {
                 const [bottom, top] = remappedRanges[key].split('|').map(Number);
+
+                newBottom = bottom;
+                resort ||= document.documentName === 'Tile' || document.documentName === 'Token';
+
                 this.#setDocumentLevel(document, bottom, top);
+            }
+
+            if (document.documentName === 'Tile' || document.documentName === 'Token') {
+                tileTokenResort[newBottom ?? bottom] ??= [];
+                tileTokenResort[newBottom ?? bottom].push({ document, oldElevation: document.data.elevation });
+            }
+        }
+
+        if (resort) {
+            for (const documents of Object.values(tileTokenResort)) {
+                documents.sort(
+                    (d1, d2) =>
+                        (d1.document.data.oldElevation ?? 0) - (d2.document.oldElevation ?? 0) ||
+                        (d1.document.data.sort ?? 0) - (d2.document.data.sort ?? 0),
+                );
+                documents.forEach((d, i) => {
+                    d.data.sort = i;
+                });
             }
         }
     }
@@ -482,7 +509,7 @@ export class LevelsMigration {
         this.log = logging;
 
         //
-        // Check if this preset require levels migration
+        // Check if this preset requires levels migration
         //
         const containsLevelsMetadata = preset.metadata?.levels;
         if (containsLevelsMetadata) return;
