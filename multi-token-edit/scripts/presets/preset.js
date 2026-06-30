@@ -101,7 +101,7 @@ export class Preset {
     constructor(data) {
         this.id = data.id ?? data._id ?? foundry.utils.randomID();
         this.name = data.name ?? 'Mass Edit Preset';
-        this.documentName = data.documentName;
+        this.documentName = data.documentName ?? 'Generic';
         this.sort = data.sort ?? 0;
         this.tags = data.tags ?? [];
         this.addSubtract =

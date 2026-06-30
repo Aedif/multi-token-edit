@@ -579,7 +579,7 @@ export async function importSceneCompendium(scenePack, presetPack) {
         }
     }
 
-    await PresetStorage.createDocuments(presets, presetPack);
+    await PresetStorage.createDocuments(presets, { pack: presetPack });
 
     ui.notifications.info(`Imported scenes: ${presets.length}/${alreadyImportedCount + presets.length}`);
     if (nameUpdatedCount) {

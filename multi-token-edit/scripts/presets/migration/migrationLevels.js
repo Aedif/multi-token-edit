@@ -496,7 +496,7 @@ export class LevelsMigration {
                         (d1.document.data.sort ?? 0) - (d2.document.data.sort ?? 0),
                 );
                 documents.forEach((d, i) => {
-                    d.data.sort = i;
+                    d.document.data.sort = i;
                 });
             }
         }
@@ -636,7 +636,6 @@ export class LevelsMigration {
                         data.levels = createdLevels.filter((l) => l.elevation.top >= minElevation).map((l) => l.id);
                     }
                 } else {
-                    // console.log('HERE', data.texture.src, createdLevels);
                     data.levels = createdLevels.filter((l) => l.elevation.bottom >= bottom).map((l) => l.id);
                     // data.levels = level.aboveLevels; // TODO confirm if the above logic ^ is a good substitute for this line
                 }

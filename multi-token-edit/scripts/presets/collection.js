@@ -52,7 +52,7 @@ export class PresetAPI {
      * @param {Array[object]} [options.attached]                  Attached placeable data
      * @returns {Preset|Array[Preset]}
      */
-    static async createPreset(placeables, options = {}) {
+    static async createPresetFromPlaceable(placeables, options = {}) {
         if (!placeables) return;
         if (!(placeables instanceof Array)) placeables = [placeables];
 
@@ -120,7 +120,37 @@ export class PresetAPI {
             presets.push(preset);
         }
 
-        await PresetStorage.createDocuments(presets);
+        await PresetStorage.createDocuments(presets, { pack: options.pack });
+
+        return presets;
+    }
+
+    /**
+     * Creates presets using the passed in preset data or Preset instance/s.
+     * Refer to Preset.constructor for supported preset fields
+     * @param {object|Array[object]|Preset|Array[Preset]} preset
+     * @param {object} options
+     * @returns
+     */
+    static async createPreset(preset, options = {}) {
+        if (!preset) return;
+
+        if (
+            preset instanceof foundry.canvas.placeables.PlaceableObject ||
+            preset[0] instanceof foundry.canvas.placeables.PlaceableObject
+        ) {
+            foundry.utils.logCompatibilityWarning(
+                'MassEdit.createPreset has been deprecated for Placeable to Preset creation. Use MassEdit.createPresetFromPlaceable instead.',
+                { since: '3.2.3', once: true },
+            );
+            return PresetAPI.createPresetFromPlaceable(preset, options);
+        }
+
+        const presets = (Array.isArray(preset) ? preset : [preset]).map((p) =>
+            p instanceof Preset ? p : new Preset(p),
+        );
+
+        await PresetStorage.createDocuments(presets, options);
 
         return presets;
     }
@@ -361,7 +391,7 @@ export class PresetStorage {
      * Creates a JournalEntry document representing the passed in preset/s
      * @param {Preset|Array[Preset]} presets
      */
-    static async createDocuments(presets, pack = this.workingPack) {
+    static async createDocuments(presets, { pack = this.workingPack } = {}) {
         if (!Array.isArray(presets)) presets = [presets];
 
         const compendium = game.packs.get(pack);

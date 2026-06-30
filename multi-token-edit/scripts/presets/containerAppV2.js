@@ -748,7 +748,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
             if (p.virtual) await p.load({ force: true });
         }
 
-        await PresetStorage.createDocuments(presets, pack);
+        await PresetStorage.createDocuments(presets, { pack });
 
         if (selected.length) this.render(true);
     }
