@@ -1,3 +1,10 @@
+# 3.2.4
+
+- New **Drag Upload** setting added: `Overwrite Matching Names`
+    - When enabled dragged in files which match names of existing files will overwrite them.
+- Fixed **Drag Upload** incompatibility with **ForgeVTT**
+- Fixed automatic core/level's migration not triggering when drag/dropping presets
+
 # 3.2.3
 
 **Levels migration**
