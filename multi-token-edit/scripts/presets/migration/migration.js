@@ -316,7 +316,7 @@ export class Migrator {
                 }
             }
 
-            if (toUpdate.length) scene.updateEmbeddedDocuments(documentName, toUpdate);
+            if (toUpdate.length) scene.updateEmbeddedDocuments(documentName, toUpdate, { ignoreLinks: true });
             if (toCreate.length) scene.createEmbeddedDocuments(documentName, toCreate);
         }
 

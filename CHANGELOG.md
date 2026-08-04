@@ -1,3 +1,19 @@
+# 3.2.4
+
+- New **Drag Upload** setting added: `Overwrite Matching Names`
+    - When enabled dragged in files which match names of existing files will overwrite them.
+- Fixed **Drag Upload** incompatibility with **ForgeVTT**
+- Fixed automatic core/level's migration not triggering when drag/dropping presets
+
+# 3.2.3
+
+**Levels migration**
+
+- Fixed linked objects offsetting incorrectly during scene migration
+- Improved handling of walls spanning non-defined levels
+    - e.g. If 2 levels exist defined as 0|10 and 20|30 and a wall spans between 0|25, a new level will be inserted 10|20, and the wall will cross all 3
+- If a wall extends beyond the bottom-most and top-most levels, new levels will be defined extending from the existing level to the wall defined limit
+
 # 3.2.2
 
 - Improved level's migration script

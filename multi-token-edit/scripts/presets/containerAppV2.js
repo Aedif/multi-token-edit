@@ -369,7 +369,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
         // Spawn Preset
         this._setInteractivityState(false);
         try {
-            await this._onSpawnPreset(preset);
+            await this._onSpawnPreset(preset, { preview: true });
         } catch (e) {
             console.error(e);
         }
@@ -388,15 +388,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
     }
 
     async _onSpawnPreset(preset, options = {}) {
-        return await Spawner.spawnPreset({
-            preset,
-            preview: true,
-            layerSwitch: PresetBrowser.CONFIG.switchLayer,
-            scaleToGrid: PresetBrowser.CONFIG.autoScale || Scenescape.active,
-            automaticLevelMigration: PresetBrowser.CONFIG.automaticLevelMigration,
-            pivot: PIVOTS.CENTER,
-            ...options,
-        });
+        return handlePresetSpawn(preset, options);
     }
 
     async _onRightClickPreset(eventTarget) {
@@ -748,7 +740,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
             if (p.virtual) await p.load({ force: true });
         }
 
-        await PresetStorage.createDocuments(presets, pack);
+        await PresetStorage.createDocuments(presets, { pack });
 
         if (selected.length) this.render(true);
     }
@@ -1112,6 +1104,17 @@ export function itemSelect(event, element, itemList) {
     }
 }
 
+async function handlePresetSpawn(preset, options = {}) {
+    return await Spawner.spawnPreset({
+        preset,
+        layerSwitch: PresetBrowser.CONFIG.switchLayer,
+        scaleToGrid: PresetBrowser.CONFIG.autoScale || Scenescape.active,
+        automaticLevelMigration: PresetBrowser.CONFIG.automaticLevelMigration,
+        pivot: PIVOTS.CENTER,
+        ...options,
+    });
+}
+
 /**
  * Handle preset being dragged out onto the canvas
  */
@@ -1128,13 +1131,7 @@ export function registerPresetDragDropHooks() {
         if (preset.documentName === 'Scene') {
             applyPresetToScene(preset);
         } else if (SUPPORTED_PLACEABLES.includes(preset.documentName)) {
-            MassEdit.spawnPreset({
-                preset,
-                ...point,
-                layerSwitch: PresetBrowser.CONFIG.switchLayer,
-                scaleToGrid: PresetBrowser.CONFIG.autoScale || Scenescape.active,
-                pivot: PIVOTS.CENTER,
-            });
+            handlePresetSpawn(preset, { ...point });
         }
     };
 

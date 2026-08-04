@@ -41,6 +41,7 @@ export function registerSettings() {
             source: 'data',
             bucket: '',
             presets: {},
+            overwrite: false,
         },
     });
 

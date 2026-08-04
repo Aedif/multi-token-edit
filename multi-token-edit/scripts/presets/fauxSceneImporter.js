@@ -265,7 +265,7 @@ class FauxSceneImporter extends HandlebarsApplicationMixin(ApplicationV2) {
             presets.push(preset);
         }
 
-        await PresetStorage.createDocuments(presets, this._meCompendium.collection);
+        await PresetStorage.createDocuments(presets, { pack: this._meCompendium.collection });
         ui.notifications.info(`Imported ${presets.length} scenes.`);
         if (render) this.render(true);
     }

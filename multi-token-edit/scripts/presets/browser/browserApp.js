@@ -365,7 +365,7 @@ export class PresetBrowser extends PresetContainerV2 {
                 this._importTracker?.incrementCount();
             }
 
-            await PresetStorage.createDocuments(toCreate, pack);
+            await PresetStorage.createDocuments(toCreate, { pack });
 
             for (const child of folder.children) {
                 if (!this._importTracker?.active) break;
@@ -798,7 +798,7 @@ export class PresetBrowser extends PresetContainerV2 {
             }
         }
 
-        const presets = await PresetAPI.createPreset(placeables, options);
+        const presets = await PresetAPI.createPresetFromPlaceable(placeables, options);
 
         // Switch to just created preset's category before rendering if not set to 'ALL'
         const documentName = placeables[0].document.documentName;

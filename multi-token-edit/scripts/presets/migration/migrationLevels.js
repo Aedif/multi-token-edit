@@ -94,7 +94,29 @@ export class LevelsMigration {
         }
     }
 
-    static #analyze(preset, { expandFlatLevels = false, levelDefiningDocuments = ['Tile', 'Wall'] } = {}) {
+    static #mergeWallRange(ranges, wallRange) {
+        const sorted = [...ranges].sort((a, b) => a.bottom - b.bottom);
+        const gapsToFill = [];
+
+        for (let i = 0; i < sorted.length - 1; i++) {
+            const gapBottom = sorted[i].top;
+            const gapTop = sorted[i + 1].bottom;
+
+            // Is there actually a gap between these two ranges?
+            if (gapTop <= gapBottom) continue;
+
+            // Does the new range overlap into this gap (not just touch its edge)?
+            const overlapsGap = wallRange.bottom <= gapTop && wallRange.top >= gapBottom;
+
+            if (overlapsGap) {
+                gapsToFill.push({ bottom: gapBottom, top: gapTop });
+            }
+        }
+
+        return [...sorted, ...gapsToFill].sort((a, b) => a.bottom - b.bottom);
+    }
+
+    static #analyze(preset, { expandFlatLevels = false } = {}) {
         // Utility functions
         const keySort = function (a, b) {
             const [a1, a2] = a.split('|').map(Number);
@@ -201,35 +223,48 @@ export class LevelsMigration {
         }
 
         // ===============================================
-        // Split ranges into ones containing level defining and spanning documents
+        // Split ranges into ones containing level defining and spanning
         const levelSpanningRanges = {};
-        const levelDefiningRanges = {};
+
+        const tileDefinedRanges = {};
+        const wallDefinedRanges = {};
 
         for (const [key, documents] of Object.entries(normalized)) {
-            const containsLevelDefiningDocument = documents.some((document) =>
-                levelDefiningDocuments.includes(document.documentName),
-            );
-            if (containsLevelDefiningDocument) {
-                levelDefiningRanges[key] = documents;
+            if (documents.some((d) => d.documentName === 'Tile')) {
+                tileDefinedRanges[key] = documents;
+            } else if (documents.some((d) => d.documentName === 'Wall')) {
+                wallDefinedRanges[key] = documents;
             } else {
                 levelSpanningRanges[key] = documents;
             }
         }
 
         if (this.log) {
-            this.#logHeader('Step 3a: Identifying Level Defining Ranges');
-            Object.keys(levelDefiningRanges)
+            this.#logHeader('Step 3a: Tile Defined Ranges');
+            Object.keys(tileDefinedRanges)
                 .sort(keySort)
                 .forEach((k) => {
                     console.info(
                         k.padEnd(10, ' '),
-                        String(levelDefiningRanges[k].length).padEnd(5, ' '),
-                        countDocuments(levelDefiningRanges[k]),
+                        String(tileDefinedRanges[k].length).padEnd(5, ' '),
+                        countDocuments(tileDefinedRanges[k]),
                     );
                 });
-            if (!Object.keys(levelDefiningRanges).length) console.info('** none **');
+            if (!Object.keys(tileDefinedRanges).length) console.info('** none **');
 
-            this.#logHeader('Step 3b: Identifying Level Spanning Ranges');
+            this.#logHeader('Step 3b: Wall Defined Ranges');
+            Object.keys(wallDefinedRanges)
+                .sort(keySort)
+                .forEach((k) => {
+                    console.info(
+                        k.padEnd(10, ' '),
+                        String(wallDefinedRanges[k].length).padEnd(5, ' '),
+                        countDocuments(wallDefinedRanges[k]),
+                    );
+                });
+            if (!Object.keys(wallDefinedRanges).length) console.info('** none **');
+
+            this.#logHeader('Step 3c: Level Spanning Ranges');
             Object.keys(levelSpanningRanges)
                 .sort(keySort)
                 .forEach((k) => {
@@ -242,28 +277,61 @@ export class LevelsMigration {
             if (!Object.keys(levelSpanningRanges).length) console.info('** none **');
         }
 
+        let levelDefiningRanges;
+        if (Object.keys(wallDefinedRanges).length) {
+            // ===============================================
+            // Merge Wall defined ranges into
+            let ranges = Object.keys(tileDefinedRanges).map((k) => {
+                const [bottom, top] = k.split('|').map(Number);
+                return { bottom, top };
+            });
+            const wallRanges = Object.keys(wallDefinedRanges).map((k) => {
+                const [bottom, top] = k.split('|').map(Number);
+                return { bottom, top };
+            });
+
+            const lowestWallBottom = Math.min(...wallRanges.map((r) => r.bottom));
+            const isLowest = ranges.every((r) => lowestWallBottom < r.bottom);
+            if (isLowest) {
+                ranges.push({ bottom: lowestWallBottom, top: Math.min(...ranges.map((r) => r.bottom)) });
+            }
+
+            const highestWallTop = Math.max(...wallRanges.map((r) => r.top));
+            const isHighest = ranges.every((r) => highestWallTop > r.top);
+            if (isHighest) {
+                ranges.push({ bottom: Math.max(...ranges.map((r) => r.top)), top: highestWallTop });
+            }
+
+            for (const range of wallRanges) {
+                ranges = this.#mergeWallRange(ranges, range);
+            }
+            levelDefiningRanges = ranges;
+        } else {
+            levelDefiningRanges = Object.keys(tileDefinedRanges)
+                .sort(keySort)
+                .map((k) => {
+                    const [bottom, top] = k.split('|').map(Number);
+                    return { bottom, top };
+                });
+        }
+
         // ===============================================
         // Attempt to merge ranges that exist on a very narrow elevation
         let rangesToCreate = new Set();
-        for (const key of Object.keys(levelDefiningRanges)) {
-            const [bottom, top] = key.split('|').map(Number);
-
+        for (const { bottom, top } of levelDefiningRanges) {
             let isContainedKey;
-
             const size = top - bottom;
             if (size < 5) {
-                for (const searchKey of Object.keys(levelDefiningRanges)) {
-                    if (key === searchKey) continue;
-                    const [bottom2, top2] = searchKey.split('|').map(Number);
-
-                    if (bottom >= bottom2 && bottom <= top2) {
-                        isContainedKey = searchKey;
+                for (const { bottom: bottom2, top: top2 } of levelDefiningRanges) {
+                    if (bottom === bottom2 && top === top2) continue;
+                    if (bottom >= bottom2 && top <= top2) {
+                        isContainedKey = `${bottom2}|${top2}`;
                         break;
                     }
                 }
             }
 
-            rangesToCreate.add(isContainedKey ?? key);
+            rangesToCreate.add(isContainedKey ?? `${bottom}|${top}`);
         }
 
         rangesToCreate = [...rangesToCreate].sort(keySort);
@@ -465,12 +533,40 @@ export class LevelsMigration {
     }
 
     static #remapElevation(documents, remappedRanges) {
+        const tileTokenResort = {};
+        let resort = false;
+
         for (const document of documents) {
+            if (document.documentName == 'Wall') continue;
             const { bottom, top } = this.#getDocumentLevel(document);
+
             const key = `${bottom}|${top}`;
+            let newBottom;
             if (key in remappedRanges) {
                 const [bottom, top] = remappedRanges[key].split('|').map(Number);
+
+                newBottom = bottom;
+                resort ||= document.documentName === 'Tile' || document.documentName === 'Token';
+
                 this.#setDocumentLevel(document, bottom, top);
+            }
+
+            if (document.documentName === 'Tile' || document.documentName === 'Token') {
+                tileTokenResort[newBottom ?? bottom] ??= [];
+                tileTokenResort[newBottom ?? bottom].push({ document, oldElevation: document.data.elevation });
+            }
+        }
+
+        if (resort) {
+            for (const documents of Object.values(tileTokenResort)) {
+                documents.sort(
+                    (d1, d2) =>
+                        (d1.document.data.oldElevation ?? 0) - (d2.document.oldElevation ?? 0) ||
+                        (d1.document.data.sort ?? 0) - (d2.document.data.sort ?? 0),
+                );
+                documents.forEach((d, i) => {
+                    d.document.data.sort = i;
+                });
             }
         }
     }
@@ -482,7 +578,7 @@ export class LevelsMigration {
         this.log = logging;
 
         //
-        // Check if this preset require levels migration
+        // Check if this preset requires levels migration
         //
         const containsLevelsMetadata = preset.metadata?.levels;
         if (containsLevelsMetadata) return;
@@ -609,7 +705,6 @@ export class LevelsMigration {
                         data.levels = createdLevels.filter((l) => l.elevation.top >= minElevation).map((l) => l.id);
                     }
                 } else {
-                    // console.log('HERE', data.texture.src, createdLevels);
                     data.levels = createdLevels.filter((l) => l.elevation.bottom >= bottom).map((l) => l.id);
                     // data.levels = level.aboveLevels; // TODO confirm if the above logic ^ is a good substitute for this line
                 }
@@ -635,6 +730,9 @@ export class LevelsMigration {
                     )
                     .map((l) => l.id);
                 data.levels = includeLevels;
+                if (!includeLevels.length) {
+                    console.log('Unmatched wall', { documentName, document, bottom, top });
+                }
                 delete data.flags?.['wall-height'];
             } else {
                 const { bottom, top } = this.#getDocumentLevel(document);
@@ -735,32 +833,5 @@ export class LevelsMigration {
 
         console.info('Levels - Migrated ' + migratedCount + ' drawings to regions ');
         return migratedCount;
-    }
-
-    static #roundTopElevation(preset) {
-        const round = function ({ documentName, data }) {
-            if (documentName === 'Wall') {
-                const top = parseFloat(data.flags?.['wall-height']?.top) ?? Infinity;
-                if (top % 10 === 9) data.flags['wall-height'].top = top + 1;
-                return;
-            }
-            if (documentName === 'Region') {
-                if (data.elevation % 10 === 9) data.elevation += 1;
-                return;
-            }
-
-            if (documentName === 'Tile') {
-                const top = parseFloat(data.flags?.levels?.rangeTop ?? data.elevation);
-                if (top % 10 === 9) {
-                    if ('elevation' in data) data.elevation += 1;
-                    else foundry.utils.setProperty(data, 'flags.levels.rangeTop', top + 1);
-                }
-            }
-        };
-
-        preset.data.forEach((d) => {
-            round({ documentName: preset.documentName, data: d });
-        });
-        preset.attached?.forEach((att) => round(att));
     }
 }
