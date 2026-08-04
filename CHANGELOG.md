@@ -1,3 +1,9 @@
+# 2.8.5
+
+- New **Drag Upload** setting added: `Overwrite Matching Names`
+    - When enabled dragged in files which match names of existing files will overwrite them.
+- Fixed **Drag Upload** incompatibility with **ForgeVTT**
+
 # 2.8.4
 
 - Fixed MassEdit.importScenes(...) API generating malformed tags

@@ -8,7 +8,7 @@ export async function uploadFiles(files, subDirectory = 'canvas', singlePreset =
 
     const uploadedFiles = [];
 
-    for (const file of files) {
+    for (let file of files) {
         const name = file.name;
 
         let type;
@@ -25,14 +25,22 @@ export async function uploadFiles(files, subDirectory = 'canvas', singlePreset =
         let existingNames;
         try {
             const result = await checkCreateUploadFolder(path, source, bucket);
-            existingNames = result.files ?? [];
+            existingNames = result.files?.map((f) => decodeURIComponent(f)) ?? [];
             if (typeof ForgeVTT !== undefined) existingNames = existingNames.map((f) => f.split('/').pop());
         } catch (e) {
             console.error(e);
             continue;
         }
 
-        if (overwrite) file.name = getUniqueFileName(existingNames ?? [], file.name);
+        if (!overwrite) {
+            const uniqueName = getUniqueFileName(existingNames ?? [], file.name);
+            if (!uniqueName === file.name) {
+                file = new File([file], uniqueName, {
+                    type: file.type,
+                    lastModified: file.lastModified,
+                });
+            }
+        }
 
         const result = await foundry.applications.apps.FilePicker.upload(
             source,
@@ -60,12 +68,11 @@ async function checkCreateUploadFolder(target, source, bucket) {
     // Attempt to browse the folder
     // If the operation throws an error it means the folder does not exists and we will attempt to create it
     try {
-        await foundry.applications.apps.FilePicker.implementation.browse(
+        return await foundry.applications.apps.FilePicker.implementation.browse(
             source,
             target,
             source === 's3' ? { bucket } : {},
         );
-        return true;
     } catch (e) {
         const folders = target.split('/');
         if (folders.length > 1)
