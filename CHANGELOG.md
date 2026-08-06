@@ -1,3 +1,7 @@
+# 3.2.5
+
+- Fixed `Linker Menu` failing to open when `Scene Controls: Preset Button` setting is disabled
+
 # 3.2.4
 
 - New **Drag Upload** setting added: `Overwrite Matching Names`

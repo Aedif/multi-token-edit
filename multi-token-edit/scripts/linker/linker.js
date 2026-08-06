@@ -677,7 +677,6 @@ export class LinkerAPI {
             else if (d.shapes) d.shapes.forEach((shape) => shape.drawShape(dg));
             else if (d.documentName === 'Wall') {
                 const c = d.toObject().c;
-                console.log(c);
                 dg.moveTo(c[0], c[1]).lineTo(c[2], c[3]);
             } else {
                 const { x, y, width, height } = getDataBounds(d.documentName, d.toObject());
