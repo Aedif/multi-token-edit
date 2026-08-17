@@ -1,3 +1,15 @@
+# 3.3.0
+
+- New button added to **Token Configuration** form: **Vehicle Options**
+    - Opens a menu containing following options:
+        - Lock Automatic Rotation
+            - Prevent automatic token rotation during movement actions
+        - Ignore `Link Token` Behavior
+            - Prevent automatic token linking via region `Token Link` behavior
+        - Vehicle Movement
+            - Set movement action to 'Displace', ignoring walls and stairs
+- When spawning a multi-level prefab onto a scene containing only the default level, the default level will be overwritten if a matching level is found within the prefab
+
 # 3.2.5
 
 - Fixed `Linker Menu` failing to open when `Scene Controls: Preset Button` setting is disabled

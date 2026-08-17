@@ -1,0 +1,20 @@
+<div>
+    <div class="form-group">
+        <label>Lock Automatic Rotation</label>
+        <input type="checkbox" name="lockAutoRotation" {{checked lockAutoRotation}}>
+        <p class="hint">Prevent automatic token rotation during movement actions.</p>
+    </div>
+
+    <div class="form-group">
+        <label>Ignore `Link Token` Behavior</label>
+        <input type="checkbox" name="disableLinkToken" {{checked disableLinkToken}}>
+        <p class="hint">Prevent automatic token linking via region `Token Link` behavior.</p>
+    </div>
+
+    <div class="form-group">
+        <label>Vehicle Movement</label>
+        <input type="checkbox" name="displace" {{checked displace}}>
+        <p class="hint">Sets movement to 'Displace', ignoring walls and stairs.</p>
+    </div>
+
+</div>

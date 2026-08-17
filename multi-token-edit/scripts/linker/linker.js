@@ -20,6 +20,19 @@ export function registerLinkerHooks() {
         Hooks.on(`preUpdate${name}`, preUpdate);
         Hooks.on(`update${name}`, update);
         Hooks.on(`delete${name}`, _delete);
+        Hooks.on('preMoveToken', (token, movement) => {
+            if (token.getFlag(MODULE_ID, 'lockAutoRotation')) movement.autoRotate = false;
+        });
+        Hooks.on('renderTokenConfig', async (app, html, options, context) => {
+            const { insertTokenConfigVehicleOptionsButtons } = await import('./vehicleOptions.js');
+            insertTokenConfigVehicleOptionsButtons(app, html);
+        });
+        Hooks.on('renderTokenHUD', async (hud, html, options, context) => {
+            if (!game.user.isGM || !LinkerAPI.getLinks(hud.document)?.length) return;
+            if (!LinkerAPI.getLinkedDocuments(hud.document).some((d) => d.documentName === 'Region')) return;
+            const { insertVehicleOptionToggle } = await import('./vehicleOptions.js');
+            insertVehicleOptionToggle(hud, html);
+        });
     });
 
     // UNDO linked document delete operation

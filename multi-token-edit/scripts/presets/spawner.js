@@ -6,7 +6,12 @@ import { DataTransformer } from '../data/transformer.js';
 import { applyRandomization } from '../randomizer/randomizerUtils.js';
 import { Scenescape } from '../scenescape/scenescape.js';
 import { MassTransformer } from '../transformer.js';
-import { createDocuments, executeScript, updateEmbeddedDocumentsViaGM } from '../utils.js';
+import {
+    createDocuments,
+    deleteEmbeddedDocumentsViaGM,
+    executeScript,
+    updateEmbeddedDocumentsViaGM,
+} from '../utils.js';
 import { PresetStorage } from './collection.js';
 import { Migrator } from './migration/migration.js';
 import { LevelsMigration } from './migration/migrationLevels.js';
@@ -313,7 +318,7 @@ export class Spawner {
         const remappedLevelIds = {};
 
         for (const level of levels) {
-            const exists = scene.levels.find((l) => {
+            let exists = scene.levels.find((l) => {
                 l = l.toObject();
                 return l.elevation.bottom === level.elevation.bottom && l.elevation.top === level.elevation.top;
             });
@@ -338,6 +343,21 @@ export class Spawner {
                     level.visibility.levels = level.visibility.levels.map((id) => remappedLevelIds[id] ?? id);
                 }
             }
+
+            let deleteDefaultId;
+            if (
+                scene.levels.size === 1 &&
+                scene.levels.contents[0].id === Scene.metadata.defaultLevelId &&
+                toCreate.find((l) => l.elevation.bottom === 0 && toMerge.length === 0)
+            ) {
+                const zeroLevel = toCreate.find((l) => l.elevation.bottom === 0);
+                const defaultLevel = scene.levels.contents[0].toObject();
+                deleteDefaultId = defaultLevel._id;
+                delete defaultLevel.elevation;
+                delete defaultLevel._id;
+                delete defaultLevel.name;
+                foundry.utils.mergeObject(zeroLevel, defaultLevel);
+            }
             await createDocuments('Level', toCreate, sceneId, { keepId: true });
 
             const sortUpdates = scene.levels.sorted
@@ -346,6 +366,8 @@ export class Spawner {
                     return { _id: l.id, sort: i };
                 });
             await updateEmbeddedDocumentsViaGM('Level', sortUpdates, {}, scene);
+
+            if (deleteDefaultId) await deleteEmbeddedDocumentsViaGM('Level', [deleteDefaultId], {}, scene);
         }
 
         // Levels with matching elevation need to have their visibility merged

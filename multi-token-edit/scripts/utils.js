@@ -348,6 +348,19 @@ export async function updateEmbeddedDocumentsViaGM(documentName, updates, contex
     }
 }
 
+export async function deleteEmbeddedDocumentsViaGM(documentName, ids, context, scene) {
+    if (game.user.isGM) {
+        return scene.deleteEmbeddedDocuments(documentName, ids);
+    } else {
+        const message = {
+            handlerName: 'document',
+            args: { sceneId: scene.id, documentName, ids, context },
+            type: 'DELETE',
+        };
+        game.socket.emit(`module.${MODULE_ID}`, message);
+    }
+}
+
 export function isResponsibleGM() {
     return game.users.filter((u) => u.active && u.isGM).sort((a, b) => b.role - a.role || a.id.compare(b.id))[0]
         ?.isSelf;

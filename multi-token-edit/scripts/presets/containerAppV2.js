@@ -48,7 +48,7 @@ export async function registerPresetHandlebarPartials() {
             thumbnail: preset.thumbnail,
             icons: preset.icons,
         };
-        Hooks.call('MassEdit.renderPreset', contextualPreset);
+        Hooks.call('MassEdit.renderPreset', contextualPreset, context.data.root.appId);
 
         return context.fn({ ...context.hash, preset: contextualPreset }); // render the block with given context
     });
@@ -415,10 +415,12 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
             hookName: 'getPresetContextOptions',
             parentClassHook: false,
             onOpen: this._onRightClickPreset.bind(this),
+            fixed: true,
         });
 
         this._createContextMenu(this._getFolderContextOptions, '.folder header', {
             hookName: 'getPresetFolderContextOptions',
+            fixed: true,
         });
     }
 
@@ -963,6 +965,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
                 createEnabled,
                 externalTrees,
                 browser,
+                appId: this.id,
             },
         );
         $(this.form).find('.item-list').html(content);
