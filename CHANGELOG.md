@@ -1,3 +1,7 @@
+# 3.3.1
+
+- Virtual Directory tag edit fix
+
 # 3.3.0
 
 - New button added to **Token Configuration** form: **Vehicle Options**

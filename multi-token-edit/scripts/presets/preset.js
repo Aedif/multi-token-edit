@@ -452,7 +452,7 @@ export class VirtualFilePreset extends Preset {
     }
 
     async update(update) {
-        if (!update.hasOwnProperty('tags') || !update.hasOwnProperty('documentName')) return;
+        if (!update.hasOwnProperty('tags') && !update.hasOwnProperty('documentName')) return;
         if (update.tags) this.tags = update.tags;
         if (update.documentName) this.documentName = update.documentName;
         this.#processIndexUpdate();
