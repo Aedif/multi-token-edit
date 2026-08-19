@@ -9,6 +9,8 @@
         - Vehicle Movement
             - Set movement action to 'Displace', ignoring walls and stairs
 - When spawning a multi-level prefab onto a scene containing only the default level, the default level will be overwritten if a matching level is found within the prefab
+- Fixed Virtual Directory updates failing after disabling `Auto-Save Index`
+- Virtual Directory presets now permit documentName changes
 
 # 3.2.5
 
