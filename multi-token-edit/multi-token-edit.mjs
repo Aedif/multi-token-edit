@@ -207,7 +207,7 @@ Hooks.once('init', () => {
             game.socket.emit(`module.${MODULE_ID}`, message);
         } else if (message.handlerName === 'document' && message.type === 'DELETE') {
             if (!isResponsibleGM()) return;
-            game.scenes.get(args.sceneId).deleteEmbeddedDocuments(args.embedName, args.ids);
+            await game.scenes.get(args.sceneId).deleteEmbeddedDocuments(args.documentName, args.ids);
         } else if (message.handlerName === 'document' && message.type === 'RESOLVE') {
             resolveCreateDocumentRequest(args);
         }

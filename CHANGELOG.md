@@ -1,3 +1,16 @@
+# 2.9.0
+
+- New button added to **Token Configuration** form: **Vehicle Options**
+    - Opens a menu containing following options:
+        - Lock Automatic Rotation
+            - Prevent automatic token rotation during movement actions
+        - Ignore `Link Token` Behavior
+            - Prevent automatic token linking via region `Token Link` behavior
+        - Vehicle Movement
+            - Set movement action to 'Displace', ignoring walls and stairs
+- Fixed Virtual Directory updates failing after disabling `Auto-Save Index`
+- Virtual Directory presets now permit documentName changes
+
 # 2.8.5
 
 - New **Drag Upload** setting added: `Overwrite Matching Names`

@@ -153,6 +153,7 @@ export class PresetBrowser extends PresetContainerV2 {
         } else context.lastSearch = '';
 
         context.createEnabled = Boolean(this.configApp);
+        context.appId = this.id;
         context.isPlaceable = SUPPORTED_PLACEABLES.includes(this.documentName) || this.documentName === 'ALL';
         context.allowDocumentSwap = UI_DOCS.includes(this.documentName) && !this.configApp;
         context.docLockActive = PresetBrowser.CONFIG.documentLock === this.documentName;

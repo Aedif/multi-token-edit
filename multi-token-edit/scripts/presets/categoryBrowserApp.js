@@ -16,6 +16,7 @@ export async function openCategoryBrowser(
     {
         retainState = false,
         name = 'Category Browser',
+        icon = '',
         alignment = 'left',
         searchBar = false,
         globalSearch = false,
@@ -38,6 +39,7 @@ export async function openCategoryBrowser(
 
     new CategoryBrowserApplication(menu, {
         name,
+        icon,
         retainState,
         alignment,
         searchBar,
@@ -178,6 +180,7 @@ class CategoryBrowserApplication extends PresetContainerV2 {
             globalSearch: this._globalSearch,
             lastSearch: this._lastSearch,
             editEnabled: this.options.editEnabled,
+            appId: this.id,
         });
     }
 
