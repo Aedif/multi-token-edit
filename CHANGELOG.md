@@ -1,3 +1,8 @@
+# 2.9.1
+
+- New Hook `MassEdit.preImportFauxScene`
+    - Called before FauxScene is imported, returning `false` will cancel the import
+
 # 2.9.0
 
 - New button added to **Token Configuration** form: **Vehicle Options**
