@@ -7,7 +7,7 @@ import { PresetPackFolder, PresetStorage, VirtualFileFolder } from './collection
 import { PresetBrowser } from './browser/browserApp.js';
 import { Preset } from './preset.js';
 import { Spawner } from './spawner.js';
-import { exportPresets, isVideo, sceneNotFoundError } from './utils.js';
+import { callAsyncHook, exportPresets, isVideo, sceneNotFoundError } from './utils.js';
 import { FileIndexer, IndexerForm } from './fileIndexer.js';
 import { PresetConfig } from './editApp.js';
 
@@ -567,8 +567,12 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
     async _onImportFauxScene(item) {
         const preset = await this._retrieveSinglePreset(item.dataset.uuid, true);
         const scene = await fromUuid(preset.data[0].uuid);
-        if (scene) game.scenes.importFromCompendium(scene.compendium, scene.id, {}, { renderSheet: true });
-        else sceneNotFoundError(preset);
+
+        if (scene) {
+            const allowed = await callAsyncHook('MassEdit.preImportFauxScene', scene);
+            if (allowed === false) return;
+            game.scenes.importFromCompendium(scene.compendium, scene.id, {}, { renderSheet: true });
+        } else sceneNotFoundError(preset);
     }
 
     async _onSpawnScene(item) {

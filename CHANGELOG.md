@@ -1,3 +1,8 @@
+# 3.3.2
+
+- New Hook `MassEdit.preImportFauxScene`
+    - Called before FauxScene is imported, returning `false` will cancel the import
+
 # 3.3.1
 
 - Virtual Directory tag edit fix
