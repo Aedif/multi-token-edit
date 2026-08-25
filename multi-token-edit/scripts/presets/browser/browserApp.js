@@ -18,8 +18,12 @@ import { buildQueryMatcher } from '../search.js';
 
 const SEARCH_MIN_CHAR = 2;
 
-export function openPresetBrowser(documentName) {
-    new PresetBrowser(null, null, documentName).render(true);
+export function openPresetBrowser(options = {}) {
+    let presetBrowser;
+    if (typeof options === 'string') presetBrowser = new PresetBrowser({ documentName: options });
+    else presetBrowser = new PresetBrowser(options);
+    presetBrowser.render(true);
+    return presetBrowser;
 }
 
 export class PresetBrowser extends PresetContainerV2 {
@@ -53,9 +57,8 @@ export class PresetBrowser extends PresetContainerV2 {
         PresetBrowser.lastSearch = val;
     }
 
-    constructor(configApp, callback, documentName, options = {}) {
+    constructor({ configApp, callback, documentName, query, closeOnPick = false } = {}, options = {}) {
         super({}, { ...options, sortable: true, duplicatable: true });
-        this.callback = callback;
 
         if (!configApp && UI_DOCS.includes(documentName)) {
             this.documentName = PresetBrowser.CONFIG.documentLock || documentName;
@@ -64,7 +67,9 @@ export class PresetBrowser extends PresetContainerV2 {
             this.documentName = documentName || this.configApp.documentName;
         }
 
-        this.lastSearch = PresetBrowser.CONFIG.persistentSearch ? PresetBrowser.lastSearch : '';
+        this.lastSearch = query || PresetBrowser.lastSearch;
+        this.callback = callback;
+        this.closeOnPick = closeOnPick;
         PresetBrowser._type = this.documentName;
     }
 
@@ -147,7 +152,7 @@ export class PresetBrowser extends PresetContainerV2 {
         context.externalTrees = this.tree.externalTrees;
         context.sortable = true;
 
-        if (PresetBrowser.CONFIG.persistentSearch && this.lastSearch) {
+        if (this.lastSearch?.trim()) {
             this._onSearch(this.lastSearch, { render: false });
             context.lastSearch = this.lastSearch;
         } else context.lastSearch = '';
@@ -155,7 +160,7 @@ export class PresetBrowser extends PresetContainerV2 {
         context.createEnabled = Boolean(this.configApp);
         context.appId = this.id;
         context.isPlaceable = SUPPORTED_PLACEABLES.includes(this.documentName) || this.documentName === 'ALL';
-        context.allowDocumentSwap = UI_DOCS.includes(this.documentName) && !this.configApp;
+        context.allowDocumentSwap = UI_DOCS.includes(this.documentName) && !this.configApp && !this.callback;
         context.docLockActive = PresetBrowser.CONFIG.documentLock === this.documentName;
         context.layerSwitchActive = PresetBrowser.CONFIG.switchLayer;
         context.autoScale = PresetBrowser.CONFIG.autoScale;
@@ -179,8 +184,6 @@ export class PresetBrowser extends PresetContainerV2 {
 
         context.documents = UI_DOCS;
         context.currentDocument = this.documentName;
-
-        context.callback = Boolean(this.callback);
 
         return context;
     }
@@ -1181,7 +1184,7 @@ export function registerPresetBrowserHooks() {
                 presetForm.close();
                 return;
             }
-            new PresetBrowser(null, null, documentName).render(true);
+            new PresetBrowser({ documentName }).render(true);
         };
 
         foundry.applications.handlebars

@@ -172,7 +172,6 @@ export function registerSettings() {
         type: Object,
         default: {
             dropdownDocuments: [],
-            persistentSearch: true,
             automaticLevelMigration: true, // 06/2026, to be removed
             sortMode: 'manual', // manual | alphabetical
             autoScale: true,

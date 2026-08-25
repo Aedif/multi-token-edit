@@ -827,7 +827,9 @@ export const WithBaseMassEditForm = (cls) => {
          * Open Preset browser with a relationship to this app
          */
         static _openPresetBrowser() {
-            this.linkedPresetForm = new PresetBrowser(this, null, this.documentName, {
+            this.linkedPresetForm = new PresetBrowser({
+                configApp: this,
+                documentName: this.documentName,
                 left: this.position.left - 370,
                 top: this.position.top,
                 preventPositionOverride: true,

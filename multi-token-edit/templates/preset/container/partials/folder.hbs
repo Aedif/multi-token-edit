@@ -7,14 +7,14 @@
     <ol class="folder-items">
         {{#each folder.children as |node|}}
         {{#if (meRender node.folder context=../context)}}
-            {{>me-preset-folder node=node folder=node.folder createEnabled=../createEnabled callback=../callback sortable=../sortable draggable=../draggable}}
+            {{>me-preset-folder node=node folder=node.folder createEnabled=../createEnabled sortable=../sortable draggable=../draggable}}
         {{/if}}
         {{/each}}
     </ol>
     <ol class="preset-items">
         {{#each folder.presets as |preset|}}
         {{#if (meRender this context=../context)}}
-            {{>me-preset preset=preset createEnabled=../createEnabled callback=../callback sortable=../sortable}}
+            {{>me-preset preset=preset createEnabled=../createEnabled sortable=../sortable}}
         {{/if}}
         {{/each}}
     </ol>

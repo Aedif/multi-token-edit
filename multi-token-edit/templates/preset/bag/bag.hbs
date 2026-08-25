@@ -16,11 +16,11 @@
         <div class="item-list folder-items" data-tooltip-direction="RIGHT" data-tooltip-class="preset-tooltip">
             {{#if containedPresets}}
                 {{#if displayLabels}}<label class="static-label" style="margin-top: 0;">CONTAINED</label>{{/if}}
-                {{>me-presets-content createEnabled=False callback=../callback presets=containedPresets}}
+                {{>me-presets-content createEnabled=False presets=containedPresets}}
             {{/if}}
             {{#if searchedPresets}}
                 {{#if displayLabels}}<label class="static-label" style="margin-top: 0;">SEARCH RESULTS</label>{{/if}}    
-                {{>me-presets-content createEnabled=False callback=../callback presets=searchedPresets}}
+                {{>me-presets-content createEnabled=False presets=searchedPresets}}
             {{/if}}
         </div>
     </div>

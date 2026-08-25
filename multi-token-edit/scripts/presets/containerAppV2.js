@@ -111,7 +111,21 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
      * @param {HTMLElement} target
      * @returns
      */
-    static _onItemClick(event, target) {
+    static async _onItemClick(event, target) {
+        if (this.callback) {
+            const uuid = target.dataset.uuid;
+            if (!uuid) return;
+
+            const preset = await this._retrieveSinglePreset(uuid, false);
+            if (!preset) return;
+
+            await preset.load({ callHook: true, force: true });
+
+            this.callback(preset);
+            if (this.closeOnPick) this.close(true);
+            return;
+        }
+
         if (event.detail === 1) {
             itemSelect(event, target);
         } else {
@@ -411,6 +425,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
     }
 
     _contextMenu() {
+        if (this.callback) return;
         this._createContextMenu(this._getItemContextOptions, '.item', {
             hookName: 'getPresetContextOptions',
             parentClassHook: false,
@@ -903,6 +918,7 @@ export class PresetContainerV2 extends foundry.applications.api.HandlebarsApplic
     // TODO confirm if this is correct way to handle APP v2
     async close(options = {}) {
         this._endPreview();
+        if (this.callback) this.lastSearch = '';
         return super.close(options);
     }
 

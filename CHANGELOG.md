@@ -1,3 +1,13 @@
+# 3.3.3
+
+- `MassEdit.openPresetBrowser(...)`
+    - Now accepts an object with additional options:
+        - `documentName` - type of document to be shown
+        - `query` - query to pre-populate browser search with
+        - `callback` - function to be called with the clicked/selected preset
+        - `closeOnPick` - flag to close the browser upon preset click/select
+    - Now returns the app instance
+
 # 3.3.2
 
 - New Hook `MassEdit.preImportFauxScene`

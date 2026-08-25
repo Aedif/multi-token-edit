@@ -1,4 +1,4 @@
-{{#mePreset preset=preset sortable=sortable createEnabled=createEnabled callback=callback}}
+{{#mePreset preset=preset sortable=sortable createEnabled=createEnabled}}
 <li class="item item-s flexrow{{#if sortable}} sortable{{/if}}{{#if preset.virtual}} virtual{{/if}}{{#if preset.insertClass}} {{preset.insertClass}}{{/if}}" data-uuid="{{preset.uuid}}" name="{{preset.name}}" draggable="true" data-doc-name="{{preset.documentName}}" data-action="itemClick" 
   data-tooltip="{{preset.name}} {{#if preset.tags.length}}<div class='mass-edit-tags tags'>{{#each preset.tags}}<span>{{this}}</span>{{/each}}</div>{{/if}}">
     
@@ -12,10 +12,6 @@
     {{#if createEnabled}}
     <div class="item-control" data-action="presetUpdate"><a title="{{localize 'MassEdit.presets.update-preset'}}"><i class="fas fa-sync"></i></a></div>
     &nbsp;
-    {{/if}}
-    {{#if callback}}
-    &nbsp;
-    <div class="item-control" data-action="applyPreset"><a title="{{localize 'MassEdit.common.apply'}}"><i class="fa-solid fa-arrow-right-to-arc"></i></a></div>
     {{/if}}
   </div>
   <div class="icon">
