@@ -64,8 +64,7 @@ export const WithBaseMassEditForm = (cls) => {
          * @returns
          */
         static async massUpdateObject(event, control) {
-            control = $(control);
-            if (!control.data('action')) return;
+            if (!control.dataset.action) return;
 
             // Gather up all named fields that have mass-edit-checkbox checked
             const selectedFields = this.getSelectedFields();
@@ -88,7 +87,7 @@ export const WithBaseMassEditForm = (cls) => {
 
             // Search and Select mode
             if (this.options.massSelect) {
-                return performMassSearch(control.data('action'), this.documentName, selectedFields, {
+                return performMassSearch(control.dataset.action, this.documentName, selectedFields, {
                     scope: this.modUpdate ? this.modUpdateType : null,
                 });
             } else {
@@ -98,7 +97,7 @@ export const WithBaseMassEditForm = (cls) => {
                     selectedFields,
                     this.meObjects,
                     this.documentName,
-                    control.data('action'),
+                    control.dataset.action,
                 );
             }
         }

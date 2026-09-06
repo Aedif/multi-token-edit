@@ -1,3 +1,8 @@
+# 3.3.4
+
+- Fixed Mass-Token Permission edits
+- Included BW Stair migration within Level's Migration
+
 # 3.3.3
 
 - `MassEdit.openPresetBrowser(...)`

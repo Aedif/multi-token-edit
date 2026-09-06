@@ -636,7 +636,10 @@ export class LevelsMigration {
                         .filter((l) => l.elevation.bottom === bottom)
                         .map((l) => l.id);
                     const regionTopLevels = createdLevels.filter((l) => l.elevation.bottom === top).map((l) => l.id);
-                    if (script.includes('CONFIG.Levels.handlers.RegionHandler.stair(')) {
+                    if (
+                        script.includes('CONFIG.Levels.handlers.RegionHandler.stair(') ||
+                        script.includes('/* v13-stair-confirm */')
+                    ) {
                         levelsToAdd.push(...regionBottomLevels, ...regionTopLevels);
                     } else if (script.includes('CONFIG.Levels.handlers.RegionHandler.stairDown')) {
                         levelsToAdd.push(...regionBottomLevels, ...regionTopLevels);

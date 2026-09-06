@@ -6,109 +6,106 @@ import { WithBaseMassEditForm, WithMassEditFormApplication, WithMassEditFormAppl
 // ==================================
 
 export const WithMassEditForm = (cls) => {
-  const base = WithBaseMassEditForm(cls);
-  if (cls.BASE_APPLICATION === foundry.applications.api.ApplicationV2) {
-    return WithMassEditFormApplicationV2(base);
-  } else {
-    return WithMassEditFormApplication(base);
-  }
+    const base = WithBaseMassEditForm(cls);
+    if (cls.BASE_APPLICATION === foundry.applications.api.ApplicationV2) {
+        return WithMassEditFormApplicationV2(base);
+    } else {
+        return WithMassEditFormApplication(base);
+    }
 };
 
 export const WithMassConfig = (documentName = 'NONE') => {
-  let cls;
-  const sheets = CONFIG[documentName]?.sheetClasses;
-  if (!sheets || documentName === 'Actor') {
-    const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
-    cls = HandlebarsApplicationMixin(ApplicationV2);
-  } else {
-    cls = Object.values(Object.values(sheets).pop() ?? {}).pop()?.cls;
-  }
-
-  const MEF = WithMassEditForm(cls);
-
-  class MassConfig extends MEF {
-    constructor(target, docs, options) {
-      super(target.document ? target.document : target, docs, options);
+    let cls;
+    const sheets = CONFIG[documentName]?.sheetClasses;
+    if (!sheets || documentName === 'Actor') {
+        const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
+        cls = HandlebarsApplicationMixin(ApplicationV2);
+    } else {
+        cls = Object.values(Object.values(sheets).pop() ?? {}).pop()?.cls;
     }
-  }
 
-  const constructorName = `Mass${documentName}Config`;
-  Object.defineProperty(MassConfig.prototype.constructor, 'name', { value: constructorName });
-  return MassConfig;
+    const MEF = WithMassEditForm(cls);
+
+    class MassConfig extends MEF {
+        constructor(target, docs, options) {
+            super(target.document ? target.document : target, docs, options);
+        }
+    }
+
+    const constructorName = `Mass${documentName}Config`;
+    Object.defineProperty(MassConfig.prototype.constructor, 'name', { value: constructorName });
+    return MassConfig;
 };
 
 export const WithMassPermissions = () => {
-  let MEF = WithMassEditForm(DocumentOwnershipConfig);
+    let MEF = WithMassEditForm(foundry.applications.apps.DocumentOwnershipConfig);
 
-  class MassPermissions extends MEF {
-    constructor(target, docs, options = {}) {
-      // Generate common permissions
-      const data = getData(docs[0]);
-      const commonData = foundry.utils.flattenObject(data.ownership);
+    class MassPermissions extends MEF {
+        constructor(target, docs, options = {}) {
+            // Generate common permissions
+            const data = getData(docs[0]);
+            const commonData = foundry.utils.flattenObject(data.ownership);
 
-      const metaLevels = CONST.DOCUMENT_META_OWNERSHIP_LEVELS;
+            const metaLevels = CONST.DOCUMENT_META_OWNERSHIP_LEVELS;
 
-      // Permissions are only present if they differ from default, for simplicity simple add them before comparing
-      const addMissingPerms = function (perms) {
-        game.users.forEach((u) => {
-          if (!(u.id in perms)) perms[u.id] = metaLevels.DEFAULT;
-        });
+            // Permissions are only present if they differ from default, for simplicity add them before comparing
+            const addMissingPerms = function (perms) {
+                game.users.forEach((u) => {
+                    if (!(u.id in perms)) perms[u.id] = metaLevels.DEFAULT;
+                });
 
-        if (!('default' in perms)) perms.default = metaLevels.DEFAULT;
-      };
-      addMissingPerms(commonData);
+                if (!('default' in perms)) perms.default = metaLevels.DEFAULT;
+            };
+            addMissingPerms(commonData);
 
-      for (let i = 1; i < docs.length; i++) {
-        const data = getData(docs[i]);
-        const flatData = foundry.utils.flattenObject(data.ownership);
-        addMissingPerms(flatData);
-        const diff = foundry.utils.flattenObject(foundry.utils.diffObject(commonData, flatData));
-        for (const k of Object.keys(diff)) {
-          delete commonData[k];
+            for (let i = 1; i < docs.length; i++) {
+                const data = getData(docs[i]);
+                const flatData = foundry.utils.flattenObject(data.ownership);
+                addMissingPerms(flatData);
+                const diff = foundry.utils.flattenObject(foundry.utils.diffObject(commonData, flatData));
+                for (const k of Object.keys(diff)) {
+                    delete commonData[k];
+                }
+            }
+
+            options.commonData = commonData;
+            options.massPermissions = true;
+            options.simplified = true;
+            options.callback = (data) => this._updateObject(null, data);
+            super(target, docs, options);
         }
-      }
 
-      options.commonData = commonData;
-      options.massPermissions = true;
+        async _updateObject(event, formData) {
+            const selectedFields = this.getSelectedFields(formData);
 
-      super(target, docs, options);
-    }
+            const metaLevels = CONST.DOCUMENT_META_OWNERSHIP_LEVELS;
 
-    async _updateObject(event, formData) {
-      const selectedFields = this.getSelectedFields(formData);
+            if (foundry.utils.isEmpty(selectedFields)) return;
 
-      const metaLevels = CONST.DOCUMENT_META_OWNERSHIP_LEVELS;
+            const ids = new Set();
+            const updates = [];
+            for (const d of this.meObjects) {
+                if (!ids.has(d.id)) {
+                    const data = getData(d);
+                    const ownership = foundry.utils.deepClone(data.ownership);
 
-      if (foundry.utils.isEmpty(selectedFields)) return;
+                    for (let [user, level] of Object.entries(selectedFields)) {
+                        if (level === metaLevels.DEFAULT) delete ownership[user];
+                        else ownership[user] = level;
+                    }
 
-      const ids = new Set();
-      const updates = [];
-      for (const d of this.meObjects) {
-        if (!ids.has(d.id)) {
-          const data = getData(d);
-          const ownership = foundry.utils.deepClone(data.ownership);
+                    ids.add(d.id);
+                    updates.push({ _id: d.id, ownership: _replace(ownership) });
+                }
+            }
 
-          for (let [user, level] of Object.entries(selectedFields)) {
-            if (level === metaLevels.DEFAULT) delete ownership[user];
-            else ownership[user] = level;
-          }
-
-          ids.add(d.id);
-          updates.push({ _id: d.id, ownership: ownership });
+            this.meObjects[0].constructor.updateDocuments(updates, { noHook: true, render: false });
         }
-      }
 
-      this.meObjects[0].constructor.updateDocuments(updates, {
-        diff: false,
-        recursive: false,
-        noHook: true,
-      });
+        get title() {
+            return `Mass-${this.documentName} PERMISSIONS EDIT [ ${this.meObjects.length} ]`;
+        }
     }
 
-    get title() {
-      return `Mass-${this.documentName} PERMISSIONS EDIT [ ${this.meObjects.length} ]`;
-    }
-  }
-
-  return MassPermissions;
+    return MassPermissions;
 };
