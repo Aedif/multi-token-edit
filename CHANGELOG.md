@@ -1,3 +1,7 @@
+# 3.3.5
+
+- Levels migration improvements
+
 # 3.3.4
 
 - Fixed Mass-Token Permission edits

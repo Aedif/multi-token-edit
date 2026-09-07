@@ -337,7 +337,7 @@ export class LevelsMigration {
         rangesToCreate = [...rangesToCreate].sort(keySort);
 
         if (this.log) {
-            this.#logHeader('Step 4: Flat Range Merge');
+            this.#logHeader('Step 4a: Flat Range Merge');
             if (rangesToCreate.length) {
                 rangesToCreate.forEach((k) => {
                     console.info(k);
@@ -388,6 +388,15 @@ export class LevelsMigration {
             }
         }
 
+        if (rangesToCreate.length) {
+            rangesToCreate = this.#splitOverlappingRanges(rangesToCreate);
+
+            this.#logHeader('Step 4b: Overlapping Range Split');
+            rangesToCreate.forEach((k) => {
+                console.info(k);
+            });
+        }
+
         // ===============================================
         // Look for roof elevators/stairs, if they exist without a level to be created, lets insert that level
         if (rangesToCreate.length) {
@@ -434,6 +443,36 @@ export class LevelsMigration {
         }
 
         return { rangesToCreate, remappedRanges, orphanedDocuments, documentsWithElevation };
+    }
+
+    static #splitOverlappingRanges(rangeStrings) {
+        const ranges = rangeStrings.map((s) => s.split('|').map(Number));
+
+        const resultSet = new Set();
+
+        for (const [bottom, top] of ranges) {
+            const cutPoints = new Set();
+
+            for (const [oBottom, oTop] of ranges) {
+                const sharesBottom = oBottom === bottom;
+                const sharesTop = oTop === top;
+
+                if (!sharesBottom && !sharesTop) continue;
+
+                if (oBottom > bottom && oBottom < top) cutPoints.add(oBottom);
+                if (oTop > bottom && oTop < top) cutPoints.add(oTop);
+            }
+
+            const points = [bottom, ...Array.from(cutPoints).sort((a, b) => a - b), top];
+            for (let i = 0; i < points.length - 1; i++) {
+                resultSet.add(`${points[i]}|${points[i + 1]}`);
+            }
+        }
+
+        return Array.from(resultSet)
+            .map((s) => s.split('|').map(Number))
+            .sort((a, b) => a[0] - b[0] || a[1] - b[1])
+            .map(([a, b]) => `${a}|${b}`);
     }
 
     static async #generateRegionSurfaces(preset, levels, documents) {
@@ -624,6 +663,24 @@ export class LevelsMigration {
         for (const document of documentsWithElevation) {
             const { documentName, data } = document;
             if (documentName === 'Region') {
+                if (
+                    (data.behaviors.find((b) => b.type === 'adjustDarknessLevel') &&
+                        !data.behaviors.find((b) => b.type === 'executeScript')) ||
+                    data.behaviors.find((b) => b.type === 'multi-token-edit.linkToken')
+                ) {
+                    const includedLevels = createdLevels
+                        .filter(
+                            (l) =>
+                                Number.between(l.elevation.bottom, data.elevation.bottom, data.elevation.top) &&
+                                Number.between(l.elevation.top, data.elevation.bottom, data.elevation.top),
+                        )
+                        .map((l) => l.id);
+                    if (includedLevels.length) {
+                        data.levels = includedLevels;
+                        continue;
+                    }
+                }
+
                 const levelsToAdd = [];
                 const elevation = {};
                 const behaviorsToRemove = [];
@@ -743,6 +800,21 @@ export class LevelsMigration {
             }
 
             delete data.flags?.levels;
+        }
+
+        // TODO: Remove once Foundry has fixed infinite token movement loop when entering a change level behavior
+        if (
+            documentsWithElevation.find(
+                (d) => d.documentName === 'Region' && d.data.behaviors.find((b) => b.type === 'changeLevel'),
+            )
+        ) {
+            for (const document of [...documentsWithElevation, ...orphanedDocuments]) {
+                if (document.documentName === 'Region') {
+                    document.data.behaviors.forEach((b) => {
+                        if (b.type === 'multi-token-edit.linkToken') b.disabled = true;
+                    });
+                }
+            }
         }
 
         const allLevels = createdLevels.map((l) => l.id);
