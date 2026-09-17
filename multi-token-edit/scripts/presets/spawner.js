@@ -270,6 +270,7 @@ export class Spawner {
     }
 
     static async _mergeCreateLevels(docToData, levels, sceneId) {
+        if (canvas.scene?.id === sceneId && game.Levels3DPreview?._active) return;
         const scene = game.scenes.get(sceneId);
 
         // Special handling for presets with 1 or less levels

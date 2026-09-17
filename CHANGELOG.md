@@ -1,3 +1,7 @@
+# 3.3.6
+
+- Fixed presets always spawning at elevation **0** on 3D Canvas scenes
+
 # 3.3.5
 
 - Levels migration improvements

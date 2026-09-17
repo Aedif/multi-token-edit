@@ -400,9 +400,7 @@ export class DataTransformer {
             if (this._3dActive) {
                 const depth = data.flags?.['levels-3d-preview']?.depth;
                 if (depth != null && depth != '') data.flags['levels-3d-preview'].depth = depth * scale;
-                if (data.elevation != null) {
-                    data.elevation *= scale;
-                }
+                if (data.elevation != null) data.elevation *= scale;
             }
         }
 
