@@ -184,6 +184,7 @@ export class Brush {
             transform: this.transform,
             snapToGrid: this.snap,
             scaleToGrid: this.scaleToGrid,
+            automaticLevelMigration: true,
         });
     }
 

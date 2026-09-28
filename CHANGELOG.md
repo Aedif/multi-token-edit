@@ -1,3 +1,7 @@
+# 3.3.7
+
+- Fixed levels/core migration being skipped for presets spawned through brush
+
 # 3.3.6
 
 - Fixed presets always spawning at elevation **0** on 3D Canvas scenes
