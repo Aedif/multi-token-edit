@@ -626,13 +626,14 @@ export class MassTransformer {
             set: function () {},
         });
         if (documentName === 'AmbientLight' || documentName === 'AmbientSound') {
-            Object.defineProperty(placeable.controls.border, 'visible', {
-                get: function () {
-                    return true;
-                },
-                set: function () {},
-            });
-            placeable.controls.alpha = 0.4;
+            if (placeable.controls?.border)
+                Object.defineProperty(placeable.controls.border, 'visible', {
+                    get: function () {
+                        return true;
+                    },
+                    set: function () {},
+                });
+            if (placeable.controls) placeable.controls.alpha = 0.4;
         }
         if (placeable.controlIcon) {
             placeable.controlIcon.alpha = 0.4;
@@ -669,11 +670,15 @@ export class MassTransformer {
             const previewContainer = { documentName, data };
 
             if (!restrict?.includes(documentName)) {
-                previewContainer.preview = this._createPreview.call(
-                    canvas.getLayerByEmbeddedName(documentName),
-                    foundry.utils.deepClone(data),
-                );
-                previewDocuments.add(documentName);
+                try {
+                    previewContainer.preview = this._createPreview.call(
+                        canvas.getLayerByEmbeddedName(documentName),
+                        foundry.utils.deepClone(data),
+                    );
+                    previewDocuments.add(documentName);
+                } catch (e) {
+                    console.error(e);
+                }
             }
 
             previews.push(previewContainer);

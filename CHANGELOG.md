@@ -1,3 +1,8 @@
+# 3.3.8
+
+- Fixed error thrown when attempting Mass `AmbientLight` search
+- Improved levels migration script to catch and resolve poorly defined bottom/top ranges
+
 # 3.3.7
 
 - Fixed levels/core migration being skipped for presets spawned through brush

@@ -12,7 +12,7 @@ import {
     wildcardStringMatch,
 } from '../scripts/utils.js';
 import { GeneralDataAdapter, TokenDataAdapter } from '../scripts/data/adapters.js';
-import { LAYER_MAPPINGS, showMassEdit } from './multiConfig.js';
+import { showMassEdit } from './multiConfig.js';
 import { DataTransformer } from '../scripts/data/transformer.js';
 
 export function performMassSearch(
@@ -62,7 +62,7 @@ export function performMassSearch(
 }
 
 function performMassSearchScene(scene, documentName, selectedFields, found) {
-    const docs = Array.from(scene[LAYER_MAPPINGS[documentName]]);
+    const docs = Array.from(scene.getEmbeddedCollection(documentName));
     performDocSearch(docs, documentName, selectedFields, found);
 }
 

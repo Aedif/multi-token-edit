@@ -867,18 +867,24 @@ export class LevelsMigration {
                 toDelete.push(drawing);
                 continue;
             }
-            const bottom = drawing.elevation;
-            const top = drawing.flags.levels?.rangeTop;
-            const elevatorFloors = drawing.flags.levels?.elevatorFloors;
+            let bottom = drawing.elevation;
+            let top = drawing.flags.levels?.rangeTop;
             if (!Number.isNumeric(bottom) || !Number.isNumeric(top)) continue;
-            const name = drawing.text || 'Levels Stair ' + parseFloat(bottom) + '-' + parseFloat(top);
+
+            bottom = parseFloat(bottom);
+            top = parseFloat(top);
+            if (top < bottom) [bottom, top] = [top, bottom];
+
+            const name = drawing.text || 'Levels Stair ' + bottom + '-' + top;
             const regionData = foundry.utils.deepClone(baseRegionData);
             regionData.name = name;
-            regionData.elevation.bottom = parseFloat(bottom);
-            regionData.elevation.top = parseFloat(top) + 1;
+            regionData.elevation.bottom = bottom;
+            regionData.elevation.top = top + 1;
 
             const scriptSource = regionSourceCodeMapping[drawing.flags.levels?.drawingMode.toString()];
             if (!scriptSource) continue;
+
+            const elevatorFloors = drawing.flags.levels?.elevatorFloors;
             regionData.behaviors[0].system.source = scriptSource.replace('elevatorData', `"${elevatorFloors}"`);
             regionData.shapes = [
                 {

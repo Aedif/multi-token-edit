@@ -53,9 +53,9 @@ globalThis.MassEdit = {
     FileIndexer: FileIndexerAPI,
     recoverPresetIndex: PresetStorage._recoverIndex.bind(PresetStorage),
     exportPresets: PresetStorage.exportPresets,
-    importScenes: async () => {
+    importScenes: async (options = {}) => {
         const { importScenes } = await import('./scripts/presets/fauxSceneImporter.js');
-        return importScenes();
+        return importScenes((options = {}));
     },
     tileToRegion,
 };

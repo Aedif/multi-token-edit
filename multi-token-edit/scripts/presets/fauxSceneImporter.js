@@ -4,8 +4,12 @@ import { Preset } from './preset.js';
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
-export function importScenes() {
-    new CompendiumSelector().render(true);
+export function importScenes({ sceneCollection, meCollection } = {}) {
+    if (sceneCollection && meCollection) {
+        new FauxSceneImporter(sceneCollection, meCollection).render(true);
+    } else {
+        new CompendiumSelector().render(true);
+    }
 }
 
 class CompendiumSelector extends HandlebarsApplicationMixin(ApplicationV2) {
