@@ -346,6 +346,7 @@ export class Spawner {
             }
 
             let deleteDefaultId;
+            let zeroLevelId;
             if (
                 scene.levels.size === 1 &&
                 scene.levels.contents[0].id === Scene.metadata.defaultLevelId &&
@@ -354,6 +355,7 @@ export class Spawner {
                 const zeroLevel = toCreate.find((l) => l.elevation.bottom === 0);
                 const defaultLevel = scene.levels.contents[0].toObject();
                 deleteDefaultId = defaultLevel._id;
+                zeroLevelId = zeroLevel._id;
                 delete defaultLevel.elevation;
                 delete defaultLevel._id;
                 delete defaultLevel.name;
@@ -368,7 +370,14 @@ export class Spawner {
                 });
             await updateEmbeddedDocumentsViaGM('Level', sortUpdates, {}, scene);
 
-            if (deleteDefaultId) await deleteEmbeddedDocumentsViaGM('Level', [deleteDefaultId], {}, scene);
+            if (deleteDefaultId) {
+                // The default level is being replaced by the preset's elevation 0 level, so the scene's
+                // initial level needs to point to it instead of the soon to be deleted default level
+                if (scene._source.initialLevel === deleteDefaultId && game.user.isGM) {
+                    await scene.update({ initialLevel: zeroLevelId });
+                }
+                await deleteEmbeddedDocumentsViaGM('Level', [deleteDefaultId], {}, scene);
+            }
         }
 
         // Levels with matching elevation need to have their visibility merged
