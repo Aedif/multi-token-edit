@@ -1,3 +1,7 @@
+# 3.3.9
+
+- Fixed default scene level getting deleted upon spawning of a level containing preset
+
 # 3.3.8
 
 - Fixed error thrown when attempting Mass `AmbientLight` search

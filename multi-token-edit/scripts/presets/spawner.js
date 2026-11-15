@@ -14,7 +14,6 @@ import {
 } from '../utils.js';
 import { PresetStorage } from './collection.js';
 import { Migrator } from './migration/migration.js';
-import { LevelsMigration } from './migration/migrationLevels.js';
 import { Preset } from './preset.js';
 import {
     applyTaggerTagRules,
@@ -338,6 +337,26 @@ export class Spawner {
                 });
             }
         }
+
+        let defaultLevelUpdate;
+        if (
+            toCreate.length &&
+            scene.levels.size === 1 &&
+            scene.levels.contents[0].id === Scene.metadata.defaultLevelId &&
+            toMerge.length === 0
+        ) {
+            const zeroLevel = toCreate.find((l) => l.elevation.bottom === 0);
+            if (zeroLevel) {
+                const defaultLevelId = scene.levels.contents[0].id;
+                for (const [fromId, toId] of Object.entries(remappedLevelIds)) {
+                    if (toId === zeroLevel._id) remappedLevelIds[fromId] = defaultLevelId;
+                }
+                toCreate.splice(toCreate.indexOf(zeroLevel), 1);
+                defaultLevelUpdate = { _id: defaultLevelId, elevation: zeroLevel.elevation };
+                if (zeroLevel.name) defaultLevelUpdate.name = zeroLevel.name;
+            }
+        }
+
         if (toCreate.length) {
             for (const level of toCreate) {
                 if (level.visibility?.levels?.length) {
@@ -345,30 +364,17 @@ export class Spawner {
                 }
             }
 
-            let deleteDefaultId;
-            if (
-                scene.levels.size === 1 &&
-                scene.levels.contents[0].id === Scene.metadata.defaultLevelId &&
-                toCreate.find((l) => l.elevation.bottom === 0 && toMerge.length === 0)
-            ) {
-                const zeroLevel = toCreate.find((l) => l.elevation.bottom === 0);
-                const defaultLevel = scene.levels.contents[0].toObject();
-                deleteDefaultId = defaultLevel._id;
-                delete defaultLevel.elevation;
-                delete defaultLevel._id;
-                delete defaultLevel.name;
-                foundry.utils.mergeObject(zeroLevel, defaultLevel);
-            }
             await createDocuments('Level', toCreate, sceneId, { keepId: true });
+        }
+        if (defaultLevelUpdate) await updateEmbeddedDocumentsViaGM('Level', [defaultLevelUpdate], {}, scene);
 
+        if (toCreate.length || defaultLevelUpdate) {
             const sortUpdates = scene.levels.sorted
                 .sort((a, b) => a.elevation.bottom - b.elevation.bottom || a.elevation.top - b.elevation.top)
                 .map((l, i) => {
                     return { _id: l.id, sort: i };
                 });
             await updateEmbeddedDocumentsViaGM('Level', sortUpdates, {}, scene);
-
-            if (deleteDefaultId) await deleteEmbeddedDocumentsViaGM('Level', [deleteDefaultId], {}, scene);
         }
 
         // Levels with matching elevation need to have their visibility merged
